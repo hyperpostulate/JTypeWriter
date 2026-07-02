@@ -1,0 +1,36 @@
+/* Sepia theme */
+.root {
+    -toolbar-bg: #e8dcc8;
+    -toolbar-border: #c4b69c;
+    -toolbar-text: #5b4636;
+    -toolbar-text-muted: #8b7355;
+    -toolbar-hover: #d4c5ae;
+    -toolbar-separator-color: #b8a88a;
+    -stats-text: #8b7355;
+    -welcome-bg: #f4ecd8;
+    -welcome-text: #5b4636;
+    -welcome-muted: #7a6348;
+    -welcome-card-bg: #e8dcc8;
+    -welcome-button-bg: #8b7355;
+    -welcome-button-text: #f4ecd8;
+    -welcome-button-hover: #a08a6a;
+}
+
+.editor-area {
+    -fx-control-inner-background: #f4ecd8;
+    -fx-text-fill: #5b4636;
+    -fx-highlight-fill: #d4c5ae;
+    -fx-highlight-text-fill: #5b4636;
+}
+
+.editor-area .scroll-bar:vertical .thumb {
+    -fx-background-color: #c4b69c;
+}
+
+.editor-area .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #b8a88a;
+}
+
+.editor-area .caret {
+    -fx-stroke: #5b4636;
+}

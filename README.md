@@ -1,2 +1,219 @@
 # JTypeWriter
-A distraction-free text editor.
+
+A distraction-free text editor built with Java 25, Spring Boot 3.4, and JavaFX 24.
+
+---
+
+## English
+
+### Overview
+
+JTypeWriter is a minimal desktop text editor designed for focused writing. It removes all distractions and provides a clean, typewriter-inspired experience.
+
+### Features
+
+- **Minimal Interface** — Full-screen editor with no visual clutter. Toolbar toggles with `Ctrl+T`.
+- **Focus Modes** — Line focus (`Ctrl+Shift+F`) and Paragraph focus (`Ctrl+Shift+P`) dim everything except the active line or paragraph.
+- **YOLO Mode** (`Ctrl+Shift+Y`) — Disables backspace and delete keys. Write forward only.
+- **Typewriter Sound** — Authentic mechanical typewriter keystroke audio, toggleable from the toolbar.
+- **Themes** — Dark, Light, and Sepia. Cycle with `Ctrl+Shift+T`.
+- **Live Statistics** — Word count, character count (with/without spaces), line count, keystroke count, and session duration displayed in the bottom bar.
+- **Date & Time** — Current date and time shown in the bottom bar.
+- **Language Support** — English, Turkish, German, French, Italian, Spanish. Auto-detects system locale; toggle with the toolbar language button.
+- **Auto-save Prompt** — On close, prompts to save unsaved changes.
+- **Font Size Control** — Adjustable font size (`Ctrl++` / `Ctrl+-` / `Ctrl+0`).
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+T` | Toggle toolbar |
+| `Ctrl+Shift+T` | Cycle theme (Dark/Light/Sepia) |
+| `Ctrl+Shift+F` | Line focus mode |
+| `Ctrl+Shift+P` | Paragraph focus mode |
+| `Ctrl+Shift+Y` | YOLO mode (no deletion) |
+| `Ctrl++` | Increase font size |
+| `Ctrl+-` | Decrease font size |
+| `Ctrl+0` | Reset font size |
+| `Ctrl+O` | Open file |
+| `Ctrl+S` | Save / Save As |
+| `Escape` | Exit fullscreen |
+
+### Tech Stack
+
+| Component | Version |
+|---|---|
+| Java | 25 |
+| Spring Boot | 3.4.4 |
+| JavaFX | 24 |
+| Build Tool | Maven |
+| UI Layout | FXML + CSS |
+
+### Prerequisites
+
+- JDK 25+
+- Maven 3.9+
+
+### Build & Run
+
+```bash
+# Build
+mvn clean package
+
+# Run
+java -jar target/jtypewriter-0.0.1-SNAPSHOT.jar
+
+# Or via Maven plugin
+mvn javafx:run
+```
+
+### Project Structure
+
+```
+src/main/java/org/mesutormanli/jtypewriter/
+├── JTypeWriterApp.java              # Spring Boot entry point
+├── SpringBootFxApplication.java     # JavaFX Application bridge
+├── audio/
+│   └── TypewriterSound.java         # Keystroke audio player
+├── config/
+│   └── AppConfig.java               # Spring configuration
+├── locale/
+│   ├── Language.java                # EN / TR enum
+│   ├── LocaleManager.java           # Language state & observers
+│   └── Messages.java                # All UI strings (EN/TR)
+├── service/
+│   └── FileService.java             # File open/save operations
+├── stats/
+│   └── SessionStats.java            # Word/char/keystroke counters
+└── ui/
+    ├── MainController.java          # Main controller & shortcuts
+    ├── MainStage.java               # Stage setup
+    ├── WelcomeDialog.java           # Start-up shortcut guide
+    ├── component/
+    │   ├── EditorArea.java          # Custom TextArea (focus/YOLO)
+    │   ├── StatsBar.java            # Bottom stats bar with clock
+    │   └── ToolbarView.java         # Toggleable toolbar
+    └── theme/
+        ├── Theme.java               # LIGHT / DARK / SEPIA enum
+        └── ThemeManager.java        # CSS theme switcher
+```
+
+### Audio Credits
+
+The typewriter keystroke sound is sourced from [typewriter.vim](https://github.com/AndrewRadev/typewriter.vim) (MIT license), originally collected in [lifepillar/typewriter-sounds](https://github.com/lifepillar/typewriter-sounds).
+
+### Author
+
+**Mesut ORMANLI** — [mesutormanli@gmail.com](mailto:mesutormanli@gmail.com)
+
+### License
+
+This project is licensed under the GNU General Public License v3.0 — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Türkçe
+
+### Genel Bakış
+
+JTypeWriter, odaklanmış yazma deneyimi için tasarlanmış minimal bir masaüstü metin editörüdür. Tüm dikkat dağıtıcı unsurları ortadan kaldırır ve temiz, daktilo ilhamlı bir deneyim sunar.
+
+### Özellikler
+
+- **Minimal Arayüz** — Görsel karmaşa olmayan tam ekran editör. Toolbar `Ctrl+T` ile açılıp kapanır.
+- **Odak Modları** — Satır odak (`Ctrl+Shift+F`) ve Paragraf odak (`Ctrl+Shift+P`) aktif satır/paragraf dışındaki her şeyi karartır.
+- **YOLO Modu** (`Ctrl+Shift+Y`) — Backspace ve delete tuşlarını devre dışı bırakır. Sadece ileriye doğru yazın.
+- **Daktilo Sesi** — Gerçek mekanik daktilo tuş vuruşu sesi, toolbar'dan açılıp kapatılabilir.
+- **Temalar** — Koyu, Açık ve Sepya. `Ctrl+Shift+T` ile döngüsel geçiş.
+- **Canlı İstatistikler** — Kelime sayısı, karakter sayısı (boşluksuz), satır sayısı, tuş vuruşu sayısı ve oturum süresi alt çubukta görüntülenir.
+- **Tarih & Saat** — Geçerli tarih ve saat alt çubukta gösterilir.
+- **Dil Desteği** — İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Sistem dilini otomatik algılar; toolbar'daki dil butonu ile değiştirilir.
+- **Kapatmada Kaydetme Uyarısı** — Kapatılırken kaydedilmemiş değişiklikler varsa kullanıcıyı uyarır.
+- **Font Boyutu Ayarı** — Ayarlanabilir font boyutu (`Ctrl++` / `Ctrl+-` / `Ctrl+0`).
+
+### Klavye Kısayolları
+
+| Kısayol | Eylem |
+|---|---|
+| `Ctrl+T` | Toolbar aç/kapa |
+| `Ctrl+Shift+T` | Tema değiştir (Koyu/Açık/Sepya) |
+| `Ctrl+Shift+F` | Satır odak modu |
+| `Ctrl+Shift+P` | Paragraf odak modu |
+| `Ctrl+Shift+Y` | YOLO modu (silme devre dışı) |
+| `Ctrl++` | Font büyüt |
+| `Ctrl+-` | Font küçült |
+| `Ctrl+0` | Font sıfırla |
+| `Ctrl+O` | Dosya aç |
+| `Ctrl+S` | Kaydet / Farklı kaydet |
+| `Escape` | Tam ekrandan çık |
+
+### Teknoloji Altyapısı
+
+| Bileşen | Sürüm |
+|---|---|
+| Java | 25 |
+| Spring Boot | 3.4.4 |
+| JavaFX | 24 |
+| Derleme Aracı | Maven |
+| UI Düzeni | FXML + CSS |
+
+### Gereksinimler
+
+- JDK 25+
+- Maven 3.9+
+
+### Derleme & Çalıştırma
+
+```bash
+# Derleme
+mvn clean package
+
+# Çalıştırma
+java -jar target/jtypewriter-0.0.1-SNAPSHOT.jar
+
+# Veya Maven plugin ile
+mvn javafx:run
+```
+
+### Proje Yapısı
+
+```
+src/main/java/org/mesutormanli/jtypewriter/
+├── JTypeWriterApp.java              # Spring Boot giriş noktası
+├── SpringBootFxApplication.java     # JavaFX Application köprüsü
+├── audio/
+│   └── TypewriterSound.java         # Tuş sesi oynatıcı
+├── config/
+│   └── AppConfig.java               # Spring yapılandırması
+├── locale/
+│   ├── Language.java                # EN / TR enum
+│   ├── LocaleManager.java           # Dil durumu ve dinleyiciler
+│   └── Messages.java                # Tüm UI metinleri (EN/TR)
+├── service/
+│   └── FileService.java             # Dosya aç/kaydet işlemleri
+├── stats/
+│   └── SessionStats.java            # Kelime/karakter/tuş sayaçları
+└── ui/
+    ├── MainController.java          # Ana kontrolör ve kısayollar
+    ├── MainStage.java               # Pencere ayarları
+    ├── WelcomeDialog.java           # Başlangıç kısayol rehberi
+    ├── component/
+    │   ├── EditorArea.java          # Özel TextArea (odak/YOLO)
+    │   ├── StatsBar.java            # Alt istatistik çubuğu (saatli)
+    │   └── ToolbarView.java         # Aç/kapatılabilir toolbar
+    └── theme/
+        ├── Theme.java               # LIGHT / DARK / SEPIA enum
+        └── ThemeManager.java        # CSS tema yöneticisi
+```
+
+### Ses Katkısı
+
+Daktilo tuş sesi [typewriter.vim](https://github.com/AndrewRadev/typewriter.vim) projesinden alınmıştır (MIT lisansı), [lifepillar/typewriter-sounds](https://github.com/lifepillar/typewriter-sounds) deposunda toplanmıştır.
+
+### Yazar
+
+**Mesut ORMANLI** — [mesutormanli@gmail.com](mailto:mesutormanli@gmail.com)
+
+### Lisans
+
+Bu proje GNU Genel Kamu Lisansı v3.0 ile lisanslanmıştır — ayrıntılar için [LICENSE](LICENSE) dosyasına bakın.

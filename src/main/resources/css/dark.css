@@ -1,0 +1,36 @@
+/* Dark theme */
+.root {
+    -toolbar-bg: #1e1e1e;
+    -toolbar-border: #333333;
+    -toolbar-text: #cccccc;
+    -toolbar-text-muted: #888888;
+    -toolbar-hover: #333333;
+    -toolbar-separator-color: #444444;
+    -stats-text: #777777;
+    -welcome-bg: #252526;
+    -welcome-text: #d4d4d4;
+    -welcome-muted: #999999;
+    -welcome-card-bg: #1e1e1e;
+    -welcome-button-bg: #0e639c;
+    -welcome-button-text: #ffffff;
+    -welcome-button-hover: #1177bb;
+}
+
+.editor-area {
+    -fx-control-inner-background: #1a1a1a;
+    -fx-text-fill: #d4d4d4;
+    -fx-highlight-fill: #264f78;
+    -fx-highlight-text-fill: #d4d4d4;
+}
+
+.editor-area .scroll-bar:vertical .thumb {
+    -fx-background-color: #444444;
+}
+
+.editor-area .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #555555;
+}
+
+.editor-area .caret {
+    -fx-stroke: #d4d4d4;
+}

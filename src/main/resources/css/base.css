@@ -1,0 +1,205 @@
+/* Base styles - shared across themes */
+
+.editor-area {
+    -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+    -fx-font-size: 16px;
+    -fx-padding: 24px;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-width: 0;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.editor-area .content {
+    -fx-padding: 24px;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+}
+
+.editor-area .scroll-pane {
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+}
+
+.editor-area .scroll-pane .viewport {
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+}
+
+.editor-area .scroll-bar:vertical {
+    -fx-pref-width: 8px;
+    -fx-background-color: transparent;
+}
+
+.editor-area .scroll-bar:vertical .thumb {
+    -fx-background-radius: 4px;
+}
+
+.editor-area .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+
+.editor-area .scroll-bar:horizontal {
+    -fx-pref-height: 0;
+}
+
+.editor-area:line-focus .content {
+    -fx-background-color: rgba(128, 128, 128, 0.03);
+}
+
+.editor-area:paragraph-focus .content {
+    -fx-background-color: rgba(128, 128, 128, 0.03);
+}
+
+.toolbar {
+    -fx-background-color: -toolbar-bg;
+    -fx-border-color: -toolbar-border;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.toolbar-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-border-insets: 0;
+    -fx-padding: 4px 10px;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+    -fx-text-fill: -toolbar-text;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.toolbar-button:focused,
+.toolbar-button:armed,
+.toolbar-button:pressed {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.toolbar-button:hover {
+    -fx-background-color: -toolbar-hover;
+    -fx-background-radius: 4px;
+}
+
+.toolbar-lang {
+    -fx-background-color: -toolbar-hover;
+    -fx-background-insets: 0;
+    -fx-border-color: -toolbar-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-padding: 4px 12px;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-text-fill: -toolbar-text;
+    -fx-background-radius: 4px;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.toolbar-lang:focused,
+.toolbar-lang:armed,
+.toolbar-lang:pressed {
+    -fx-background-color: -toolbar-hover;
+    -fx-background-insets: 0;
+    -fx-border-color: -toolbar-border;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.toolbar-lang:hover {
+    -fx-background-color: -toolbar-separator-color;
+}
+
+.toolbar-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: -toolbar-text-muted;
+    -fx-padding: 0 4px;
+}
+
+.toolbar-separator {
+    -fx-text-fill: -toolbar-separator-color;
+    -fx-padding: 0 2px;
+}
+
+.stats-bar {
+    -fx-background-color: -toolbar-bg;
+    -fx-border-color: -toolbar-border;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.stats-left {
+    -fx-spacing: 8;
+    -fx-alignment: center-left;
+}
+
+.stats-right {
+    -fx-spacing: 8;
+    -fx-alignment: center-right;
+}
+
+.stats-clock {
+    -fx-font-size: 11px;
+    -fx-text-fill: -stats-text;
+    -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+}
+
+.stats-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -stats-text;
+    -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+}
+
+.welcome-root {
+    -fx-background-color: -welcome-bg;
+    -fx-border-color: -toolbar-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.welcome-title {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -welcome-text;
+    -fx-padding: 0 0 2px 0;
+}
+
+.welcome-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: -welcome-muted;
+    -fx-padding: 0 0 8px 0;
+}
+
+.welcome-shortcuts {
+    -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+    -fx-font-size: 13px;
+    -fx-text-fill: -welcome-text;
+    -fx-line-spacing: 6px;
+    -fx-padding: 14px 18px;
+    -fx-background-color: -welcome-card-bg;
+    -fx-background-radius: 6px;
+}
+
+.welcome-button {
+    -fx-font-size: 14px;
+    -fx-padding: 10px 40px;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+    -fx-text-fill: -welcome-button-text;
+    -fx-background-color: -welcome-button-bg;
+    -fx-border-width: 0;
+}
+
+.welcome-button:hover {
+    -fx-background-color: -welcome-button-hover;
+}
