@@ -67,6 +67,25 @@ java -jar target/jtypewriter-0.0.1-SNAPSHOT.jar
 mvn javafx:run
 ```
 
+### CI/CD
+
+This project uses **GitHub Actions** for continuous integration.
+
+**Workflow:** `.github/workflows/maven.yml`
+
+| Trigger | Event |
+|---|---|
+| `push` | `main` branch |
+| `pull_request` | `main` branch |
+
+The workflow runs on `ubuntu-latest` with JDK 25 (Temurin) and executes:
+
+```bash
+mvn -B package --file pom.xml
+```
+
+Build artifacts (JAR) are available as workflow outputs. Maven dependencies are cached to speed up subsequent runs.
+
 ### Project Structure
 
 ```
@@ -174,6 +193,25 @@ java -jar target/jtypewriter-0.0.1-SNAPSHOT.jar
 # Veya Maven plugin ile
 mvn javafx:run
 ```
+
+### CI/CD
+
+Bu proje sürekli entegrasyon için **GitHub Actions** kullanmaktadır.
+
+**Workflow:** `.github/workflows/maven.yml`
+
+| Tetikleyici | Olay |
+|---|---|
+| `push` | `main` branch |
+| `pull_request` | `main` branch |
+
+Workflow, `ubuntu-latest` üzerinde JDK 25 (Temurin) ile çalışır:
+
+```bash
+mvn -B package --file pom.xml
+```
+
+Derleme çıktıları (JAR) workflow çıktısı olarak indirilebilir. Maven bağımlılıkları sonraki çalıştırmalar için önbelleğe alınır.
 
 ### Proje Yapısı
 
