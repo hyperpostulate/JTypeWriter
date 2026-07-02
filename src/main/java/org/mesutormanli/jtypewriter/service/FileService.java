@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 @Component
@@ -67,6 +69,8 @@ public class FileService {
     public Optional<Path> saveFileAs(Stage stage, String content) {
         var chooser = new FileChooser();
         chooser.setTitle(messages.fileSaveTitle());
+        var timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+        chooser.setInitialFileName("JTypeWriter_" + timestamp + ".txt");
         chooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter(messages.fileTextFile(), "*.txt")
         );

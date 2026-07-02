@@ -203,3 +203,35 @@
 .welcome-button:hover {
     -fx-background-color: -welcome-button-hover;
 }
+
+.about-scroll {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+}
+
+.about-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+.about-description {
+    -fx-font-size: 13px;
+    -fx-text-fill: -welcome-text;
+    -fx-padding: 0 4px;
+    -fx-line-spacing: 2px;
+}
+
+.about-author {
+    -fx-font-size: 13px;
+    -fx-text-fill: -welcome-text;
+    -fx-font-weight: bold;
+}
+
+.about-email {
+    -fx-font-size: 13px;
+    -fx-text-fill: -welcome-button-bg;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+    -fx-underline: true;
+    -fx-cursor: hand;
+}

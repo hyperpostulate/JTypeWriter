@@ -45,6 +45,7 @@ public class MainController implements Initializable {
 
     public void setStage(Stage stage) {
         this.stage = stage;
+        toolbarView.setStage(stage);
     }
 
     @Override
@@ -57,9 +58,8 @@ public class MainController implements Initializable {
         toolbarView.setManaged(false);
         toolbarView.setEditorArea(editorArea);
 
-        toolbarView.setOnFontSizeChange(() -> {
-            editorArea.setStyle("-fx-font-size: " + toolbarView.getCurrentFontSize() + "px;");
-        });
+        toolbarView.setOnStyleChange(this::applyEditorStyle);
+        applyEditorStyle();
 
         editorArea.textProperty().addListener((obs, oldVal, newVal) -> {
             fileService.setCurrentContent(newVal);
@@ -120,6 +120,10 @@ public class MainController implements Initializable {
                         editorArea.toggleYoloMode();
                         event.consume();
                     }
+                    case C -> {
+                        toolbarView.cycleTextColor();
+                        event.consume();
+                    }
                 }
             }
         });
@@ -129,6 +133,15 @@ public class MainController implements Initializable {
         toolbarVisible = !toolbarVisible;
         toolbarView.setVisible(toolbarVisible);
         toolbarView.setManaged(toolbarVisible);
+    }
+
+    private void applyEditorStyle() {
+        var style = "-fx-font-size: " + toolbarView.getCurrentFontSize() + "px;";
+        var cssColor = toolbarView.getCurrentTextCssColor();
+        if (cssColor != null) {
+            style += " -fx-text-fill: " + cssColor + ";";
+        }
+        editorArea.setStyle(style);
     }
 
     private void cycleTheme() {
@@ -143,7 +156,6 @@ public class MainController implements Initializable {
     }
 
     private void resetFontSize() {
-        editorArea.setStyle("");
         toolbarView.changeFontSize(16 - toolbarView.getCurrentFontSize());
     }
 }

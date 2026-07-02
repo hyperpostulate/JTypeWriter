@@ -6,10 +6,13 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.audio.TypewriterSound;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.service.FileService;
+import org.mesutormanli.jtypewriter.ui.AboutDialog;
+import org.mesutormanli.jtypewriter.ui.theme.TextColor;
 import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +24,7 @@ public class ToolbarView extends HBox {
     private final TypewriterSound typewriterSound;
     private final Messages messages;
     private final LocaleManager localeManager;
+    private final AboutDialog aboutDialog;
     private EditorArea editorArea;
 
     private final Button openBtn;
@@ -30,26 +34,32 @@ public class ToolbarView extends HBox {
     private final Button yoloBtn;
     private final Button soundBtn;
     private final Button langBtn;
+    private final Button aboutBtn;
     private final Label themeLabel;
     private final Label focusLabel;
     private final Label yoloLabel;
     private final Label soundLabel;
+    private final Button colorBtn;
+    private final Label colorLabel;
     private final Label fontSizeLabel;
 
-    private Runnable onFontSizeChange;
+    private Runnable onStyleChange;
+    private Stage stage;
 
-    private int focusState; // 0=off, 1=line, 2=paragraph
+    private int focusState;
+    private TextColor textColorState = TextColor.DEFAULT;
     private boolean yoloState;
     private boolean soundState = true;
 
     public ToolbarView(FileService fileService, ThemeManager themeManager,
                        TypewriterSound typewriterSound, Messages messages,
-                       LocaleManager localeManager) {
+                       LocaleManager localeManager, AboutDialog aboutDialog) {
         this.fileService = fileService;
         this.themeManager = themeManager;
         this.typewriterSound = typewriterSound;
         this.messages = messages;
         this.localeManager = localeManager;
+        this.aboutDialog = aboutDialog;
         this.editorArea = null;
 
         getStyleClass().add("toolbar");
@@ -62,9 +72,14 @@ public class ToolbarView extends HBox {
         focusBtn = createButton(messages.toolbarFocus());
         yoloBtn = createButton(messages.toolbarYolo());
         soundBtn = createButton(messages.toolbarSound());
+        colorBtn = createButton(messages.toolbarColor());
+        colorLabel = new Label(textColorState.getDisplayName());
+        colorLabel.getStyleClass().add("toolbar-label");
         langBtn = new Button(messages.langCode());
         langBtn.getStyleClass().add("toolbar-lang");
         langBtn.setFocusTraversable(false);
+
+        aboutBtn = createButton(messages.toolbarAbout());
 
         themeLabel = new Label(themeManager.getCurrentTheme().getDisplayName(localeManager.getCurrent()));
         themeLabel.getStyleClass().add("toolbar-label");
@@ -80,13 +95,29 @@ public class ToolbarView extends HBox {
         fontSizeLabel = new Label("16");
         fontSizeLabel.getStyleClass().add("toolbar-label");
 
-        openBtn.setOnAction(e -> fileService.openFile(null));
-        saveBtn.setOnAction(e -> fileService.saveFile(null, editorArea != null ? editorArea.getText() : ""));
+        openBtn.setOnAction(e -> {
+            fileService.openFile(stage).ifPresent(path -> {
+                try {
+                    editorArea.setText(java.nio.file.Files.readString(path));
+                } catch (java.io.IOException ex) {
+                    // handled in service
+                }
+            });
+        });
+        saveBtn.setOnAction(e -> {
+            if (editorArea != null) {
+                fileService.saveFile(stage, editorArea.getText());
+            }
+        });
 
         themeBtn.setOnAction(e -> cycleTheme());
         focusBtn.setOnAction(e -> cycleFocus());
         yoloBtn.setOnAction(e -> toggleYolo());
         soundBtn.setOnAction(e -> toggleSound());
+        colorBtn.setOnAction(e -> cycleTextColor());
+        aboutBtn.setOnAction(e -> {
+            if (stage != null) aboutDialog.show(stage);
+        });
         langBtn.setOnAction(e -> toggleLanguage());
         fontSizeUpBtn.setOnAction(e -> changeFontSize(1));
         fontSizeDownBtn.setOnAction(e -> changeFontSize(-1));
@@ -105,8 +136,11 @@ public class ToolbarView extends HBox {
                 sep(),
                 soundBtn, soundLabel,
                 sep(),
+                colorBtn, colorLabel,
+                sep(),
                 fontSizeDownBtn, fontSizeLabel, fontSizeUpBtn,
                 spacer,
+                aboutBtn,
                 langBtn
         );
 
@@ -117,8 +151,12 @@ public class ToolbarView extends HBox {
         this.editorArea = editorArea;
     }
 
-    public void setOnFontSizeChange(Runnable callback) {
-        this.onFontSizeChange = callback;
+    public void setStage(Stage stage) {
+        this.stage = stage;
+    }
+
+    public void setOnStyleChange(Runnable callback) {
+        this.onStyleChange = callback;
     }
 
     public int getCurrentFontSize() {
@@ -133,6 +171,9 @@ public class ToolbarView extends HBox {
         focusBtn.setText(messages.toolbarFocus());
         yoloBtn.setText(messages.toolbarYolo());
         soundBtn.setText(messages.toolbarSound());
+        colorBtn.setText(messages.toolbarColor());
+        colorLabel.setText(textColorState.getDisplayName());
+        aboutBtn.setText(messages.toolbarAbout());
         langBtn.setText(messages.langCode());
         themeLabel.setText(themeManager.getCurrentTheme().getDisplayName(lang));
         updateFocusLabel();
@@ -206,8 +247,22 @@ public class ToolbarView extends HBox {
         var current = getCurrentFontSize();
         var newSize = Math.max(10, Math.min(48, current + delta));
         fontSizeLabel.setText(String.valueOf(newSize));
-        if (onFontSizeChange != null) {
-            onFontSizeChange.run();
+        notifyStyleChange();
+    }
+
+    public String getCurrentTextCssColor() {
+        return textColorState.getCssColor();
+    }
+
+    public void cycleTextColor() {
+        textColorState = textColorState.next();
+        colorLabel.setText(textColorState.getDisplayName());
+        notifyStyleChange();
+    }
+
+    private void notifyStyleChange() {
+        if (onStyleChange != null) {
+            onStyleChange.run();
         }
     }
 

@@ -74,6 +74,17 @@ public class Messages {
         };
     }
 
+    public String toolbarColor() {
+        return switch (l()) {
+            case EN -> "Color";
+            case TR -> "Renk";
+            case DE -> "Farbe";
+            case FR -> "Couleur";
+            case IT -> "Colore";
+            case ES -> "Color";
+        };
+    }
+
     public String toolbarFontUp() {
         return "A+";
     }
@@ -258,6 +269,7 @@ public class Messages {
                     Ctrl+Shift+F    Line Focus Mode
                     Ctrl+Shift+P    Paragraph Focus Mode
                     Ctrl+Shift+Y    YOLO Mode (no deletion)
+                    Ctrl+Shift+C    Cycle Text Color
                     Ctrl++          Increase Font Size
                     Ctrl+-          Decrease Font Size
                     Ctrl+0          Reset Font Size
@@ -271,6 +283,7 @@ public class Messages {
                     Ctrl+Shift+F    Satır odak modu
                     Ctrl+Shift+P    Paragraf odak modu
                     Ctrl+Shift+Y    YOLO modu (silme devre dışı)
+                    Ctrl+Shift+C    Metin rengini değiştir
                     Ctrl++          Font büyüt
                     Ctrl+-          Font küçült
                     Ctrl+0          Font sıfırla
@@ -284,6 +297,7 @@ public class Messages {
                     Ctrl+Shift+F    Zeilenfokus-Modus
                     Ctrl+Shift+P    Absatzfokus-Modus
                     Ctrl+Shift+Y    YOLO-Modus (kein Löschen)
+                    Ctrl+Shift+C    Textfarbe wechseln
                     Ctrl++          Schrift vergrößern
                     Ctrl+-          Schrift verkleinern
                     Ctrl+0          Schrift zurücksetzen
@@ -297,6 +311,7 @@ public class Messages {
                     Ctrl+Shift+F    Mode focus ligne
                     Ctrl+Shift+P    Mode focus paragraphe
                     Ctrl+Shift+Y    Mode YOLO (pas de suppression)
+                    Ctrl+Shift+C    Changer la couleur du texte
                     Ctrl++          Augmenter la police
                     Ctrl+-          Réduire la police
                     Ctrl+0          Réinitialiser la police
@@ -310,6 +325,7 @@ public class Messages {
                     Ctrl+Shift+F    Modalità focus riga
                     Ctrl+Shift+P    Modalità focus paragrafo
                     Ctrl+Shift+Y    Modalità YOLO (nessuna cancellazione)
+                    Ctrl+Shift+C    Cambia colore del testo
                     Ctrl++          Aumenta carattere
                     Ctrl+-          Riduci carattere
                     Ctrl+0          Reimposta carattere
@@ -323,6 +339,7 @@ public class Messages {
                     Ctrl+Shift+F    Modo enfoque línea
                     Ctrl+Shift+P    Modo enfoque párrafo
                     Ctrl+Shift+Y    Modo YOLO (sin eliminación)
+                    Ctrl+Shift+C    Cambiar color del texto
                     Ctrl++          Aumentar fuente
                     Ctrl+-          Disminuir fuente
                     Ctrl+0          Restablecer fuente
@@ -510,6 +527,62 @@ public class Messages {
             case FR -> "Fichier vide";
             case IT -> "File vuoto";
             case ES -> "Archivo vacío";
+        };
+    }
+
+    public String toolbarAbout() {
+        return switch (l()) {
+            case EN -> "About";
+            case TR -> "Hakkında";
+            case DE -> "Info";
+            case FR -> "À propos";
+            case IT -> "Informazioni";
+            case ES -> "Acerca de";
+        };
+    }
+
+    public String aboutDescription() {
+        return switch (l()) {
+            case EN -> "JTypeWriter is a distraction-free text editor designed for focused writing. "
+                    + "It features typewriter sound effects, focus modes, real-time statistics, "
+                    + "and multiple language support.";
+            case TR -> "JTypeWriter, odaklanarak yazma için tasarlanmış, dikkat dağıtmayan bir metin editörüdür. "
+                    + "Daktilo ses efektleri, odak modları, gerçek zamanlı istatistikler "
+                    + "ve çoklu dil desteği sunar.";
+            case DE -> "JTypeWriter ist ein ablenkungsfreier Texteditor für konzentriertes Schreiben. "
+                    + "Er bietet Schreibmaschinen-Soundeffekte, Fokusmodi, Echtzeit-Statistiken "
+                    + "und mehrsprachige Unterstützung.";
+            case FR -> "JTypeWriter est un éditeur de texte sans distraction conçu pour l'écriture ciblée. "
+                    + "Il comprend des effets sonores de machine à écrire, des modes de focus, "
+                    + "des statistiques en temps réel et un support multilingue.";
+            case IT -> "JTypeWriter è un editor di testo senza distrazioni progettato per la scrittura focalizzata. "
+                    + "Offre effetti sonori di macchina da scrivere, modalità focus, statistiche in tempo reale "
+                    + "e supporto multilingua.";
+            case ES -> "JTypeWriter es un editor de texto sin distracciones diseñado para la escritura concentrada. "
+                    + "Incluye efectos de sonido de máquina de escribir, modos de enfoque, estadísticas en tiempo real "
+                    + "y soporte multilingüe.";
+        };
+    }
+
+    public String aboutAuthor() {
+        return switch (l()) {
+            case EN -> "Author: Mesut ORMANLI";
+            case TR -> "Yazar: Mesut ORMANLI";
+            case DE -> "Autor: Mesut ORMANLI";
+            case FR -> "Auteur : Mesut ORMANLI";
+            case IT -> "Autore: Mesut ORMANLI";
+            case ES -> "Autor: Mesut ORMANLI";
+        };
+    }
+
+    public String aboutClose() {
+        return switch (l()) {
+            case EN -> "Close";
+            case TR -> "Kapat";
+            case DE -> "Schließen";
+            case FR -> "Fermer";
+            case IT -> "Chiudi";
+            case ES -> "Cerrar";
         };
     }
 }
