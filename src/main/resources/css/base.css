@@ -153,70 +153,104 @@
 
 .welcome-root {
     -fx-background-color: -welcome-bg;
-    -fx-border-color: -toolbar-border;
+    -fx-border-color: -welcome-border;
     -fx-border-width: 1px;
-    -fx-border-radius: 8px;
-    -fx-background-radius: 8px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-effect: dropshadow(gaussian, -welcome-shadow, 20, 0.25, 0, 4);
+    -fx-padding: 0;
 }
 
 .welcome-title {
-    -fx-font-size: 26px;
-    -fx-font-weight: bold;
+    -fx-font-size: 28px;
+    -fx-font-weight: 800;
     -fx-text-fill: -welcome-text;
     -fx-padding: 0 0 2px 0;
+    -fx-letter-spacing: 0.5px;
 }
 
 .welcome-subtitle {
     -fx-font-size: 13px;
     -fx-text-fill: -welcome-muted;
-    -fx-padding: 0 0 8px 0;
+    -fx-padding: 0 0 10px 0;
 }
 
 .welcome-shortcuts {
     -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
-    -fx-font-size: 13px;
+    -fx-font-size: 12px;
     -fx-text-fill: -welcome-text;
-    -fx-line-spacing: 6px;
-    -fx-padding: 14px 18px;
+    -fx-line-spacing: 7px;
+    -fx-padding: 16px 20px;
     -fx-background-color: -welcome-card-bg;
-    -fx-background-radius: 6px;
+    -fx-background-radius: 8px;
+    -fx-border-color: -welcome-card-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-max-width: 380px;
 }
 
 .welcome-button {
     -fx-font-size: 14px;
-    -fx-padding: 10px 40px;
-    -fx-background-radius: 6px;
+    -fx-font-weight: 600;
+    -fx-padding: 10px 44px;
+    -fx-background-radius: 8px;
     -fx-cursor: hand;
     -fx-text-fill: -welcome-button-text;
     -fx-background-color: -welcome-button-bg;
     -fx-border-width: 0;
+    -fx-effect: dropshadow(gaussian, -welcome-shadow, 8, 0.15, 0, 2);
+    -fx-transition: all 0.2s;
 }
 
 .welcome-button:hover {
     -fx-background-color: -welcome-button-hover;
+    -fx-effect: dropshadow(gaussian, -welcome-shadow, 12, 0.25, 0, 4);
+}
+
+.welcome-button:pressed {
+    -fx-background-color: -welcome-button-bg;
+    -fx-effect: dropshadow(gaussian, -welcome-shadow, 4, 0.1, 0, 1);
 }
 
 .about-scroll {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-border-width: 0;
+    -fx-padding: 0;
 }
 
 .about-scroll .viewport {
     -fx-background-color: transparent;
 }
 
+.about-scroll .scroll-bar:vertical {
+    -fx-pref-width: 8px;
+    -fx-background-color: transparent;
+}
+
+.about-scroll .scroll-bar:vertical .thumb {
+    -fx-background-radius: 4px;
+}
+
+.about-scroll .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+
 .about-description {
     -fx-font-size: 13px;
-    -fx-text-fill: -welcome-text;
+    -fx-text-fill: -welcome-muted;
     -fx-padding: 0 4px;
-    -fx-line-spacing: 2px;
+    -fx-line-spacing: 4px;
+    -fx-max-width: 380px;
+    -fx-text-alignment: center;
 }
 
 .about-author {
     -fx-font-size: 13px;
     -fx-text-fill: -welcome-text;
-    -fx-font-weight: bold;
+    -fx-font-weight: 600;
+    -fx-padding: 4px 0 0 0;
 }
 
 .about-email {
@@ -226,4 +260,8 @@
     -fx-padding: 0;
     -fx-underline: true;
     -fx-cursor: hand;
+}
+
+.about-email:hover {
+    -fx-text-fill: -welcome-button-hover;
 }

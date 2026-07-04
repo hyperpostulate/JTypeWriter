@@ -2,11 +2,16 @@ package org.mesutormanli.jtypewriter;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
+import static org.junit.jupiter.api.Assertions.*;
+
 class JTypeWriterAppTests {
 
     @Test
-    void appStarts() {
-        var mainMethod = JTypeWriterApp.class.getDeclaredMethods();
-        assert mainMethod.length > 0;
+    void hasMainMethod() {
+        var hasMain = Arrays.stream(JTypeWriterApp.class.getDeclaredMethods())
+                .anyMatch(m -> m.getName().equals("main"));
+        assertTrue(hasMain);
     }
 }

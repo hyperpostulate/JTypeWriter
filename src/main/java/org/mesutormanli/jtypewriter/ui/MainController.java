@@ -82,12 +82,16 @@ public class MainController implements Initializable {
                     }
                     case O -> {
                         fileService.openFile(stage).ifPresent(path -> {
-                            try {
-                                editorArea.setText(java.nio.file.Files.readString(path));
-                            } catch (java.io.IOException e) {
-                                // handled in service
-                            }
+                            editorArea.setText(fileService.getCurrentContent());
                         });
+                        event.consume();
+                    }
+                    case Z -> {
+                        editorArea.undo();
+                        event.consume();
+                    }
+                    case Y -> {
+                        editorArea.redo();
                         event.consume();
                     }
                     case S -> {

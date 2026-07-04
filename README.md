@@ -20,6 +20,7 @@ JTypeWriter is a minimal desktop text editor designed for focused writing. It re
 - **Date & Time** — Current date and time shown in the bottom bar.
 - **Language Support** — English, Turkish, German, French, Italian, Spanish. Auto-detects system locale; toggle with the toolbar language button. UI strings loaded via `ResourceBundle` from `.properties` files.
 - **Auto-save Prompt** — On close, prompts to save unsaved changes.
+- **Undo/Redo** — Full undo/redo support via toolbar buttons or `Ctrl+Z` / `Ctrl+Y`.
 - **Font Size Control** — Adjustable font size (`Ctrl++` / `Ctrl+-` / `Ctrl+0`).
 
 ### Keyboard Shortcuts
@@ -34,6 +35,8 @@ JTypeWriter is a minimal desktop text editor designed for focused writing. It re
 | `Ctrl+-` | Decrease font size |
 | `Ctrl+0` | Reset font size |
 | `Ctrl+O` | Open file |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` | Redo |
 | `Ctrl+S` | Save / Save As |
 | `Escape` | Exit fullscreen |
 
@@ -151,6 +154,7 @@ JTypeWriter, odaklanmış yazma deneyimi için tasarlanmış minimal bir masaüs
 - **Tarih & Saat** — Geçerli tarih ve saat alt çubukta gösterilir.
 - **Dil Desteği** — İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Sistem dilini otomatik algılar; toolbar'daki dil butonu ile değiştirilir. UI metinleri `ResourceBundle` ile `.properties` dosyalarından yüklenir.
 - **Kapatmada Kaydetme Uyarısı** — Kapatılırken kaydedilmemiş değişiklikler varsa kullanıcıyı uyarır.
+- **Geri Al/İleri Al** — Toolbar butonları veya `Ctrl+Z` / `Ctrl+Y` ile tam geri alma/ileri alma desteği.
 - **Font Boyutu Ayarı** — Ayarlanabilir font boyutu (`Ctrl++` / `Ctrl+-` / `Ctrl+0`).
 
 ### Klavye Kısayolları
@@ -165,6 +169,8 @@ JTypeWriter, odaklanmış yazma deneyimi için tasarlanmış minimal bir masaüs
 | `Ctrl+-` | Font küçült |
 | `Ctrl+0` | Font sıfırla |
 | `Ctrl+O` | Dosya aç |
+| `Ctrl+Z` | Geri al |
+| `Ctrl+Y` | İleri al |
 | `Ctrl+S` | Kaydet / Farklı kaydet |
 | `Escape` | Tam ekrandan çık |
 

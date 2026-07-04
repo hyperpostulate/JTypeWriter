@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
 import java.util.Locale;
+import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 @Component
@@ -19,8 +20,12 @@ public class Messages {
     }
 
     private void reload() {
-        bundle = ResourceBundle.getBundle("messages",
-                Locale.forLanguageTag(localeManager.getCurrent().name().toLowerCase()));
+        try {
+            bundle = ResourceBundle.getBundle("messages",
+                    Locale.forLanguageTag(localeManager.getCurrent().name().toLowerCase()));
+        } catch (MissingResourceException e) {
+            bundle = ResourceBundle.getBundle("messages", Locale.ENGLISH);
+        }
     }
 
     private Language l() {
@@ -67,6 +72,8 @@ public class Messages {
     public String errorOpen() { return bundle.getString("errorOpen"); }
     public String errorSave() { return bundle.getString("errorSave"); }
     public String appName() { return bundle.getString("appName"); }
+    public String toolbarUndo() { return bundle.getString("toolbarUndo"); }
+    public String toolbarRedo() { return bundle.getString("toolbarRedo"); }
     public String emptyFile() { return bundle.getString("emptyFile"); }
     public String toolbarAbout() { return bundle.getString("toolbarAbout"); }
     public String aboutDescription() { return bundle.getString("aboutDescription"); }

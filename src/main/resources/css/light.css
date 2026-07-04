@@ -7,13 +7,16 @@
     -toolbar-hover: #e0e0e0;
     -toolbar-separator-color: #cccccc;
     -stats-text: #888888;
-    -welcome-bg: #ffffff;
-    -welcome-text: #333333;
-    -welcome-muted: #666666;
-    -welcome-card-bg: #f5f5f5;
-    -welcome-button-bg: #333333;
+    -welcome-bg: #f8f6f2;
+    -welcome-border: #e4dfd6;
+    -welcome-shadow: #000000;
+    -welcome-text: #2c2c2c;
+    -welcome-muted: #777777;
+    -welcome-card-bg: #eeebe5;
+    -welcome-card-border: #e4dfd6;
+    -welcome-button-bg: #8b7355;
     -welcome-button-text: #ffffff;
-    -welcome-button-hover: #555555;
+    -welcome-button-hover: #a08a6a;
 }
 
 .editor-area {

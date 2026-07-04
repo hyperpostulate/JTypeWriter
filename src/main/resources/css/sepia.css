@@ -7,10 +7,13 @@
     -toolbar-hover: #d4c5ae;
     -toolbar-separator-color: #b8a88a;
     -stats-text: #8b7355;
-    -welcome-bg: #f4ecd8;
+    -welcome-bg: #efe6d4;
+    -welcome-border: #d4c5ae;
+    -welcome-shadow: #3d3022;
     -welcome-text: #5b4636;
     -welcome-muted: #7a6348;
-    -welcome-card-bg: #e8dcc8;
+    -welcome-card-bg: #e4d6c0;
+    -welcome-card-border: #d4c5ae;
     -welcome-button-bg: #8b7355;
     -welcome-button-text: #f4ecd8;
     -welcome-button-hover: #a08a6a;

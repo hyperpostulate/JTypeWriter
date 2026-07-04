@@ -12,7 +12,8 @@ import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.ui.AboutDialog;
-import org.mesutormanli.jtypewriter.ui.theme.TextColor;
+import org.mesutormanli.jtypewriter.ui.theme.FontSizeManager;
+import org.mesutormanli.jtypewriter.ui.theme.TextColorManager;
 import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,8 @@ public class ToolbarView extends HBox {
 
     private final FileService fileService;
     private final ThemeManager themeManager;
+    private final TextColorManager textColorManager;
+    private final FontSizeManager fontSizeManager;
     private final TypewriterSound typewriterSound;
     private final Messages messages;
     private final LocaleManager localeManager;
@@ -29,6 +32,8 @@ public class ToolbarView extends HBox {
 
     private final Button openBtn;
     private final Button saveBtn;
+    private final Button undoBtn;
+    private final Button redoBtn;
     private final Button themeBtn;
     private final Button yoloBtn;
     private final Button soundBtn;
@@ -44,15 +49,17 @@ public class ToolbarView extends HBox {
     private Runnable onStyleChange;
     private Stage stage;
 
-    private TextColor textColorState = TextColor.DEFAULT;
     private boolean yoloState;
     private boolean soundState = true;
 
     public ToolbarView(FileService fileService, ThemeManager themeManager,
+                       TextColorManager textColorManager, FontSizeManager fontSizeManager,
                        TypewriterSound typewriterSound, Messages messages,
                        LocaleManager localeManager, AboutDialog aboutDialog) {
         this.fileService = fileService;
         this.themeManager = themeManager;
+        this.textColorManager = textColorManager;
+        this.fontSizeManager = fontSizeManager;
         this.typewriterSound = typewriterSound;
         this.messages = messages;
         this.localeManager = localeManager;
@@ -65,11 +72,13 @@ public class ToolbarView extends HBox {
 
         openBtn = createButton(messages.toolbarOpen());
         saveBtn = createButton(messages.toolbarSave());
+        undoBtn = createButton(messages.toolbarUndo());
+        redoBtn = createButton(messages.toolbarRedo());
         themeBtn = createButton(messages.toolbarTheme());
         yoloBtn = createButton(messages.toolbarYolo());
         soundBtn = createButton(messages.toolbarSound());
         colorBtn = createButton(messages.toolbarColor());
-        colorLabel = new Label(textColorState.getDisplayName());
+        colorLabel = new Label(textColorManager.getCurrentDisplayName());
         colorLabel.getStyleClass().add("toolbar-label");
         langBtn = new Button(messages.langCode());
         langBtn.getStyleClass().add("toolbar-lang");
@@ -86,22 +95,25 @@ public class ToolbarView extends HBox {
 
         var fontSizeUpBtn = createButton(messages.toolbarFontUp());
         var fontSizeDownBtn = createButton(messages.toolbarFontDown());
-        fontSizeLabel = new Label("16");
+        fontSizeLabel = new Label(String.valueOf(fontSizeManager.getCurrentSize()));
         fontSizeLabel.getStyleClass().add("toolbar-label");
 
         openBtn.setOnAction(e -> {
             fileService.openFile(stage).ifPresent(path -> {
-                try {
-                    editorArea.setText(java.nio.file.Files.readString(path));
-                } catch (java.io.IOException ex) {
-                    // handled in service
-                }
+                editorArea.setText(fileService.getCurrentContent());
             });
         });
         saveBtn.setOnAction(e -> {
             if (editorArea != null) {
                 fileService.saveFile(stage, editorArea.getText());
             }
+        });
+
+        undoBtn.setOnAction(e -> {
+            if (editorArea != null) editorArea.undo();
+        });
+        redoBtn.setOnAction(e -> {
+            if (editorArea != null) editorArea.redo();
         });
 
         themeBtn.setOnAction(e -> cycleTheme());
@@ -120,6 +132,8 @@ public class ToolbarView extends HBox {
 
         getChildren().addAll(
                 openBtn, saveBtn,
+                sep(),
+                undoBtn, redoBtn,
                 sep(),
                 themeBtn, themeLabel,
                 sep(),
@@ -158,11 +172,13 @@ public class ToolbarView extends HBox {
         var lang = localeManager.getCurrent();
         openBtn.setText(messages.toolbarOpen());
         saveBtn.setText(messages.toolbarSave());
+        undoBtn.setText(messages.toolbarUndo());
+        redoBtn.setText(messages.toolbarRedo());
         themeBtn.setText(messages.toolbarTheme());
         yoloBtn.setText(messages.toolbarYolo());
         soundBtn.setText(messages.toolbarSound());
         colorBtn.setText(messages.toolbarColor());
-        colorLabel.setText(textColorState.getDisplayName());
+        colorLabel.setText(textColorManager.getCurrentDisplayName());
         aboutBtn.setText(messages.toolbarAbout());
         langBtn.setText(messages.langCode());
         themeLabel.setText(themeManager.getCurrentTheme().getDisplayName(lang));
@@ -204,19 +220,18 @@ public class ToolbarView extends HBox {
     }
 
     public void changeFontSize(int delta) {
-        var current = getCurrentFontSize();
-        var newSize = Math.max(10, Math.min(48, current + delta));
-        fontSizeLabel.setText(String.valueOf(newSize));
+        fontSizeManager.changeSize(delta);
+        fontSizeLabel.setText(String.valueOf(fontSizeManager.getCurrentSize()));
         notifyStyleChange();
     }
 
     public String getCurrentTextCssColor() {
-        return textColorState.getCssColor();
+        return textColorManager.getCurrentCssColor();
     }
 
     public void cycleTextColor() {
-        textColorState = textColorState.next();
-        colorLabel.setText(textColorState.getDisplayName());
+        textColorManager.cycle();
+        colorLabel.setText(textColorManager.getCurrentDisplayName());
         notifyStyleChange();
     }
 

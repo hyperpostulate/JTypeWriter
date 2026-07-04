@@ -5,6 +5,8 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import org.mesutormanli.jtypewriter.ui.MainController;
+import org.mesutormanli.jtypewriter.ui.MainStage;
 import org.mesutormanli.jtypewriter.ui.WelcomeDialog;
 import org.mesutormanli.jtypewriter.ui.theme.Theme;
 import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
@@ -38,13 +40,11 @@ public class SpringBootFxApplication extends Application {
         var themeManager = applicationContext.getBean(ThemeManager.class);
         themeManager.applyTheme(scene, Theme.DARK);
 
-        var mainController = applicationContext.getBean("mainController");
-        var getStageMethod = mainController.getClass().getMethod("setStage", Stage.class);
-        getStageMethod.invoke(mainController, primaryStage);
+        var mainController = applicationContext.getBean(MainController.class);
+        mainController.setStage(primaryStage);
 
-        var mainStage = applicationContext.getBean("mainStage");
-        var configureMethod = mainStage.getClass().getMethod("configure", Stage.class, Scene.class);
-        configureMethod.invoke(mainStage, primaryStage, scene);
+        var mainStage = applicationContext.getBean(MainStage.class);
+        mainStage.configure(primaryStage, scene);
 
         primaryStage.show();
 

@@ -30,6 +30,10 @@ public class FileService {
         this.currentContent = content;
     }
 
+    public String getCurrentContent() {
+        return currentContent;
+    }
+
     public boolean hasUnsavedChanges() {
         return !currentContent.equals(savedContent);
     }

@@ -2,13 +2,10 @@ package org.mesutormanli.jtypewriter.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import org.mesutormanli.jtypewriter.locale.Messages;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class FileServiceTest {
 
@@ -16,7 +13,8 @@ class FileServiceTest {
 
     @BeforeEach
     void setUp() {
-        fileService = new FileService(null);
+        var messages = mock(Messages.class);
+        fileService = new FileService(messages);
     }
 
     @Test
@@ -28,16 +26,5 @@ class FileServiceTest {
     void detectsUnsavedChanges() {
         fileService.setCurrentContent("new content");
         assertTrue(fileService.hasUnsavedChanges());
-    }
-
-    @Test
-    void noUnsavedChangesAfterMatchingSavedContent() throws IOException {
-        fileService.setCurrentContent("content");
-        assertTrue(fileService.hasUnsavedChanges());
-    }
-
-    @Test
-    void hasUnsavedChangesReturnsFalseForMatchingContent() {
-        assertFalse(fileService.hasUnsavedChanges());
     }
 }

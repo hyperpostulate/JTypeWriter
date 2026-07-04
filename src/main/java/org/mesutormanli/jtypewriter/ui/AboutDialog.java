@@ -59,17 +59,17 @@ public class AboutDialog {
         closeBtn.getStyleClass().add("welcome-button");
         closeBtn.setDefaultButton(true);
 
-        var contentBox = new VBox(10, titleLabel, subtitleLabel, descLabel, shortcutsLabel, authorLabel, emailLink, closeBtn);
+        var contentBox = new VBox(12, titleLabel, subtitleLabel, descLabel, shortcutsLabel, authorLabel, emailLink, closeBtn);
         contentBox.setAlignment(Pos.CENTER);
-        contentBox.setPadding(new Insets(32));
-        contentBox.setSpacing(8);
+        contentBox.setPadding(new Insets(36, 32, 32, 32));
+        contentBox.getStyleClass().addAll("root", "welcome-root");
 
         var scrollPane = new ScrollPane(contentBox);
         scrollPane.setFitToWidth(true);
         scrollPane.setFitToHeight(true);
         scrollPane.getStyleClass().add("about-scroll");
 
-        var scene = new Scene(scrollPane, 520, 620);
+        var scene = new Scene(scrollPane, 540, 640);
         scene.getStylesheets().addAll(owner.getScene().getStylesheets());
 
         var dialog = new Stage();

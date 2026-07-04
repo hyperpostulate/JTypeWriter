@@ -38,12 +38,12 @@ public class WelcomeDialog {
         startBtn.getStyleClass().add("welcome-button");
         startBtn.setDefaultButton(true);
 
-        var root = new VBox(12, titleLabel, subtitleLabel, shortcutsLabel, startBtn);
+        var root = new VBox(14, titleLabel, subtitleLabel, shortcutsLabel, startBtn);
         root.setAlignment(Pos.CENTER);
-        root.setPadding(new Insets(32));
-        root.getStyleClass().add("welcome-root");
+        root.setPadding(new Insets(36, 32, 32, 32));
+        root.getStyleClass().addAll("root", "welcome-root");
 
-        var scene = new Scene(root, 440, 380);
+        var scene = new Scene(root, 460, 400);
         scene.getStylesheets().addAll(owner.getScene().getStylesheets());
 
         var dialog = new Stage();
