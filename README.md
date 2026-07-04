@@ -178,7 +178,7 @@ This project is licensed under the **GNU General Public License v3.0**. See the 
 
 ---
 
-## 👤 Author
+## 👤 Developer
 
 **Mesut ORMANLI**  
 ✉️ mesutormanli@gmail.com
@@ -361,7 +361,7 @@ Bu proje **GNU Genel Kamu Lisansı v3.0** ile lisanslanmıştır. Detaylar için
 
 ---
 
-## 👤 Yazar
+## 👤 Geliştirici
 
 **Mesut ORMANLI**  
 ✉️ mesutormanli@gmail.com
