@@ -13,11 +13,10 @@ JTypeWriter is a minimal desktop text editor designed for focused writing. It re
 ### Features
 
 - **Minimal Interface** — Full-screen editor with no visual clutter. Toolbar toggles with `Ctrl+T`.
-- **Focus Modes** — Line focus (`Ctrl+Shift+F`) and Paragraph focus (`Ctrl+Shift+P`) dim everything except the active line or paragraph.
 - **YOLO Mode** (`Ctrl+Shift+Y`) — Disables backspace and delete keys. Write forward only.
 - **Typewriter Sound** — Authentic mechanical typewriter keystroke audio, toggleable from the toolbar.
 - **Themes** — Dark, Light, and Sepia. Cycle with `Ctrl+Shift+T`.
-- **Live Statistics** — Word count, character count (with/without spaces), line count, keystroke count, and session duration displayed in the bottom bar.
+- **Live Statistics** — Word count, character count (with/without spaces), line count, keystroke count, WPM, and session duration displayed in the bottom bar.
 - **Date & Time** — Current date and time shown in the bottom bar.
 - **Language Support** — English, Turkish, German, French, Italian, Spanish. Auto-detects system locale; toggle with the toolbar language button.
 - **Auto-save Prompt** — On close, prompts to save unsaved changes.
@@ -29,9 +28,8 @@ JTypeWriter is a minimal desktop text editor designed for focused writing. It re
 |---|---|
 | `Ctrl+T` | Toggle toolbar |
 | `Ctrl+Shift+T` | Cycle theme (Dark/Light/Sepia) |
-| `Ctrl+Shift+F` | Line focus mode |
-| `Ctrl+Shift+P` | Paragraph focus mode |
 | `Ctrl+Shift+Y` | YOLO mode (no deletion) |
+| `Ctrl+Shift+C` | Cycle text color |
 | `Ctrl++` | Increase font size |
 | `Ctrl+-` | Decrease font size |
 | `Ctrl+0` | Reset font size |
@@ -109,7 +107,7 @@ src/main/java/org/mesutormanli/jtypewriter/
     ├── MainStage.java               # Stage setup
     ├── WelcomeDialog.java           # Start-up shortcut guide
     ├── component/
-    │   ├── EditorArea.java          # Custom TextArea (focus/YOLO)
+    │   ├── EditorArea.java          # Custom TextArea (YOLO)
     │   ├── StatsBar.java            # Bottom stats bar with clock
     │   └── ToolbarView.java         # Toggleable toolbar
     └── theme/
@@ -140,11 +138,10 @@ JTypeWriter, odaklanmış yazma deneyimi için tasarlanmış minimal bir masaüs
 ### Özellikler
 
 - **Minimal Arayüz** — Görsel karmaşa olmayan tam ekran editör. Toolbar `Ctrl+T` ile açılıp kapanır.
-- **Odak Modları** — Satır odak (`Ctrl+Shift+F`) ve Paragraf odak (`Ctrl+Shift+P`) aktif satır/paragraf dışındaki her şeyi karartır.
 - **YOLO Modu** (`Ctrl+Shift+Y`) — Backspace ve delete tuşlarını devre dışı bırakır. Sadece ileriye doğru yazın.
 - **Daktilo Sesi** — Gerçek mekanik daktilo tuş vuruşu sesi, toolbar'dan açılıp kapatılabilir.
 - **Temalar** — Koyu, Açık ve Sepya. `Ctrl+Shift+T` ile döngüsel geçiş.
-- **Canlı İstatistikler** — Kelime sayısı, karakter sayısı (boşluksuz), satır sayısı, tuş vuruşu sayısı ve oturum süresi alt çubukta görüntülenir.
+- **Canlı İstatistikler** — Kelime sayısı, karakter sayısı (boşluksuz), satır sayısı, tuş vuruşu sayısı, WPM ve oturum süresi alt çubukta görüntülenir.
 - **Tarih & Saat** — Geçerli tarih ve saat alt çubukta gösterilir.
 - **Dil Desteği** — İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Sistem dilini otomatik algılar; toolbar'daki dil butonu ile değiştirilir.
 - **Kapatmada Kaydetme Uyarısı** — Kapatılırken kaydedilmemiş değişiklikler varsa kullanıcıyı uyarır.
@@ -156,9 +153,8 @@ JTypeWriter, odaklanmış yazma deneyimi için tasarlanmış minimal bir masaüs
 |---|---|
 | `Ctrl+T` | Toolbar aç/kapa |
 | `Ctrl+Shift+T` | Tema değiştir (Koyu/Açık/Sepya) |
-| `Ctrl+Shift+F` | Satır odak modu |
-| `Ctrl+Shift+P` | Paragraf odak modu |
 | `Ctrl+Shift+Y` | YOLO modu (silme devre dışı) |
+| `Ctrl+Shift+C` | Metin rengini değiştir |
 | `Ctrl++` | Font büyüt |
 | `Ctrl+-` | Font küçült |
 | `Ctrl+0` | Font sıfırla |
@@ -236,7 +232,7 @@ src/main/java/org/mesutormanli/jtypewriter/
     ├── MainStage.java               # Pencere ayarları
     ├── WelcomeDialog.java           # Başlangıç kısayol rehberi
     ├── component/
-    │   ├── EditorArea.java          # Özel TextArea (odak/YOLO)
+    │   ├── EditorArea.java          # Özel TextArea (YOLO)
     │   ├── StatsBar.java            # Alt istatistik çubuğu (saatli)
     │   └── ToolbarView.java         # Aç/kapatılabilir toolbar
     └── theme/

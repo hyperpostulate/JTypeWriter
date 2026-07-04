@@ -48,17 +48,6 @@ public class Messages {
         };
     }
 
-    public String toolbarFocus() {
-        return switch (l()) {
-            case EN -> "Focus";
-            case TR -> "Odak";
-            case DE -> "Fokus";
-            case FR -> "Focus";
-            case IT -> "Focus";
-            case ES -> "Enfoque";
-        };
-    }
-
     public String toolbarYolo() {
         return "YOLO";
     }
@@ -152,39 +141,6 @@ public class Messages {
         };
     }
 
-    public String labelFocusLine() {
-        return switch (l()) {
-            case EN -> "Line";
-            case TR -> "Satır";
-            case DE -> "Zeile";
-            case FR -> "Ligne";
-            case IT -> "Riga";
-            case ES -> "Línea";
-        };
-    }
-
-    public String labelFocusParagraph() {
-        return switch (l()) {
-            case EN -> "Paragraph";
-            case TR -> "Paragraf";
-            case DE -> "Absatz";
-            case FR -> "Paragraphe";
-            case IT -> "Paragrafo";
-            case ES -> "Párrafo";
-        };
-    }
-
-    public String labelFocusOff() {
-        return switch (l()) {
-            case EN -> "Off";
-            case TR -> "Kapalı";
-            case DE -> "Aus";
-            case FR -> "Désactivé";
-            case IT -> "Disattivo";
-            case ES -> "Desactivado";
-        };
-    }
-
     public String yoloModeOn() {
         return switch (l()) {
             case EN -> "On";
@@ -229,20 +185,20 @@ public class Messages {
         };
     }
 
-    public String statsFormat(int words, int chars, int charsNoSpace, int lines, long keystrokes, String duration) {
+    public String statsFormat(int words, int chars, int charsNoSpace, int lines, long keystrokes, String duration, int wpm) {
         return switch (l()) {
-            case EN -> String.format("%d words · %d chars (%d no space) · %d lines · %d keys · %s",
-                    words, chars, charsNoSpace, lines, keystrokes, duration);
-            case TR -> String.format("%d kelime · %d karakter (%d boşluksuz) · %d satır · %d tuş · %s",
-                    words, chars, charsNoSpace, lines, keystrokes, duration);
-            case DE -> String.format("%d Wörter · %d Zeichen (%d ohne Leerzeichen) · %d Zeilen · %d Anschläge · %s",
-                    words, chars, charsNoSpace, lines, keystrokes, duration);
-            case FR -> String.format("%d mots · %d car. (%d sans espace) · %d lignes · %d frappes · %s",
-                    words, chars, charsNoSpace, lines, keystrokes, duration);
-            case IT -> String.format("%d parole · %d car. (%d senza spazi) · %d righe · %d battute · %s",
-                    words, chars, charsNoSpace, lines, keystrokes, duration);
-            case ES -> String.format("%d palabras · %d car. (%d sin espacios) · %d líneas · %d pulsaciones · %s",
-                    words, chars, charsNoSpace, lines, keystrokes, duration);
+            case EN -> String.format("%d words · %d chars (%d no space) · %d lines · %d keys · %s · %d WPM",
+                    words, chars, charsNoSpace, lines, keystrokes, duration, wpm);
+            case TR -> String.format("%d kelime · %d karakter (%d boşluksuz) · %d satır · %d tuş · %s · %d WPM",
+                    words, chars, charsNoSpace, lines, keystrokes, duration, wpm);
+            case DE -> String.format("%d Wörter · %d Zeichen (%d ohne Leerzeichen) · %d Zeilen · %d Anschläge · %s · %d WPM",
+                    words, chars, charsNoSpace, lines, keystrokes, duration, wpm);
+            case FR -> String.format("%d mots · %d car. (%d sans espace) · %d lignes · %d frappes · %s · %d WPM",
+                    words, chars, charsNoSpace, lines, keystrokes, duration, wpm);
+            case IT -> String.format("%d parole · %d car. (%d senza spazi) · %d righe · %d battute · %s · %d WPM",
+                    words, chars, charsNoSpace, lines, keystrokes, duration, wpm);
+            case ES -> String.format("%d palabras · %d car. (%d sin espacios) · %d líneas · %d pulsaciones · %s · %d WPM",
+                    words, chars, charsNoSpace, lines, keystrokes, duration, wpm);
         };
     }
 
@@ -266,8 +222,6 @@ public class Messages {
             case EN -> """
                     Ctrl+T          Toggle Toolbar
                     Ctrl+Shift+T    Switch Theme (Dark/Light/Sepia)
-                    Ctrl+Shift+F    Line Focus Mode
-                    Ctrl+Shift+P    Paragraph Focus Mode
                     Ctrl+Shift+Y    YOLO Mode (no deletion)
                     Ctrl+Shift+C    Cycle Text Color
                     Ctrl++          Increase Font Size
@@ -280,8 +234,6 @@ public class Messages {
             case TR -> """
                     Ctrl+T          Toolbar aç/kapa
                     Ctrl+Shift+T    Tema değiştir (Dark/Light/Sepya)
-                    Ctrl+Shift+F    Satır odak modu
-                    Ctrl+Shift+P    Paragraf odak modu
                     Ctrl+Shift+Y    YOLO modu (silme devre dışı)
                     Ctrl+Shift+C    Metin rengini değiştir
                     Ctrl++          Font büyüt
@@ -294,8 +246,6 @@ public class Messages {
             case DE -> """
                     Ctrl+T          Toolbar umschalten
                     Ctrl+Shift+T    Design wechseln (Dunkel/Hell/Sepia)
-                    Ctrl+Shift+F    Zeilenfokus-Modus
-                    Ctrl+Shift+P    Absatzfokus-Modus
                     Ctrl+Shift+Y    YOLO-Modus (kein Löschen)
                     Ctrl+Shift+C    Textfarbe wechseln
                     Ctrl++          Schrift vergrößern
@@ -308,8 +258,6 @@ public class Messages {
             case FR -> """
                     Ctrl+T          Afficher/Masquer la barre
                     Ctrl+Shift+T    Changer le thème (Sombre/Clair/Sépia)
-                    Ctrl+Shift+F    Mode focus ligne
-                    Ctrl+Shift+P    Mode focus paragraphe
                     Ctrl+Shift+Y    Mode YOLO (pas de suppression)
                     Ctrl+Shift+C    Changer la couleur du texte
                     Ctrl++          Augmenter la police
@@ -322,8 +270,6 @@ public class Messages {
             case IT -> """
                     Ctrl+T          Attiva/disattiva barra
                     Ctrl+Shift+T    Cambia tema (Scuro/Chiaro/Seppia)
-                    Ctrl+Shift+F    Modalità focus riga
-                    Ctrl+Shift+P    Modalità focus paragrafo
                     Ctrl+Shift+Y    Modalità YOLO (nessuna cancellazione)
                     Ctrl+Shift+C    Cambia colore del testo
                     Ctrl++          Aumenta carattere
@@ -336,8 +282,6 @@ public class Messages {
             case ES -> """
                     Ctrl+T          Mostrar/ocultar barra
                     Ctrl+Shift+T    Cambiar tema (Oscuro/Claro/Sepia)
-                    Ctrl+Shift+F    Modo enfoque línea
-                    Ctrl+Shift+P    Modo enfoque párrafo
                     Ctrl+Shift+Y    Modo YOLO (sin eliminación)
                     Ctrl+Shift+C    Cambiar color del texto
                     Ctrl++          Aumentar fuente

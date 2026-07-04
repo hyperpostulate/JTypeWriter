@@ -100,6 +100,7 @@ public class StatsBar extends BorderPane {
         var lineCount = sessionStats.getLineCount();
         var keystrokes = sessionStats.getTotalKeystrokes();
         var duration = sessionStats.getFormattedDuration();
-        statsLabel.setText(messages.statsFormat(wordCount, charCount, charNoSpace, lineCount, keystrokes, duration));
+        var wpm = sessionStats.getWpm();
+        statsLabel.setText(messages.statsFormat(wordCount, charCount, charNoSpace, lineCount, keystrokes, duration, wpm));
     }
 }

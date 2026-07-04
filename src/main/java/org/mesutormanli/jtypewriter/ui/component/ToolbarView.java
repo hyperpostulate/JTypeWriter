@@ -30,13 +30,11 @@ public class ToolbarView extends HBox {
     private final Button openBtn;
     private final Button saveBtn;
     private final Button themeBtn;
-    private final Button focusBtn;
     private final Button yoloBtn;
     private final Button soundBtn;
     private final Button langBtn;
     private final Button aboutBtn;
     private final Label themeLabel;
-    private final Label focusLabel;
     private final Label yoloLabel;
     private final Label soundLabel;
     private final Button colorBtn;
@@ -46,7 +44,6 @@ public class ToolbarView extends HBox {
     private Runnable onStyleChange;
     private Stage stage;
 
-    private int focusState;
     private TextColor textColorState = TextColor.DEFAULT;
     private boolean yoloState;
     private boolean soundState = true;
@@ -69,7 +66,6 @@ public class ToolbarView extends HBox {
         openBtn = createButton(messages.toolbarOpen());
         saveBtn = createButton(messages.toolbarSave());
         themeBtn = createButton(messages.toolbarTheme());
-        focusBtn = createButton(messages.toolbarFocus());
         yoloBtn = createButton(messages.toolbarYolo());
         soundBtn = createButton(messages.toolbarSound());
         colorBtn = createButton(messages.toolbarColor());
@@ -83,8 +79,6 @@ public class ToolbarView extends HBox {
 
         themeLabel = new Label(themeManager.getCurrentTheme().getDisplayName(localeManager.getCurrent()));
         themeLabel.getStyleClass().add("toolbar-label");
-        focusLabel = new Label(messages.labelFocusOff());
-        focusLabel.getStyleClass().add("toolbar-label");
         yoloLabel = new Label(messages.yoloModeOff());
         yoloLabel.getStyleClass().add("toolbar-label");
         soundLabel = new Label(messages.soundOn());
@@ -111,7 +105,6 @@ public class ToolbarView extends HBox {
         });
 
         themeBtn.setOnAction(e -> cycleTheme());
-        focusBtn.setOnAction(e -> cycleFocus());
         yoloBtn.setOnAction(e -> toggleYolo());
         soundBtn.setOnAction(e -> toggleSound());
         colorBtn.setOnAction(e -> cycleTextColor());
@@ -129,8 +122,6 @@ public class ToolbarView extends HBox {
                 openBtn, saveBtn,
                 sep(),
                 themeBtn, themeLabel,
-                sep(),
-                focusBtn, focusLabel,
                 sep(),
                 yoloBtn, yoloLabel,
                 sep(),
@@ -168,7 +159,6 @@ public class ToolbarView extends HBox {
         openBtn.setText(messages.toolbarOpen());
         saveBtn.setText(messages.toolbarSave());
         themeBtn.setText(messages.toolbarTheme());
-        focusBtn.setText(messages.toolbarFocus());
         yoloBtn.setText(messages.toolbarYolo());
         soundBtn.setText(messages.toolbarSound());
         colorBtn.setText(messages.toolbarColor());
@@ -176,7 +166,6 @@ public class ToolbarView extends HBox {
         aboutBtn.setText(messages.toolbarAbout());
         langBtn.setText(messages.langCode());
         themeLabel.setText(themeManager.getCurrentTheme().getDisplayName(lang));
-        updateFocusLabel();
         updateYoloLabel();
         updateSoundLabel();
     }
@@ -187,26 +176,6 @@ public class ToolbarView extends HBox {
             var theme = themeManager.cycleTheme(scene);
             themeLabel.setText(theme.getDisplayName(localeManager.getCurrent()));
         }
-    }
-
-    private void cycleFocus() {
-        if (editorArea == null) return;
-        focusState = (focusState + 1) % 3;
-        switch (focusState) {
-            case 0 -> {
-                editorArea.setLineFocusMode(false);
-                editorArea.setParagraphFocusMode(false);
-            }
-            case 1 -> {
-                editorArea.setLineFocusMode(true);
-                editorArea.setParagraphFocusMode(false);
-            }
-            case 2 -> {
-                editorArea.setLineFocusMode(false);
-                editorArea.setParagraphFocusMode(true);
-            }
-        }
-        updateFocusLabel();
     }
 
     private void toggleYolo() {
@@ -224,15 +193,6 @@ public class ToolbarView extends HBox {
 
     private void toggleLanguage() {
         localeManager.toggle();
-    }
-
-    private void updateFocusLabel() {
-        focusLabel.setText(switch ((int) focusState) {
-            case 0 -> messages.labelFocusOff();
-            case 1 -> messages.labelFocusLine();
-            case 2 -> messages.labelFocusParagraph();
-            default -> "";
-        });
     }
 
     private void updateYoloLabel() {

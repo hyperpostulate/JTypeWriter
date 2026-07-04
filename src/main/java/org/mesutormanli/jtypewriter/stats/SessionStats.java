@@ -52,6 +52,12 @@ public class SessionStats {
         return totalKeystrokes;
     }
 
+    public int getWpm() {
+        var minutes = getSessionDuration().toMillis() / 60_000.0;
+        if (minutes < 0.016) return 0;
+        return (int) Math.round(getWordCount() / minutes);
+    }
+
     public Duration getSessionDuration() {
         return Duration.between(sessionStart, Instant.now());
     }

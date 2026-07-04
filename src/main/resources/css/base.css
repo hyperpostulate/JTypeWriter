@@ -46,14 +46,6 @@
     -fx-pref-height: 0;
 }
 
-.editor-area:line-focus .content {
-    -fx-background-color: rgba(128, 128, 128, 0.03);
-}
-
-.editor-area:paragraph-focus .content {
-    -fx-background-color: rgba(128, 128, 128, 0.03);
-}
-
 .toolbar {
     -fx-background-color: -toolbar-bg;
     -fx-border-color: -toolbar-border;

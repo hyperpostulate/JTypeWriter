@@ -108,14 +108,6 @@ public class MainController implements Initializable {
         editorArea.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.isControlDown() && event.isShiftDown()) {
                 switch (event.getCode()) {
-                    case F -> {
-                        editorArea.toggleLineFocus();
-                        event.consume();
-                    }
-                    case P -> {
-                        editorArea.toggleParagraphFocus();
-                        event.consume();
-                    }
                     case Y -> {
                         editorArea.toggleYoloMode();
                         event.consume();
