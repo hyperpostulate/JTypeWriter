@@ -42,8 +42,8 @@ JTypeWriter is a minimal desktop text editor designed for focused writing. It re
 | Component | Version |
 |---|---|
 | Java | 25 |
-| Spring Boot | 3.4.4 |
-| JavaFX | 24 |
+| Spring Boot | 4.1.0 |
+| JavaFX | 26.0.1 |
 | Build Tool | Maven |
 | UI Layout | FXML + CSS |
 
@@ -173,8 +173,8 @@ JTypeWriter, odaklanmış yazma deneyimi için tasarlanmış minimal bir masaüs
 | Bileşen | Sürüm |
 |---|---|
 | Java | 25 |
-| Spring Boot | 3.4.4 |
-| JavaFX | 24 |
+| Spring Boot | 4.1.0 |
+| JavaFX | 26.0.1 |
 | Derleme Aracı | Maven |
 | UI Düzeni | FXML + CSS |
 
