@@ -8,7 +8,8 @@ A distraction-free text editor built with Java 25, Spring Boot 3.4, and JavaFX 2
 
 ### Overview
 
-JTypeWriter is a minimal desktop text editor designed for focused writing. It removes all distractions and provides a clean, typewriter-inspired experience.
+JTypeWriter is a minimal desktop text editor designed for focused writing. It removes all distractions and provides a
+clean, typewriter-inspired experience.
 
 ### Features
 
@@ -16,39 +17,41 @@ JTypeWriter is a minimal desktop text editor designed for focused writing. It re
 - **YOLO Mode** (`Ctrl+Shift+Y`) — Disables backspace and delete keys. Write forward only.
 - **Typewriter Sound** — Authentic mechanical typewriter keystroke audio, toggleable from the toolbar.
 - **Themes** — Dark, Light, and Sepia. Cycle with `Ctrl+Shift+T`.
-- **Live Statistics** — Word count, character count (with/without spaces), line count, keystroke count, WPM, and session duration displayed in the bottom bar.
+- **Live Statistics** — Word count, character count (with/without spaces), line count, keystroke count, WPM, and session
+  duration displayed in the bottom bar.
 - **Date & Time** — Current date and time shown in the bottom bar.
-- **Language Support** — English, Turkish, German, French, Italian, Spanish. Auto-detects system locale; toggle with the toolbar language button. UI strings loaded via `ResourceBundle` from `.properties` files.
+- **Language Support** — English, Turkish, German, French, Italian, Spanish. Auto-detects system locale; toggle with the
+  toolbar language button. UI strings loaded via `ResourceBundle` from `.properties` files.
 - **Auto-save Prompt** — On close, prompts to save unsaved changes.
 - **Undo/Redo** — Full undo/redo support via toolbar buttons or `Ctrl+Z` / `Ctrl+Y`.
 - **Font Size Control** — Adjustable font size (`Ctrl++` / `Ctrl+-` / `Ctrl+0`).
 
 ### Keyboard Shortcuts
 
-| Shortcut | Action |
-|---|---|
-| `Ctrl+T` | Toggle toolbar |
+| Shortcut       | Action                         |
+|----------------|--------------------------------|
+| `Ctrl+T`       | Toggle toolbar                 |
 | `Ctrl+Shift+T` | Cycle theme (Dark/Light/Sepia) |
-| `Ctrl+Shift+Y` | YOLO mode (no deletion) |
-| `Ctrl+Shift+C` | Cycle text color |
-| `Ctrl++` | Increase font size |
-| `Ctrl+-` | Decrease font size |
-| `Ctrl+0` | Reset font size |
-| `Ctrl+O` | Open file |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Y` | Redo |
-| `Ctrl+S` | Save / Save As |
-| `Escape` | Exit fullscreen |
+| `Ctrl+Shift+Y` | YOLO mode (no deletion)        |
+| `Ctrl+Shift+C` | Cycle text color               |
+| `Ctrl++`       | Increase font size             |
+| `Ctrl+-`       | Decrease font size             |
+| `Ctrl+0`       | Reset font size                |
+| `Ctrl+O`       | Open file                      |
+| `Ctrl+Z`       | Undo                           |
+| `Ctrl+Y`       | Redo                           |
+| `Ctrl+S`       | Save / Save As                 |
+| `Escape`       | Exit fullscreen                |
 
 ### Tech Stack
 
-| Component | Version |
-|---|---|
-| Java | 25 |
-| Spring Boot | 4.1.0 |
-| JavaFX | 26.0.1 |
-| Build Tool | Maven |
-| UI Layout | FXML + CSS |
+| Component   | Version    |
+|-------------|------------|
+| Java        | 25         |
+| Spring Boot | 4.1.0      |
+| JavaFX      | 26.0.1     |
+| Build Tool  | Maven      |
+| UI Layout   | FXML + CSS |
 
 ### Prerequisites
 
@@ -74,9 +77,9 @@ This project uses **GitHub Actions** for continuous integration.
 
 **Workflow:** `.github/workflows/maven.yml`
 
-| Trigger | Event |
-|---|---|
-| `push` | `main` branch |
+| Trigger        | Event         |
+|----------------|---------------|
+| `push`         | `main` branch |
 | `pull_request` | `main` branch |
 
 The workflow runs on `ubuntu-latest` with JDK 25 (Temurin) and executes:
@@ -126,7 +129,8 @@ src/main/java/org/mesutormanli/jtypewriter/
 
 ### Audio Credits
 
-The typewriter keystroke sound is sourced from [typewriter.vim](https://github.com/AndrewRadev/typewriter.vim) (MIT license), originally collected in [lifepillar/typewriter-sounds](https://github.com/lifepillar/typewriter-sounds).
+The typewriter keystroke sound is sourced from [typewriter.vim](https://github.com/AndrewRadev/typewriter.vim) (MIT
+license), originally collected in [lifepillar/typewriter-sounds](https://github.com/lifepillar/typewriter-sounds).
 
 ### Author
 
@@ -142,7 +146,8 @@ This project is licensed under the GNU General Public License v3.0 — see the [
 
 ### Genel Bakış
 
-JTypeWriter, odaklanmış yazma deneyimi için tasarlanmış minimal bir masaüstü metin editörüdür. Tüm dikkat dağıtıcı unsurları ortadan kaldırır ve temiz, daktilo ilhamlı bir deneyim sunar.
+JTypeWriter, odaklanmış yazma deneyimi için tasarlanmış minimal bir masaüstü metin editörüdür. Tüm dikkat dağıtıcı
+unsurları ortadan kaldırır ve temiz, daktilo ilhamlı bir deneyim sunar.
 
 ### Özellikler
 
@@ -150,39 +155,41 @@ JTypeWriter, odaklanmış yazma deneyimi için tasarlanmış minimal bir masaüs
 - **YOLO Modu** (`Ctrl+Shift+Y`) — Backspace ve delete tuşlarını devre dışı bırakır. Sadece ileriye doğru yazın.
 - **Daktilo Sesi** — Gerçek mekanik daktilo tuş vuruşu sesi, toolbar'dan açılıp kapatılabilir.
 - **Temalar** — Koyu, Açık ve Sepya. `Ctrl+Shift+T` ile döngüsel geçiş.
-- **Canlı İstatistikler** — Kelime sayısı, karakter sayısı (boşluksuz), satır sayısı, tuş vuruşu sayısı, WPM ve oturum süresi alt çubukta görüntülenir.
+- **Canlı İstatistikler** — Kelime sayısı, karakter sayısı (boşluksuz), satır sayısı, tuş vuruşu sayısı, WPM ve oturum
+  süresi alt çubukta görüntülenir.
 - **Tarih & Saat** — Geçerli tarih ve saat alt çubukta gösterilir.
-- **Dil Desteği** — İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Sistem dilini otomatik algılar; toolbar'daki dil butonu ile değiştirilir. UI metinleri `ResourceBundle` ile `.properties` dosyalarından yüklenir.
+- **Dil Desteği** — İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Sistem dilini otomatik algılar;
+  toolbar'daki dil butonu ile değiştirilir. UI metinleri `ResourceBundle` ile `.properties` dosyalarından yüklenir.
 - **Kapatmada Kaydetme Uyarısı** — Kapatılırken kaydedilmemiş değişiklikler varsa kullanıcıyı uyarır.
 - **Geri Al/İleri Al** — Toolbar butonları veya `Ctrl+Z` / `Ctrl+Y` ile tam geri alma/ileri alma desteği.
 - **Font Boyutu Ayarı** — Ayarlanabilir font boyutu (`Ctrl++` / `Ctrl+-` / `Ctrl+0`).
 
 ### Klavye Kısayolları
 
-| Kısayol | Eylem |
-|---|---|
-| `Ctrl+T` | Toolbar aç/kapa |
+| Kısayol        | Eylem                           |
+|----------------|---------------------------------|
+| `Ctrl+T`       | Toolbar aç/kapa                 |
 | `Ctrl+Shift+T` | Tema değiştir (Koyu/Açık/Sepya) |
-| `Ctrl+Shift+Y` | YOLO modu (silme devre dışı) |
-| `Ctrl+Shift+C` | Metin rengini değiştir |
-| `Ctrl++` | Font büyüt |
-| `Ctrl+-` | Font küçült |
-| `Ctrl+0` | Font sıfırla |
-| `Ctrl+O` | Dosya aç |
-| `Ctrl+Z` | Geri al |
-| `Ctrl+Y` | İleri al |
-| `Ctrl+S` | Kaydet / Farklı kaydet |
-| `Escape` | Tam ekrandan çık |
+| `Ctrl+Shift+Y` | YOLO modu (silme devre dışı)    |
+| `Ctrl+Shift+C` | Metin rengini değiştir          |
+| `Ctrl++`       | Font büyüt                      |
+| `Ctrl+-`       | Font küçült                     |
+| `Ctrl+0`       | Font sıfırla                    |
+| `Ctrl+O`       | Dosya aç                        |
+| `Ctrl+Z`       | Geri al                         |
+| `Ctrl+Y`       | İleri al                        |
+| `Ctrl+S`       | Kaydet / Farklı kaydet          |
+| `Escape`       | Tam ekrandan çık                |
 
 ### Teknoloji Altyapısı
 
-| Bileşen | Sürüm |
-|---|---|
-| Java | 25 |
-| Spring Boot | 4.1.0 |
-| JavaFX | 26.0.1 |
-| Derleme Aracı | Maven |
-| UI Düzeni | FXML + CSS |
+| Bileşen       | Sürüm      |
+|---------------|------------|
+| Java          | 25         |
+| Spring Boot   | 4.1.0      |
+| JavaFX        | 26.0.1     |
+| Derleme Aracı | Maven      |
+| UI Düzeni     | FXML + CSS |
 
 ### Gereksinimler
 
@@ -208,9 +215,9 @@ Bu proje sürekli entegrasyon için **GitHub Actions** kullanmaktadır.
 
 **Workflow:** `.github/workflows/maven.yml`
 
-| Tetikleyici | Olay |
-|---|---|
-| `push` | `main` branch |
+| Tetikleyici    | Olay          |
+|----------------|---------------|
+| `push`         | `main` branch |
 | `pull_request` | `main` branch |
 
 Workflow, `ubuntu-latest` üzerinde JDK 25 (Temurin) ile çalışır:
@@ -219,7 +226,8 @@ Workflow, `ubuntu-latest` üzerinde JDK 25 (Temurin) ile çalışır:
 mvn -B package --file pom.xml
 ```
 
-Derleme çıktıları (JAR) workflow çıktısı olarak indirilebilir. Maven bağımlılıkları sonraki çalıştırmalar için önbelleğe alınır.
+Derleme çıktıları (JAR) workflow çıktısı olarak indirilebilir. Maven bağımlılıkları sonraki çalıştırmalar için önbelleğe
+alınır.
 
 ### Proje Yapısı
 
@@ -260,7 +268,8 @@ src/main/java/org/mesutormanli/jtypewriter/
 
 ### Ses Katkısı
 
-Daktilo tuş sesi [typewriter.vim](https://github.com/AndrewRadev/typewriter.vim) projesinden alınmıştır (MIT lisansı), [lifepillar/typewriter-sounds](https://github.com/lifepillar/typewriter-sounds) deposunda toplanmıştır.
+Daktilo tuş sesi [typewriter.vim](https://github.com/AndrewRadev/typewriter.vim) projesinden alınmıştır (MIT
+lisansı), [lifepillar/typewriter-sounds](https://github.com/lifepillar/typewriter-sounds) deposunda toplanmıştır.
 
 ### Yazar
 

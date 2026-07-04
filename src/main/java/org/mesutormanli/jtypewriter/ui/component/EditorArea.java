@@ -55,13 +55,13 @@ public class EditorArea extends TextArea {
                 || code == KeyCode.CUT;
     }
 
+    public boolean isYoloMode() {
+        return yoloMode;
+    }
+
     public void setYoloMode(boolean enabled) {
         this.yoloMode = enabled;
         pseudoClassStateChanged(javafx.css.PseudoClass.getPseudoClass("yolo"), enabled);
-    }
-
-    public boolean isYoloMode() {
-        return yoloMode;
     }
 
     public void toggleYoloMode() {

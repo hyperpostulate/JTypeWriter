@@ -19,25 +19,6 @@ import java.time.format.DateTimeFormatter;
 @Component
 public class StatsBar extends BorderPane {
 
-    public enum Size {
-        SMALL(4, 11),
-        MEDIUM(7, 13),
-        LARGE(11, 15);
-
-        final int padding;
-        final int fontSize;
-
-        Size(int padding, int fontSize) {
-            this.padding = padding;
-            this.fontSize = fontSize;
-        }
-
-        Size next() {
-            Size[] values = values();
-            return values[(ordinal() + 1) % values.length];
-        }
-    }
-
     private final SessionStats sessionStats;
     private final Messages messages;
     private final Label clockLabel;
@@ -45,7 +26,6 @@ public class StatsBar extends BorderPane {
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
     private Size currentSize = Size.MEDIUM;
-
     public StatsBar(SessionStats sessionStats, Messages messages) {
         this.sessionStats = sessionStats;
         this.messages = messages;
@@ -102,5 +82,24 @@ public class StatsBar extends BorderPane {
         var duration = sessionStats.getFormattedDuration();
         var wpm = sessionStats.getWpm();
         statsLabel.setText(messages.statsFormat(wordCount, charCount, charNoSpace, lineCount, keystrokes, duration, wpm));
+    }
+
+    public enum Size {
+        SMALL(4, 11),
+        MEDIUM(7, 13),
+        LARGE(11, 15);
+
+        final int padding;
+        final int fontSize;
+
+        Size(int padding, int fontSize) {
+            this.padding = padding;
+            this.fontSize = fontSize;
+        }
+
+        Size next() {
+            Size[] values = values();
+            return values[(ordinal() + 1) % values.length];
+        }
     }
 }

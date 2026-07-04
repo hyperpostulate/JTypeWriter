@@ -10,8 +10,8 @@ import java.util.function.Consumer;
 @Component
 public class LocaleManager {
 
-    private Language currentLanguage = detectSystemLanguage();
     private final List<Consumer<Language>> listeners = new CopyOnWriteArrayList<>();
+    private Language currentLanguage = detectSystemLanguage();
 
     private static Language detectSystemLanguage() {
         return switch (Locale.getDefault().getLanguage()) {

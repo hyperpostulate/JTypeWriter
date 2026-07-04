@@ -28,8 +28,6 @@ public class ToolbarView extends HBox {
     private final Messages messages;
     private final LocaleManager localeManager;
     private final AboutDialog aboutDialog;
-    private EditorArea editorArea;
-
     private final Button openBtn;
     private final Button saveBtn;
     private final Button undoBtn;
@@ -45,7 +43,7 @@ public class ToolbarView extends HBox {
     private final Button colorBtn;
     private final Label colorLabel;
     private final Label fontSizeLabel;
-
+    private EditorArea editorArea;
     private Runnable onStyleChange;
     private Stage stage;
 

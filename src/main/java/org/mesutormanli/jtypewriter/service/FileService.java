@@ -26,12 +26,12 @@ public class FileService {
         this.messages = messages;
     }
 
-    public void setCurrentContent(String content) {
-        this.currentContent = content;
-    }
-
     public String getCurrentContent() {
         return currentContent;
+    }
+
+    public void setCurrentContent(String content) {
+        this.currentContent = content;
     }
 
     public boolean hasUnsavedChanges() {
