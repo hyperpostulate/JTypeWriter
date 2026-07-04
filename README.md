@@ -18,7 +18,7 @@ JTypeWriter is a minimal desktop text editor designed for focused writing. It re
 - **Themes** — Dark, Light, and Sepia. Cycle with `Ctrl+Shift+T`.
 - **Live Statistics** — Word count, character count (with/without spaces), line count, keystroke count, WPM, and session duration displayed in the bottom bar.
 - **Date & Time** — Current date and time shown in the bottom bar.
-- **Language Support** — English, Turkish, German, French, Italian, Spanish. Auto-detects system locale; toggle with the toolbar language button.
+- **Language Support** — English, Turkish, German, French, Italian, Spanish. Auto-detects system locale; toggle with the toolbar language button. UI strings loaded via `ResourceBundle` from `.properties` files.
 - **Auto-save Prompt** — On close, prompts to save unsaved changes.
 - **Font Size Control** — Adjustable font size (`Ctrl++` / `Ctrl+-` / `Ctrl+0`).
 
@@ -97,7 +97,13 @@ src/main/java/org/mesutormanli/jtypewriter/
 ├── locale/
 │   ├── Language.java                # EN / TR enum
 │   ├── LocaleManager.java           # Language state & observers
-│   └── Messages.java                # All UI strings (EN/TR)
+│   └── Messages.java                # ResourceBundle-backed UI strings
+├── resources/
+│   ├── application.properties
+│   ├── audio/
+│   ├── css/
+│   ├── fxml/
+│   └── messages*.properties         # 6 dil için localization files
 ├── service/
 │   └── FileService.java             # File open/save operations
 ├── stats/
@@ -143,7 +149,7 @@ JTypeWriter, odaklanmış yazma deneyimi için tasarlanmış minimal bir masaüs
 - **Temalar** — Koyu, Açık ve Sepya. `Ctrl+Shift+T` ile döngüsel geçiş.
 - **Canlı İstatistikler** — Kelime sayısı, karakter sayısı (boşluksuz), satır sayısı, tuş vuruşu sayısı, WPM ve oturum süresi alt çubukta görüntülenir.
 - **Tarih & Saat** — Geçerli tarih ve saat alt çubukta gösterilir.
-- **Dil Desteği** — İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Sistem dilini otomatik algılar; toolbar'daki dil butonu ile değiştirilir.
+- **Dil Desteği** — İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Sistem dilini otomatik algılar; toolbar'daki dil butonu ile değiştirilir. UI metinleri `ResourceBundle` ile `.properties` dosyalarından yüklenir.
 - **Kapatmada Kaydetme Uyarısı** — Kapatılırken kaydedilmemiş değişiklikler varsa kullanıcıyı uyarır.
 - **Font Boyutu Ayarı** — Ayarlanabilir font boyutu (`Ctrl++` / `Ctrl+-` / `Ctrl+0`).
 
@@ -222,7 +228,13 @@ src/main/java/org/mesutormanli/jtypewriter/
 ├── locale/
 │   ├── Language.java                # EN / TR enum
 │   ├── LocaleManager.java           # Dil durumu ve dinleyiciler
-│   └── Messages.java                # Tüm UI metinleri (EN/TR)
+│   └── Messages.java                # ResourceBundle tabanlı UI metinleri
+├── resources/
+│   ├── application.properties
+│   ├── audio/
+│   ├── css/
+│   ├── fxml/
+│   └── messages*.properties         # 6 dil i\u00e7in localization dosyalar\u0131
 ├── service/
 │   └── FileService.java             # Dosya aç/kaydet işlemleri
 ├── stats/
