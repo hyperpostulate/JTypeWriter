@@ -1,28 +1,24 @@
 package org.mesutormanli.jtypewriter.service;
 
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
-import javafx.stage.FileChooser;
-import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 @Component
 public class FileService {
 
+    private final DialogService dialogService;
     private final Messages messages;
     private Path currentFilePath;
     private String savedContent = "";
     private String currentContent = "";
 
-    public FileService(Messages messages) {
+    public FileService(DialogService dialogService, Messages messages) {
+        this.dialogService = dialogService;
         this.messages = messages;
     }
 
@@ -38,51 +34,34 @@ public class FileService {
         return !currentContent.equals(savedContent);
     }
 
-    public Optional<Path> openFile(Stage stage) {
-        var chooser = new FileChooser();
-        chooser.setTitle(messages.fileOpenTitle());
-        chooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter(messages.fileTextFiles(), "*.txt")
-        );
-        chooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter(messages.fileAllFiles(), "*.*")
-        );
-
-        var file = chooser.showOpenDialog(stage);
-        if (file == null) return Optional.empty();
+    public Optional<Path> openFile(javafx.stage.Stage stage) {
+        var file = dialogService.showOpenDialog(stage);
+        if (file.isEmpty()) return Optional.empty();
 
         try {
-            var content = Files.readString(file.toPath());
-            currentFilePath = file.toPath();
+            var content = Files.readString(file.get().toPath());
+            currentFilePath = file.get().toPath();
             savedContent = content;
             currentContent = content;
             return Optional.of(currentFilePath);
         } catch (IOException e) {
-            showError(messages.errorOpen(), e.getMessage());
+            dialogService.showError(messages.errorOpen(), e.getMessage());
             return Optional.empty();
         }
     }
 
-    public Optional<Path> saveFile(Stage stage, String content) {
+    public Optional<Path> saveFile(javafx.stage.Stage stage, String content) {
         if (currentFilePath == null) {
             return saveFileAs(stage, content);
         }
         return writeFile(currentFilePath, content);
     }
 
-    public Optional<Path> saveFileAs(Stage stage, String content) {
-        var chooser = new FileChooser();
-        chooser.setTitle(messages.fileSaveTitle());
-        var timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
-        chooser.setInitialFileName("JTypeWriter_" + timestamp + ".txt");
-        chooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter(messages.fileTextFile(), "*.txt")
-        );
+    public Optional<Path> saveFileAs(javafx.stage.Stage stage, String content) {
+        var file = dialogService.showSaveDialog(stage);
+        if (file.isEmpty()) return Optional.empty();
 
-        var file = chooser.showSaveDialog(stage);
-        if (file == null) return Optional.empty();
-
-        return writeFile(file.toPath(), content);
+        return writeFile(file.get().toPath(), content);
     }
 
     private Optional<Path> writeFile(Path path, String content) {
@@ -93,39 +72,18 @@ public class FileService {
             currentContent = content;
             return Optional.of(path);
         } catch (IOException e) {
-            showError(messages.errorSave(), e.getMessage());
+            dialogService.showError(messages.errorSave(), e.getMessage());
             return Optional.empty();
         }
     }
 
-    public void promptSaveOnExit(Stage stage) {
-        var alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle(messages.unsavedTitle());
-        alert.setHeaderText(messages.unsavedHeader());
-        alert.setContentText(messages.unsavedContent());
-
-        var saveButton = new ButtonType(messages.unsavedSave());
-        var discardButton = new ButtonType(messages.unsavedDiscard());
-        var cancelButton = new ButtonType(messages.unsavedCancel());
-
-        alert.getButtonTypes().setAll(saveButton, discardButton, cancelButton);
-
-        var result = alert.showAndWait();
-        if (result.isEmpty()) return;
-
-        if (result.get() == saveButton) {
+    public void promptSaveOnExit(javafx.stage.Stage stage) {
+        var choice = dialogService.showUnsavedChangesDialog(stage);
+        if (choice == DialogService.SaveChoice.SAVE) {
             saveFile(stage, currentContent).ifPresent(p -> stage.close());
-        } else if (result.get() == discardButton) {
+        } else if (choice == DialogService.SaveChoice.DISCARD) {
             stage.close();
         }
-    }
-
-    private void showError(String header, String content) {
-        var alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(messages.errorTitle());
-        alert.setHeaderText(header);
-        alert.setContentText(content);
-        alert.showAndWait();
     }
 
     public Path getCurrentFilePath() {

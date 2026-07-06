@@ -15,7 +15,8 @@ class FileServiceTest {
     @BeforeEach
     void setUp() {
         var messages = mock(Messages.class);
-        fileService = new FileService(messages);
+        var dialogService = mock(DialogService.class);
+        fileService = new FileService(dialogService, messages);
     }
 
     @Test

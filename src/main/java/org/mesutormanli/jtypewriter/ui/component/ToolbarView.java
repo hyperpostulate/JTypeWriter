@@ -7,10 +7,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.stage.Stage;
-import org.mesutormanli.jtypewriter.audio.TypewriterSound;
+import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
-import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.ui.AboutDialog;
 import org.mesutormanli.jtypewriter.ui.theme.FontSizeManager;
 import org.mesutormanli.jtypewriter.ui.theme.TextColorManager;
@@ -24,10 +23,11 @@ public class ToolbarView extends HBox {
     private final ThemeManager themeManager;
     private final TextColorManager textColorManager;
     private final FontSizeManager fontSizeManager;
-    private final TypewriterSound typewriterSound;
+    private final ToolbarState toolbarState;
     private final Messages messages;
     private final LocaleManager localeManager;
     private final AboutDialog aboutDialog;
+
     private final Button openBtn;
     private final Button saveBtn;
     private final Button undoBtn;
@@ -43,22 +43,20 @@ public class ToolbarView extends HBox {
     private final Button colorBtn;
     private final Label colorLabel;
     private final Label fontSizeLabel;
+
     private EditorArea editorArea;
     private Runnable onStyleChange;
     private Stage stage;
 
-    private boolean yoloState;
-    private boolean soundState = true;
-
     public ToolbarView(FileService fileService, ThemeManager themeManager,
                        TextColorManager textColorManager, FontSizeManager fontSizeManager,
-                       TypewriterSound typewriterSound, Messages messages,
+                       ToolbarState toolbarState, Messages messages,
                        LocaleManager localeManager, AboutDialog aboutDialog) {
         this.fileService = fileService;
         this.themeManager = themeManager;
         this.textColorManager = textColorManager;
         this.fontSizeManager = fontSizeManager;
-        this.typewriterSound = typewriterSound;
+        this.toolbarState = toolbarState;
         this.messages = messages;
         this.localeManager = localeManager;
         this.aboutDialog = aboutDialog;
@@ -97,9 +95,8 @@ public class ToolbarView extends HBox {
         fontSizeLabel.getStyleClass().add("toolbar-label");
 
         openBtn.setOnAction(e -> {
-            fileService.openFile(stage).ifPresent(path -> {
-                editorArea.setText(fileService.getCurrentContent());
-            });
+            fileService.openFile(stage).ifPresent(path ->
+                    editorArea.setText(fileService.getCurrentContent()));
         });
         saveBtn.setOnAction(e -> {
             if (editorArea != null) {
@@ -121,7 +118,7 @@ public class ToolbarView extends HBox {
         aboutBtn.setOnAction(e -> {
             if (stage != null) aboutDialog.show(stage);
         });
-        langBtn.setOnAction(e -> toggleLanguage());
+        langBtn.setOnAction(e -> localeManager.toggle());
         fontSizeUpBtn.setOnAction(e -> changeFontSize(1));
         fontSizeDownBtn.setOnAction(e -> changeFontSize(-1));
 
@@ -194,27 +191,21 @@ public class ToolbarView extends HBox {
 
     private void toggleYolo() {
         if (editorArea == null) return;
-        yoloState = !yoloState;
-        editorArea.setYoloMode(yoloState);
+        toolbarState.toggleYolo(editorArea);
         updateYoloLabel();
     }
 
     private void toggleSound() {
-        soundState = !soundState;
-        typewriterSound.setEnabled(soundState);
+        toolbarState.toggleSound();
         updateSoundLabel();
     }
 
-    private void toggleLanguage() {
-        localeManager.toggle();
-    }
-
     private void updateYoloLabel() {
-        yoloLabel.setText(yoloState ? messages.yoloModeOn() : messages.yoloModeOff());
+        yoloLabel.setText(toolbarState.isYoloMode() ? messages.yoloModeOn() : messages.yoloModeOff());
     }
 
     private void updateSoundLabel() {
-        soundLabel.setText(soundState ? messages.soundOn() : messages.soundOff());
+        soundLabel.setText(toolbarState.isSoundEnabled() ? messages.soundOn() : messages.soundOff());
     }
 
     public void changeFontSize(int delta) {
@@ -247,7 +238,7 @@ public class ToolbarView extends HBox {
     }
 
     private Label sep() {
-        var s = new Label("│");
+        var s = new Label("|");
         s.getStyleClass().add("toolbar-separator");
         return s;
     }
