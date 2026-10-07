@@ -34,7 +34,28 @@ public class FileService {
         return !currentContent.equals(savedContent);
     }
 
+    /**
+     * Opens a file only after the current document is safe. Unsaved changes
+     * trigger the same Save / Don't Save / Cancel prompt used on exit; choosing
+     * Cancel - or abandoning the save - aborts the open so no text is ever lost.
+     */
     public Optional<Path> openFile(javafx.stage.Stage stage) {
+        if (hasUnsavedChanges()) {
+            switch (dialogService.showUnsavedChangesDialog(stage)) {
+                case SAVE -> {
+                    if (saveFile(stage, currentContent).isEmpty()) {
+                        return Optional.empty(); // save cancelled or failed: keep the draft
+                    }
+                }
+                case DISCARD -> {
+                    // the user explicitly accepted losing the draft
+                }
+                case CANCEL -> {
+                    return Optional.empty();
+                }
+            }
+        }
+
         var file = dialogService.showOpenDialog(stage);
         if (file.isEmpty()) return Optional.empty();
 

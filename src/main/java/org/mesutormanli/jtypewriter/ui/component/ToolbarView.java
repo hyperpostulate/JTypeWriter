@@ -189,7 +189,12 @@ public class ToolbarView extends HBox {
         }
     }
 
-    private void toggleYolo() {
+    /**
+     * Toggles YOLO mode through {@link ToolbarState} - the single path used by
+     * both the toolbar button and the Ctrl+Shift+Y shortcut, so the status
+     * label can never disagree with the editor.
+     */
+    public void toggleYolo() {
         if (editorArea == null) return;
         toolbarState.toggleYolo(editorArea);
         updateYoloLabel();

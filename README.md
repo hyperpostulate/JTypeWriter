@@ -93,6 +93,7 @@ org.mesutormanli.jtypewriter
 │   ├── KeyboardShortcutHandler.java      # Centralized keyboard shortcut handling
 │   └── component/
 │       ├── EditorArea.java               # Pure TextArea wrapper
+│       ├── YoloPolicy.java               # YOLO mode edit policy (pure logic)
 │       ├── EditorKeyHandler.java         # Keystroke sound + stats tracking
 │       ├── StatsBar.java                 # Bottom status bar (clock + stats)
 │       ├── ToolbarView.java              # Top toolbar (buttons + labels)
@@ -103,8 +104,8 @@ org.mesutormanli.jtypewriter
 │       ├── FontSizeManager.java          # Editor font size state
 │       ├── TextColorManager.java         # Text color cycling state
 │       └── TextColor.java                # Text color enum with CSS values
-└── JTypeWriterApp.java                   # Main entry point
-    SpringBootFxApplication.java          # JavaFX + Spring Boot bridge
+├── JTypeWriterApp.java                   # Main entry point
+└── SpringBootFxApplication.java          # JavaFX + Spring Boot bridge
 ```
 
 ### Core Components
@@ -112,13 +113,17 @@ org.mesutormanli.jtypewriter
 | Component | Description |
 |-----------|-------------|
 | `EditorArea` | Pure TextArea wrapper with YOLO mode support |
+| `YoloPolicy` | YOLO mode edit policy (blocks deletions, allows insertions) |
 | `EditorKeyHandler` | Handles keystroke sound effects and session stats tracking |
+| `StatsBar` | Renders the clock and live session statistics in the bottom bar |
 | `KeyboardShortcutHandler` | Centralized keyboard shortcut routing |
 | `ToolbarView` | Top toolbar with all editor controls |
 | `ToolbarState` | Manages YOLO mode and sound on/off state |
 | `FileService` | File I/O operations (read/write) |
 | `DialogService` | UI dialog management (FileChooser, Alert) |
 | `ThemeManager` | CSS theme loading and switching |
+| `FontSizeManager` | Editor font size state (10-48px) |
+| `TextColorManager` | Text color cycling state |
 | `SessionStats` | Real-time writing statistics (WPM, word/char/line count) |
 | `TypewriterSound` | Typewriter keystroke audio playback |
 | `LocaleManager` | Multi-language support with change listeners |
@@ -132,8 +137,9 @@ org.mesutormanli.jtypewriter
 | JavaFX Controls | 26.0.1 | UI components |
 | JavaFX FXML | 26.0.1 | FXML loading |
 | JavaFX Media | 26.0.1 | Audio playback |
-| JUnit Jupiter | 5.11.0 | Test framework |
-| Mockito | 5.x | Test mocking |
+| Spring Boot Starter Test | 4.1.0 | Test infrastructure |
+| JUnit Jupiter | 6.0.3 | Test framework (via Starter Test) |
+| Mockito | 5.23.0 | Test mocking (via Starter Test) |
 
 ---
 
@@ -141,7 +147,7 @@ org.mesutormanli.jtypewriter
 
 ### Typewriter Sound Effects
 
-Authentic typewriter keystroke sound on every key press. Can be toggled on/off via toolbar or shortcut.
+Authentic typewriter keystroke sound on every key press. Can be toggled on/off via the toolbar.
 
 ### YOLO Mode
 
@@ -164,7 +170,7 @@ Three built-in themes:
 
 ### Text Colors
 
-Five accent colors for text: Default, Sage, Lavender, Sand, Steel, Rose.
+Six text colors (one default plus five accents): Default, Sage, Lavender, Sand, Steel, Rose.
 
 ### Multi-Language Support
 
@@ -184,6 +190,7 @@ Five accent colors for text: Default, Sage, Lavender, Sand, Steel, Rose.
 | `Ctrl+-` | Decrease font size |
 | `Ctrl+0` | Reset font size to 16px |
 | `Ctrl+Z` | Undo |
+| `Ctrl+Shift+Z` | Redo |
 | `Ctrl+Y` | Redo |
 | `Ctrl+O` | Open file |
 | `Ctrl+S` | Save file |
@@ -238,7 +245,9 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | Test Class | Coverage |
 |------------|----------|
 | `SessionStatsTest` | Word count, char count, line count, keystrokes, reset |
-| `FileServiceTest` | Unsaved change detection |
+| `FileServiceTest` | Unsaved change detection, unsaved-changes prompt on open (cancel/discard/save-first) |
+| `YoloPolicyTest` | YOLO mode edit policy (deletions blocked, insertions allowed, safe replacement) |
+| `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S) |
 | `JTypeWriterAppTests` | Main method presence |
 
 ---
@@ -363,6 +372,7 @@ org.mesutormanli.jtypewriter
 │   ├── KeyboardShortcutHandler.java      # Merkezi klavye kısayolu yönetimi
 │   └── component/
 │       ├── EditorArea.java               # Saf TextArea sarmalayıcı
+│       ├── YoloPolicy.java               # YOLO modu düzenleme politikası (saf mantık)
 │       ├── EditorKeyHandler.java         # Tuş vuruşu sesi + istatistik takibi
 │       ├── StatsBar.java                 # Alt durum çubuğu (saat + istatistikler)
 │       ├── ToolbarView.java              # Üst araç çubuğu (düğmeler + etiketler)
@@ -373,8 +383,8 @@ org.mesutormanli.jtypewriter
 │       ├── FontSizeManager.java          # Editör font boyutu durumu
 │       ├── TextColorManager.java         # Metin rengi döngüsü durumu
 │       └── TextColor.java                # CSS değerleriyle metin rengi enum'u
-└── JTypeWriterApp.java                   # Ana giriş noktası
-    SpringBootFxApplication.java          # JavaFX + Spring Boot köprüsü
+├── JTypeWriterApp.java                   # Ana giriş noktası
+└── SpringBootFxApplication.java          # JavaFX + Spring Boot köprüsü
 ```
 
 ### Temel Bileşenler
@@ -382,13 +392,17 @@ org.mesutormanli.jtypewriter
 | Bileşen | Açıklama |
 |---------|----------|
 | `EditorArea` | YOLO modu destekli saf TextArea sarmalayıcı |
+| `YoloPolicy` | YOLO modu düzenleme politikası (silmeyi engeller, eklemeye izin verir) |
 | `EditorKeyHandler` | Tuş vuruşu ses efektleri ve oturum istatistiklerini yönetir |
+| `StatsBar` | Saati ve canlı oturum istatistiklerini alt çubukta gösterir |
 | `KeyboardShortcutHandler` | Merkezi klavye kısayolu yönlendirmesi |
 | `ToolbarView` | Tüm editör kontrollerini içeren üst araç çubuğu |
 | `ToolbarState` | YOLO modu ve ses aç/kapa durumunu yönetir |
 | `FileService` | Dosya G/Ç işlemleri (okuma/yazma) |
 | `DialogService` | UI dialog yönetimi (FileChooser, Alert) |
 | `ThemeManager` | CSS tema yükleme ve değiştirme |
+| `FontSizeManager` | Editör font boyutu durumu (10-48px) |
+| `TextColorManager` | Metin rengi döngüsü durumu |
 | `SessionStats` | Gerçek zamanlı yazma istatistikleri (WPM, kelime/karakter/satır sayısı) |
 | `TypewriterSound` | Daktilo tuş sesi oynatma |
 | `LocaleManager` | Değişiklik dinleyicileriyle çoklu dil desteği |
@@ -402,8 +416,9 @@ org.mesutormanli.jtypewriter
 | JavaFX Controls | 26.0.1 | UI bileşenleri |
 | JavaFX FXML | 26.0.1 | FXML yükleme |
 | JavaFX Media | 26.0.1 | Ses oynatma |
-| JUnit Jupiter | 5.11.0 | Test çerçevesi |
-| Mockito | 5.x | Test mock'lama |
+| Spring Boot Starter Test | 4.1.0 | Test altyapısı |
+| JUnit Jupiter | 6.0.3 | Test çerçevesi (Starter Test ile gelir) |
+| Mockito | 5.23.0 | Test mock'lama (Starter Test ile gelir) |
 
 ---
 
@@ -411,7 +426,7 @@ org.mesutormanli.jtypewriter
 
 ### Daktilo Ses Efektleri
 
-Her tuş basımında otantik daktilo tuş sesi. Araç çubuğu veya kısayolla açılıp kapatılabilir.
+Her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki düğmeyle açılıp kapatılabilir.
 
 ### YOLO Modu
 
@@ -434,7 +449,7 @@ Canlı istatistik çubuğu:
 
 ### Metin Renkleri
 
-Beş vurgu rengi: Varsayılan, Adaçayı, Lavanta, Kum, Çelik, Gül
+Altı metin rengi (bir varsayılan + beş vurgu rengi): Varsayılan, Adaçayı, Lavanta, Kum, Çelik, Gül
 
 ### Çoklu Dil Desteği
 
@@ -454,6 +469,7 @@ Beş vurgu rengi: Varsayılan, Adaçayı, Lavanta, Kum, Çelik, Gül
 | `Ctrl+-` | Font boyutunu azalt |
 | `Ctrl+0` | Font boyutunu 16px'e sıfırla |
 | `Ctrl+Z` | Geri al |
+| `Ctrl+Shift+Z` | İleri al |
 | `Ctrl+Y` | İleri al |
 | `Ctrl+O` | Dosya aç |
 | `Ctrl+S` | Dosyayı kaydet |
@@ -508,7 +524,9 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | Test Sınıfı | Kapsam |
 |-------------|--------|
 | `SessionStatsTest` | Kelime sayısı, karakter sayısı, satır sayısı, tuş vuruşları, sıfırlama |
-| `FileServiceTest` | Kaydedilmemiş değişiklik algılama |
+| `FileServiceTest` | Kaydedilmemiş değişiklik algılama, açık sırasında kaydetme diyaloğu (iptal/atla/önce kaydet) |
+| `YoloPolicyTest` | YOLO modu düzenleme politikası (silme engelli, ekleme serbest, güvenli değiştirme) |
+| `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S) |
 | `JTypeWriterAppTests` | Ana metod varlığı |
 
 ---
