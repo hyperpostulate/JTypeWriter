@@ -55,6 +55,8 @@ mvn test -Dtest=SessionStatsTest     # Run a single test class
 mvn test -Dtest=FileServiceTest      # Run a single test class
 ```
 
+Packaging produces a thin JAR with a `Main-Class` manifest entry; `mvn javafx:run` is the development entry point. Standalone installers with a bundled JavaFX runtime (`jpackage`) are on the roadmap.
+
 ---
 
 ## CI/CD
@@ -79,8 +81,12 @@ org.mesutormanli.jtypewriter
 │   ├── LocaleManager.java                # Language switching + listener support
 │   └── Messages.java                     # ResourceBundle-based i18n accessor
 ├── service/
+│   ├── AutoSaveService.java              # Periodic draft snapshots + recovery offer
+│   ├── BackupKeeper.java                 # Rotating .bak backups before overwrites
 │   ├── DialogService.java                # FileChooser & Alert dialog management
-│   └── FileService.java                  # File I/O operations (read/write)
+│   ├── FileService.java                  # Atomic file I/O (encoding-stable)
+│   ├── RecoveryStore.java                # Crash-recovery draft storage
+│   └── TextCodec.java                    # Encoding detection & lossless round trips
 ├── stats/
 │   └── SessionStats.java                 # Writing session statistics (WPM, counts)
 ├── ui/
@@ -89,6 +95,8 @@ org.mesutormanli.jtypewriter
 │   ├── WelcomeDialog.java                # Welcome screen with shortcuts
 │   ├── AboutDialog.java                  # About dialog with author info
 │   ├── KeyboardShortcutHandler.java      # Centralized keyboard shortcut handling
+│   ├── CrashHandler.java                 # Global crash net: log + error dialog
+│   ├── Toast.java                        # Transient notification overlay
 │   └── component/
 │       ├── EditorArea.java               # Pure TextArea wrapper
 │       ├── YoloPolicy.java               # YOLO mode edit policy (pure logic)
@@ -103,7 +111,9 @@ org.mesutormanli.jtypewriter
 │       ├── TextColorManager.java         # Text color cycling state
 │       └── TextColor.java                # Text color enum with CSS values
 ├── JTypeWriterApp.java                   # Main entry point
+├── AppDirs.java                          # Per-user data/log/recovery directories
 ├── AppGraph.java                         # Composition root (manual dependency injection)
+├── AppLogging.java                       # Rotating log setup (java.util.logging)
 └── FxApplication.java                    # JavaFX application lifecycle bridge
 ```
 
@@ -118,8 +128,14 @@ org.mesutormanli.jtypewriter
 | `KeyboardShortcutHandler` | Centralized keyboard shortcut routing |
 | `ToolbarView` | Top toolbar with all editor controls |
 | `ToolbarState` | Manages YOLO mode and sound on/off state |
-| `FileService` | File I/O operations (read/write) |
+| `FileService` | Atomic file I/O (temp write + move) with encoding stability |
 | `DialogService` | UI dialog management (FileChooser, Alert) |
+| `TextCodec` | Encoding detection (BOM/UTF-8) and lossless round trips |
+| `BackupKeeper` | Rotating `.bak` backups taken before overwrites |
+| `RecoveryStore` | Crash-recovery draft storage under `~/.jtypewriter/recovery/` |
+| `AutoSaveService` | Periodic draft snapshots and startup recovery offer |
+| `CrashHandler` | Global crash net: logging plus user-facing error dialog |
+| `Toast` | Transient notification overlay for mode changes |
 | `ThemeManager` | CSS theme loading and switching |
 | `FontSizeManager` | Editor font size state (10-48px) |
 | `TextColorManager` | Text color cycling state |
@@ -343,6 +359,8 @@ mvn test -Dtest=SessionStatsTest     # Tek test sınıfı
 mvn test -Dtest=FileServiceTest      # Tek test sınıfı
 ```
 
+Paketleme, `Main-Class` manifest girdili ince bir JAR üretir; geliştirme girişi `mvn javafx:run` komutudur. JavaFX çalışma zamanı gömülü tek başına kurulumlar (`jpackage`) yol haritasındadır.
+
 ---
 
 ## CI/CD
@@ -367,8 +385,12 @@ org.mesutormanli.jtypewriter
 │   ├── LocaleManager.java                # Dil değiştirme + dinleyici desteği
 │   └── Messages.java                     # ResourceBundle tabanlı i18n erişici
 ├── service/
+│   ├── AutoSaveService.java              # Dönemsel taslak kaydı + kurtarma teklifi
+│   ├── BackupKeeper.java                 # Yazımdan önce dönen .bak yedekleri
 │   ├── DialogService.java                # FileChooser ve Alert dialog yönetimi
-│   └── FileService.java                  # Dosya G/Ç işlemleri (okuma/yazma)
+│   ├── FileService.java                  # Atomik dosya G/Ç (kodlama korumalı)
+│   ├── RecoveryStore.java                # Çökme kurtarma taslak deposu
+│   └── TextCodec.java                    # Kodlama tespiti + kayıpsız gidiş-dönüş
 ├── stats/
 │   └── SessionStats.java                 # Yazma oturumu istatistikleri (WPM, sayımlar)
 ├── ui/
@@ -377,6 +399,8 @@ org.mesutormanli.jtypewriter
 │   ├── WelcomeDialog.java                # Kısayollarla hoş geldin ekranı
 │   ├── AboutDialog.java                  # Yazar bilgisiyle hakkında dialogu
 │   ├── KeyboardShortcutHandler.java      # Merkezi klavye kısayolu yönetimi
+│   ├── CrashHandler.java                 # Global çökme ağı: log + hata diyaloğu
+│   ├── Toast.java                        # Geçiş bildirim balonu
 │   └── component/
 │       ├── EditorArea.java               # Saf TextArea sarmalayıcı
 │       ├── YoloPolicy.java               # YOLO modu düzenleme politikası (saf mantık)
@@ -391,7 +415,9 @@ org.mesutormanli.jtypewriter
 │       ├── TextColorManager.java         # Metin rengi döngüsü durumu
 │       └── TextColor.java                # CSS değerleriyle metin rengi enum'u
 ├── JTypeWriterApp.java                   # Ana giriş noktası
+├── AppDirs.java                          # Kullanıcı veri/log/kurtarma dizinleri
 ├── AppGraph.java                         # Kompozisyon kökü (manuel bağımlılık enjeksiyonu)
+├── AppLogging.java                       # Dönen log kurulumu (java.util.logging)
 └── FxApplication.java                    # JavaFX yaşam döngüsü köprüsü
 ```
 
@@ -406,8 +432,14 @@ org.mesutormanli.jtypewriter
 | `KeyboardShortcutHandler` | Merkezi klavye kısayolu yönlendirmesi |
 | `ToolbarView` | Tüm editör kontrollerini içeren üst araç çubuğu |
 | `ToolbarState` | YOLO modu ve ses aç/kapa durumunu yönetir |
-| `FileService` | Dosya G/Ç işlemleri (okuma/yazma) |
+| `FileService` | Atomik dosya G/Ç (geçici dosya + taşıma), kodlama korumalı |
 | `DialogService` | UI dialog yönetimi (FileChooser, Alert) |
+| `TextCodec` | Kodlama tespiti (BOM/UTF-8) ve kayıpsız gidiş-dönüşler |
+| `BackupKeeper` | Yazımdan önce alınan dönen `.bak` yedekleri |
+| `RecoveryStore` | `~/.jtypewriter/recovery/` altında çökme kurtarma taslakları |
+| `AutoSaveService` | Dönemsel taslak anlık görüntüleri ve açılışta kurtarma teklifi |
+| `CrashHandler` | Global çökme ağı: log + kullanıcıya hata diyaloğu |
+| `Toast` | Mod değişiklikleri için geçiş bildirim balonu |
 | `ThemeManager` | CSS tema yükleme ve değiştirme |
 | `FontSizeManager` | Editör font boyutu durumu (10-48px) |
 | `TextColorManager` | Metin rengi döngüsü durumu |
