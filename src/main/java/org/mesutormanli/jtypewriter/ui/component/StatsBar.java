@@ -11,12 +11,10 @@ import javafx.scene.layout.HBox;
 import javafx.util.Duration;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-@Component
 public class StatsBar extends BorderPane {
 
     private final SessionStats sessionStats;

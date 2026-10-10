@@ -1,14 +1,12 @@
 package org.mesutormanli.jtypewriter.service;
 
 import org.mesutormanli.jtypewriter.locale.Messages;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
-@Component
 public class FileService {
 
     private final DialogService dialogService;

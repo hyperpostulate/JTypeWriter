@@ -1,7 +1,6 @@
 package org.mesutormanli.jtypewriter.ui.component;
 
 import javafx.scene.control.TextArea;
-import org.springframework.stereotype.Component;
 
 /**
  * YOLO mode: while it is enabled no user edit may remove characters that are
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Component;
  * funnel and therefore keep working in YOLO mode: loading a file must never be
  * blocked by it.</p>
  */
-@Component
 public class EditorArea extends TextArea {
 
     private boolean yoloMode;

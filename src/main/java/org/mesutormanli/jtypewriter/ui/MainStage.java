@@ -4,9 +4,7 @@ import javafx.scene.Scene;
 import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.service.FileService;
-import org.springframework.stereotype.Component;
 
-@Component
 public class MainStage {
 
     private final FileService fileService;

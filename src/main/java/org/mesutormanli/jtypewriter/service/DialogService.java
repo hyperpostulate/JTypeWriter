@@ -5,11 +5,9 @@ import javafx.scene.control.ButtonType;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.locale.Messages;
-import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-@Component
 public class DialogService {
 
     private final Messages messages;

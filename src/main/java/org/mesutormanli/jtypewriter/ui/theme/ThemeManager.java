@@ -1,9 +1,7 @@
 package org.mesutormanli.jtypewriter.ui.theme;
 
 import javafx.scene.Scene;
-import org.springframework.stereotype.Component;
 
-@Component
 public class ThemeManager {
 
     private Theme currentTheme = Theme.DARK;

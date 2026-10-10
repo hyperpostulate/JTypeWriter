@@ -1,9 +1,7 @@
 package org.mesutormanli.jtypewriter.ui.component;
 
 import org.mesutormanli.jtypewriter.audio.TypewriterSound;
-import org.springframework.stereotype.Component;
 
-@Component
 public class ToolbarState {
 
     private final TypewriterSound typewriterSound;

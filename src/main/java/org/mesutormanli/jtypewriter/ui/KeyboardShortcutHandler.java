@@ -6,14 +6,10 @@ import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 import org.mesutormanli.jtypewriter.ui.component.ToolbarView;
-import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
-import org.springframework.stereotype.Component;
 
-@Component
 public class KeyboardShortcutHandler {
 
     private final FileService fileService;
-    private final ThemeManager themeManager;
 
     private EditorArea editorArea;
     private ToolbarView toolbarView;
@@ -21,9 +17,8 @@ public class KeyboardShortcutHandler {
     private Runnable onToggleToolbar;
     private Runnable onThemeCycle;
 
-    public KeyboardShortcutHandler(FileService fileService, ThemeManager themeManager) {
+    public KeyboardShortcutHandler(FileService fileService) {
         this.fileService = fileService;
-        this.themeManager = themeManager;
     }
 
     public void bind(EditorArea editorArea, ToolbarView toolbarView, Stage stage,

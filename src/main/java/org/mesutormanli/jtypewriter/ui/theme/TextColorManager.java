@@ -1,8 +1,6 @@
 package org.mesutormanli.jtypewriter.ui.theme;
 
-import org.springframework.stereotype.Component;
 
-@Component
 public class TextColorManager {
 
     private TextColor current = TextColor.DEFAULT;

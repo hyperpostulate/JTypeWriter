@@ -14,9 +14,7 @@ import org.mesutormanli.jtypewriter.ui.AboutDialog;
 import org.mesutormanli.jtypewriter.ui.theme.FontSizeManager;
 import org.mesutormanli.jtypewriter.ui.theme.TextColorManager;
 import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
-import org.springframework.stereotype.Component;
 
-@Component
 public class ToolbarView extends HBox {
 
     private final FileService fileService;

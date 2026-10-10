@@ -1,9 +1,7 @@
 package org.mesutormanli.jtypewriter.audio;
 
 import javafx.scene.media.AudioClip;
-import org.springframework.stereotype.Component;
 
-@Component
 public class TypewriterSound {
 
     private AudioClip clip;

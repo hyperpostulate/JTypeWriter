@@ -2,7 +2,7 @@
 
 [![Java CI](https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml/badge.svg)](https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-A distraction-free text editor built with JavaFX and Spring Boot. Designed for focused writing with typewriter sound effects, real-time statistics, multiple themes, and multi-language support.
+A distraction-free text editor built with JavaFX. Uses plain-Java dependency injection (manual composition root, no DI framework) for focused writing with typewriter sound effects, real-time statistics, multiple themes, and multi-language support.
 
 ---
 
@@ -74,8 +74,6 @@ GitHub Actions workflow (`.github/workflows/maven.yml`):
 org.mesutormanli.jtypewriter
 ├── audio/
 │   └── TypewriterSound.java              # Typewriter keystroke sound effect
-├── config/
-│   └── AppConfig.java                    # Spring configuration (editor font)
 ├── locale/
 │   ├── Language.java                     # Supported languages enum
 │   ├── LocaleManager.java                # Language switching + listener support
@@ -105,7 +103,8 @@ org.mesutormanli.jtypewriter
 │       ├── TextColorManager.java         # Text color cycling state
 │       └── TextColor.java                # Text color enum with CSS values
 ├── JTypeWriterApp.java                   # Main entry point
-└── SpringBootFxApplication.java          # JavaFX + Spring Boot bridge
+├── AppGraph.java                         # Composition root (manual dependency injection)
+└── FxApplication.java                    # JavaFX application lifecycle bridge
 ```
 
 ### Core Components
@@ -133,13 +132,13 @@ org.mesutormanli.jtypewriter
 
 | Dependency | Version | Purpose |
 |------------|---------|---------|
-| Spring Boot Starter | 4.1.0 | Application framework |
 | JavaFX Controls | 26.0.1 | UI components |
 | JavaFX FXML | 26.0.1 | FXML loading |
 | JavaFX Media | 26.0.1 | Audio playback |
-| Spring Boot Starter Test | 4.1.0 | Test infrastructure |
-| JUnit Jupiter | 6.0.3 | Test framework (via Starter Test) |
-| Mockito | 5.23.0 | Test mocking (via Starter Test) |
+| JUnit Jupiter | 6.0.3 | Test framework |
+| Mockito | 5.23.0 | Test mocking |
+
+Dependency injection is framework-free: `AppGraph` wires the object graph manually.
 
 ---
 
@@ -281,7 +280,7 @@ This project is licensed under the GNU General Public License v3.0. See [LICENSE
 
 [![Java CI](https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml/badge.svg)](https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-JavaFX ve Spring Boot ile oluşturulmuş, dikkat dağıtmayan bir metin editörü. Daktilo ses efektleri, gerçek zamanlı istatistikler, çoklu tema ve çoklu dil desteği ile odaklanarak yazma deneyimi sunar.
+JavaFX ile oluşturulmuş, dikkat dağıtmayan bir metin editörü. Bağımlılık enjeksiyonu framework'süz, saf Java ile (manuel kompozisyon kökü) yapılır. Daktilo ses efektleri, gerçek zamanlı istatistikler, çoklu tema ve çoklu dil desteği ile odaklanarak yazma deneyimi sunar.
 
 ---
 
@@ -353,8 +352,6 @@ GitHub Actions iş akışı (`.github/workflows/maven.yml`):
 org.mesutormanli.jtypewriter
 ├── audio/
 │   └── TypewriterSound.java              # Daktilo tuş sesi efekti
-├── config/
-│   └── AppConfig.java                    # Spring yapılandırması (editör fontu)
 ├── locale/
 │   ├── Language.java                     # Desteklenen diller enum'u
 │   ├── LocaleManager.java                # Dil değiştirme + dinleyici desteği
@@ -384,7 +381,8 @@ org.mesutormanli.jtypewriter
 │       ├── TextColorManager.java         # Metin rengi döngüsü durumu
 │       └── TextColor.java                # CSS değerleriyle metin rengi enum'u
 ├── JTypeWriterApp.java                   # Ana giriş noktası
-└── SpringBootFxApplication.java          # JavaFX + Spring Boot köprüsü
+├── AppGraph.java                         # Kompozisyon kökü (manuel bağımlılık enjeksiyonu)
+└── FxApplication.java                    # JavaFX yaşam döngüsü köprüsü
 ```
 
 ### Temel Bileşenler
@@ -412,13 +410,13 @@ org.mesutormanli.jtypewriter
 
 | Bağımlılık | Sürüm | Amaç |
 |------------|-------|------|
-| Spring Boot Starter | 4.1.0 | Uygulama çerçevesi |
 | JavaFX Controls | 26.0.1 | UI bileşenleri |
 | JavaFX FXML | 26.0.1 | FXML yükleme |
 | JavaFX Media | 26.0.1 | Ses oynatma |
-| Spring Boot Starter Test | 4.1.0 | Test altyapısı |
-| JUnit Jupiter | 6.0.3 | Test çerçevesi (Starter Test ile gelir) |
-| Mockito | 5.23.0 | Test mock'lama (Starter Test ile gelir) |
+| JUnit Jupiter | 6.0.3 | Test çerçevesi |
+| Mockito | 5.23.0 | Test mock'lama |
+
+Bağımlılık enjeksiyonu framework'süzdür: nesne grafiğini `AppGraph` elle kurar.
 
 ---
 

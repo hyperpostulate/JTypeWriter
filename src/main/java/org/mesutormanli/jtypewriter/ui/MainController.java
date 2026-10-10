@@ -10,12 +10,10 @@ import org.mesutormanli.jtypewriter.ui.component.EditorKeyHandler;
 import org.mesutormanli.jtypewriter.ui.component.StatsBar;
 import org.mesutormanli.jtypewriter.ui.component.ToolbarView;
 import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
-import org.springframework.stereotype.Component;
 
 import java.net.URL;
 import java.util.ResourceBundle;
 
-@Component
 public class MainController implements Initializable {
 
     private final EditorArea editorArea;

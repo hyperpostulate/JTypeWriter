@@ -9,19 +9,14 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
-import org.springframework.stereotype.Component;
 
-@Component
 public class WelcomeDialog {
 
     private final Messages messages;
-    private final LocaleManager localeManager;
 
-    public WelcomeDialog(Messages messages, LocaleManager localeManager) {
+    public WelcomeDialog(Messages messages) {
         this.messages = messages;
-        this.localeManager = localeManager;
     }
 
     public void show(Stage owner) {

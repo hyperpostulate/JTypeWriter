@@ -1,13 +1,11 @@
 package org.mesutormanli.jtypewriter.locale;
 
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
-@Component
 public class LocaleManager {
 
     private final List<Consumer<Language>> listeners = new CopyOnWriteArrayList<>();

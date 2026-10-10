@@ -4,9 +4,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import org.mesutormanli.jtypewriter.audio.TypewriterSound;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
-import org.springframework.stereotype.Component;
 
-@Component
 public class EditorKeyHandler {
 
     private final TypewriterSound typewriterSound;
