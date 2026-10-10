@@ -57,8 +57,8 @@ public final class AppGraph {
     public final KeyboardShortcutHandler shortcutHandler = new KeyboardShortcutHandler(fileService);
 
     // --- views and dialogs ------------------------------------------------
-    public final AboutDialog aboutDialog = new AboutDialog(messages);
-    public final WelcomeDialog welcomeDialog = new WelcomeDialog(messages);
+    public final AboutDialog aboutDialog = new AboutDialog(messages, themeManager);
+    public final WelcomeDialog welcomeDialog = new WelcomeDialog(messages, themeManager);
     public final ToolbarView toolbarView = new ToolbarView(
             fileService, themeManager, textColorManager, fontSizeManager,
             toolbarState, messages, localeManager, aboutDialog);

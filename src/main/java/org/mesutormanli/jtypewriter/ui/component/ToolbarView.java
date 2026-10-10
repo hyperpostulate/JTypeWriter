@@ -206,7 +206,8 @@ public class ToolbarView extends HBox {
         if (onYoloChange != null) {
             onYoloChange.run();
         }
-        Toast.show(stage, toolbarState.isYoloMode() ? messages.yoloModeOn() : messages.yoloModeOff());
+        Toast.show(stage, toolbarState.isYoloMode() ? messages.yoloModeOn() : messages.yoloModeOff(),
+                themeManager.getCurrentTheme().getEditorFill());
     }
 
     private void toggleSound() {
