@@ -11,7 +11,6 @@ import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.ui.AboutDialog;
-import org.mesutormanli.jtypewriter.ui.Toast;
 import org.mesutormanli.jtypewriter.ui.theme.FontSizeManager;
 import org.mesutormanli.jtypewriter.ui.theme.TextColorManager;
 import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
@@ -196,8 +195,9 @@ public class ToolbarView extends HBox {
     /**
      * Toggles YOLO mode through {@link ToolbarState} - the single path used by
      * both the toolbar button and the Ctrl+Shift+Y shortcut, so the status
-     * label can never disagree with the editor. Announces the change with a
-     * toast because the toolbar (and its label) may be hidden.
+     * label can never disagree with the editor. The {@code [YOLO]} window title
+     * badge (refreshed through {@code onYoloChange}) indicates the mode when
+     * the toolbar is hidden.
      */
     public void toggleYolo() {
         if (editorArea == null) return;
@@ -206,8 +206,6 @@ public class ToolbarView extends HBox {
         if (onYoloChange != null) {
             onYoloChange.run();
         }
-        Toast.show(stage, toolbarState.isYoloMode() ? messages.yoloModeOn() : messages.yoloModeOff(),
-                themeManager.getCurrentTheme().getEditorFill());
     }
 
     private void toggleSound() {
