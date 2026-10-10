@@ -4,6 +4,7 @@
     -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
     -fx-font-size: 16px;
     -fx-padding: 24px;
+    -fx-background-color: -editor-bg;
     -fx-background-insets: 0;
     -fx-background-radius: 0;
     -fx-border-width: 0;
@@ -11,19 +12,23 @@
     -fx-faint-focus-color: transparent;
 }
 
+/* Every layer of the text-input chain is explicitly painted with the theme's
+   editor background. Anything left to Modena defaults (the scroll-pane shell,
+   viewport and corner cell are light gray/white) leaks out as a white frame
+   around the writing area. */
 .editor-area .content {
     -fx-padding: 24px;
+    -fx-background-color: -editor-bg;
     -fx-background-radius: 0;
     -fx-background-insets: 0;
     -fx-border-width: 0;
 }
 
-.editor-area .scroll-pane {
-    -fx-background-insets: 0;
-    -fx-border-width: 0;
-}
-
-.editor-area .scroll-pane .viewport {
+.editor-area .scroll-pane,
+.editor-area .scroll-pane .viewport,
+.editor-area .scroll-pane .corner,
+.editor-area .corner {
+    -fx-background-color: -editor-bg;
     -fx-background-insets: 0;
     -fx-border-width: 0;
 }
@@ -44,6 +49,20 @@
 
 .editor-area .scroll-bar:horizontal {
     -fx-pref-height: 0;
+    -fx-background-color: transparent;
+}
+
+.editor-area .scroll-bar .track {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+
+.editor-area .scroll-bar .increment-button,
+.editor-area .scroll-bar .decrement-button,
+.editor-area .scroll-bar .increment-arrow,
+.editor-area .scroll-bar .decrement-arrow {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
 }
 
 .toolbar {

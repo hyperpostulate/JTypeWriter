@@ -1,6 +1,7 @@
 package org.mesutormanli.jtypewriter.ui.theme;
 
 import javafx.scene.Scene;
+import javafx.scene.paint.Color;
 
 public class ThemeManager {
 
@@ -22,6 +23,10 @@ public class ThemeManager {
         if (themeCss != null) {
             scene.getStylesheets().add(themeCss.toExternalForm());
         }
+
+        // Paint the scene backdrop with the editor surface colour as well, so
+        // no unpainted sliver at the window edges can show the default white.
+        scene.setFill(Color.web(theme.getEditorFill()));
 
         currentTheme = theme;
     }

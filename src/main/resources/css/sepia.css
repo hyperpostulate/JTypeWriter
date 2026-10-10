@@ -1,5 +1,6 @@
 /* Sepia theme */
 .root {
+    -editor-bg: #f4ecd8;
     -toolbar-bg: #e8dcc8;
     -toolbar-border: #c4b69c;
     -toolbar-text: #5b4636;
@@ -20,7 +21,7 @@
 }
 
 .editor-area {
-    -fx-control-inner-background: #f4ecd8;
+    -fx-control-inner-background: -editor-bg;
     -fx-text-fill: #5b4636;
     -fx-highlight-fill: #d4c5ae;
     -fx-highlight-text-fill: #5b4636;

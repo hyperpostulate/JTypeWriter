@@ -1,5 +1,6 @@
 /* Light theme */
 .root {
+    -editor-bg: #ffffff;
     -toolbar-bg: #f5f5f5;
     -toolbar-border: #e0e0e0;
     -toolbar-text: #333333;
@@ -20,7 +21,7 @@
 }
 
 .editor-area {
-    -fx-control-inner-background: #ffffff;
+    -fx-control-inner-background: -editor-bg;
     -fx-text-fill: #333333;
     -fx-highlight-fill: #d4e4ff;
     -fx-highlight-text-fill: #333333;

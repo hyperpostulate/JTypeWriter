@@ -1,5 +1,6 @@
 /* Dark theme */
 .root {
+    -editor-bg: #1a1a1a;
     -toolbar-bg: #1e1e1e;
     -toolbar-border: #333333;
     -toolbar-text: #cccccc;
@@ -20,7 +21,7 @@
 }
 
 .editor-area {
-    -fx-control-inner-background: #1a1a1a;
+    -fx-control-inner-background: -editor-bg;
     -fx-text-fill: #d4d4d4;
     -fx-highlight-fill: #264f78;
     -fx-highlight-text-fill: #d4d4d4;
