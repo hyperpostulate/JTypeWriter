@@ -6,10 +6,15 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -20,6 +25,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class FileServiceTest {
+
+    private static final String TURKISH = "çöğü";
 
     private DialogService dialogService;
     private FileService fileService;
@@ -94,5 +101,124 @@ class FileServiceTest {
         assertEquals("draft", Files.readString(backup));
         assertEquals("from disk", fileService.getCurrentContent());
         assertFalse(fileService.hasUnsavedChanges());
+    }
+
+    // --- data safety: atomic writes, backups, listener hooks ---------------
+
+    @Test
+    void overwriteKeepsPreviousVersionInBackup(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("doc.txt");
+        when(dialogService.showSaveDialog(any())).thenReturn(Optional.of(target.toFile()));
+
+        fileService.saveFile(null, "v1");
+        fileService.saveFile(null, "v2");
+
+        assertEquals("v2", Files.readString(target));
+        assertEquals("v1", Files.readString(BackupKeeper.backupPath(target, 0)));
+    }
+
+    @Test
+    void interruptedSavesLeaveNoTempFilesBehind(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("doc.txt");
+        when(dialogService.showSaveDialog(any())).thenReturn(Optional.of(target.toFile()));
+
+        fileService.saveFile(null, "v1");
+        fileService.saveFile(null, "v2");
+
+        try (Stream<Path> files = Files.list(dir)) {
+            assertTrue(files.noneMatch(p -> p.getFileName().toString().endsWith(".tmp")));
+        }
+    }
+
+    // --- encoding stability -------------------------------------------------
+
+    @Test
+    void legacyEncodedFileSurvivesOpenAndSaveRoundTrip(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("ansi.txt");
+        var ansi = TURKISH.getBytes(TextCodec.WINDOWS_1254);
+        Files.write(target, ansi);
+        when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(target.toFile()));
+        when(dialogService.showEncodingDialog(any(), any()))
+                .thenReturn(DialogService.EncodingChoice.WINDOWS1254);
+
+        assertTrue(fileService.openFile(null).isPresent());
+        assertEquals(TURKISH, fileService.getCurrentContent());
+
+        fileService.saveFile(null, fileService.getCurrentContent());
+
+        // byte-identical round trip: saving must never switch the file to UTF-8
+        assertArrayEquals(ansi, Files.readAllBytes(target));
+    }
+
+    @Test
+    void cancellingTheEncodingPromptAbortsTheOpen(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("ansi.txt");
+        Files.write(target, TURKISH.getBytes(TextCodec.WINDOWS_1254));
+        when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(target.toFile()));
+        when(dialogService.showEncodingDialog(any(), any()))
+                .thenReturn(DialogService.EncodingChoice.CANCEL);
+
+        assertTrue(fileService.openFile(null).isEmpty());
+    }
+
+    @Test
+    void validUtf8FileOpensWithoutAnyEncodingPrompt(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("utf8.txt");
+        Files.write(target, "héllo wörld".getBytes(StandardCharsets.UTF_8));
+        when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(target.toFile()));
+
+        assertTrue(fileService.openFile(null).isPresent());
+
+        assertEquals("héllo wörld", fileService.getCurrentContent());
+        verify(dialogService, never()).showEncodingDialog(any(), any());
+    }
+
+    // --- lifecycle listeners and recovery attachment ------------------------
+
+    @Test
+    void notifiesListenersAboutLoadsAndSaves(@TempDir Path dir) throws IOException {
+        var events = new ArrayList<String>();
+        fileService.addListener(new FileService.Listener() {
+            @Override
+            public void onLoaded(Path file) {
+                events.add("loaded:" + file.getFileName());
+            }
+
+            @Override
+            public void onSaved(Path file) {
+                events.add("saved:" + file.getFileName());
+            }
+        });
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "from disk");
+        when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(target.toFile()));
+        when(dialogService.showSaveDialog(any())).thenReturn(Optional.of(target.toFile()));
+
+        fileService.openFile(null);
+        fileService.saveFile(null, "changed");
+
+        assertEquals(List.of("loaded:doc.txt", "saved:doc.txt"), events);
+    }
+
+    @Test
+    void restoredRecoveryDraftIsDirtyAndCanBeSavedThereAgain(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("novel.txt");
+        Files.write(target, "published chapter".getBytes(TextCodec.WINDOWS_1254));
+
+        fileService.restoreRecovered(target, "new chapter");
+
+        assertEquals("new chapter", fileService.getCurrentContent());
+        assertTrue(fileService.hasUnsavedChanges());
+
+        fileService.saveFile(null, fileService.getCurrentContent());
+        assertFalse(fileService.hasUnsavedChanges());
+    }
+
+    @Test
+    void restoredDraftWithoutAFileIsDirty(@TempDir Path dir) {
+        fileService.restoreRecovered(null, "scratch text");
+
+        assertTrue(fileService.hasUnsavedChanges());
+        assertEquals(null, fileService.getCurrentFilePath());
     }
 }

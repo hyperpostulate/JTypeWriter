@@ -28,6 +28,12 @@
     -fx-border-width: 0;
 }
 
+/* YOLO mode badge inside the editor: warm accent caret marking the
+   protected state (deletion-disabled drafting) at a glance. */
+.editor-area:yolo .caret {
+    -fx-stroke: #c0883c;
+}
+
 .editor-area .scroll-bar:vertical {
     -fx-pref-width: 8px;
     -fx-background-color: transparent;

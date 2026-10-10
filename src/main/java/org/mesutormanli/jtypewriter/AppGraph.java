@@ -1,12 +1,16 @@
 package org.mesutormanli.jtypewriter;
 
+import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.audio.TypewriterSound;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.service.AutoSaveService;
 import org.mesutormanli.jtypewriter.service.DialogService;
 import org.mesutormanli.jtypewriter.service.FileService;
+import org.mesutormanli.jtypewriter.service.RecoveryStore;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
 import org.mesutormanli.jtypewriter.ui.AboutDialog;
+import org.mesutormanli.jtypewriter.ui.CrashHandler;
 import org.mesutormanli.jtypewriter.ui.KeyboardShortcutHandler;
 import org.mesutormanli.jtypewriter.ui.MainController;
 import org.mesutormanli.jtypewriter.ui.MainStage;
@@ -26,9 +30,8 @@ import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
  *
  * <p>Every component is a single instance constructed exactly once (equivalent
  * to the former Spring singleton beans). Field declaration order encodes the
- * dependency order, so a component must be declared after everything it needs.
- * Construction is fully deterministic and starts with the JavaFX lifecycle
- * instead of an IoC container boot phase.</p>
+ * dependency order, so a component must be declared after everything it needs;
+ * cross-component wiring (listeners) lives in the constructor.</p>
  */
 public final class AppGraph {
 
@@ -37,7 +40,10 @@ public final class AppGraph {
     public final Messages messages = new Messages(localeManager);
     public final SessionStats sessionStats = new SessionStats();
     public final TypewriterSound typewriterSound = new TypewriterSound();
-    public final FileService fileService = new FileService(new DialogService(messages), messages);
+    public final DialogService dialogService = new DialogService(messages);
+    public final FileService fileService = new FileService(dialogService, messages);
+    public final RecoveryStore recoveryStore = new RecoveryStore(AppDirs.recoveryDir());
+    public final AutoSaveService autoSaveService = new AutoSaveService(recoveryStore, fileService, dialogService);
 
     // --- UI state managers -----------------------------------------------
     public final ThemeManager themeManager = new ThemeManager();
@@ -57,10 +63,28 @@ public final class AppGraph {
             fileService, themeManager, textColorManager, fontSizeManager,
             toolbarState, messages, localeManager, aboutDialog);
     public final StatsBar statsBar = new StatsBar(sessionStats, messages);
+    public final CrashHandler crashHandler = new CrashHandler(messages, () -> this.stage);
 
     // --- top level assembly ------------------------------------------------
     public final MainController mainController = new MainController(
             editorArea, toolbarView, statsBar, themeManager,
             fileService, shortcutHandler, editorKeyHandler);
     public final MainStage mainStage = new MainStage(fileService);
+
+    private volatile Stage stage;
+
+    public AppGraph() {
+        // session statistics follow the document, not the application lifetime
+        fileService.addListener(new FileService.Listener() {
+            @Override
+            public void onLoaded(java.nio.file.Path file) {
+                sessionStats.reset();
+            }
+        });
+    }
+
+    /** Remembers the main window so dialogs can be owned by it (crash reports). */
+    public void setStage(Stage stage) {
+        this.stage = stage;
+    }
 }

@@ -11,9 +11,15 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import org.mesutormanli.jtypewriter.AppLogging;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class AboutDialog {
+
+    private static final Logger LOG = AppLogging.logger(AboutDialog.class);
 
     private final Messages messages;
 
@@ -46,7 +52,8 @@ public class AboutDialog {
                 if (java.awt.Desktop.isDesktopSupported() && desktop.isSupported(java.awt.Desktop.Action.MAIL)) {
                     desktop.mail(new java.net.URI("mailto:mesutormanli@gmail.com"));
                 }
-            } catch (Exception ignored) {
+            } catch (Exception error) {
+                LOG.log(Level.FINE, "could not open the mail client", error);
             }
         });
 

@@ -26,6 +26,10 @@
     -fx-highlight-text-fill: #333333;
 }
 
+.editor-area:yolo {
+    -fx-control-inner-background: #fdf7ea;
+}
+
 .editor-area .scroll-bar:vertical .thumb {
     -fx-background-color: #cccccc;
 }

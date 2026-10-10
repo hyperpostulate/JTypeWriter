@@ -150,7 +150,7 @@ Authentic typewriter keystroke sound on every key press. Can be toggled on/off v
 
 ### YOLO Mode
 
-"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, and Cut are disabled. Perfect for first-draft writing where you push forward without looking back.
+"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, and Cut are disabled. Perfect for first-draft writing where you push forward without looking back. The mode is announced with a toast and stays visible through the `[YOLO]` title badge, a warm editor background tint and an accent caret.
 
 ### Real-Time Statistics
 
@@ -158,7 +158,14 @@ Live stats bar showing:
 - Word count, character count (with/without spaces), line count
 - Total keystrokes
 - Session duration (HH:MM:SS)
-- Words per minute (WPM)
+- Words per minute (WPM) - sustained speed based on active typing time, so breaks do not drag it down
+
+### Data Safety & Crash Recovery
+
+- **Atomic saves with backups:** every save writes to a temp file and moves it into place; overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`) - a crash mid-save never truncates the document
+- **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`; after a crash the draft is offered for restoration on the next startup
+- **Encoding safety:** documents are detected (UTF-8/UTF-16 BOMs, strict UTF-8) and always written back in the same encoding; unknown legacy files (e.g. Turkish Windows-1254) trigger a prompt instead of silent corruption
+- **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently
 
 ### Multiple Themes
 
@@ -243,8 +250,11 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 
 | Test Class | Coverage |
 |------------|----------|
-| `SessionStatsTest` | Word count, char count, line count, keystrokes, reset |
-| `FileServiceTest` | Unsaved change detection, unsaved-changes prompt on open (cancel/discard/save-first) |
+| `SessionStatsTest` | Word count, char count, line count, keystrokes, reset, WPM from active typing time (idle decay regression) |
+| `FileServiceTest` | Unsaved-change handling on open (cancel/discard/save-first), atomic writes, rotated backups, encoding round trips, lifecycle listeners, recovery attachment |
+| `TextCodecTest` | Encoding detection (BOMs, strict UTF-8), legacy prompts, lossless encoding round trips |
+| `BackupKeeperTest` | Pre-overwrite backup rotation and retention |
+| `RecoveryStoreTest` | Crash-recovery draft lifecycle (save/restore/drop) |
 | `YoloPolicyTest` | YOLO mode edit policy (deletions blocked, insertions allowed, safe replacement) |
 | `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S) |
 | `JTypeWriterAppTests` | Main method presence |
@@ -428,7 +438,7 @@ Her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki düğmeyle a
 
 ### YOLO Modu
 
-"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde, Backspace, Delete ve Cut devre dışı kalır. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir.
+"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde, Backspace, Delete ve Cut devre dışı kalır. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod değişimi bir bildirimle duyurulur; `[YOLO]` başlık rozeti, sıcak arka plan tonu ve vurgulu imleç modu görünür tutar.
 
 ### Gerçek Zamanlı İstatistikler
 
@@ -436,7 +446,14 @@ Canlı istatistik çubuğu:
 - Kelime sayısı, karakter sayısı (boşluklu/boşluksuz), satır sayısı
 - Toplam tuş vuruşu
 - Oturum süresi (SS:DD:SS)
-- Dakikada kelime (WPM)
+- Dakikada kelime (WPM) - aktif yazım süresine dayalı kalıcı hız; molalar değeri düşürmez
+
+### Veri Güvenliği ve Kurtarma
+
+- **Atomik kayıt + yedek:** her kayıt geçici dosyaya yazılıp taşınır; üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`) - kayıt ortasında çökme belgeyi asla yaralamaz
+- **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökme sonrası taslak bir sonraki açılışta geri yükleme için teklif edilir
+- **Kodlama güvenliği:** belgeler tespit edilir (UTF-8/UTF-16 BOM, sıkı UTF-8) ve her zaman aynı kodlamayla geri yazılır; bilinmeyen eski dosyalarda (örn. Windows-1254 Türkçe) sessiz bozulma yerine sorulur
+- **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir
 
 ### Çoklu Tema
 
@@ -521,8 +538,11 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 
 | Test Sınıfı | Kapsam |
 |-------------|--------|
-| `SessionStatsTest` | Kelime sayısı, karakter sayısı, satır sayısı, tuş vuruşları, sıfırlama |
-| `FileServiceTest` | Kaydedilmemiş değişiklik algılama, açık sırasında kaydetme diyaloğu (iptal/atla/önce kaydet) |
+| `SessionStatsTest` | Kelime/karakter/satır sayısı, tuş vuruşları, sıfırlama, aktif yazım süreli WPM (durağanlık bozulması regresyonu) |
+| `FileServiceTest` | Açık sırasında kaydedilmemiş değişiklik akışı (iptal/atla/önce kaydet), atomik yazım, dönen yedekler, kodlama gidiş-dönüşü, yaşam döngüsü dinleyicileri, kurtarma bağlama |
+| `TextCodecTest` | Kodlama tespiti (BOM, sıkı UTF-8), eski kodlama sorusu, kayıpsız kodlama gidiş-dönüşü |
+| `BackupKeeperTest` | Yazımdan önce yedek rotasyonu ve saklama |
+| `RecoveryStoreTest` | Çökme kurtarma taslağı yaşam döngüsü (kaydet/geri yükle/sil) |
 | `YoloPolicyTest` | YOLO modu düzenleme politikası (silme engelli, ekleme serbest, güvenli değiştirme) |
 | `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S) |
 | `JTypeWriterAppTests` | Ana metod varlığı |

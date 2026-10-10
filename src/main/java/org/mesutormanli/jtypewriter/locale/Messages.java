@@ -210,4 +210,52 @@ public class Messages {
         return MessageFormat.format(bundle.getString("statsFormat"),
                 words, chars, charsNoSpace, lines, keystrokes, duration, wpm);
     }
+
+    public String recoveryTitle() {
+        return bundle.getString("recoveryTitle");
+    }
+
+    public String recoveryHeader() {
+        return bundle.getString("recoveryHeader");
+    }
+
+    public String recoveryContent(String savedAt) {
+        return MessageFormat.format(bundle.getString("recoveryContent"), savedAt);
+    }
+
+    public String recoveryYes() {
+        return bundle.getString("recoveryYes");
+    }
+
+    public String recoveryNo() {
+        return bundle.getString("recoveryNo");
+    }
+
+    public String encodingTitle() {
+        return bundle.getString("encodingTitle");
+    }
+
+    public String encodingHeader() {
+        return bundle.getString("encodingHeader");
+    }
+
+    public String encodingContent() {
+        return bundle.getString("encodingContent");
+    }
+
+    public String encodingTurkish() {
+        return bundle.getString("encodingTurkish");
+    }
+
+    public String encodingUtf8() {
+        return bundle.getString("encodingUtf8");
+    }
+
+    public String encodingCancel() {
+        return bundle.getString("encodingCancel");
+    }
+
+    public String errorLogged(String logDir) {
+        return MessageFormat.format(bundle.getString("errorLogged"), logDir);
+    }
 }

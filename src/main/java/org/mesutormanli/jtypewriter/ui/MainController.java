@@ -44,8 +44,15 @@ public class MainController implements Initializable {
 
     public void setStage(Stage stage) {
         toolbarView.setStage(stage);
+        toolbarView.setOnYoloChange(() -> refreshTitle(stage));
         shortcutHandler.bind(editorArea, toolbarView, stage, this::toggleToolbar, this::cycleTheme);
         editorKeyHandler.bind(editorArea);
+        refreshTitle(stage);
+    }
+
+    /** The title doubles as the persistent YOLO badge (the toolbar may be hidden). */
+    private void refreshTitle(Stage stage) {
+        stage.setTitle("JTypeWriter" + (editorArea.isYoloMode() ? "   [YOLO]" : ""));
     }
 
     @Override

@@ -13,6 +13,13 @@ public final class JTypeWriterApp {
     }
 
     public static void main(String[] args) {
-        Application.launch(FxApplication.class, args);
+        try {
+            Application.launch(FxApplication.class, args);
+        } catch (Throwable error) {
+            // last-resort trail when the toolkit dies before the crash dialog can show
+            System.err.println("JTypeWriter terminated unexpectedly: " + error);
+            error.printStackTrace();
+            System.exit(1);
+        }
     }
 }
