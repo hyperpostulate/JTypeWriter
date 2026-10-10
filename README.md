@@ -96,7 +96,6 @@ org.mesutormanli.jtypewriter
 │   ├── AboutDialog.java                  # About dialog with author info
 │   ├── KeyboardShortcutHandler.java      # Centralized keyboard shortcut handling
 │   ├── CrashHandler.java                 # Global crash net: log + error dialog
-│   ├── Toast.java                        # Transient notification overlay
 │   └── component/
 │       ├── EditorArea.java               # Pure TextArea wrapper
 │       ├── YoloPolicy.java               # YOLO mode edit policy (pure logic)
@@ -135,7 +134,6 @@ org.mesutormanli.jtypewriter
 | `RecoveryStore` | Crash-recovery draft storage under `~/.jtypewriter/recovery/` |
 | `AutoSaveService` | Periodic draft snapshots and startup recovery offer |
 | `CrashHandler` | Global crash net: logging plus user-facing error dialog |
-| `Toast` | Transient notification overlay for mode changes |
 | `ThemeManager` | CSS theme loading and switching |
 | `FontSizeManager` | Editor font size state (10-48px) |
 | `TextColorManager` | Text color cycling state |
@@ -166,7 +164,7 @@ Authentic typewriter keystroke sound on every key press. Can be toggled on/off v
 
 ### YOLO Mode
 
-"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, and Cut are disabled. Perfect for first-draft writing where you push forward without looking back. The mode is announced with a toast and stays visible through the `[YOLO]` title badge and the toolbar status label; theme colours stay untouched in both states.
+"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, and Cut are disabled. Perfect for first-draft writing where you push forward without looking back. The mode stays visible through the `[YOLO]` title badge and the toolbar status label; theme colours stay untouched in both states.
 
 ### Real-Time Statistics
 
@@ -400,7 +398,6 @@ org.mesutormanli.jtypewriter
 │   ├── AboutDialog.java                  # Yazar bilgisiyle hakkında dialogu
 │   ├── KeyboardShortcutHandler.java      # Merkezi klavye kısayolu yönetimi
 │   ├── CrashHandler.java                 # Global çökme ağı: log + hata diyaloğu
-│   ├── Toast.java                        # Geçiş bildirim balonu
 │   └── component/
 │       ├── EditorArea.java               # Saf TextArea sarmalayıcı
 │       ├── YoloPolicy.java               # YOLO modu düzenleme politikası (saf mantık)
@@ -439,7 +436,6 @@ org.mesutormanli.jtypewriter
 | `RecoveryStore` | `~/.jtypewriter/recovery/` altında çökme kurtarma taslakları |
 | `AutoSaveService` | Dönemsel taslak anlık görüntüleri ve açılışta kurtarma teklifi |
 | `CrashHandler` | Global çökme ağı: log + kullanıcıya hata diyaloğu |
-| `Toast` | Mod değişiklikleri için geçiş bildirim balonu |
 | `ThemeManager` | CSS tema yükleme ve değiştirme |
 | `FontSizeManager` | Editör font boyutu durumu (10-48px) |
 | `TextColorManager` | Metin rengi döngüsü durumu |
@@ -470,7 +466,7 @@ Her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki düğmeyle a
 
 ### YOLO Modu
 
-"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde, Backspace, Delete ve Cut devre dışı kalır. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod değişimi bir bildirimle duyurulur; `[YOLO]` başlık rozeti ve araç çubuğu durum etiketi modu görünür tutar; tema renkleri her iki durumda da değişmez.
+"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde, Backspace, Delete ve Cut devre dışı kalır. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod, `[YOLO]` başlık rozeti ve araç çubuğu durum etiketi ile görünür tutulur; tema renkleri her iki durumda da değişmez.
 
 ### Gerçek Zamanlı İstatistikler
 
