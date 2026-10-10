@@ -166,7 +166,7 @@ Authentic typewriter keystroke sound on every key press. Can be toggled on/off v
 
 ### YOLO Mode
 
-"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, and Cut are disabled. Perfect for first-draft writing where you push forward without looking back. The mode is announced with a toast and stays visible through the `[YOLO]` title badge, a warm editor background tint and an accent caret.
+"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, and Cut are disabled. Perfect for first-draft writing where you push forward without looking back. The mode is announced with a toast and stays visible through the `[YOLO]` title badge and the toolbar status label; theme colours stay untouched in both states.
 
 ### Real-Time Statistics
 
@@ -470,7 +470,7 @@ Her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki düğmeyle a
 
 ### YOLO Modu
 
-"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde, Backspace, Delete ve Cut devre dışı kalır. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod değişimi bir bildirimle duyurulur; `[YOLO]` başlık rozeti, sıcak arka plan tonu ve vurgulu imleç modu görünür tutar.
+"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde, Backspace, Delete ve Cut devre dışı kalır. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod değişimi bir bildirimle duyurulur; `[YOLO]` başlık rozeti ve araç çubuğu durum etiketi modu görünür tutar; tema renkleri her iki durumda da değişmez.
 
 ### Gerçek Zamanlı İstatistikler
 
