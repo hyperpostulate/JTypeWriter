@@ -61,18 +61,23 @@ public class AutoSaveService {
      * Offers the surviving draft, if any, during startup. A restored draft
      * stays in the store until the next successful save, so a second crash
      * right after recovery cannot lose it.
+     *
+     * @return {@code true} when a draft was restored (the caller must not load
+     *         anything else into the editor), {@code false} when there was no
+     *         draft or the user discarded it
      */
-    public void offerRecovery(Stage stage, EditorArea editorArea) {
+    public boolean offerRecovery(Stage stage, EditorArea editorArea) {
         var draft = store.loadDraft();
         if (draft.isEmpty()) {
-            return;
+            return false;
         }
         if (dialogService.showRecoveryDialog(stage, draft.get().savedAt())) {
             fileService.restoreRecovered(draft.get().originalFile(), draft.get().content());
             editorArea.setText(fileService.getCurrentContent());
-        } else {
-            store.clear();
+            return true;
         }
+        store.clear();
+        return false;
     }
 
     /** Clean exit: stop snapping and drop the draft. */

@@ -1,9 +1,18 @@
 package org.mesutormanli.jtypewriter.ui.theme;
 
 
+import org.mesutormanli.jtypewriter.AppSettings;
+import org.mesutormanli.jtypewriter.locale.Messages;
+
 public class TextColorManager {
 
-    private TextColor current = TextColor.DEFAULT;
+    private final AppSettings settings;
+    private TextColor current;
+
+    public TextColorManager(AppSettings settings) {
+        this.settings = settings;
+        this.current = settings.getTextColor();
+    }
 
     public TextColor getCurrent() {
         return current;
@@ -11,6 +20,7 @@ public class TextColorManager {
 
     public TextColor cycle() {
         current = current.next();
+        settings.setTextColor(current);
         return current;
     }
 
@@ -18,7 +28,7 @@ public class TextColorManager {
         return current.getCssColor();
     }
 
-    public String getCurrentDisplayName() {
-        return current.getDisplayName();
+    public String getCurrentDisplayName(Messages messages) {
+        return current.getDisplayName(messages);
     }
 }

@@ -2,13 +2,25 @@ package org.mesutormanli.jtypewriter.ui.theme;
 
 import javafx.scene.Scene;
 import javafx.scene.paint.Color;
+import org.mesutormanli.jtypewriter.AppSettings;
 
 public class ThemeManager {
 
-    private Theme currentTheme = Theme.DARK;
+    private final AppSettings settings;
+    private Theme currentTheme;
+
+    public ThemeManager(AppSettings settings) {
+        this.settings = settings;
+        this.currentTheme = settings.getTheme();
+    }
 
     public Theme getCurrentTheme() {
         return currentTheme;
+    }
+
+    /** Applies the persisted theme (startup). */
+    public void applyTheme(Scene scene) {
+        applyTheme(scene, currentTheme);
     }
 
     public void applyTheme(Scene scene, Theme theme) {
@@ -29,6 +41,7 @@ public class ThemeManager {
         scene.setFill(Color.web(theme.getEditorFill()));
 
         currentTheme = theme;
+        settings.setTheme(theme);
     }
 
     public Theme cycleTheme(Scene scene) {

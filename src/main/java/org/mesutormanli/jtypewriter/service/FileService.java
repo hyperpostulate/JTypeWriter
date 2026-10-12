@@ -1,15 +1,14 @@
 package org.mesutormanli.jtypewriter.service;
 
 import org.mesutormanli.jtypewriter.AppLogging;
+import org.mesutormanli.jtypewriter.AtomicFiles;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -19,8 +18,9 @@ import java.util.logging.Logger;
 /**
  * Document I/O with data-safety guarantees:
  * <ul>
- *   <li><b>Atomic writes:</b> content is written to a temp file and moved into
- *       place, so a crash mid-save can never leave a truncated document;</li>
+ *   <li><b>Atomic, durable writes:</b> content is fsynced to a temp file and
+ *       renamed into place (see {@link AtomicFiles}), so neither a crash
+ *       mid-save nor a power cut can leave a truncated document;</li>
  *   <li><b>Rotating backups:</b> every overwrite keeps the previous version as
  *       {@code <file>.bak} (plus {@code .bak.1/.bak.2} generations);</li>
  *   <li><b>Encoding stability:</b> a document is read with encoding detection
@@ -98,7 +98,15 @@ public class FileService {
         var file = dialogService.showOpenDialog(stage);
         if (file.isEmpty()) return Optional.empty();
 
-        var path = file.get().toPath();
+        return loadFile(stage, file.get().toPath());
+    }
+
+    /**
+     * Loads a document that is already known - the file picker has been
+     * answered, or the path comes from session restore. The encoding prompt
+     * still applies, so a legacy document is never silently mangled.
+     */
+    public Optional<Path> loadFile(javafx.stage.Stage stage, Path path) {
         try {
             var decoded = decode(Files.readAllBytes(path), stage, path);
             if (decoded == null) {
@@ -147,7 +155,7 @@ public class FileService {
     }
 
     public Optional<Path> saveFileAs(javafx.stage.Stage stage, String content) {
-        var file = dialogService.showSaveDialog(stage);
+        var file = dialogService.showSaveDialog(stage, currentFilePath);
         if (file.isEmpty()) return Optional.empty();
 
         return writeFile(file.get().toPath(), content);
@@ -156,7 +164,7 @@ public class FileService {
     private Optional<Path> writeFile(Path path, String content) {
         try {
             backupKeeper.backup(path);
-            writeAtomically(path, TextCodec.encode(content, currentCharset, currentBom));
+            AtomicFiles.writeMoving(path, TextCodec.encode(content, currentCharset, currentBom));
             currentFilePath = path;
             savedContent = content;
             currentContent = content;
@@ -165,26 +173,6 @@ public class FileService {
         } catch (IOException e) {
             dialogService.showError(messages.errorSave(), e.getMessage());
             return Optional.empty();
-        }
-    }
-
-    /** Temp-file-then-move so an interrupted save leaves the old document intact. */
-    private static void writeAtomically(Path path, byte[] bytes) throws IOException {
-        var absolute = path.toAbsolutePath();
-        var temp = Files.createTempFile(absolute.getParent(), absolute.getFileName().toString(), ".tmp");
-        var moved = false;
-        try {
-            Files.write(temp, bytes);
-            try {
-                Files.move(temp, absolute, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (AtomicMoveNotSupportedException e) {
-                Files.move(temp, absolute, StandardCopyOption.REPLACE_EXISTING);
-            }
-            moved = true;
-        } finally {
-            if (!moved) {
-                Files.deleteIfExists(temp);
-            }
         }
     }
 

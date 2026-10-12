@@ -1,16 +1,21 @@
 package org.mesutormanli.jtypewriter.ui.component;
 
+import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.audio.TypewriterSound;
 
 public class ToolbarState {
 
     private final TypewriterSound typewriterSound;
+    private final AppSettings settings;
 
     private boolean yoloMode;
-    private boolean soundEnabled = true;
+    private boolean soundEnabled;
 
-    public ToolbarState(TypewriterSound typewriterSound) {
+    public ToolbarState(TypewriterSound typewriterSound, AppSettings settings) {
         this.typewriterSound = typewriterSound;
+        this.settings = settings;
+        this.soundEnabled = settings.isSoundEnabled();
+        typewriterSound.setEnabled(soundEnabled);
     }
 
     public boolean isYoloMode() {
@@ -29,5 +34,6 @@ public class ToolbarState {
     public void toggleSound() {
         soundEnabled = !soundEnabled;
         typewriterSound.setEnabled(soundEnabled);
+        settings.setSoundEnabled(soundEnabled);
     }
 }

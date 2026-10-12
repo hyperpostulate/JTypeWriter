@@ -1,12 +1,13 @@
 package org.mesutormanli.jtypewriter.service;
 
+import org.mesutormanli.jtypewriter.AtomicFiles;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Properties;
@@ -15,9 +16,9 @@ import java.util.Properties;
  * Crash-recovery draft storage. A draft is a pair of files in a fixed
  * directory: {@code draft.txt} (the unsaved text, UTF-8) and
  * {@code draft.properties} (metadata: original file and save time). Both are
- * written to a temp file and moved into place so a crash can never leave a
- * half-written draft that hides the previous one. Free of UI types so it can be
- * unit tested headlessly.
+ * written through {@link org.mesutormanli.jtypewriter.AtomicFiles}, so a crash
+ * or power cut can never leave a half-written draft that hides the previous
+ * one. Free of UI types so it can be unit tested headlessly.
  *
  * <p>Lifecycle: the draft is refreshed periodically while a document is dirty,
  * cleared on every successful save and on clean exit. If the application dies
@@ -43,18 +44,16 @@ public class RecoveryStore {
     /** Stores (or refreshes) the single draft slot. */
     public synchronized void saveDraft(String content, Path originalFile) throws IOException {
         Files.createDirectories(dir);
-        writeMoving(dir.resolve(DRAFT_FILE), writer -> Files.writeString(writer, content, StandardCharsets.UTF_8));
+        AtomicFiles.writeMoving(dir.resolve(DRAFT_FILE), content.getBytes(StandardCharsets.UTF_8));
 
         var meta = new Properties();
         meta.setProperty(KEY_SAVED_AT, Instant.now().toString());
         if (originalFile != null) {
             meta.setProperty(KEY_ORIGINAL_PATH, originalFile.toAbsolutePath().toString());
         }
-        writeMoving(dir.resolve(META_FILE), target -> {
-            try (OutputStream out = Files.newOutputStream(target)) {
-                meta.store(out, "JTypeWriter recovery draft");
-            }
-        });
+        var buffer = new ByteArrayOutputStream();
+        meta.store(buffer, "JTypeWriter recovery draft");
+        AtomicFiles.writeMoving(dir.resolve(META_FILE), buffer.toByteArray());
     }
 
     /** @return the surviving draft, if any */
@@ -96,21 +95,5 @@ public class RecoveryStore {
         } catch (IOException ignored) {
             // a leftover draft is retried on the next autosave; never fatal
         }
-    }
-
-    private static void writeMoving(Path target, Writer writer) throws IOException {
-        var temp = target.resolveSibling(target.getFileName() + ".tmp");
-        try {
-            writer.write(temp);
-            Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            Files.deleteIfExists(temp);
-            throw e;
-        }
-    }
-
-    @FunctionalInterface
-    private interface Writer {
-        void write(Path target) throws IOException;
     }
 }

@@ -6,7 +6,6 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.ui.MainController;
-import org.mesutormanli.jtypewriter.ui.theme.Theme;
 
 /**
  * JavaFX lifecycle bridge. Builds the object graph once in {@link #init()},
@@ -46,18 +45,32 @@ public class FxApplication extends Application {
             primaryStage.setScene(scene);
 
             app.setStage(primaryStage);
-            app.themeManager.applyTheme(scene, Theme.DARK);
+            app.themeManager.applyTheme(scene); // the theme persisted from the last session
             app.mainController.setStage(primaryStage);
             app.mainStage.configure(primaryStage, scene);
 
             primaryStage.show();
 
             app.autoSaveService.attach(primaryStage, app.editorArea);
-            app.autoSaveService.offerRecovery(primaryStage, app.editorArea);
+            if (!app.autoSaveService.offerRecovery(primaryStage, app.editorArea)) {
+                restoreLastSession(primaryStage); // continue where the last session ended
+            }
             app.welcomeDialog.show(primaryStage);
         } catch (Throwable error) {
             app.crashHandler.report("Startup failed", error);
             throw error;
         }
+    }
+
+    /**
+     * Reopens the document from the last session. A document that has vanished
+     * is silently skipped: a stale settings entry must never turn startup into
+     * an error parade.
+     */
+    private void restoreLastSession(Stage stage) {
+        app.settings.getLastFile()
+                .filter(java.nio.file.Files::isRegularFile)
+                .flatMap(path -> app.fileService.loadFile(stage, path))
+                .ifPresent(path -> app.editorArea.setText(app.fileService.getCurrentContent()));
     }
 }

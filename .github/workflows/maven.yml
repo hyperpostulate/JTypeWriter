@@ -1,10 +1,10 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+# Builds, tests and packages JTypeWriter on every platform we ship for.
+# Each job runs the test suite, produces a native application image with
+# jpackage (scripts/package.sh) and wraps it into a platform installer, then
+# uploads the result so releases are always reproducible from source.
+#
+# The jpackage steps are deliberately kept here instead of in the script: the
+# installer types and their options are platform specific (deb/msi/dmg).
 
 name: Java CI with Maven
 
@@ -16,16 +16,73 @@ on:
 
 jobs:
   build:
+    name: Build & package (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           java-version: '25'
           distribution: 'temurin'
           cache: maven
-      - name: Build with Maven
+
+      - name: Build and test with Maven
         run: mvn -B package --file pom.xml
+
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+
+      - name: Build native application image
+        shell: bash
+        run: bash scripts/package.sh --skip-build
+
+      - name: Wrap into a Debian package
+        if: runner.os == 'Linux'
+        run: |
+          jpackage --type deb \
+            --app-image releases/linux/JTypeWriter \
+            --name JTypeWriter --app-version 0.0.1 \
+            --description "A distraction-free text editor" \
+            --vendor "Mesut ORMANLI" \
+            --linux-shortcut --linux-app-category "Office" \
+            --linux-deb-maintainer "mesutormanli@gmail.com" \
+            --dest releases/linux
+
+      - name: Wrap into a Windows installer
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          jpackage --type msi \
+            --app-image releases/windows/JTypeWriter \
+            --name JTypeWriter --app-version 0.0.1 \
+            --description "A distraction-free text editor" \
+            --vendor "Mesut ORMANLI" \
+            --win-menu --win-shortcut --win-dir-chooser \
+            --dest releases/windows
+
+      - name: Wrap into a macOS disk image
+        if: runner.os == 'macOS'
+        run: |
+          jpackage --type dmg \
+            --app-image releases/mac/JTypeWriter.app \
+            --name JTypeWriter --app-version 0.0.1 \
+            --description "A distraction-free text editor" \
+            --vendor "Mesut ORMANLI" \
+            --mac-package-identifier "org.mesutormanli.jtypewriter" \
+            --dest releases/mac
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: JTypeWriter-${{ matrix.os }}
+          path: releases/
+          if-no-files-found: error

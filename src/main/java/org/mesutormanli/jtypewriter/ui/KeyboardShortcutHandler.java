@@ -1,5 +1,6 @@
 package org.mesutormanli.jtypewriter.ui;
 
+import javafx.event.EventTarget;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
@@ -29,7 +30,11 @@ public class KeyboardShortcutHandler {
         this.onToggleToolbar = onToggleToolbar;
         this.onThemeCycle = onThemeCycle;
 
-        editorArea.addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPress);
+        // Scene-level, not editor-level: shortcuts must keep working when the
+        // focus sits on a toolbar button or anywhere else in the window.
+        var scene = stage != null ? stage.getScene() : null;
+        EventTarget target = scene != null ? scene : editorArea;
+        target.addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPress);
     }
 
     /** Decoded meaning of a Ctrl-combination key press. */
@@ -42,7 +47,9 @@ public class KeyboardShortcutHandler {
      * Maps a Ctrl-combination to its action. Kept free of UI state so the
      * shift-sensitive combos can be unit tested headlessly: with two separate
      * key filters the Ctrl+Shift+Y combination leaked into the Ctrl+Y branch and
-     * ran Redo instead of toggling YOLO mode.
+     * ran Redo instead of toggling YOLO mode. Numpad keys are accepted as
+     * equivalents of their main-keyboard neighbours (Ctrl+Num0 resets the font
+     * just like Ctrl+0).
      */
     static ShortcutAction resolve(KeyCode code, boolean shift) {
         return switch (code) {
@@ -52,15 +59,20 @@ public class KeyboardShortcutHandler {
             case C -> shift ? ShortcutAction.CYCLE_TEXT_COLOR : ShortcutAction.NONE;
             case O -> ShortcutAction.OPEN;
             case S -> shift ? ShortcutAction.SAVE_AS : ShortcutAction.SAVE;
-            case DIGIT0 -> ShortcutAction.FONT_RESET;
-            case EQUALS, PLUS -> ShortcutAction.FONT_UP;
-            case MINUS -> ShortcutAction.FONT_DOWN;
+            case DIGIT0, NUMPAD0 -> ShortcutAction.FONT_RESET;
+            case EQUALS, PLUS, ADD -> ShortcutAction.FONT_UP;
+            case MINUS, SUBTRACT -> ShortcutAction.FONT_DOWN;
             default -> ShortcutAction.NONE;
         };
     }
 
+    /**
+     * {@code isShortcutDown()} is Ctrl on Windows/Linux and Cmd on macOS, so
+     * the shortcuts match each platform's conventions; plain Ctrl on macOS is
+     * accepted too, for users who switch between platforms.
+     */
     private void handleKeyPress(KeyEvent event) {
-        if (!event.isControlDown()) return;
+        if (!event.isShortcutDown() && !event.isControlDown()) return;
 
         switch (resolve(event.getCode(), event.isShiftDown())) {
             case TOGGLE_TOOLBAR -> onToggleToolbar.run();

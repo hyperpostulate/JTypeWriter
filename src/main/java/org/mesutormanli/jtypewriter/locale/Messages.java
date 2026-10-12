@@ -86,6 +86,30 @@ public class Messages {
         return bundle.getString("labelThemeSepia");
     }
 
+    public String colorDefault() {
+        return bundle.getString("colorDefault");
+    }
+
+    public String colorSage() {
+        return bundle.getString("colorSage");
+    }
+
+    public String colorLavender() {
+        return bundle.getString("colorLavender");
+    }
+
+    public String colorSand() {
+        return bundle.getString("colorSand");
+    }
+
+    public String colorSteel() {
+        return bundle.getString("colorSteel");
+    }
+
+    public String colorRose() {
+        return bundle.getString("colorRose");
+    }
+
     public String yoloModeOn() {
         return bundle.getString("yoloModeOn");
     }

@@ -73,7 +73,7 @@ public class ToolbarView extends HBox {
         yoloBtn = createButton(messages.toolbarYolo());
         soundBtn = createButton(messages.toolbarSound());
         colorBtn = createButton(messages.toolbarColor());
-        colorLabel = new Label(textColorManager.getCurrentDisplayName());
+        colorLabel = new Label(textColorManager.getCurrentDisplayName(messages));
         colorLabel.getStyleClass().add("toolbar-label");
         langBtn = new Button(messages.langCode());
         langBtn.getStyleClass().add("toolbar-lang");
@@ -81,7 +81,7 @@ public class ToolbarView extends HBox {
 
         aboutBtn = createButton(messages.toolbarAbout());
 
-        themeLabel = new Label(themeManager.getCurrentTheme().getDisplayName(localeManager.getCurrent()));
+        themeLabel = new Label(themeManager.getCurrentTheme().getDisplayName(messages));
         themeLabel.getStyleClass().add("toolbar-label");
         yoloLabel = new Label(messages.yoloModeOff());
         yoloLabel.getStyleClass().add("toolbar-label");
@@ -163,11 +163,10 @@ public class ToolbarView extends HBox {
     }
 
     public int getCurrentFontSize() {
-        return Integer.parseInt(fontSizeLabel.getText());
+        return fontSizeManager.getCurrentSize();
     }
 
     private void refreshTexts() {
-        var lang = localeManager.getCurrent();
         openBtn.setText(messages.toolbarOpen());
         saveBtn.setText(messages.toolbarSave());
         undoBtn.setText(messages.toolbarUndo());
@@ -176,10 +175,10 @@ public class ToolbarView extends HBox {
         yoloBtn.setText(messages.toolbarYolo());
         soundBtn.setText(messages.toolbarSound());
         colorBtn.setText(messages.toolbarColor());
-        colorLabel.setText(textColorManager.getCurrentDisplayName());
+        colorLabel.setText(textColorManager.getCurrentDisplayName(messages));
         aboutBtn.setText(messages.toolbarAbout());
         langBtn.setText(messages.langCode());
-        themeLabel.setText(themeManager.getCurrentTheme().getDisplayName(lang));
+        themeLabel.setText(themeManager.getCurrentTheme().getDisplayName(messages));
         updateYoloLabel();
         updateSoundLabel();
     }
@@ -188,7 +187,7 @@ public class ToolbarView extends HBox {
         var scene = getScene();
         if (scene != null) {
             var theme = themeManager.cycleTheme(scene);
-            themeLabel.setText(theme.getDisplayName(localeManager.getCurrent()));
+            themeLabel.setText(theme.getDisplayName(messages));
         }
     }
 
@@ -233,7 +232,7 @@ public class ToolbarView extends HBox {
 
     public void cycleTextColor() {
         textColorManager.cycle();
-        colorLabel.setText(textColorManager.getCurrentDisplayName());
+        colorLabel.setText(textColorManager.getCurrentDisplayName(messages));
         notifyStyleChange();
     }
 

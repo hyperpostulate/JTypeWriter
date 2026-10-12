@@ -58,6 +58,13 @@ class KeyboardShortcutHandlerTest {
     }
 
     @Test
+    void numpadKeysWorkAsEquivalentsOfTheMainKeyboard() {
+        assertEquals(ShortcutAction.FONT_RESET, resolve(KeyCode.NUMPAD0, false));
+        assertEquals(ShortcutAction.FONT_UP, resolve(KeyCode.ADD, false));
+        assertEquals(ShortcutAction.FONT_DOWN, resolve(KeyCode.SUBTRACT, false));
+    }
+
+    @Test
     void unrelatedKeysAreNotShortcuts() {
         assertEquals(ShortcutAction.NONE, resolve(KeyCode.A, true));
         assertEquals(ShortcutAction.NONE, resolve(KeyCode.N, false));

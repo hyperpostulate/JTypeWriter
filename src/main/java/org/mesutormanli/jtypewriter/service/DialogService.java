@@ -4,8 +4,12 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -14,13 +18,18 @@ import java.util.Optional;
 
 public class DialogService {
 
-    private final Messages messages;
+    /** Extension added when the user types an extension-less file name. */
+    static final String DEFAULT_EXTENSION = ".txt";
 
-    public DialogService(Messages messages) {
+    private final Messages messages;
+    private final AppSettings settings;
+
+    public DialogService(Messages messages, AppSettings settings) {
         this.messages = messages;
+        this.settings = settings;
     }
 
-    public Optional<java.io.File> showOpenDialog(Stage stage) {
+    public Optional<File> showOpenDialog(Stage stage) {
         var chooser = new FileChooser();
         chooser.setTitle(messages.fileOpenTitle());
         chooser.getExtensionFilters().add(
@@ -29,19 +38,65 @@ public class DialogService {
         chooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter(messages.fileAllFiles(), "*.*")
         );
-        return Optional.ofNullable(chooser.showOpenDialog(stage));
+        applyInitialDirectory(chooser, settings.getLastDirectory());
+        var chosen = chooser.showOpenDialog(stage);
+        if (chosen != null) {
+            rememberDirectory(chosen);
+        }
+        return Optional.ofNullable(chosen);
     }
 
-    public Optional<java.io.File> showSaveDialog(Stage stage) {
+    /**
+     * Save-as dialog. For a document that already lives on disk the current
+     * name and directory are offered (so "Save As" on {@code novel.txt} does
+     * not suggest a new, timestamped file and silently fork the document);
+     * only a never-saved document gets the timestamped default name.
+     */
+    public Optional<File> showSaveDialog(Stage stage, Path currentFile) {
         var chooser = new FileChooser();
         chooser.setTitle(messages.fileSaveTitle());
-        var timestamp = java.time.LocalDateTime.now()
-                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
-        chooser.setInitialFileName("JTypeWriter_" + timestamp + ".txt");
+        if (currentFile != null) {
+            var parent = currentFile.toAbsolutePath().getParent();
+            if (parent != null) {
+                applyInitialDirectory(chooser, Optional.of(parent));
+            }
+            chooser.setInitialFileName(currentFile.getFileName().toString());
+        } else {
+            applyInitialDirectory(chooser, settings.getLastDirectory());
+            var timestamp = java.time.LocalDateTime.now()
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+            chooser.setInitialFileName("JTypeWriter_" + timestamp + DEFAULT_EXTENSION);
+        }
         chooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter(messages.fileTextFile(), "*.txt")
         );
-        return Optional.ofNullable(chooser.showSaveDialog(stage));
+        var chosen = chooser.showSaveDialog(stage);
+        if (chosen != null) {
+            var target = withDefaultExtension(chosen);
+            rememberDirectory(target);
+            return Optional.of(target);
+        }
+        return Optional.empty();
+    }
+
+    /** {@code notes} becomes {@code notes.txt}; {@code notes.md} stays as typed. */
+    static File withDefaultExtension(File file) {
+        var name = file.getName();
+        if (name.contains(".")) {
+            return file;
+        }
+        return file.toPath().resolveSibling(name + DEFAULT_EXTENSION).toFile();
+    }
+
+    private void rememberDirectory(File file) {
+        var parent = file.getParentFile();
+        if (parent != null) {
+            settings.setLastDirectory(parent.toPath());
+        }
+    }
+
+    private static void applyInitialDirectory(FileChooser chooser, Optional<Path> directory) {
+        directory.filter(Files::isDirectory).map(Path::toFile).ifPresent(chooser::setInitialDirectory);
     }
 
     public enum SaveChoice { SAVE, DISCARD, CANCEL }

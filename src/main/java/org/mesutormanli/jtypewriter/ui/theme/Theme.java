@@ -1,6 +1,6 @@
 package org.mesutormanli.jtypewriter.ui.theme;
 
-import org.mesutormanli.jtypewriter.locale.Language;
+import org.mesutormanli.jtypewriter.locale.Messages;
 
 public enum Theme {
     LIGHT("css/light.css", "#f8f6f2", "#ffffff"),
@@ -38,11 +38,12 @@ public enum Theme {
         return editorFill;
     }
 
-    public String getDisplayName(Language language) {
+    /** Localised theme name for the current UI language (bundle key {@code labelTheme*}). */
+    public String getDisplayName(Messages messages) {
         return switch (this) {
-            case LIGHT -> language == Language.EN ? "Light" : "Açık";
-            case DARK -> language == Language.EN ? "Dark" : "Koyu";
-            case SEPIA -> language == Language.EN ? "Sepia" : "Sepya";
+            case LIGHT -> messages.labelThemeLight();
+            case DARK -> messages.labelThemeDark();
+            case SEPIA -> messages.labelThemeSepia();
         };
     }
 

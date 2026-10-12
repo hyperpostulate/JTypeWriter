@@ -1,6 +1,8 @@
 package org.mesutormanli.jtypewriter.locale;
 
 
+import org.mesutormanli.jtypewriter.AppSettings;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -9,7 +11,14 @@ import java.util.function.Consumer;
 public class LocaleManager {
 
     private final List<Consumer<Language>> listeners = new CopyOnWriteArrayList<>();
-    private Language currentLanguage = detectSystemLanguage();
+    private final AppSettings settings;
+    private Language currentLanguage;
+
+    /** Starts on the persisted language, or on the system language on first run. */
+    public LocaleManager(AppSettings settings) {
+        this.settings = settings;
+        this.currentLanguage = settings.getLanguage().orElseGet(LocaleManager::detectSystemLanguage);
+    }
 
     private static Language detectSystemLanguage() {
         return switch (Locale.getDefault().getLanguage()) {
@@ -29,6 +38,7 @@ public class LocaleManager {
     public void setLanguage(Language language) {
         if (currentLanguage == language) return;
         currentLanguage = language;
+        settings.setLanguage(language);
         listeners.forEach(l -> l.accept(language));
     }
 

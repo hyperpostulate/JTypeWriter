@@ -48,14 +48,19 @@ mvn clean install
 ## Build & Run
 
 ```bash
-mvn clean javafx:run          # Build and launch the application
-mvn clean test                # Run all tests
-mvn clean package             # Build + tests + package as JAR
+mvn clean javafx:run                 # Build and launch the application
+mvn clean test                       # Run all tests
+mvn clean package                    # Build + tests + thin JAR + runnable fat JAR
+./scripts/package.sh                 # Build + wrap into a native app image (releases/<os>/)
 mvn test -Dtest=SessionStatsTest     # Run a single test class
 mvn test -Dtest=FileServiceTest      # Run a single test class
 ```
 
-Packaging produces a thin JAR with a `Main-Class` manifest entry; `mvn javafx:run` is the development entry point. Standalone installers with a bundled JavaFX runtime (`jpackage`) are on the roadmap.
+Packaging produces two artifacts: a thin JAR and a runnable `jar-with-dependencies`
+(both carry a `Main-Class` manifest entry). `mvn javafx:run` is the development entry
+point. `scripts/package.sh` wraps the fat JAR into a native application image with a
+bundled runtime via `jpackage`, and the CI workflow turns that image into platform
+installers (`.deb`, `.msi`, `.dmg`) for Linux, Windows and macOS.
 
 ---
 
@@ -64,9 +69,10 @@ Packaging produces a thin JAR with a `Main-Class` manifest entry; `mvn javafx:ru
 GitHub Actions workflow (`.github/workflows/maven.yml`):
 
 - **Trigger**: Runs on every push and pull request to `main`
-- **Environment**: Ubuntu-latest
+- **Environment**: Ubuntu, Windows and macOS (build matrix)
 - **JDK**: Temurin 25
-- **Command**: `mvn -B package`
+- **Command**: `mvn -B package` (build + tests), then `scripts/package.sh` and `jpackage`
+- **Artifacts**: native application image plus a platform installer (`.deb` / `.msi` / `.dmg`) per OS
 
 ---
 
@@ -110,9 +116,11 @@ org.mesutormanli.jtypewriter
 │       ├── TextColorManager.java         # Text color cycling state
 │       └── TextColor.java                # Text color enum with CSS values
 ├── JTypeWriterApp.java                   # Main entry point
-├── AppDirs.java                          # Per-user data/log/recovery directories
+├── AppDirs.java                          # Per-user data/log/recovery/settings directories
 ├── AppGraph.java                         # Composition root (manual dependency injection)
 ├── AppLogging.java                       # Rotating log setup (java.util.logging)
+├── AppSettings.java                      # Persisted preferences (settings.properties)
+├── AtomicFiles.java                      # Durable atomic writes (fsync + rename)
 └── FxApplication.java                    # JavaFX application lifecycle bridge
 ```
 
@@ -127,13 +135,15 @@ org.mesutormanli.jtypewriter
 | `KeyboardShortcutHandler` | Centralized keyboard shortcut routing |
 | `ToolbarView` | Top toolbar with all editor controls |
 | `ToolbarState` | Manages YOLO mode and sound on/off state |
-| `FileService` | Atomic file I/O (temp write + move) with encoding stability |
+| `FileService` | Atomic file I/O (temp write + fsync + move) with encoding stability |
 | `DialogService` | UI dialog management (FileChooser, Alert) |
 | `TextCodec` | Encoding detection (BOM/UTF-8) and lossless round trips |
 | `BackupKeeper` | Rotating `.bak` backups taken before overwrites |
 | `RecoveryStore` | Crash-recovery draft storage under `~/.jtypewriter/recovery/` |
 | `AutoSaveService` | Periodic draft snapshots and startup recovery offer |
 | `CrashHandler` | Global crash net: logging plus user-facing error dialog |
+| `AppSettings` | Persisted preferences under `~/.jtypewriter/settings.properties` |
+| `AtomicFiles` | Durable atomic file writes (fsync, rename, directory flush) |
 | `ThemeManager` | CSS theme loading and switching |
 | `FontSizeManager` | Editor font size state (10-48px) |
 | `TextColorManager` | Text color cycling state |
@@ -176,10 +186,18 @@ Live stats bar showing:
 
 ### Data Safety & Crash Recovery
 
-- **Atomic saves with backups:** every save writes to a temp file and moves it into place; overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`) - a crash mid-save never truncates the document
+- **Atomic, durable saves with backups:** every save is fsynced to a temp file and renamed into place, so neither a crash mid-save nor a power cut can truncate the document; overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`)
 - **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`; after a crash the draft is offered for restoration on the next startup
 - **Encoding safety:** documents are detected (UTF-8/UTF-16 BOMs, strict UTF-8) and always written back in the same encoding; unknown legacy files (e.g. Turkish Windows-1254) trigger a prompt instead of silent corruption
 - **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently
+
+### Settings & Session Restore
+
+Language, theme, text colour, font size, sound, the last document and the window
+geometry are persisted to `~/.jtypewriter/settings.properties`. The next session
+starts where the last one ended: same look, same document, same window. A
+document that has disappeared in the meantime is skipped silently, and a broken
+settings file falls back to the defaults instead of blocking startup.
 
 ### Multiple Themes
 
@@ -199,6 +217,8 @@ Six text colors (one default plus five accents): Default, Sage, Lavender, Sand, 
 ---
 
 ## Keyboard Shortcuts
+
+Shortcuts use `Ctrl` on Windows/Linux and `⌘` (Cmd) on macOS — plain `Ctrl` works on macOS too. Numpad `+`, `-` and `0` are accepted as equivalents of their main-keyboard neighbours.
 
 | Shortcut | Action |
 |----------|--------|
@@ -270,7 +290,11 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `BackupKeeperTest` | Pre-overwrite backup rotation and retention |
 | `RecoveryStoreTest` | Crash-recovery draft lifecycle (save/restore/drop) |
 | `YoloPolicyTest` | YOLO mode edit policy (deletions blocked, insertions allowed, safe replacement) |
-| `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S) |
+| `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S) and numpad equivalents |
+| `AppSettingsTest` | Preference persistence across restarts, defaults, tolerance for unknown/corrupt values |
+| `AtomicFilesTest` | Durable atomic writes: content integrity, no temp leftovers, cleanup after failures |
+| `MessagesTest` | i18n bundle parity across all 6 languages and localised theme/colour names |
+| `DialogServiceTest` | Save-as file naming rules (default extension handling) |
 | `JTypeWriterAppTests` | Main method presence |
 
 ---
@@ -350,14 +374,19 @@ mvn clean install
 ## Derleme ve Çalıştırma
 
 ```bash
-mvn clean javafx:run          # Uygulamayı derle ve başlat
-mvn clean test                # Tüm testleri çalıştır
-mvn clean package             # Derleme + test + JAR paketleme
+mvn clean javafx:run                 # Uygulamayı derle ve başlat
+mvn clean test                       # Tüm testleri çalıştır
+mvn clean package                    # Derleme + test + ince JAR + çalıştırılabilir fat JAR
+./scripts/package.sh                 # Derleme + yerel uygulama görüntüsü (releases/<os>/)
 mvn test -Dtest=SessionStatsTest     # Tek test sınıfı
 mvn test -Dtest=FileServiceTest      # Tek test sınıfı
 ```
 
-Paketleme, `Main-Class` manifest girdili ince bir JAR üretir; geliştirme girişi `mvn javafx:run` komutudur. JavaFX çalışma zamanı gömülü tek başına kurulumlar (`jpackage`) yol haritasındadır.
+Paketleme iki artefakt üretir: ince bir JAR ve çalıştırılabilir bir `jar-with-dependencies`
+(ikisinde de `Main-Class` manifest girdisi vardır). Geliştirme girişi `mvn javafx:run`
+komutudur. `scripts/package.sh`, fat JAR'ı `jpackage` ile gömülü çalışma zamanlı yerel bir
+uygulama görüntüsüne sarar; CI iş akışı bu görüntüyü Linux, Windows ve macOS için platform
+kurulum paketlerine (`.deb`, `.msi`, `.dmg`) dönüştürür.
 
 ---
 
@@ -366,9 +395,10 @@ Paketleme, `Main-Class` manifest girdili ince bir JAR üretir; geliştirme giri�
 GitHub Actions iş akışı (`.github/workflows/maven.yml`):
 
 - **Tetikleme**: `main` dalına her push ve pull request'te çalışır
-- **Ortam**: Ubuntu-latest
+- **Ortam**: Ubuntu, Windows ve macOS (build matrisi)
 - **JDK**: Temurin 25
-- **Komut**: `mvn -B package`
+- **Komut**: `mvn -B package` (derleme + testler), ardından `scripts/package.sh` ve `jpackage`
+- **Artefaktlar**: her işletim sistemi için yerel uygulama görüntüsü ve platform kurulum paketi (`.deb` / `.msi` / `.dmg`)
 
 ---
 
@@ -412,9 +442,11 @@ org.mesutormanli.jtypewriter
 │       ├── TextColorManager.java         # Metin rengi döngüsü durumu
 │       └── TextColor.java                # CSS değerleriyle metin rengi enum'u
 ├── JTypeWriterApp.java                   # Ana giriş noktası
-├── AppDirs.java                          # Kullanıcı veri/log/kurtarma dizinleri
+├── AppDirs.java                          # Kullanıcı veri/log/kurtarma/ayar dizinleri
 ├── AppGraph.java                         # Kompozisyon kökü (manuel bağımlılık enjeksiyonu)
 ├── AppLogging.java                       # Dönen log kurulumu (java.util.logging)
+├── AppSettings.java                      # Kalıcı tercihler (settings.properties)
+├── AtomicFiles.java                      # Dayanıklı atomik dosya yazımı (fsync + rename)
 └── FxApplication.java                    # JavaFX yaşam döngüsü köprüsü
 ```
 
@@ -429,13 +461,15 @@ org.mesutormanli.jtypewriter
 | `KeyboardShortcutHandler` | Merkezi klavye kısayolu yönlendirmesi |
 | `ToolbarView` | Tüm editör kontrollerini içeren üst araç çubuğu |
 | `ToolbarState` | YOLO modu ve ses aç/kapa durumunu yönetir |
-| `FileService` | Atomik dosya G/Ç (geçici dosya + taşıma), kodlama korumalı |
+| `FileService` | Atomik dosya G/Ç (geçici dosya + fsync + taşıma), kodlama korumalı |
 | `DialogService` | UI dialog yönetimi (FileChooser, Alert) |
 | `TextCodec` | Kodlama tespiti (BOM/UTF-8) ve kayıpsız gidiş-dönüşler |
 | `BackupKeeper` | Yazımdan önce alınan dönen `.bak` yedekleri |
 | `RecoveryStore` | `~/.jtypewriter/recovery/` altında çökme kurtarma taslakları |
 | `AutoSaveService` | Dönemsel taslak anlık görüntüleri ve açılışta kurtarma teklifi |
 | `CrashHandler` | Global çökme ağı: log + kullanıcıya hata diyaloğu |
+| `AppSettings` | `~/.jtypewriter/settings.properties` altında kalıcı tercihler |
+| `AtomicFiles` | Dayanıklı atomik dosya yazımı (fsync, rename, dizin flush) |
 | `ThemeManager` | CSS tema yükleme ve değiştirme |
 | `FontSizeManager` | Editör font boyutu durumu (10-48px) |
 | `TextColorManager` | Metin rengi döngüsü durumu |
@@ -478,10 +512,18 @@ Canlı istatistik çubuğu:
 
 ### Veri Güvenliği ve Kurtarma
 
-- **Atomik kayıt + yedek:** her kayıt geçici dosyaya yazılıp taşınır; üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`) - kayıt ortasında çökme belgeyi asla yaralamaz
+- **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya fsync edilip yeniden adlandırılarak yerine konur; kayıt ortasında çökme ya da elektrik kesintisi belgeyi asla yaralamaz; üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`)
 - **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökme sonrası taslak bir sonraki açılışta geri yükleme için teklif edilir
 - **Kodlama güvenliği:** belgeler tespit edilir (UTF-8/UTF-16 BOM, sıkı UTF-8) ve her zaman aynı kodlamayla geri yazılır; bilinmeyen eski dosyalarda (örn. Windows-1254 Türkçe) sessiz bozulma yerine sorulur
 - **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir
+
+### Ayarlar ve Oturum Geri Yükleme
+
+Dil, tema, metin rengi, font boyutu, ses, son belge ve pencere geometrisi
+`~/.jtypewriter/settings.properties` dosyasına kaydedilir. Bir sonraki oturum,
+öncekinin bittiği yerden başlar: aynı görünüm, aynı belge, aynı pencere. Aradan
+geçen sürede silinmiş bir belge sessizce atlanır; bozuk bir ayar dosyası ise
+başlangıcı engellemek yerine varsayılanlara döner.
 
 ### Çoklu Tema
 
@@ -501,6 +543,8 @@ Altı metin rengi (bir varsayılan + beş vurgu rengi): Varsayılan, Adaçayı, 
 ---
 
 ## Klavye Kısayolları
+
+Kısayollar Windows/Linux'ta `Ctrl`, macOS'ta `⌘` (Cmd) ile çalışır — macOS'ta düz `Ctrl` de kabul edilir. Numpad `+`, `-` ve `0` tuşları ana klavye karşılıklarının eşdeğeri olarak çalışır.
 
 | Kısayol | İşlem |
 |---------|-------|
@@ -572,7 +616,11 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `BackupKeeperTest` | Yazımdan önce yedek rotasyonu ve saklama |
 | `RecoveryStoreTest` | Çökme kurtarma taslağı yaşam döngüsü (kaydet/geri yükle/sil) |
 | `YoloPolicyTest` | YOLO modu düzenleme politikası (silme engelli, ekleme serbest, güvenli değiştirme) |
-| `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S) |
+| `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S) ve numpad eşdeğerleri |
+| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, varsayılanlar, bilinmeyen/bozuk değerlere tolerans |
+| `AtomicFilesTest` | Dayanıklı atomik yazım: içerik bütünlüğü, artık temp dosyası yok, hata sonrası temizlik |
+| `MessagesTest` | 6 dilin tamamında i18n anahtar eşitliği ve yerelleştirilmiş tema/renk adları |
+| `DialogServiceTest` | "Farklı Kaydet" dosya adlandırma kuralları (uzantı işleme) |
 | `JTypeWriterAppTests` | Ana metod varlığı |
 
 ---

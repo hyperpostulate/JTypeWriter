@@ -78,7 +78,7 @@ class FileServiceTest {
     void openIsAbortedWhenSavingIsCancelled() {
         fileService.setCurrentContent("draft");
         when(dialogService.showUnsavedChangesDialog(any())).thenReturn(DialogService.SaveChoice.SAVE);
-        when(dialogService.showSaveDialog(any())).thenReturn(Optional.empty());
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.empty());
 
         assertTrue(fileService.openFile(null).isEmpty());
 
@@ -93,7 +93,7 @@ class FileServiceTest {
         Files.writeString(target, "from disk");
         fileService.setCurrentContent("draft");
         when(dialogService.showUnsavedChangesDialog(any())).thenReturn(DialogService.SaveChoice.SAVE);
-        when(dialogService.showSaveDialog(any())).thenReturn(Optional.of(backup.toFile()));
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(backup.toFile()));
         when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(target.toFile()));
 
         assertTrue(fileService.openFile(null).isPresent());
@@ -108,7 +108,7 @@ class FileServiceTest {
     @Test
     void overwriteKeepsPreviousVersionInBackup(@TempDir Path dir) throws IOException {
         var target = dir.resolve("doc.txt");
-        when(dialogService.showSaveDialog(any())).thenReturn(Optional.of(target.toFile()));
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(target.toFile()));
 
         fileService.saveFile(null, "v1");
         fileService.saveFile(null, "v2");
@@ -120,7 +120,7 @@ class FileServiceTest {
     @Test
     void interruptedSavesLeaveNoTempFilesBehind(@TempDir Path dir) throws IOException {
         var target = dir.resolve("doc.txt");
-        when(dialogService.showSaveDialog(any())).thenReturn(Optional.of(target.toFile()));
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(target.toFile()));
 
         fileService.saveFile(null, "v1");
         fileService.saveFile(null, "v2");
@@ -176,6 +176,20 @@ class FileServiceTest {
     // --- lifecycle listeners and recovery attachment ------------------------
 
     @Test
+    void loadFileRestoresADocumentWithoutAFilePicker(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("last-session.txt");
+        Files.writeString(target, "where I left off");
+        fileService.setCurrentContent("untitled scratch");
+
+        var loaded = fileService.loadFile(null, target);
+
+        assertTrue(loaded.isPresent());
+        assertEquals("where I left off", fileService.getCurrentContent());
+        assertFalse(fileService.hasUnsavedChanges());
+        verify(dialogService, never()).showOpenDialog(any());
+    }
+
+    @Test
     void notifiesListenersAboutLoadsAndSaves(@TempDir Path dir) throws IOException {
         var events = new ArrayList<String>();
         fileService.addListener(new FileService.Listener() {
@@ -192,7 +206,7 @@ class FileServiceTest {
         var target = dir.resolve("doc.txt");
         Files.writeString(target, "from disk");
         when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(target.toFile()));
-        when(dialogService.showSaveDialog(any())).thenReturn(Optional.of(target.toFile()));
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(target.toFile()));
 
         fileService.openFile(null);
         fileService.saveFile(null, "changed");

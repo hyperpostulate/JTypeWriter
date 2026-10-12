@@ -35,21 +35,24 @@ import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
  */
 public final class AppGraph {
 
+    // --- persisted user preferences ---------------------------------------
+    public final AppSettings settings = AppSettings.load();
+
     // --- domain services -------------------------------------------------
-    public final LocaleManager localeManager = new LocaleManager();
+    public final LocaleManager localeManager = new LocaleManager(settings);
     public final Messages messages = new Messages(localeManager);
     public final SessionStats sessionStats = new SessionStats();
     public final TypewriterSound typewriterSound = new TypewriterSound();
-    public final DialogService dialogService = new DialogService(messages);
+    public final DialogService dialogService = new DialogService(messages, settings);
     public final FileService fileService = new FileService(dialogService, messages);
     public final RecoveryStore recoveryStore = new RecoveryStore(AppDirs.recoveryDir());
     public final AutoSaveService autoSaveService = new AutoSaveService(recoveryStore, fileService, dialogService);
 
     // --- UI state managers -----------------------------------------------
-    public final ThemeManager themeManager = new ThemeManager();
-    public final TextColorManager textColorManager = new TextColorManager();
-    public final FontSizeManager fontSizeManager = new FontSizeManager();
-    public final ToolbarState toolbarState = new ToolbarState(typewriterSound);
+    public final ThemeManager themeManager = new ThemeManager(settings);
+    public final TextColorManager textColorManager = new TextColorManager(settings);
+    public final FontSizeManager fontSizeManager = new FontSizeManager(settings);
+    public final ToolbarState toolbarState = new ToolbarState(typewriterSound, settings);
 
     // --- editor and its handlers -----------------------------------------
     public final EditorArea editorArea = new EditorArea();
@@ -69,16 +72,23 @@ public final class AppGraph {
     public final MainController mainController = new MainController(
             editorArea, toolbarView, statsBar, themeManager,
             fileService, shortcutHandler, editorKeyHandler);
-    public final MainStage mainStage = new MainStage(fileService);
+    public final MainStage mainStage = new MainStage(fileService, settings);
 
     private volatile Stage stage;
 
     public AppGraph() {
-        // session statistics follow the document, not the application lifetime
+        // session statistics follow the document, not the application lifetime,
+        // and the last document is remembered for the next session
         fileService.addListener(new FileService.Listener() {
             @Override
             public void onLoaded(java.nio.file.Path file) {
                 sessionStats.reset();
+                settings.rememberFile(file);
+            }
+
+            @Override
+            public void onSaved(java.nio.file.Path file) {
+                settings.rememberFile(file);
             }
         });
     }

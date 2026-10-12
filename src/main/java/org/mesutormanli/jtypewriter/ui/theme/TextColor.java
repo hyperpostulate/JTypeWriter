@@ -1,27 +1,35 @@
 package org.mesutormanli.jtypewriter.ui.theme;
 
+import org.mesutormanli.jtypewriter.locale.Messages;
+
 public enum TextColor {
-    DEFAULT(null, "Default"),
-    SAGE("#7A9E7E", "Sage"),
-    LAVENDER("#8B7DAB", "Lavender"),
-    SAND("#B8976A", "Sand"),
-    STEEL("#6B8FA8", "Steel"),
-    ROSE("#B07A7A", "Rose");
+    DEFAULT(null),
+    SAGE("#7A9E7E"),
+    LAVENDER("#8B7DAB"),
+    SAND("#B8976A"),
+    STEEL("#6B8FA8"),
+    ROSE("#B07A7A");
 
     private final String cssColor;
-    private final String displayName;
 
-    TextColor(String cssColor, String displayName) {
+    TextColor(String cssColor) {
         this.cssColor = cssColor;
-        this.displayName = displayName;
     }
 
     public String getCssColor() {
         return cssColor;
     }
 
-    public String getDisplayName() {
-        return displayName;
+    /** Localised colour name for the current UI language (bundle key {@code color*}). */
+    public String getDisplayName(Messages messages) {
+        return switch (this) {
+            case DEFAULT -> messages.colorDefault();
+            case SAGE -> messages.colorSage();
+            case LAVENDER -> messages.colorLavender();
+            case SAND -> messages.colorSand();
+            case STEEL -> messages.colorSteel();
+            case ROSE -> messages.colorRose();
+        };
     }
 
     public TextColor next() {

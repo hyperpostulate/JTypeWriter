@@ -78,6 +78,37 @@
                     </archive>
                 </configuration>
             </plugin>
+            <!--
+                Single runnable JAR with JavaFX on the classpath (the entry point
+                is deliberately not an Application subclass, see JTypeWriterApp).
+                This is the artifact jpackage wraps into native app images; it is
+                produced by every `mvn package` so a release is always
+                reproducible from source.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.mesutormanli.jtypewriter.JTypeWriterApp</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-fat-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
