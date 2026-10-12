@@ -1,10 +1,9 @@
 # Builds, tests and packages JTypeWriter on every platform we ship for.
-# Each job runs the test suite, produces a native application image with
-# jpackage (scripts/package.sh) and wraps it into a platform installer, then
-# uploads the result so releases are always reproducible from source.
-#
-# The jpackage steps are deliberately kept here instead of in the script: the
-# installer types and their options are platform specific (deb/msi/dmg).
+# Each job runs the test suite and then calls scripts/package.sh, which
+# produces the native application image and wraps it into the platform
+# installer (.deb / .msi / .dmg). The application version lives in pom.xml
+# only - package.sh reads it back from the build - so nothing here can drift.
+# The results are uploaded, so releases are always reproducible from source.
 
 name: Java CI with Maven
 
@@ -41,44 +40,9 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y fakeroot
 
-      - name: Build native application image
+      - name: Build application image and platform installer
         shell: bash
-        run: bash scripts/package.sh --skip-build
-
-      - name: Wrap into a Debian package
-        if: runner.os == 'Linux'
-        run: |
-          jpackage --type deb \
-            --app-image releases/linux/JTypeWriter \
-            --name JTypeWriter --app-version 0.0.1 \
-            --description "A distraction-free text editor" \
-            --vendor "Mesut ORMANLI" \
-            --linux-shortcut --linux-app-category "Office" \
-            --linux-deb-maintainer "mesutormanli@gmail.com" \
-            --dest releases/linux
-
-      - name: Wrap into a Windows installer
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          jpackage --type msi \
-            --app-image releases/windows/JTypeWriter \
-            --name JTypeWriter --app-version 0.0.1 \
-            --description "A distraction-free text editor" \
-            --vendor "Mesut ORMANLI" \
-            --win-menu --win-shortcut --win-dir-chooser \
-            --dest releases/windows
-
-      - name: Wrap into a macOS disk image
-        if: runner.os == 'macOS'
-        run: |
-          jpackage --type dmg \
-            --app-image releases/mac/JTypeWriter.app \
-            --name JTypeWriter --app-version 0.0.1 \
-            --description "A distraction-free text editor" \
-            --vendor "Mesut ORMANLI" \
-            --mac-package-identifier "org.mesutormanli.jtypewriter" \
-            --dest releases/mac
+        run: bash scripts/package.sh --skip-build --installer
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4

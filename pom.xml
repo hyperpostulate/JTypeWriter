@@ -6,7 +6,7 @@
 
     <groupId>org.mesutormanli</groupId>
     <artifactId>jtypewriter</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
     <name>JTypeWriter</name>
     <description>A distraction-free text editor</description>

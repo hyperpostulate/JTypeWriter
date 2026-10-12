@@ -52,6 +52,7 @@ mvn clean javafx:run                 # Build and launch the application
 mvn clean test                       # Run all tests
 mvn clean package                    # Build + tests + thin JAR + runnable fat JAR
 ./scripts/package.sh                 # Build + wrap into a native app image (releases/<os>/)
+./scripts/package.sh --installer    # Same, plus the platform installer (.deb / .msi / .dmg)
 mvn test -Dtest=SessionStatsTest     # Run a single test class
 mvn test -Dtest=FileServiceTest      # Run a single test class
 ```
@@ -59,8 +60,11 @@ mvn test -Dtest=FileServiceTest      # Run a single test class
 Packaging produces two artifacts: a thin JAR and a runnable `jar-with-dependencies`
 (both carry a `Main-Class` manifest entry). `mvn javafx:run` is the development entry
 point. `scripts/package.sh` wraps the fat JAR into a native application image with a
-bundled runtime via `jpackage`, and the CI workflow turns that image into platform
-installers (`.deb`, `.msi`, `.dmg`) for Linux, Windows and macOS.
+bundled runtime via `jpackage`, and `--installer` wraps that image into the platform
+installer (`.deb`, `.msi`, `.dmg`) for Linux, Windows and macOS - the same command the
+CI workflow runs. The application version has a single source of truth: `pom.xml`.
+The script reads it back from the built artifact and validates it against jpackage's
+rules (macOS, for one, rejects `0.x` bundle versions).
 
 ---
 
@@ -71,7 +75,7 @@ GitHub Actions workflow (`.github/workflows/maven.yml`):
 - **Trigger**: Runs on every push and pull request to `main`
 - **Environment**: Ubuntu, Windows and macOS (build matrix)
 - **JDK**: Temurin 25
-- **Command**: `mvn -B package` (build + tests), then `scripts/package.sh` and `jpackage`
+- **Command**: `mvn -B package` (build + tests), then `scripts/package.sh --skip-build --installer`
 - **Artifacts**: native application image plus a platform installer (`.deb` / `.msi` / `.dmg`) per OS
 
 ---
@@ -378,6 +382,7 @@ mvn clean javafx:run                 # Uygulamayı derle ve başlat
 mvn clean test                       # Tüm testleri çalıştır
 mvn clean package                    # Derleme + test + ince JAR + çalıştırılabilir fat JAR
 ./scripts/package.sh                 # Derleme + yerel uygulama görüntüsü (releases/<os>/)
+./scripts/package.sh --installer    # Aynı + platform kurulum paketi (.deb / .msi / .dmg)
 mvn test -Dtest=SessionStatsTest     # Tek test sınıfı
 mvn test -Dtest=FileServiceTest      # Tek test sınıfı
 ```
@@ -385,8 +390,11 @@ mvn test -Dtest=FileServiceTest      # Tek test sınıfı
 Paketleme iki artefakt üretir: ince bir JAR ve çalıştırılabilir bir `jar-with-dependencies`
 (ikisinde de `Main-Class` manifest girdisi vardır). Geliştirme girişi `mvn javafx:run`
 komutudur. `scripts/package.sh`, fat JAR'ı `jpackage` ile gömülü çalışma zamanlı yerel bir
-uygulama görüntüsüne sarar; CI iş akışı bu görüntüyü Linux, Windows ve macOS için platform
-kurulum paketlerine (`.deb`, `.msi`, `.dmg`) dönüştürür.
+uygulama görüntüsüne sarar; `--installer` seçeneği bu görüntüyü Linux, Windows ve macOS için
+platform kurulum paketine (`.deb`, `.msi`, `.dmg`) dönüştürür — CI iş akışının çalıştırdığı
+komut da budur. Uygulama sürümünün tek kaynağı `pom.xml`'dir: script sürümü üretilen
+artefaktten geri okur ve jpackage kurallarına karşı doğrular (örneğin macOS `0.x`
+paket sürümlerini reddeder).
 
 ---
 
@@ -397,7 +405,7 @@ GitHub Actions iş akışı (`.github/workflows/maven.yml`):
 - **Tetikleme**: `main` dalına her push ve pull request'te çalışır
 - **Ortam**: Ubuntu, Windows ve macOS (build matrisi)
 - **JDK**: Temurin 25
-- **Komut**: `mvn -B package` (derleme + testler), ardından `scripts/package.sh` ve `jpackage`
+- **Komut**: `mvn -B package` (derleme + testler), ardından `scripts/package.sh --skip-build --installer`
 - **Artefaktlar**: her işletim sistemi için yerel uygulama görüntüsü ve platform kurulum paketi (`.deb` / `.msi` / `.dmg`)
 
 ---
