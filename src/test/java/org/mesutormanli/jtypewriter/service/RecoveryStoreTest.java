@@ -69,4 +69,30 @@ class RecoveryStoreTest {
         assertTrue(store.loadDraft().isEmpty());
         store.clear(); // clearing an empty store must not blow up
     }
+
+    @Test
+    void anUnusableOriginalPathNeverHidesTheDraft(@TempDir Path dir) throws IOException {
+        var store = new RecoveryStore(dir);
+        store.saveDraft("yarım kalmış bölüm", dir.resolve("roman.txt"));
+
+        // corrupt the stored path (hand edit, or a path written on another platform)
+        var unusable = "bad" + (char) 0 + "name";
+        Files.writeString(dir.resolve("draft.properties"),
+                "saved.at=" + Instant.now() + "\noriginal.path=" + unusable + "\n");
+
+        var draft = store.loadDraft().orElseThrow();
+
+        assertEquals("yarım kalmış bölüm", draft.content()); // the text survives
+        assertEquals(null, draft.originalFile()); // only the link to the file is lost
+    }
+
+    @Test
+    void malformedMetadataNeverLeaksOutOfLoadDraft(@TempDir Path dir) throws IOException {
+        var store = new RecoveryStore(dir);
+        store.saveDraft("something", null);
+        // a malformed unicode escape: Properties.load throws IllegalArgumentException
+        Files.writeString(dir.resolve("draft.properties"), "saved.at=\\u00\n");
+
+        assertTrue(store.loadDraft().isEmpty());
+    }
 }

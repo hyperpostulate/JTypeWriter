@@ -28,12 +28,43 @@ class MessagesTest {
 
     @Test
     void everyBundleTranslatesTheSameKeys() {
-        var reference = keysOf(ResourceBundle.getBundle("messages", Locale.ENGLISH));
+        var reference = keysOf(Messages.bundleFor(Language.EN));
 
         for (var language : Language.values()) {
-            var bundle = ResourceBundle.getBundle("messages",
-                    Locale.forLanguageTag(language.code().toLowerCase()));
-            assertEquals(reference, keysOf(bundle), "bundle of " + language + " is out of sync");
+            assertEquals(reference, keysOf(Messages.bundleFor(language)),
+                    "bundle of " + language + " is out of sync");
+        }
+    }
+
+    /**
+     * Regression: the English texts live in the base bundle (there is no
+     * {@code messages_en.properties}), and the default-locale fallback of
+     * {@link ResourceBundle#getBundle(String, Locale)} used to resolve
+     * {@code en} to the <em>system</em> language - "English" showed Turkish on
+     * a Turkish machine (and German on a German one, ...). Turkish also hides
+     * the dotted/dotless i trap: {@code "IT".toLowerCase()} is {@code "ıt"}
+     * there, a dead language tag that fell back to the English texts, so
+     * Italian never loaded on Turkish machines. Every language must resolve to
+     * its own texts no matter what the system locale is.
+     */
+    @Test
+    void everyLanguageResolvesToItsOwnTextsRegardlessOfTheSystemLocale() {
+        var previous = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertEquals("Dark", messagesFor(Language.EN).labelThemeDark());
+            assertEquals("Koyu", messagesFor(Language.TR).labelThemeDark());
+            assertEquals("Dunkel", messagesFor(Language.DE).labelThemeDark());
+            assertEquals("Sombre", messagesFor(Language.FR).labelThemeDark());
+            assertEquals("Scuro", messagesFor(Language.IT).labelThemeDark());
+            assertEquals("Oscuro", messagesFor(Language.ES).labelThemeDark());
+
+            Locale.setDefault(Locale.forLanguageTag("de-DE"));
+            assertEquals("Dark", messagesFor(Language.EN).labelThemeDark());
+            assertEquals("Scuro", messagesFor(Language.IT).labelThemeDark());
+            assertEquals("Koyu", messagesFor(Language.TR).labelThemeDark());
+        } finally {
+            Locale.setDefault(previous);
         }
     }
 

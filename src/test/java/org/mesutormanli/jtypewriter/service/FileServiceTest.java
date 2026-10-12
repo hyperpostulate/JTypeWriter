@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -234,5 +235,49 @@ class FileServiceTest {
 
         assertTrue(fileService.hasUnsavedChanges());
         assertEquals(null, fileService.getCurrentFilePath());
+    }
+
+    // --- encoding upgrade: never silently turn characters into '?' ---------
+
+    private static final String MODERN = "Merhaba \uD83D\uDE00 \u4F60\u597D";
+
+    @Test
+    void charactersThatDoNotFitTheEncodingAreSavedAsUtf8Instead(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("ansi.txt");
+        Files.write(target, TURKISH.getBytes(TextCodec.WINDOWS_1254));
+        when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(target.toFile()));
+        when(dialogService.showEncodingDialog(any(), any()))
+                .thenReturn(DialogService.EncodingChoice.WINDOWS1254);
+        assertTrue(fileService.openFile(null).isPresent());
+
+        when(dialogService.showEncodingUpgradeDialog(any(), any())).thenReturn(true);
+        fileService.setCurrentContent(MODERN);
+
+        var saved = fileService.saveFile(null, fileService.getCurrentContent());
+
+        assertTrue(saved.isPresent());
+        verify(dialogService).showEncodingUpgradeDialog(any(), eq(TextCodec.WINDOWS_1254));
+        // the text is intact and the document now lives in UTF-8
+        assertEquals(MODERN, Files.readString(target, StandardCharsets.UTF_8));
+        assertFalse(fileService.hasUnsavedChanges());
+    }
+
+    @Test
+    void cancellingTheEncodingUpgradeLeavesTheFileUntouched(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("ansi.txt");
+        var ansi = TURKISH.getBytes(TextCodec.WINDOWS_1254);
+        Files.write(target, ansi);
+        when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(target.toFile()));
+        when(dialogService.showEncodingDialog(any(), any()))
+                .thenReturn(DialogService.EncodingChoice.WINDOWS1254);
+        assertTrue(fileService.openFile(null).isPresent());
+
+        when(dialogService.showEncodingUpgradeDialog(any(), any())).thenReturn(false);
+        fileService.setCurrentContent(MODERN);
+
+        assertTrue(fileService.saveFile(null, fileService.getCurrentContent()).isEmpty());
+
+        assertArrayEquals(ansi, Files.readAllBytes(target)); // nothing written, no '?' anywhere
+        assertTrue(fileService.hasUnsavedChanges()); // the draft is still there to be saved
     }
 }

@@ -104,4 +104,17 @@ class AppSettingsTest {
 
         assertEquals(Theme.DARK, settings.getTheme());
     }
+
+    @Test
+    void unusablePathSettingsAreIgnoredInsteadOfBreakingStartup(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        // the file system rejects this path everywhere (NUL character)
+        var unusable = "bad" + (char) 0 + "name";
+        Files.writeString(file, "last.file=" + unusable + "\nlast.directory=" + unusable + "\n");
+
+        var settings = new AppSettings(file);
+
+        assertEquals(Optional.empty(), settings.getLastFile());
+        assertEquals(Optional.empty(), settings.getLastDirectory());
+    }
 }

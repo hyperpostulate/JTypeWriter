@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Properties;
@@ -232,16 +233,30 @@ public final class AppSettings {
         if (value == null) {
             return fallback;
         }
-        return switch (value.toLowerCase()) {
+        return switch (value.toLowerCase(java.util.Locale.ROOT)) {
             case "true" -> true;
             case "false" -> false;
             default -> fallback;
         };
     }
 
+    /**
+     * A path setting is a convenience, never a data channel: a value that the
+     * file system rejects (corrupt file, hand edit, a path copied from another
+     * platform) is ignored instead of breaking whatever reads it - including
+     * application startup.
+     */
     private Optional<Path> optionalPath(String key) {
         var value = getString(key, null);
-        return value == null ? Optional.empty() : Optional.of(Path.of(value));
+        if (value == null) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(Path.of(value));
+        } catch (InvalidPathException e) {
+            LOG.log(Level.WARNING, "ignoring unusable path in setting " + key + "=" + value);
+            return Optional.empty();
+        }
     }
 
     private <E extends Enum<E>> Optional<E> optionalEnum(String key, Class<E> type) {

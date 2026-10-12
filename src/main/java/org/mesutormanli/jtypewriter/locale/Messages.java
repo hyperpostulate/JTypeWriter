@@ -8,6 +8,18 @@ import java.util.ResourceBundle;
 
 public class Messages {
 
+    /**
+     * Bundle lookup without the "fall back to the JVM default locale" rule of
+     * {@link ResourceBundle#getBundle(String, Locale)}. English lives in the
+     * base bundle ({@code messages.properties}, there is no
+     * {@code messages_en.properties}), so that rule resolved English to the
+     * <em>system</em> language first: on a Turkish, German, French, Italian or
+     * Spanish machine the "English" UI showed the system language instead. The
+     * plain candidate chain of the requested language is what we want here.
+     */
+    private static final ResourceBundle.Control NO_FALLBACK =
+            ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_PROPERTIES);
+
     private final LocaleManager localeManager;
     private ResourceBundle bundle;
 
@@ -19,11 +31,24 @@ public class Messages {
 
     private void reload() {
         try {
-            bundle = ResourceBundle.getBundle("messages",
-                    Locale.forLanguageTag(localeManager.getCurrent().name().toLowerCase()));
+            bundle = bundleFor(localeManager.getCurrent());
         } catch (MissingResourceException e) {
-            bundle = ResourceBundle.getBundle("messages", Locale.ENGLISH);
+            bundle = baseBundle();
         }
+    }
+
+    /** The bundle of a UI language, independent of the system locale (see {@link #NO_FALLBACK}). */
+    static ResourceBundle bundleFor(Language language) {
+        // Locale.ROOT matters: on a Turkish locale "IT".toLowerCase() is "ıt"
+        // (the dotted/dotless i trap), and that dead tag fell back to the
+        // English base bundle - the Italian UI never loaded on Turkish machines
+        return ResourceBundle.getBundle("messages",
+                Locale.forLanguageTag(language.name().toLowerCase(Locale.ROOT)), NO_FALLBACK);
+    }
+
+    /** The base bundle, which holds the English texts. */
+    static ResourceBundle baseBundle() {
+        return ResourceBundle.getBundle("messages", Locale.ROOT, NO_FALLBACK);
     }
 
     private Language l() {
@@ -277,6 +302,26 @@ public class Messages {
 
     public String encodingCancel() {
         return bundle.getString("encodingCancel");
+    }
+
+    public String encodingUpgradeTitle() {
+        return bundle.getString("encodingUpgradeTitle");
+    }
+
+    public String encodingUpgradeHeader() {
+        return bundle.getString("encodingUpgradeHeader");
+    }
+
+    public String encodingUpgradeContent(String charsetName) {
+        return MessageFormat.format(bundle.getString("encodingUpgradeContent"), charsetName);
+    }
+
+    public String encodingUpgradeSave() {
+        return bundle.getString("encodingUpgradeSave");
+    }
+
+    public String encodingUpgradeCancel() {
+        return bundle.getString("encodingUpgradeCancel");
     }
 
     public String errorLogged(String logDir) {

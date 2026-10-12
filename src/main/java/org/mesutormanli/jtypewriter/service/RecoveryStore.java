@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Optional;
 import java.util.Properties;
 
@@ -74,7 +76,7 @@ public class RecoveryStore {
                 }
                 var path = meta.getProperty(KEY_ORIGINAL_PATH);
                 if (path != null && !path.isBlank()) {
-                    original = Path.of(path);
+                    original = parsePath(path);
                 }
                 var stamp = meta.getProperty(KEY_SAVED_AT);
                 if (stamp != null && !stamp.isBlank()) {
@@ -82,8 +84,23 @@ public class RecoveryStore {
                 }
             }
             return Optional.of(new Draft(content, original, savedAt));
-        } catch (IOException | java.time.format.DateTimeParseException e) {
+        } catch (IOException | DateTimeParseException | IllegalArgumentException e) {
+            // a malformed draft (bad timestamp, bad unicode escape in the
+            // metadata) is dropped instead of breaking application startup
             return Optional.empty();
+        }
+    }
+
+    /**
+     * A metadata path is optional information: when the file system rejects it
+     * (corrupt draft, a path written on another platform) the draft itself is
+     * still offered - only the link to its original file is lost.
+     */
+    private static Path parsePath(String value) {
+        try {
+            return Path.of(value);
+        } catch (InvalidPathException e) {
+            return null;
         }
     }
 

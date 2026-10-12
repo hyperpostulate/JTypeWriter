@@ -5,6 +5,7 @@ import org.mesutormanli.jtypewriter.AtomicFiles;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.io.IOException;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,7 +26,10 @@ import java.util.logging.Logger;
  *       {@code <file>.bak} (plus {@code .bak.1/.bak.2} generations);</li>
  *   <li><b>Encoding stability:</b> a document is read with encoding detection
  *       (BOM / strict UTF-8, otherwise the user is asked - see
- *       {@link TextCodec}) and always written back in that same encoding.</li>
+ *       {@link TextCodec}) and always written back in that same encoding.
+ *       Only when the text no longer fits that encoding does the user get to
+ *       switch the document to UTF-8 - unmappable characters are never
+ *       silently turned into {@code ?}.</li>
  * </ul>
  */
 public class FileService {
@@ -151,20 +155,42 @@ public class FileService {
         if (currentFilePath == null) {
             return saveFileAs(stage, content);
         }
-        return writeFile(currentFilePath, content);
+        return writeFile(stage, currentFilePath, content);
     }
 
     public Optional<Path> saveFileAs(javafx.stage.Stage stage, String content) {
         var file = dialogService.showSaveDialog(stage, currentFilePath);
         if (file.isEmpty()) return Optional.empty();
 
-        return writeFile(file.get().toPath(), content);
+        return writeFile(stage, file.get().toPath(), content);
     }
 
-    private Optional<Path> writeFile(Path path, String content) {
+    /**
+     * Writes the document in its own encoding. When the text no longer fits
+     * that encoding (e.g. a pasted emoji in a windows-1254 document), the user
+     * is asked to switch the document to UTF-8 - the unmappable characters are
+     * never silently replaced with {@code ?}.
+     */
+    private Optional<Path> writeFile(javafx.stage.Stage stage, Path path, String content) {
+        byte[] bytes;
+        try {
+            bytes = TextCodec.encode(content, currentCharset, currentBom);
+        } catch (CharacterCodingException notRepresentable) {
+            if (!dialogService.showEncodingUpgradeDialog(stage, currentCharset)) {
+                return Optional.empty(); // nothing written: the document stays dirty
+            }
+            currentCharset = StandardCharsets.UTF_8; // the file is rewritten in UTF-8
+            try {
+                bytes = TextCodec.encode(content, currentCharset, currentBom);
+            } catch (CharacterCodingException impossible) {
+                // UTF-8 represents every character: unreachable in practice
+                dialogService.showError(messages.errorSave(), impossible.getMessage());
+                return Optional.empty();
+            }
+        }
         try {
             backupKeeper.backup(path);
-            AtomicFiles.writeMoving(path, TextCodec.encode(content, currentCharset, currentBom));
+            AtomicFiles.writeMoving(path, bytes);
             currentFilePath = path;
             savedContent = content;
             currentContent = content;

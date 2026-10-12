@@ -40,6 +40,8 @@ public class ToolbarView extends HBox {
     private final Label soundLabel;
     private final Button colorBtn;
     private final Label colorLabel;
+    private final Button fontSizeUpBtn;
+    private final Button fontSizeDownBtn;
     private final Label fontSizeLabel;
 
     private EditorArea editorArea;
@@ -88,8 +90,8 @@ public class ToolbarView extends HBox {
         soundLabel = new Label(messages.soundOn());
         soundLabel.getStyleClass().add("toolbar-label");
 
-        var fontSizeUpBtn = createButton(messages.toolbarFontUp());
-        var fontSizeDownBtn = createButton(messages.toolbarFontDown());
+        fontSizeUpBtn = createButton(messages.toolbarFontUp());
+        fontSizeDownBtn = createButton(messages.toolbarFontDown());
         fontSizeLabel = new Label(String.valueOf(fontSizeManager.getCurrentSize()));
         fontSizeLabel.getStyleClass().add("toolbar-label");
 
@@ -178,6 +180,8 @@ public class ToolbarView extends HBox {
         colorLabel.setText(textColorManager.getCurrentDisplayName(messages));
         aboutBtn.setText(messages.toolbarAbout());
         langBtn.setText(messages.langCode());
+        fontSizeUpBtn.setText(messages.toolbarFontUp());
+        fontSizeDownBtn.setText(messages.toolbarFontDown());
         themeLabel.setText(themeManager.getCurrentTheme().getDisplayName(messages));
         updateYoloLabel();
         updateSoundLabel();

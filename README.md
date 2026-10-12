@@ -76,6 +76,7 @@ GitHub Actions workflow (`.github/workflows/maven.yml`):
 - **Environment**: Ubuntu, Windows and macOS (build matrix)
 - **JDK**: Temurin 25
 - **Command**: `mvn -B package` (build + tests), then `scripts/package.sh --skip-build --installer`
+- **Locales**: the test suite also runs under Turkish and German system locales, so i18n regressions (e.g. a language that silently resolves to the system language) cannot slip through
 - **Artifacts**: native application image plus a platform installer (`.deb` / `.msi` / `.dmg`) per OS
 
 ---
@@ -192,7 +193,7 @@ Live stats bar showing:
 
 - **Atomic, durable saves with backups:** every save is fsynced to a temp file and renamed into place, so neither a crash mid-save nor a power cut can truncate the document; overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`)
 - **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`; after a crash the draft is offered for restoration on the next startup
-- **Encoding safety:** documents are detected (UTF-8/UTF-16 BOMs, strict UTF-8) and always written back in the same encoding; unknown legacy files (e.g. Turkish Windows-1254) trigger a prompt instead of silent corruption
+- **Encoding safety:** documents are detected (UTF-8/UTF-16 BOMs, strict UTF-8) and always written back in the same encoding; unknown legacy files (e.g. Turkish Windows-1254) trigger a prompt instead of silent corruption. When text no longer fits the document's encoding (e.g. a pasted emoji in a Windows-1254 file), saving offers to switch the document to UTF-8 - unmappable characters are never silently replaced with `?`
 - **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently
 
 ### Settings & Session Restore
@@ -289,15 +290,15 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | Test Class | Coverage |
 |------------|----------|
 | `SessionStatsTest` | Word count, char count, line count, keystrokes, reset, WPM from active typing time (idle decay regression) |
-| `FileServiceTest` | Unsaved-change handling on open (cancel/discard/save-first), atomic writes, rotated backups, encoding round trips, lifecycle listeners, recovery attachment |
-| `TextCodecTest` | Encoding detection (BOMs, strict UTF-8), legacy prompts, lossless encoding round trips |
+| `FileServiceTest` | Unsaved-change handling on open (cancel/discard/save-first), atomic writes, rotated backups, encoding round trips incl. the UTF-8 upgrade for unrepresentable characters, lifecycle listeners, recovery attachment |
+| `TextCodecTest` | Encoding detection (BOMs, strict UTF-8), legacy prompts, lossless encoding round trips, strict encode (unrepresentable characters fail instead of turning into `?`) |
 | `BackupKeeperTest` | Pre-overwrite backup rotation and retention |
-| `RecoveryStoreTest` | Crash-recovery draft lifecycle (save/restore/drop) |
+| `RecoveryStoreTest` | Crash-recovery draft lifecycle (save/restore/drop), tolerance for corrupt draft metadata |
 | `YoloPolicyTest` | YOLO mode edit policy (deletions blocked, insertions allowed, safe replacement) |
 | `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S) and numpad equivalents |
-| `AppSettingsTest` | Preference persistence across restarts, defaults, tolerance for unknown/corrupt values |
+| `AppSettingsTest` | Preference persistence across restarts, defaults, tolerance for unknown/corrupt values and unusable paths |
 | `AtomicFilesTest` | Durable atomic writes: content integrity, no temp leftovers, cleanup after failures |
-| `MessagesTest` | i18n bundle parity across all 6 languages and localised theme/colour names |
+| `MessagesTest` | i18n bundle parity across all 6 languages, localised theme/colour names, locale-independent bundle resolution |
 | `DialogServiceTest` | Save-as file naming rules (default extension handling) |
 | `JTypeWriterAppTests` | Main method presence |
 
@@ -406,6 +407,7 @@ GitHub Actions iş akışı (`.github/workflows/maven.yml`):
 - **Ortam**: Ubuntu, Windows ve macOS (build matrisi)
 - **JDK**: Temurin 25
 - **Komut**: `mvn -B package` (derleme + testler), ardından `scripts/package.sh --skip-build --installer`
+- **Diller**: test paketi Türkçe ve Almanca sistem dillerinde de çalışır; böylece yerelleştirme regresyonları (ör. bir dilin sessizce sistem diline çözülmesi) gözden kaçamaz
 - **Artefaktlar**: her işletim sistemi için yerel uygulama görüntüsü ve platform kurulum paketi (`.deb` / `.msi` / `.dmg`)
 
 ---
@@ -522,7 +524,7 @@ Canlı istatistik çubuğu:
 
 - **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya fsync edilip yeniden adlandırılarak yerine konur; kayıt ortasında çökme ya da elektrik kesintisi belgeyi asla yaralamaz; üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`)
 - **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökme sonrası taslak bir sonraki açılışta geri yükleme için teklif edilir
-- **Kodlama güvenliği:** belgeler tespit edilir (UTF-8/UTF-16 BOM, sıkı UTF-8) ve her zaman aynı kodlamayla geri yazılır; bilinmeyen eski dosyalarda (örn. Windows-1254 Türkçe) sessiz bozulma yerine sorulur
+- **Kodlama güvenliği:** belgeler tespit edilir (UTF-8/UTF-16 BOM, sıkı UTF-8) ve her zaman aynı kodlamayla geri yazılır; bilinmeyen eski dosyalarda (örn. Windows-1254 Türkçe) sessiz bozulma yerine sorulur. Metin belgenin kodlamasına sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) kayıtta belgeyi UTF-8'e geçirme teklif edilir — temsil edilemeyen karakterler asla sessizce `?` yapılmaz
 - **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir
 
 ### Ayarlar ve Oturum Geri Yükleme
@@ -619,15 +621,15 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | Test Sınıfı | Kapsam |
 |-------------|--------|
 | `SessionStatsTest` | Kelime/karakter/satır sayısı, tuş vuruşları, sıfırlama, aktif yazım süreli WPM (durağanlık bozulması regresyonu) |
-| `FileServiceTest` | Açık sırasında kaydedilmemiş değişiklik akışı (iptal/atla/önce kaydet), atomik yazım, dönen yedekler, kodlama gidiş-dönüşü, yaşam döngüsü dinleyicileri, kurtarma bağlama |
-| `TextCodecTest` | Kodlama tespiti (BOM, sıkı UTF-8), eski kodlama sorusu, kayıpsız kodlama gidiş-dönüşü |
+| `FileServiceTest` | Açık sırasında kaydedilmemiş değişiklik akışı (iptal/atla/önce kaydet), atomik yazım, dönen yedekler, kodlama gidiş-dönüşü (temsil edilemeyen karakterler için UTF-8'e geçiş), yaşam döngüsü dinleyicileri, kurtarma bağlama |
+| `TextCodecTest` | Kodlama tespiti (BOM, sıkı UTF-8), eski kodlama sorusu, kayıpsız kodlama gidiş-dönüşü, sıkı kodlama (temsil edilemeyen karakterler `?` olmak yerine hata verir) |
 | `BackupKeeperTest` | Yazımdan önce yedek rotasyonu ve saklama |
-| `RecoveryStoreTest` | Çökme kurtarma taslağı yaşam döngüsü (kaydet/geri yükle/sil) |
+| `RecoveryStoreTest` | Çökme kurtarma taslağı yaşam döngüsü (kaydet/geri yükle/sil), bozuk taslak meta verisine tolerans |
 | `YoloPolicyTest` | YOLO modu düzenleme politikası (silme engelli, ekleme serbest, güvenli değiştirme) |
 | `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S) ve numpad eşdeğerleri |
-| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, varsayılanlar, bilinmeyen/bozuk değerlere tolerans |
+| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, varsayılanlar, bilinmeyen/bozuk değerlere ve kullanılamayan yollara tolerans |
 | `AtomicFilesTest` | Dayanıklı atomik yazım: içerik bütünlüğü, artık temp dosyası yok, hata sonrası temizlik |
-| `MessagesTest` | 6 dilin tamamında i18n anahtar eşitliği ve yerelleştirilmiş tema/renk adları |
+| `MessagesTest` | 6 dilin tamamında i18n anahtar eşitliği, yerelleştirilmiş tema/renk adları, sistem dilinden bağımsız bundle çözümlemesi |
 | `DialogServiceTest` | "Farklı Kaydet" dosya adlandırma kuralları (uzantı işleme) |
 | `JTypeWriterAppTests` | Ana metod varlığı |
 

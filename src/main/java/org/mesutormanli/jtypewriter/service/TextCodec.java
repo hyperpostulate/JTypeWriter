@@ -1,6 +1,7 @@
 package org.mesutormanli.jtypewriter.service;
 
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
@@ -65,9 +66,20 @@ public final class TextCodec {
         return new Result(decodeLenient(bytes, charset), charset, false);
     }
 
-    /** Encodes text in the given charset, reproducing the BOM when requested. */
-    public static byte[] encode(String text, Charset charset, boolean bom) {
-        var body = text.getBytes(charset);
+    /**
+     * Encodes text in the given charset, reproducing the BOM when requested.
+     * Encoding is strict: a character the charset cannot represent raises
+     * {@link CharacterCodingException} instead of being silently replaced with
+     * {@code ?} - a save must never quietly destroy text (the caller can offer
+     * the user a switch to UTF-8, see {@code FileService}).
+     */
+    public static byte[] encode(String text, Charset charset, boolean bom) throws CharacterCodingException {
+        var encoder = charset.newEncoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT);
+        var buffer = encoder.encode(CharBuffer.wrap(text));
+        var body = new byte[buffer.remaining()];
+        buffer.get(body);
         var prefix = bom ? bomFor(charset) : NO_BYTES;
         if (prefix.length == 0) {
             return body;

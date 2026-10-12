@@ -2,11 +2,13 @@ package org.mesutormanli.jtypewriter.service;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Regression tests for the encoding contract: detection must recognize BOMs
@@ -29,7 +31,7 @@ class TextCodecTest {
     }
 
     @Test
-    void detectsUtf8BomAndStripsIt() {
+    void detectsUtf8BomAndStripsIt() throws Exception {
         var bytes = TextCodec.encode("hello", StandardCharsets.UTF_8, true);
 
         var result = TextCodec.decode(bytes);
@@ -40,7 +42,7 @@ class TextCodecTest {
     }
 
     @Test
-    void detectsUtf16ByteOrderMarks() {
+    void detectsUtf16ByteOrderMarks() throws Exception {
         var le = TextCodec.decode(TextCodec.encode("hello", StandardCharsets.UTF_16LE, true));
         var be = TextCodec.decode(TextCodec.encode("hello", StandardCharsets.UTF_16BE, true));
 
@@ -69,7 +71,7 @@ class TextCodecTest {
     }
 
     @Test
-    void roundTripPreservesLegacyEncodingExactly() {
+    void roundTripPreservesLegacyEncodingExactly() throws Exception {
         var ansi = TURKISH.getBytes(TextCodec.WINDOWS_1254);
         var decoded = TextCodec.decodeWith(ansi, TextCodec.WINDOWS_1254);
 
@@ -77,7 +79,7 @@ class TextCodecTest {
     }
 
     @Test
-    void roundTripPreservesUtf8Bom() {
+    void roundTripPreservesUtf8Bom() throws Exception {
         var original = TextCodec.encode(TURKISH, StandardCharsets.UTF_8, true);
         var decoded = TextCodec.decode(original);
 
@@ -89,5 +91,30 @@ class TextCodecTest {
         var result = TextCodec.decode(new byte[0]);
 
         assertEquals("", result.text());
+    }
+
+    // --- strict encoding: never silently drop characters -------------------
+
+    @Test
+    void unrepresentableCharactersFailInsteadOfTurningIntoQuestionMarks() {
+        // an emoji and CJK characters do not exist in windows-1254
+        assertThrows(CharacterCodingException.class,
+                () -> TextCodec.encode("Merhaba \uD83D\uDE00 \u4F60\u597D", TextCodec.WINDOWS_1254, false));
+    }
+
+    @Test
+    void unrepresentableCharactersAlwaysFitUtf8() throws Exception {
+        var text = "Merhaba \uD83D\uDE00 \u4F60\u597D";
+
+        var bytes = TextCodec.encode(text, StandardCharsets.UTF_8, false);
+
+        assertEquals(text, new String(bytes, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void representableLegacyTextStillEncodesExactly() throws Exception {
+        var ansi = TURKISH.getBytes(TextCodec.WINDOWS_1254);
+
+        assertArrayEquals(ansi, TextCodec.encode(TURKISH, TextCodec.WINDOWS_1254, false));
     }
 }

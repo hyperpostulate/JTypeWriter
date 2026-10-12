@@ -125,6 +125,28 @@ public class DialogService {
     /** How to interpret a document that is neither BOM-marked nor valid UTF-8. */
     public enum EncodingChoice { WINDOWS1254, UTF8, CANCEL }
 
+    /**
+     * What to do when the document text no longer fits the encoding it is
+     * stored in: switching the document to UTF-8 keeps every character, and
+     * cancelling leaves the file (and the dirty draft) untouched.
+     *
+     * @return {@code true} when the document must be saved as UTF-8 instead
+     */
+    public boolean showEncodingUpgradeDialog(Stage stage, java.nio.charset.Charset charset) {
+        var alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(messages.encodingUpgradeTitle());
+        alert.setHeaderText(messages.encodingUpgradeHeader());
+        alert.setContentText(messages.encodingUpgradeContent(charset.displayName()));
+        initOwner(alert, stage);
+
+        var utf8Button = new ButtonType(messages.encodingUpgradeSave());
+        var cancelButton = new ButtonType(messages.encodingUpgradeCancel());
+        alert.getButtonTypes().setAll(utf8Button, cancelButton);
+
+        var result = alert.showAndWait();
+        return result.isPresent() && result.get() == utf8Button;
+    }
+
     public EncodingChoice showEncodingDialog(Stage stage, java.nio.file.Path file) {
         var alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle(messages.encodingTitle());

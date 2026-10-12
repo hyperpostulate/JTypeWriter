@@ -36,6 +36,14 @@ jobs:
       - name: Build and test with Maven
         run: mvn -B package --file pom.xml
 
+      # Localization regressions hide behind the system locale: the i18n tests
+      # must pass on a Turkish and a German machine too (see MessagesTest).
+      - name: Re-run tests under non-English system locales
+        shell: bash
+        run: |
+          mvn -B test --file pom.xml -DargLine="-Duser.language=tr -Duser.country=TR"
+          mvn -B test --file pom.xml -DargLine="-Duser.language=de -Duser.country=DE"
+
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y fakeroot
