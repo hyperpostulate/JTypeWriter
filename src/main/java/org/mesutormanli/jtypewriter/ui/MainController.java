@@ -24,7 +24,7 @@ public class MainController implements Initializable {
     private final KeyboardShortcutHandler shortcutHandler;
     private final EditorKeyHandler editorKeyHandler;
 
-    private boolean toolbarVisible;
+    private boolean toolbarVisible = true;
 
     @FXML
     private BorderPane rootPane;
@@ -61,8 +61,8 @@ public class MainController implements Initializable {
         rootPane.setTop(toolbarView);
         rootPane.setBottom(statsBar);
 
-        toolbarView.setVisible(false);
-        toolbarView.setManaged(false);
+        toolbarView.setVisible(toolbarVisible);
+        toolbarView.setManaged(toolbarVisible);
         toolbarView.setEditorArea(editorArea);
 
         toolbarView.setOnStyleChange(this::applyEditorStyle);
