@@ -36,6 +36,18 @@ public class AutoSaveService {
         this.fileService = fileService;
         this.dialogService = dialogService;
         fileService.addListener(new FileService.Listener() {
+            /**
+             * A load always means the previous document was resolved first
+             * (saved, or explicitly discarded): any draft left from it is stale
+             * and must not be offered for recovery later. Clearing here closes
+             * the window during which a discarded draft survived until the next
+             * autosave tick.
+             */
+            @Override
+            public void onLoaded(java.nio.file.Path file) {
+                store.clear();
+            }
+
             @Override
             public void onSaved(java.nio.file.Path file) {
                 store.clear(); // content is on disk now, nothing left to recover

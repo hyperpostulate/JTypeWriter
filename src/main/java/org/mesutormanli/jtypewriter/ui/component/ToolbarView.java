@@ -230,6 +230,13 @@ public class ToolbarView extends HBox {
         notifyStyleChange();
     }
 
+    /** Restores the default editor font size (single source: {@link FontSizeManager#DEFAULT_SIZE}). */
+    public void resetFontSize() {
+        fontSizeManager.reset();
+        fontSizeLabel.setText(String.valueOf(fontSizeManager.getCurrentSize()));
+        notifyStyleChange();
+    }
+
     public String getCurrentTextCssColor() {
         return textColorManager.getCurrentCssColor();
     }

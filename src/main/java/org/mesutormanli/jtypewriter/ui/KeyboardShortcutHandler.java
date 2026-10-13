@@ -85,7 +85,7 @@ public class KeyboardShortcutHandler {
                     editorArea.setText(fileService.getCurrentContent()));
             case SAVE -> fileService.saveFile(stage, editorArea.getText());
             case SAVE_AS -> fileService.saveFileAs(stage, editorArea.getText());
-            case FONT_RESET -> toolbarView.changeFontSize(16 - toolbarView.getCurrentFontSize());
+            case FONT_RESET -> toolbarView.resetFontSize();
             case FONT_UP -> toolbarView.changeFontSize(1);
             case FONT_DOWN -> toolbarView.changeFontSize(-1);
             case NONE -> {

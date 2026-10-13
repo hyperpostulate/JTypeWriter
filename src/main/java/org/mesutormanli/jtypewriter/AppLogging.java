@@ -19,12 +19,24 @@ import java.util.logging.Logger;
 public final class AppLogging {
 
     private static final Logger APP_LOGGER = Logger.getLogger("org.mesutormanli.jtypewriter");
-    private static final Formatter ONE_LINE = new Formatter() {
+
+    /**
+     * Single-line log layout. The date/time conversions ({@code %tF}/{@code %tT})
+     * require a value carrying calendar fields; {@link LogRecord#getInstant()}
+     * (a bare {@link java.time.Instant}) has none and makes {@code String.format}
+     * throw {@code IllegalFormatConversionException} - which {@code java.util.logging}
+     * silently swallows, so every log line would vanish. The millisecond epoch
+     * value ({@link LogRecord#getMillis()}) is the supported form.
+     *
+     * <p>Package-private so a regression test can format a {@link LogRecord}
+     * without installing a handler.</p>
+     */
+    static final Formatter ONE_LINE = new Formatter() {
         @Override
         public String format(LogRecord record) {
             var message = record.getMessage() == null ? "" : record.getMessage();
             return String.format("%1$tF %1$tT %2$-7s %3$s %4$s%n",
-                    record.getInstant(),
+                    record.getMillis(),
                     record.getLevel(),
                     record.getLoggerName(),
                     message + (record.getThrown() == null ? ""
