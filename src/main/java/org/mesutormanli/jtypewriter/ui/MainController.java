@@ -4,6 +4,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 import org.mesutormanli.jtypewriter.ui.component.EditorKeyHandler;
@@ -21,16 +22,18 @@ public class MainController implements Initializable {
     private final StatsBar statsBar;
     private final ThemeManager themeManager;
     private final FileService fileService;
+    private final Messages messages;
     private final KeyboardShortcutHandler shortcutHandler;
     private final EditorKeyHandler editorKeyHandler;
 
     private boolean toolbarVisible = true;
+    private Stage stage;
 
     @FXML
     private BorderPane rootPane;
 
     public MainController(EditorArea editorArea, ToolbarView toolbarView, StatsBar statsBar,
-                          ThemeManager themeManager, FileService fileService,
+                          ThemeManager themeManager, FileService fileService, Messages messages,
                           KeyboardShortcutHandler shortcutHandler,
                           EditorKeyHandler editorKeyHandler) {
         this.editorArea = editorArea;
@@ -38,21 +41,49 @@ public class MainController implements Initializable {
         this.statsBar = statsBar;
         this.themeManager = themeManager;
         this.fileService = fileService;
+        this.messages = messages;
         this.shortcutHandler = shortcutHandler;
         this.editorKeyHandler = editorKeyHandler;
     }
 
     public void setStage(Stage stage) {
+        this.stage = stage;
         toolbarView.setStage(stage);
-        toolbarView.setOnYoloChange(() -> refreshTitle(stage));
+        toolbarView.setOnYoloChange(this::refreshTitle);
         shortcutHandler.bind(editorArea, toolbarView, stage, this::toggleToolbar, this::cycleTheme);
         editorKeyHandler.bind(editorArea);
-        refreshTitle(stage);
+        fileService.addListener(new FileService.Listener() {
+            @Override
+            public void onLoaded(java.nio.file.Path file) {
+                refreshTitle();
+            }
+
+            @Override
+            public void onSaved(java.nio.file.Path file) {
+                refreshTitle();
+            }
+        });
+        refreshTitle();
     }
 
-    /** The title doubles as the persistent YOLO badge (the toolbar may be hidden). */
-    private void refreshTitle(Stage stage) {
-        stage.setTitle("JTypeWriter" + (editorArea.isYoloMode() ? "   [YOLO]" : ""));
+    /**
+     * The title carries the document name, a {@code *} while there are unsaved
+     * changes and the persistent YOLO badge (the toolbar may be hidden), so the
+     * user can always tell what is open and whether it is safe on disk.
+     */
+    private void refreshTitle() {
+        if (stage == null) {
+            return;
+        }
+        var path = fileService.getCurrentFilePath();
+        var documentName = path != null ? path.getFileName().toString() : messages.windowUntitled();
+        stage.setTitle(titleFor(messages.appName(), documentName,
+                fileService.hasUnsavedChanges(), editorArea.isYoloMode()));
+    }
+
+    /** Pure title composition, kept out of the stage so it can be unit tested. */
+    static String titleFor(String appName, String documentName, boolean dirty, boolean yolo) {
+        return appName + " - " + documentName + (dirty ? " *" : "") + (yolo ? "   [YOLO]" : "");
     }
 
     @Override
@@ -68,8 +99,10 @@ public class MainController implements Initializable {
         toolbarView.setOnStyleChange(this::applyEditorStyle);
         applyEditorStyle();
 
-        editorArea.textProperty().addListener((obs, oldVal, newVal) ->
-                fileService.setCurrentContent(newVal));
+        editorArea.textProperty().addListener((obs, oldVal, newVal) -> {
+            fileService.setCurrentContent(newVal);
+            refreshTitle(); // keep the dirty marker in the title in step with the text
+        });
     }
 
     private void toggleToolbar() {

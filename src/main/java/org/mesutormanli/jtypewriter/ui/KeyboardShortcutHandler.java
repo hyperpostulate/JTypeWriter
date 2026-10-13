@@ -77,8 +77,8 @@ public class KeyboardShortcutHandler {
         switch (resolve(event.getCode(), event.isShiftDown())) {
             case TOGGLE_TOOLBAR -> onToggleToolbar.run();
             case CYCLE_THEME -> onThemeCycle.run();
-            case UNDO -> editorArea.undo();
-            case REDO -> editorArea.redo();
+            case UNDO -> editorArea.requestUndo(); // blocked while YOLO mode is on
+            case REDO -> editorArea.requestRedo();
             case TOGGLE_YOLO -> toolbarView.toggleYolo();
             case CYCLE_TEXT_COLOR -> toolbarView.cycleTextColor();
             case OPEN -> fileService.openFile(stage).ifPresent(path ->

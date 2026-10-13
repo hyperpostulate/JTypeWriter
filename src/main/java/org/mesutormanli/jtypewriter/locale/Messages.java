@@ -227,6 +227,27 @@ public class Messages {
         return bundle.getString("appName");
     }
 
+    /** Placeholder document name shown in the window title for a never-saved buffer. */
+    public String windowUntitled() {
+        return bundle.getString("windowUntitled");
+    }
+
+    public String menuCut() {
+        return bundle.getString("menuCut");
+    }
+
+    public String menuCopy() {
+        return bundle.getString("menuCopy");
+    }
+
+    public String menuPaste() {
+        return bundle.getString("menuPaste");
+    }
+
+    public String menuSelectAll() {
+        return bundle.getString("menuSelectAll");
+    }
+
     public String toolbarUndo() {
         return bundle.getString("toolbarUndo");
     }

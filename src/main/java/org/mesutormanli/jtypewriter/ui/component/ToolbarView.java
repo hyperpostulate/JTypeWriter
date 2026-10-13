@@ -106,10 +106,10 @@ public class ToolbarView extends HBox {
         });
 
         undoBtn.setOnAction(e -> {
-            if (editorArea != null) editorArea.undo();
+            if (editorArea != null) editorArea.requestUndo(); // no-op while YOLO mode is on
         });
         redoBtn.setOnAction(e -> {
-            if (editorArea != null) editorArea.redo();
+            if (editorArea != null) editorArea.requestRedo();
         });
 
         themeBtn.setOnAction(e -> cycleTheme());

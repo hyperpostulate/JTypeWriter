@@ -55,7 +55,7 @@ public final class AppGraph {
     public final ToolbarState toolbarState = new ToolbarState(typewriterSound, settings);
 
     // --- editor and its handlers -----------------------------------------
-    public final EditorArea editorArea = new EditorArea();
+    public final EditorArea editorArea = new EditorArea(messages);
     public final EditorKeyHandler editorKeyHandler = new EditorKeyHandler(typewriterSound, sessionStats);
     public final KeyboardShortcutHandler shortcutHandler = new KeyboardShortcutHandler(fileService);
 
@@ -71,7 +71,7 @@ public final class AppGraph {
     // --- top level assembly ------------------------------------------------
     public final MainController mainController = new MainController(
             editorArea, toolbarView, statsBar, themeManager,
-            fileService, shortcutHandler, editorKeyHandler);
+            fileService, messages, shortcutHandler, editorKeyHandler);
     public final MainStage mainStage = new MainStage(fileService, settings);
 
     private volatile Stage stage;

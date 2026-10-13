@@ -51,10 +51,15 @@ public class FxApplication extends Application {
 
             primaryStage.show();
 
-            app.autoSaveService.attach(primaryStage, app.editorArea);
+            // The recovery offer must be resolved before autosave starts: the
+            // periodic snapshot sees an empty, clean editor while the (modal)
+            // recovery dialog is still open and would clear the very draft the
+            // user is being asked about. Attach afterwards, on the settled
+            // document (restored draft or last session file).
             if (!app.autoSaveService.offerRecovery(primaryStage, app.editorArea)) {
                 restoreLastSession(primaryStage); // continue where the last session ended
             }
+            app.autoSaveService.attach(primaryStage, app.editorArea);
             app.welcomeDialog.show(primaryStage);
         } catch (Throwable error) {
             app.crashHandler.report("Startup failed", error);

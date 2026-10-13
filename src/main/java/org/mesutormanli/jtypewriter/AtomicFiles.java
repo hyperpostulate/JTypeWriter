@@ -8,6 +8,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.DosFileAttributeView;
+import java.nio.file.attribute.PosixFileAttributeView;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,6 +29,13 @@ import java.util.logging.Logger;
  * Failures of the directory fsync are logged and swallowed: it is unavailable
  * on some file systems (notably on Windows), and the data fsync plus the atomic
  * rename already cover the important cases.
+ *
+ * <p>The temp file is created by the JVM (owner-only on POSIX) and then renamed
+ * over the target, so without care the move would silently tighten the
+ * permissions of an existing document to {@code 0600}. Before the rename the
+ * target's permission model is therefore copied onto the temp file (POSIX
+ * permissions, DOS attributes or an ACL, whichever the file system supports),
+ * so saving a file never changes who may read it.</p>
  */
 public final class AtomicFiles {
 
@@ -45,6 +55,7 @@ public final class AtomicFiles {
                 channel.write(ByteBuffer.wrap(bytes));
                 channel.force(true); // bytes on disk before the rename points at them
             }
+            preserveAttributes(absolute, temp);
             try {
                 Files.move(temp, absolute, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException e) {
@@ -56,6 +67,50 @@ public final class AtomicFiles {
             if (!moved) {
                 Files.deleteIfExists(temp);
             }
+        }
+    }
+
+    /**
+     * Copies the target's permission model onto the freshly written temp file so
+     * the atomic rename cannot change the document's access rights. Best-effort:
+     * an unsupported or unreadable attribute view is logged and skipped - a
+     * missing permission copy must never cost the user the save itself.
+     */
+    private static void preserveAttributes(Path target, Path temp) {
+        if (!Files.exists(target)) {
+            return; // a brand new file keeps the temp file's defaults (owner-only)
+        }
+        try {
+            var source = Files.getFileAttributeView(target, PosixFileAttributeView.class);
+            var destination = Files.getFileAttributeView(temp, PosixFileAttributeView.class);
+            if (source != null && destination != null) {
+                destination.setPermissions(source.readAttributes().permissions());
+                return; // a POSIX file system owns the permission model
+            }
+        } catch (IOException | UnsupportedOperationException e) {
+            LOG.log(Level.FINE, "could not copy POSIX permissions of " + target, e);
+        }
+        try {
+            var source = Files.getFileAttributeView(target, DosFileAttributeView.class);
+            var destination = Files.getFileAttributeView(temp, DosFileAttributeView.class);
+            if (source != null && destination != null) {
+                var attributes = source.readAttributes();
+                destination.setArchive(attributes.isArchive());
+                destination.setHidden(attributes.isHidden());
+                destination.setReadOnly(attributes.isReadOnly());
+                destination.setSystem(attributes.isSystem());
+            }
+        } catch (IOException | UnsupportedOperationException e) {
+            LOG.log(Level.FINE, "could not copy DOS attributes of " + target, e);
+        }
+        try {
+            var source = Files.getFileAttributeView(target, AclFileAttributeView.class);
+            var destination = Files.getFileAttributeView(temp, AclFileAttributeView.class);
+            if (source != null && destination != null) {
+                destination.setAcl(source.getAcl());
+            }
+        } catch (IOException | UnsupportedOperationException e) {
+            LOG.log(Level.FINE, "could not copy ACL of " + target, e);
         }
     }
 

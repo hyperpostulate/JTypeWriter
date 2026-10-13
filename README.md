@@ -179,7 +179,7 @@ Authentic typewriter keystroke sound on every key press. Can be toggled on/off v
 
 ### YOLO Mode
 
-"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, and Cut are disabled. Perfect for first-draft writing where you push forward without looking back. The mode stays visible through the `[YOLO]` title badge and the toolbar status label; theme colours stay untouched in both states.
+"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, Cut and Undo/Redo are disabled (the right-click menu offers only Cut/Copy/Paste/Select All), so no edit can remove characters that are already in the document. Perfect for first-draft writing where you push forward without looking back. The mode stays visible through the `[YOLO]` title badge and the toolbar status label; theme colours stay untouched in both states.
 
 ### Real-Time Statistics
 
@@ -191,7 +191,8 @@ Live stats bar showing:
 
 ### Data Safety & Crash Recovery
 
-- **Atomic, durable saves with backups:** every save is fsynced to a temp file and renamed into place, so neither a crash mid-save nor a power cut can truncate the document; overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`)
+- **Atomic, durable saves with backups:** every save is fsynced to a temp file and renamed into place, so neither a crash mid-save nor a power cut can truncate the document; overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`) and preserve the document's existing file permissions
+- **Document awareness:** the window title shows the open document name and a `*` while there are unsaved changes (alongside the `[YOLO]` badge)
 - **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`; after a crash the draft is offered for restoration on the next startup
 - **Encoding safety:** documents are detected (UTF-8/UTF-16 BOMs, strict UTF-8) and always written back in the same encoding; unknown legacy files (e.g. Turkish Windows-1254) trigger a prompt instead of silent corruption. When text no longer fits the document's encoding (e.g. a pasted emoji in a Windows-1254 file), saving offers to switch the document to UTF-8 - unmappable characters are never silently replaced with `?`
 - **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently
@@ -510,7 +511,7 @@ Her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki düğmeyle a
 
 ### YOLO Modu
 
-"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde, Backspace, Delete ve Cut devre dışı kalır. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod, `[YOLO]` başlık rozeti ve araç çubuğu durum etiketi ile görünür tutulur; tema renkleri her iki durumda da değişmez.
+"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde Backspace, Delete, Cut ve Geri Al/İleri Al devre dışı kalır (sağ-tık menüsü yalnızca Kes/Kopyala/Yapıştır/Tümünü Seç sunar); böylece hiçbir düzenleme belgedeki mevcut karakterleri silemez. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod, `[YOLO]` başlık rozeti ve araç çubuğu durum etiketi ile görünür tutulur; tema renkleri her iki durumda da değişmez.
 
 ### Gerçek Zamanlı İstatistikler
 
@@ -522,7 +523,8 @@ Canlı istatistik çubuğu:
 
 ### Veri Güvenliği ve Kurtarma
 
-- **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya fsync edilip yeniden adlandırılarak yerine konur; kayıt ortasında çökme ya da elektrik kesintisi belgeyi asla yaralamaz; üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`)
+- **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya fsync edilip yeniden adlandırılarak yerine konur; kayıt ortasında çökme ya da elektrik kesintisi belgeyi asla yaralamaz; üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`) ve belgenin mevcut dosya izinleri korunur
+- **Belge farkındalığı:** pencere başlığı açık belgenin adını ve kaydedilmemiş değişiklik varken bir `*` işaretini gösterir (`[YOLO]` rozetinin yanında)
 - **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökme sonrası taslak bir sonraki açılışta geri yükleme için teklif edilir
 - **Kodlama güvenliği:** belgeler tespit edilir (UTF-8/UTF-16 BOM, sıkı UTF-8) ve her zaman aynı kodlamayla geri yazılır; bilinmeyen eski dosyalarda (örn. Windows-1254 Türkçe) sessiz bozulma yerine sorulur. Metin belgenin kodlamasına sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) kayıtta belgeyi UTF-8'e geçirme teklif edilir — temsil edilemeyen karakterler asla sessizce `?` yapılmaz
 - **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir
