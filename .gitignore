@@ -52,3 +52,6 @@ Thumbs.db
 
 # Spring Boot
 *.springBeans
+
+# Agent instructions (local only)
+AGENTS.md
