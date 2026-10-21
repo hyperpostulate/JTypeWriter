@@ -48,11 +48,17 @@ public final class AtomicFiles {
     public static void writeMoving(Path target, byte[] bytes) throws IOException {
         var absolute = target.toAbsolutePath();
         var dir = absolute.getParent();
-        var temp = Files.createTempFile(dir, absolute.getFileName().toString(), ".tmp");
+        // createTempFile rejects prefixes shorter than three characters, so a
+        // document called "a" could not be saved at all without the fixed prefix
+        var temp = Files.createTempFile(dir, "jtw-" + absolute.getFileName(), ".tmp");
         var moved = false;
         try {
             try (var channel = FileChannel.open(temp, StandardOpenOption.WRITE)) {
-                channel.write(ByteBuffer.wrap(bytes));
+                // FileChannel.write may perform a partial write; loop until every byte is out
+                var buffer = ByteBuffer.wrap(bytes);
+                while (buffer.hasRemaining()) {
+                    channel.write(buffer);
+                }
                 channel.force(true); // bytes on disk before the rename points at them
             }
             preserveAttributes(absolute, temp);

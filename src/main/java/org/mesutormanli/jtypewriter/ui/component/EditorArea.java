@@ -28,6 +28,9 @@ import org.mesutormanli.jtypewriter.locale.Messages;
  * {@link #requestUndo()}/{@link #requestRedo()}, and the native right-click menu
  * is replaced by one without Undo/Redo while YOLO is on. Undoing an insertion
  * deletes characters, so leaving any of these open would break the promise.</p>
+ *
+ * <p>Cut is shown greyed out so the menu stays predictable instead of silently
+ * losing an entry while YOLO is on.</p>
  */
 public class EditorArea extends TextArea {
 
@@ -109,8 +112,10 @@ public class EditorArea extends TextArea {
             return; // when YOLO is off the native menu (with Undo/Redo) is correct
         }
         event.consume(); // suppress the behaviour's menu, which has Undo/Redo
+        var cut = item(messages.menuCut(), this::cut);
+        cut.setDisable(true); // Cut is a deletion: visible but not usable in YOLO mode
         var menu = new ContextMenu(
-                item(messages.menuCut(), this::cut),
+                cut,
                 item(messages.menuCopy(), this::copy),
                 item(messages.menuPaste(), this::paste),
                 new SeparatorMenuItem(),

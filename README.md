@@ -179,7 +179,7 @@ Authentic typewriter keystroke sound on every key press. Can be toggled on/off v
 
 ### YOLO Mode
 
-"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, Cut and Undo/Redo are disabled (the right-click menu offers only Cut/Copy/Paste/Select All), so no edit can remove characters that are already in the document. Perfect for first-draft writing where you push forward without looking back. The mode stays visible through the `[YOLO]` title badge and the toolbar status label; theme colours stay untouched in both states.
+"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, Cut and Undo/Redo are disabled (the right-click menu shows Cut greyed out, with only Copy/Paste/Select All usable), so no edit can remove characters that are already in the document. Perfect for first-draft writing where you push forward without looking back. The mode stays visible through the `[YOLO]` title badge and the toolbar status label; theme colours stay untouched in both states.
 
 ### Real-Time Statistics
 
@@ -295,13 +295,18 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `TextCodecTest` | Encoding detection (BOMs, strict UTF-8), legacy prompts, lossless encoding round trips, strict encode (unrepresentable characters fail instead of turning into `?`) |
 | `BackupKeeperTest` | Pre-overwrite backup rotation and retention |
 | `RecoveryStoreTest` | Crash-recovery draft lifecycle (save/restore/drop), tolerance for corrupt draft metadata |
+| `AutoSaveServiceTest` | Opening a document drops the previous document's stale recovery draft (regression) |
 | `YoloPolicyTest` | YOLO mode edit policy (deletions blocked, insertions allowed, safe replacement) |
 | `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S) and numpad equivalents |
+| `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge) |
+| `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
 | `AppSettingsTest` | Preference persistence across restarts, defaults, tolerance for unknown/corrupt values and unusable paths |
+| `FontSizeManagerTest` | Font size clamping to the supported range, persisted reset to the default size |
 | `AtomicFilesTest` | Durable atomic writes: content integrity, no temp leftovers, cleanup after failures |
 | `MessagesTest` | i18n bundle parity across all 6 languages, localised theme/colour names, locale-independent bundle resolution |
 | `DialogServiceTest` | Save-as file naming rules (default extension handling) |
 | `JTypeWriterAppTests` | Main method presence |
+| `AppLoggingTest` | One-line log formatter builds a line from a `LogRecord` without throwing (regression) |
 
 ---
 
@@ -511,7 +516,7 @@ Her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki düğmeyle a
 
 ### YOLO Modu
 
-"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde Backspace, Delete, Cut ve Geri Al/İleri Al devre dışı kalır (sağ-tık menüsü yalnızca Kes/Kopyala/Yapıştır/Tümünü Seç sunar); böylece hiçbir düzenleme belgedeki mevcut karakterleri silemez. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod, `[YOLO]` başlık rozeti ve araç çubuğu durum etiketi ile görünür tutulur; tema renkleri her iki durumda da değişmez.
+"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde Backspace, Delete, Cut ve Geri Al/İleri Al devre dışı kalır (sağ-tık menüsünde Kes soluk/devre dışı gösterilir; yalnızca Kopyala/Yapıştır/Tümünü Seç kullanılabilir); böylece hiçbir düzenleme belgedeki mevcut karakterleri silemez. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod, `[YOLO]` başlık rozeti ve araç çubuğu durum etiketi ile görünür tutulur; tema renkleri her iki durumda da değişmez.
 
 ### Gerçek Zamanlı İstatistikler
 
@@ -627,13 +632,18 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `TextCodecTest` | Kodlama tespiti (BOM, sıkı UTF-8), eski kodlama sorusu, kayıpsız kodlama gidiş-dönüşü, sıkı kodlama (temsil edilemeyen karakterler `?` olmak yerine hata verir) |
 | `BackupKeeperTest` | Yazımdan önce yedek rotasyonu ve saklama |
 | `RecoveryStoreTest` | Çökme kurtarma taslağı yaşam döngüsü (kaydet/geri yükle/sil), bozuk taslak meta verisine tolerans |
+| `AutoSaveServiceTest` | Belge açıldığında önceki belgenin bayat kurtarma taslağının silinmesi (regresyon) |
 | `YoloPolicyTest` | YOLO modu düzenleme politikası (silme engelli, ekleme serbest, güvenli değiştirme) |
 | `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S) ve numpad eşdeğerleri |
+| `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti) |
+| `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
 | `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, varsayılanlar, bilinmeyen/bozuk değerlere ve kullanılamayan yollara tolerans |
+| `FontSizeManagerTest` | Yazı boyutunun desteklenen aralığa kısıtlanması, varsayılan boyuta kalıcı sıfırlama |
 | `AtomicFilesTest` | Dayanıklı atomik yazım: içerik bütünlüğü, artık temp dosyası yok, hata sonrası temizlik |
 | `MessagesTest` | 6 dilin tamamında i18n anahtar eşitliği, yerelleştirilmiş tema/renk adları, sistem dilinden bağımsız bundle çözümlemesi |
 | `DialogServiceTest` | "Farklı Kaydet" dosya adlandırma kuralları (uzantı işleme) |
 | `JTypeWriterAppTests` | Ana metod varlığı |
+| `AppLoggingTest` | Tek satırlık log biçimlendiricisinin bir `LogRecord`'dan satırı hata vermeden üretmesi (regresyon) |
 
 ---
 

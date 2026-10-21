@@ -47,14 +47,32 @@ class AtomicFilesTest {
 
     @Test
     void failedWritesCleanUpTheirTempFile(@TempDir Path dir) throws IOException {
-        var target = dir.resolve("missing-subdir").resolve("note.txt");
+        // The target is an existing directory: the temp file is created and
+        // written successfully, and only the move fails - which is the path
+        // that exercises the finally cleanup branch.
+        var target = dir.resolve("occupied");
+        Files.createDirectory(target);
 
         assertThrows(IOException.class,
                 () -> AtomicFiles.writeMoving(target, new byte[]{1, 2, 3}));
 
         try (Stream<Path> files = Files.list(dir)) {
-            assertTrue(files.findAny().isEmpty(), "no leftovers after a failed write");
+            assertTrue(files.noneMatch(p -> p.getFileName().toString().endsWith(".tmp")),
+                    "no temp files after a failed write");
         }
+    }
+
+    /**
+     * Regression: {@code createTempFile} rejects a prefix shorter than three
+     * characters, so a document named "a" could not be saved.
+     */
+    @Test
+    void shortFileNamesSaveCorrectly(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("a");
+
+        AtomicFiles.writeMoving(target, "short".getBytes(StandardCharsets.UTF_8));
+
+        assertEquals("short", Files.readString(target));
     }
 
     @Test

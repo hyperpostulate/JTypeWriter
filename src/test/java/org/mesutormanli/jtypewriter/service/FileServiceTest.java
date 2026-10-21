@@ -237,6 +237,38 @@ class FileServiceTest {
         assertEquals(null, fileService.getCurrentFilePath());
     }
 
+    @Test
+    void restoredEmptyDraftStaysDirty() {
+        // The draft is not on disk at all, so even empty content must not look
+        // saved - otherwise autosave would clear the recovery file.
+        fileService.restoreRecovered(null, "");
+
+        assertTrue(fileService.hasUnsavedChanges());
+    }
+
+    @Test
+    void restoredNonEmptyDraftWithoutAFileIsDirty() {
+        fileService.restoreRecovered(null, "text");
+
+        assertTrue(fileService.hasUnsavedChanges());
+    }
+
+    @Test
+    void repeatedSavesOfUnchangedContentDoNotRotateBackups(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "v1");
+        when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(target.toFile()));
+        assertTrue(fileService.openFile(null).isPresent());
+
+        fileService.saveFile(null, "v2"); // changed content: the old version is kept
+        assertEquals("v1", Files.readString(BackupKeeper.backupPath(target, 0)));
+
+        fileService.saveFile(null, "v2"); // unchanged: must not age the backup history
+
+        assertEquals("v1", Files.readString(BackupKeeper.backupPath(target, 0)));
+        assertFalse(Files.exists(BackupKeeper.backupPath(target, 1)));
+    }
+
     // --- encoding upgrade: never silently turn characters into '?' ---------
 
     private static final String MODERN = "Merhaba \uD83D\uDE00 \u4F60\u597D";

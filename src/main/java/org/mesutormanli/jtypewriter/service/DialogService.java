@@ -71,12 +71,34 @@ public class DialogService {
                 new FileChooser.ExtensionFilter(messages.fileTextFile(), "*.txt")
         );
         var chosen = chooser.showSaveDialog(stage);
-        if (chosen != null) {
-            var target = withDefaultExtension(chosen);
-            rememberDirectory(target);
-            return Optional.of(target);
+        if (chosen == null) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        var target = withDefaultExtension(chosen);
+        // The chooser asked about overwriting the name as typed; when the .txt
+        // extension turns it into a different, existing file it never saw that
+        // target, so the overwrite needs its own confirmation.
+        if (!target.equals(chosen) && target.exists() && !confirmOverwrite(stage, target)) {
+            return Optional.empty(); // keep the current document, save cancelled
+        }
+        rememberDirectory(target);
+        return Optional.of(target);
+    }
+
+    /** @return {@code true} when the user accepts replacing an existing file */
+    private boolean confirmOverwrite(Stage stage, File target) {
+        var alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(messages.overwriteTitle());
+        alert.setHeaderText(messages.overwriteHeader());
+        alert.setContentText(messages.overwriteContent(target.getName()));
+        initOwner(alert, stage);
+
+        var overwriteButton = new ButtonType(messages.overwriteConfirm());
+        var cancelButton = new ButtonType(messages.overwriteCancel());
+        alert.getButtonTypes().setAll(overwriteButton, cancelButton);
+
+        var result = alert.showAndWait();
+        return result.isPresent() && result.get() == overwriteButton;
     }
 
     /** {@code notes} becomes {@code notes.txt}; {@code notes.md} stays as typed. */

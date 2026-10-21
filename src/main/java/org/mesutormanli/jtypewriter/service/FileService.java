@@ -70,6 +70,8 @@ public class FileService {
     }
 
     public boolean hasUnsavedChanges() {
+        // savedContent is null when the draft was never on disk (restoreRecovered):
+        // equals(null) is false, so even an empty draft stays dirty
         return !currentContent.equals(savedContent);
     }
 
@@ -147,7 +149,9 @@ public class FileService {
                 LOG.log(Level.WARNING, "could not detect encoding of recovered file " + file, e);
             }
         }
-        savedContent = ""; // force the dirty flag: the draft is not on disk yet
+        // Nothing on disk to compare against: the draft stays dirty even when it
+        // is empty, so autosave never clears a recovered empty draft.
+        savedContent = null;
         currentContent = content;
     }
 
@@ -189,14 +193,23 @@ public class FileService {
             }
         }
         try {
-            backupKeeper.backup(path);
+            // Re-saving unchanged content would rotate the backup history with
+            // copies of the same text; the encoding-upgrade flow always has
+            // content != savedContent, so it is unaffected by this guard.
+            var unchangedSave = path.equals(currentFilePath) && content.equals(savedContent);
+            if (!unchangedSave) {
+                backupKeeper.backup(path);
+            }
             AtomicFiles.writeMoving(path, bytes);
             currentFilePath = path;
             savedContent = content;
             currentContent = content;
             listeners.forEach(l -> l.onSaved(path));
             return Optional.of(path);
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
+            // An unexpected runtime failure must not take the app down mid-save:
+            // log it and let the user retry from a dialog.
+            LOG.log(Level.WARNING, "save failed for " + path, e);
             dialogService.showError(messages.errorSave(), e.getMessage());
             return Optional.empty();
         }

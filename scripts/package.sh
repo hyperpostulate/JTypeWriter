@@ -60,7 +60,7 @@ APP_VERSION=$(basename "$FAT_JAR" | sed -e 's/^jtypewriter-//' -e 's/-jar-with-d
 # jpackage accepts one to three dot-separated integers whose first component is
 # greater than zero - macOS rejects 0.x bundle versions - so a -SNAPSHOT
 # version must fail here, with an explanation, instead of in the CI logs.
-if ! printf '%s' "$APP_VERSION" | grep -Eq '^[0-9]+(\.[0-9]+){0,2}$'; then
+if ! printf '%s' "$APP_VERSION" | grep -Eq '^[1-9][0-9]*(\.[0-9]+){0,2}$'; then
     echo "version '$APP_VERSION' from pom.xml is not a valid jpackage app-version:" >&2
     echo "use one to three dot-separated integers with a non-zero first component (e.g. 1.0.0)" >&2
     exit 1
@@ -80,6 +80,9 @@ STAGING="target/jpackage-input"
 # own build output, so it is always regenerated from scratch.
 rm -rf "$DEST/$APP_NAME" "$DEST/$APP_NAME.app"
 rm -f "$DEST/$APP_NAME"*.deb "$DEST/$APP_NAME"*.msi "$DEST/$APP_NAME"*.dmg
+# Start from an empty input directory: with --skip-build a previous run's fat jar
+# would otherwise stay here and could be picked up instead of the current one.
+rm -rf "$STAGING"
 mkdir -p "$STAGING" "$DEST"
 cp "$FAT_JAR" "$STAGING/"
 

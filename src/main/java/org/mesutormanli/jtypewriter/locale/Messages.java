@@ -211,6 +211,26 @@ public class Messages {
         return bundle.getString("unsavedCancel");
     }
 
+    public String overwriteTitle() {
+        return bundle.getString("overwriteTitle");
+    }
+
+    public String overwriteHeader() {
+        return bundle.getString("overwriteHeader");
+    }
+
+    public String overwriteContent(String fileName) {
+        return MessageFormat.format(bundle.getString("overwriteContent"), fileName);
+    }
+
+    public String overwriteConfirm() {
+        return bundle.getString("overwriteConfirm");
+    }
+
+    public String overwriteCancel() {
+        return bundle.getString("overwriteCancel");
+    }
+
     public String errorTitle() {
         return bundle.getString("errorTitle");
     }
