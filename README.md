@@ -241,6 +241,7 @@ Shortcuts use `Ctrl` on Windows/Linux and `⌘` (Cmd) on macOS — plain `Ctrl` 
 | `Ctrl+O` | Open file |
 | `Ctrl+S` | Save file |
 | `Ctrl+Shift+S` | Save file as |
+| `F11` | Toggle fullscreen |
 | `Escape` | Exit fullscreen |
 
 ---
@@ -578,6 +579,7 @@ Kısayollar Windows/Linux'ta `Ctrl`, macOS'ta `⌘` (Cmd) ile çalışır — ma
 | `Ctrl+O` | Dosya aç |
 | `Ctrl+S` | Dosyayı kaydet |
 | `Ctrl+Shift+S` | Farklı kaydet |
+| `F11` | Tam ekranı aç/kapat |
 | `Escape` | Tam ekrandan çık |
 
 ---

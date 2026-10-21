@@ -37,14 +37,14 @@ public class KeyboardShortcutHandler {
         target.addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPress);
     }
 
-    /** Decoded meaning of a Ctrl-combination key press. */
+    /** Decoded meaning of a shortcut key press. */
     enum ShortcutAction {
         NONE, TOGGLE_TOOLBAR, CYCLE_THEME, UNDO, REDO, TOGGLE_YOLO, CYCLE_TEXT_COLOR,
-        OPEN, SAVE, SAVE_AS, FONT_RESET, FONT_UP, FONT_DOWN
+        OPEN, SAVE, SAVE_AS, FONT_RESET, FONT_UP, FONT_DOWN, TOGGLE_FULLSCREEN
     }
 
     /**
-     * Maps a Ctrl-combination to its action. Kept free of UI state so the
+     * Maps a shortcut key to its action. Kept free of UI state so the
      * shift-sensitive combos can be unit tested headlessly: with two separate
      * key filters the Ctrl+Shift+Y combination leaked into the Ctrl+Y branch and
      * ran Redo instead of toggling YOLO mode. Numpad keys are accepted as
@@ -62,6 +62,7 @@ public class KeyboardShortcutHandler {
             case DIGIT0, NUMPAD0 -> ShortcutAction.FONT_RESET;
             case EQUALS, PLUS, ADD -> ShortcutAction.FONT_UP;
             case MINUS, SUBTRACT -> ShortcutAction.FONT_DOWN;
+            case F11 -> ShortcutAction.TOGGLE_FULLSCREEN;
             default -> ShortcutAction.NONE;
         };
     }
@@ -72,7 +73,8 @@ public class KeyboardShortcutHandler {
      * accepted too, for users who switch between platforms.
      */
     private void handleKeyPress(KeyEvent event) {
-        if (!event.isShortcutDown() && !event.isControlDown()) return;
+        // F11 is the only modifier-less shortcut, so it passes the guard.
+        if (event.getCode() != KeyCode.F11 && !event.isShortcutDown() && !event.isControlDown()) return;
 
         switch (resolve(event.getCode(), event.isShiftDown())) {
             case TOGGLE_TOOLBAR -> onToggleToolbar.run();
@@ -88,10 +90,17 @@ public class KeyboardShortcutHandler {
             case FONT_RESET -> toolbarView.resetFontSize();
             case FONT_UP -> toolbarView.changeFontSize(1);
             case FONT_DOWN -> toolbarView.changeFontSize(-1);
+            case TOGGLE_FULLSCREEN -> toggleFullScreen();
             case NONE -> {
                 return; // e.g. plain Ctrl+C (Copy) must never be consumed
             }
         }
         event.consume();
+    }
+
+    private void toggleFullScreen() {
+        if (stage != null) {
+            stage.setFullScreen(!stage.isFullScreen());
+        }
     }
 }

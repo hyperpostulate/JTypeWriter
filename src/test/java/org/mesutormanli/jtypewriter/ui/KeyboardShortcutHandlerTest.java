@@ -65,6 +65,12 @@ class KeyboardShortcutHandlerTest {
     }
 
     @Test
+    void f11TogglesFullscreenWithoutModifiers() {
+        assertEquals(ShortcutAction.TOGGLE_FULLSCREEN, resolve(KeyCode.F11, false));
+        assertEquals(ShortcutAction.TOGGLE_FULLSCREEN, resolve(KeyCode.F11, true));
+    }
+
+    @Test
     void unrelatedKeysAreNotShortcuts() {
         assertEquals(ShortcutAction.NONE, resolve(KeyCode.A, true));
         assertEquals(ShortcutAction.NONE, resolve(KeyCode.N, false));
