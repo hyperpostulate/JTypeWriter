@@ -284,7 +284,7 @@ F0 (ölçüm + jlink spike)
 
 ## 12. Başlama Koşulu ve İlk Adım
 
-**Başlama koşulu:** Ürün yol haritasındaki **P0 kurtarma düzeltmeleri (RW-01..04) tamamlanmış** olmalı. Portable, veri kaybı riskini büyütür; güvenlik ağı olmadan taşınabilirlik eklemek yanlış sıradır.
+**Başlama koşulu:** Ürün yol haritasındaki **P0 kurtarma düzeltmeleri (RW-01..04) tamamlanmış** olmalı. Portable, veri kaybı riskini büyütür; güvenlik ağı olmadan taşınabilirlik eklemek yanlış sıradır. *Durum: RW-01..04 tamamlandı; koşul karşılandı, başlama kararı bekliyor.*
 
 **İlk adım (yarım gün):** F0.3 spike'ı. JavaFX modüllerini jlink ile runtime'a alıp `-Djavafx.verbose=true` ile çalıştır; iki soruyu kesin yanıtla:
 
