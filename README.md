@@ -205,6 +205,12 @@ starts where the last one ended: same look, same document, same window. A
 document that has disappeared in the meantime is skipped silently, and a broken
 settings file falls back to the defaults instead of blocking startup.
 
+### Single Instance
+
+Only one JTypeWriter instance runs per user account: starting the application
+while another instance is already running for the same OS user shows a
+localized warning popup and exits instead of opening a second window.
+
 ### Multiple Themes
 
 Three built-in themes:
@@ -542,6 +548,13 @@ Dil, tema, metin rengi, font boyutu, ses, son belge ve pencere geometrisi
 öncekinin bittiği yerden başlar: aynı görünüm, aynı belge, aynı pencere. Aradan
 geçen sürede silinmiş bir belge sessizce atlanır; bozuk bir ayar dosyası ise
 başlangıcı engellemek yerine varsayılanlara döner.
+
+### Tek Örnek
+
+Kullanıcı hesabı başına yalnızca bir JTypeWriter örneği çalışır: aynı işletim
+sistemi kullanıcısı için uygulama zaten çalışıyorken yeniden başlatılırsa
+ikinci bir pencere açılmaz; yerelleştirilmiş bir uyarı penceresi gösterilir ve
+uygulama kapanır.
 
 ### Çoklu Tema
 

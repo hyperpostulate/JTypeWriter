@@ -368,4 +368,16 @@ public class Messages {
     public String errorLogged(String logDir) {
         return MessageFormat.format(bundle.getString("errorLogged"), logDir);
     }
+
+    public String singleInstanceTitle() {
+        return bundle.getString("singleInstanceTitle");
+    }
+
+    public String singleInstanceHeader() {
+        return bundle.getString("singleInstanceHeader");
+    }
+
+    public String singleInstanceContent() {
+        return bundle.getString("singleInstanceContent");
+    }
 }
