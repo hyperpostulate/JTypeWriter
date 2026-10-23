@@ -18,6 +18,8 @@ import java.util.logging.Logger;
  * seconds and whenever the window loses focus. Snapshots are dropped on every
  * successful save (content is safe on disk) and on clean exit; anything that
  * survives that is a crash and is offered for recovery on next startup.
+ * A draft the user answered with "later" is never dropped implicitly: it stays
+ * queued (and frozen against new snapshots) until it is restored or discarded.
  */
 public class AutoSaveService {
 
@@ -30,6 +32,13 @@ public class AutoSaveService {
     private final DialogService dialogService;
 
     private Timeline timeline;
+
+    /**
+     * True while an unanswered ("later") draft must be preserved. In that state
+     * the single draft slot belongs to the deferred text, so neither clean exit
+     * nor a new snapshot may overwrite it.
+     */
+    private boolean draftPending;
 
     public AutoSaveService(RecoveryStore store, FileService fileService, DialogService dialogService) {
         this.store = store;
@@ -45,12 +54,16 @@ public class AutoSaveService {
              */
             @Override
             public void onLoaded(java.nio.file.Path file) {
-                store.clear();
+                if (!draftPending) {
+                    store.clear();
+                }
             }
 
             @Override
             public void onSaved(java.nio.file.Path file) {
-                store.clear(); // content is on disk now, nothing left to recover
+                if (!draftPending) {
+                    store.clear(); // content is on disk now, nothing left to recover
+                }
             }
         });
     }
@@ -72,35 +85,59 @@ public class AutoSaveService {
     /**
      * Offers the surviving draft, if any, during startup. A restored draft
      * stays in the store until the next successful save, so a second crash
-     * right after recovery cannot lose it.
+     * right after recovery cannot lose it. Closing the prompt (or choosing
+     * "later") keeps the draft untouched for the next start.
      *
      * @return {@code true} when a draft was restored (the caller must not load
      *         anything else into the editor), {@code false} when there was no
-     *         draft or the user discarded it
+     *         draft, the user discarded it, or the answer was "later"
      */
     public boolean offerRecovery(Stage stage, EditorArea editorArea) {
         var draft = store.loadDraft();
         if (draft.isEmpty()) {
             return false;
         }
-        if (dialogService.showRecoveryDialog(stage, draft.get().savedAt())) {
+        var choice = dialogService.showRecoveryDialog(stage, draft.get().savedAt());
+        if (choice == RecoveryChoice.RESTORE) {
+            draftPending = false;
             fileService.restoreRecovered(draft.get().originalFile(), draft.get().content());
             editorArea.setText(fileService.getCurrentContent());
             return true;
         }
-        store.clear();
+        if (choice == RecoveryChoice.DISCARD) {
+            draftPending = false;
+            store.clear();
+        } else {
+            // LATER (or the prompt was closed): the draft is the only copy, so
+            // keep it queued for the next start instead of silently deleting it
+            keepDraftForNextStart();
+        }
         return false;
     }
 
-    /** Clean exit: stop snapping and drop the draft. */
+    /**
+     * Freezes the current draft until it is explicitly restored or discarded.
+     * Clean exit, new snapshots and document loads must not overwrite it: the
+     * store has a single slot and it belongs to the unanswered draft.
+     */
+    void keepDraftForNextStart() {
+        draftPending = true;
+    }
+
+    /** Clean exit: stop snapping and drop the draft unless one was postponed. */
     public void shutdown() {
         if (timeline != null) {
             timeline.stop();
         }
-        store.clear();
+        if (!draftPending) {
+            store.clear();
+        }
     }
 
     private void snapshot(EditorArea editorArea) {
+        if (draftPending) {
+            return; // never overwrite the deferred draft with the new document
+        }
         try {
             if (fileService.hasUnsavedChanges()) {
                 store.saveDraft(editorArea.getText(), fileService.getCurrentFilePath());

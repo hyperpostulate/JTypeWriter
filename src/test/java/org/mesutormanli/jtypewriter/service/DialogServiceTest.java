@@ -29,4 +29,13 @@ class DialogServiceTest {
 
         assertEquals(new File("novels/notes.txt"), saved);
     }
+
+    @Test
+    void closingTheRecoveryPromptMeansLaterNeverDiscard() {
+        // -1 = closed without a choice: the draft must survive, so this is not DISCARD
+        assertEquals(RecoveryChoice.LATER, DialogService.choiceFor(-1));
+        assertEquals(RecoveryChoice.RESTORE, DialogService.choiceFor(0));
+        assertEquals(RecoveryChoice.DISCARD, DialogService.choiceFor(1));
+        assertEquals(RecoveryChoice.LATER, DialogService.choiceFor(2));
+    }
 }

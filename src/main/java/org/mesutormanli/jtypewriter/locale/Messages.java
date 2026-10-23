@@ -321,6 +321,10 @@ public class Messages {
         return bundle.getString("recoveryNo");
     }
 
+    public String recoveryLater() {
+        return bundle.getString("recoveryLater");
+    }
+
     public String encodingTitle() {
         return bundle.getString("encodingTitle");
     }

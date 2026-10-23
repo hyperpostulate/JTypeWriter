@@ -189,8 +189,12 @@ public class DialogService {
         return EncodingChoice.CANCEL;
     }
 
-    /** @return {@code true} when the user wants the autosaved draft restored */
-    public boolean showRecoveryDialog(Stage stage, Instant savedAt) {
+    /**
+     * Asks what to do with a surviving draft. Buttons are restore, discard and
+     * later; closing the prompt (window X, Escape) is treated as "later", never
+     * as "discard", so a stray click cannot delete the only copy of the text.
+     */
+    public RecoveryChoice showRecoveryDialog(Stage stage, Instant savedAt) {
         var alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle(messages.recoveryTitle());
         alert.setHeaderText(messages.recoveryHeader());
@@ -199,10 +203,24 @@ public class DialogService {
 
         var restoreButton = new ButtonType(messages.recoveryYes());
         var discardButton = new ButtonType(messages.recoveryNo());
-        alert.getButtonTypes().setAll(restoreButton, discardButton);
+        var laterButton = new ButtonType(messages.recoveryLater());
+        alert.getButtonTypes().setAll(restoreButton, discardButton, laterButton);
 
         var result = alert.showAndWait();
-        return result.isPresent() && result.get() == restoreButton;
+        int selected = result.map(alert.getButtonTypes()::indexOf).orElse(-1);
+        return choiceFor(selected);
+    }
+
+    /**
+     * Pure answer mapping for {@link #showRecoveryDialog}: {@code -1} means the
+     * prompt was closed without a choice and must keep the draft.
+     */
+    static RecoveryChoice choiceFor(int selectedIndex) {
+        return switch (selectedIndex) {
+            case 0 -> RecoveryChoice.RESTORE;
+            case 1 -> RecoveryChoice.DISCARD;
+            default -> RecoveryChoice.LATER;
+        };
     }
 
     public void showError(String header, String content) {
