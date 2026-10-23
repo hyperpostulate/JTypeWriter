@@ -1,30 +1,69 @@
 package org.mesutormanli.jtypewriter.service;
 
+import org.mesutormanli.jtypewriter.AppLogging;
 import org.mesutormanli.jtypewriter.AtomicFiles;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Crash-recovery draft storage. A draft is a pair of files in a fixed
- * directory: {@code draft.txt} (the unsaved text, UTF-8) and
- * {@code draft.properties} (metadata: original file and save time). Both are
- * written through {@link org.mesutormanli.jtypewriter.AtomicFiles}, so a crash
- * or power cut can never leave a half-written draft that hides the previous
- * one. Free of UI types so it can be unit tested headlessly.
+ * Crash-recovery draft storage. Every {@code RecoveryStore} instance owns one
+ * draft slot: a single UTF-8 file named {@code draft-<UUID>.jtw} inside the
+ * store's directory. The UUID is generated in the constructor, so two running
+ * application instances never overwrite each other's draft (RW-04).
+ *
+ * <p>The file holds both the metadata and the document text, which makes the
+ * pair a single atomic unit: a crash can no longer leave a timestamp without
+ * its text or text without its timestamp (RW-03). The layout is:</p>
+ *
+ * <pre>
+ * JTypeWriter-Draft/2
+ * saved.at=&lt;Instant.toString()&gt;
+ * original.path.b64=&lt;Base64 of the absolute path, or empty&gt;
+ *
+ * &lt;document text, verbatim&gt;
+ * </pre>
+ *
+ * <p>The header is separated from the text by exactly one blank line. The
+ * original path is Base64-encoded so separators, newlines, NUL characters,
+ * non-ASCII names and paths written on another platform cannot corrupt the
+ * header. The text bytes after the separator are stored untouched. Everything
+ * is written through {@link AtomicFiles#writeMoving}, so a crash or power cut
+ * cannot leave a truncated draft behind.</p>
+ *
+ * <p>Loading never discards recoverable text (RW-02). A file without the magic
+ * line, without the separator, or with an unparsable timestamp or path
+ * degrades gracefully: the text is still offered, the broken metadata is
+ * replaced by the file's last-modified time or by {@code null}, and a warning
+ * is logged. Invalid UTF-8 is read with replacement characters instead of
+ * being dropped. A single unreadable candidate never hides the others; the
+ * newest surviving draft wins.</p>
+ *
+ * <p>Adoption: the store has one slot, so when the newest draft belongs to
+ * another session's file, loading copies it into this session's file and
+ * deletes the old one. Later {@link #clear()} calls and snapshots then target
+ * this session's file only, without any change in {@code AutoSaveService}.</p>
  *
  * <p>Lifecycle: the draft is refreshed periodically while a document is dirty,
  * cleared on every successful save and on clean exit. If the application dies
- * in between, the draft survives and is offered for recovery on next startup.</p>
+ * in between, the draft survives and is offered for recovery on next startup.
+ * Free of UI types so it can be unit tested headlessly.</p>
  */
 public class RecoveryStore {
 
@@ -32,85 +71,260 @@ public class RecoveryStore {
     public record Draft(String content, Path originalFile, Instant savedAt) {
     }
 
-    private static final String DRAFT_FILE = "draft.txt";
-    private static final String META_FILE = "draft.properties";
+    private static final Logger LOG = AppLogging.logger(RecoveryStore.class);
+
+    private static final String MAGIC = "JTypeWriter-Draft/2";
+    private static final byte[] MAGIC_BYTES = MAGIC.getBytes(StandardCharsets.UTF_8);
+    private static final String FILE_PREFIX = "draft-";
+    private static final String FILE_SUFFIX = ".jtw";
     private static final String KEY_SAVED_AT = "saved.at";
-    private static final String KEY_ORIGINAL_PATH = "original.path";
+    private static final String KEY_ORIGINAL_PATH = "original.path.b64";
 
     private final Path dir;
+    private final Path ownFile;
 
     public RecoveryStore(Path dir) {
         this.dir = dir;
+        this.ownFile = dir.resolve(FILE_PREFIX + UUID.randomUUID() + FILE_SUFFIX);
     }
 
-    /** Stores (or refreshes) the single draft slot. */
+    /** Stores (or refreshes) this session's single draft slot. */
     public synchronized void saveDraft(String content, Path originalFile) throws IOException {
         Files.createDirectories(dir);
-        AtomicFiles.writeMoving(dir.resolve(DRAFT_FILE), content.getBytes(StandardCharsets.UTF_8));
-
-        var meta = new Properties();
-        meta.setProperty(KEY_SAVED_AT, Instant.now().toString());
-        if (originalFile != null) {
-            meta.setProperty(KEY_ORIGINAL_PATH, originalFile.toAbsolutePath().toString());
-        }
-        var buffer = new ByteArrayOutputStream();
-        meta.store(buffer, "JTypeWriter recovery draft");
-        AtomicFiles.writeMoving(dir.resolve(META_FILE), buffer.toByteArray());
+        var draft = new Draft(content, originalFile == null ? null : originalFile.toAbsolutePath(), Instant.now());
+        AtomicFiles.writeMoving(ownFile, serialize(draft));
     }
 
-    /** @return the surviving draft, if any */
+    /**
+     * @return the newest surviving draft, if any. When it comes from another
+     *         session's file, it is adopted into this session's slot first, so
+     *         later {@link #clear()} calls only affect this session.
+     */
     public synchronized Optional<Draft> loadDraft() {
-        var draftFile = dir.resolve(DRAFT_FILE);
-        if (!Files.isRegularFile(draftFile)) {
+        if (!Files.isDirectory(dir)) {
+            LOG.log(Level.FINE, "recovery directory does not exist: " + dir);
             return Optional.empty();
         }
-        try {
-            var content = Files.readString(draftFile, StandardCharsets.UTF_8);
-            Path original = null;
-            var savedAt = Files.getLastModifiedTime(draftFile).toInstant();
-            var metaFile = dir.resolve(META_FILE);
-            if (Files.isRegularFile(metaFile)) {
-                var meta = new Properties();
-                try (InputStream in = Files.newInputStream(metaFile)) {
-                    meta.load(in);
-                }
-                var path = meta.getProperty(KEY_ORIGINAL_PATH);
-                if (path != null && !path.isBlank()) {
-                    original = parsePath(path);
-                }
-                var stamp = meta.getProperty(KEY_SAVED_AT);
-                if (stamp != null && !stamp.isBlank()) {
-                    savedAt = Instant.parse(stamp);
-                }
-            }
-            return Optional.of(new Draft(content, original, savedAt));
-        } catch (IOException | DateTimeParseException | IllegalArgumentException e) {
-            // a malformed draft (bad timestamp, bad unicode escape in the
-            // metadata) is dropped instead of breaking application startup
+
+        var candidates = new ArrayList<Candidate>();
+        try (var entries = Files.list(dir)) {
+            entries.filter(Files::isRegularFile)
+                    .filter(RecoveryStore::isDraftFile)
+                    .forEach(file -> {
+                        var candidate = parse(file);
+                        if (candidate != null) {
+                            candidates.add(candidate);
+                        }
+                    });
+        } catch (IOException e) {
+            LOG.log(Level.FINE, "cannot list recovery drafts in " + dir, e);
             return Optional.empty();
+        }
+
+        var winner = newest(candidates);
+        if (winner == null) {
+            return Optional.empty();
+        }
+        adoptIfForeign(winner);
+        return Optional.of(winner.draft());
+    }
+
+    /** Drops this session's draft (successful save or clean exit). */
+    public synchronized void clear() {
+        try {
+            Files.deleteIfExists(ownFile);
+        } catch (IOException e) {
+            // a leftover draft is retried on the next autosave; never fatal
+            LOG.log(Level.FINE, "could not delete recovery draft " + ownFile, e);
         }
     }
 
     /**
-     * A metadata path is optional information: when the file system rejects it
-     * (corrupt draft, a path written on another platform) the draft itself is
-     * still offered - only the link to its original file is lost.
+     * Moves a draft that belongs to another session into this session's slot.
+     * The store has a single slot and adoption keeps later cleanup scoped to
+     * this instance. A failed copy is logged and the foreign file is left in
+     * place: the parsed text is returned either way.
      */
-    private static Path parsePath(String value) {
+    private void adoptIfForeign(Candidate winner) {
+        if (winner.file().equals(ownFile)) {
+            return;
+        }
         try {
-            return Path.of(value);
-        } catch (InvalidPathException e) {
+            AtomicFiles.writeMoving(ownFile, serialize(winner.draft()));
+            Files.deleteIfExists(winner.file());
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "could not adopt recovery draft " + winner.file(), e);
+        }
+    }
+
+    private static boolean isDraftFile(Path file) {
+        var name = file.getFileName().toString();
+        return name.startsWith(FILE_PREFIX) && name.endsWith(FILE_SUFFIX);
+    }
+
+    /** A parsed candidate; {@code draft.savedAt()} and {@code modified} drive ordering. */
+    private record Candidate(Draft draft, Path file, Instant modified) {
+    }
+
+    private static Candidate newest(List<Candidate> candidates) {
+        Candidate best = null;
+        for (var candidate : candidates) {
+            if (best == null || isNewer(candidate, best)) {
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    private static boolean isNewer(Candidate candidate, Candidate current) {
+        var bySavedAt = candidate.draft().savedAt().compareTo(current.draft().savedAt());
+        if (bySavedAt != 0) {
+            return bySavedAt > 0;
+        }
+        var byModified = candidate.modified().compareTo(current.modified());
+        if (byModified != 0) {
+            return byModified > 0;
+        }
+        return candidate.file().getFileName().toString()
+                .compareTo(current.file().getFileName().toString()) > 0;
+    }
+
+    /**
+     * Parses one draft file in isolation. A broken header never hides the text:
+     * metadata falls back to the file's last-modified time or {@code null}.
+     *
+     * @return the parsed candidate, or {@code null} when the file cannot be read
+     */
+    private Candidate parse(Path file) {
+        byte[] bytes;
+        try {
+            bytes = Files.readAllBytes(file);
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "skipping unreadable recovery draft " + file, e);
+            return null;
+        }
+        var modified = lastModified(file);
+
+        if (!startsWithMagic(bytes)) {
+            LOG.log(Level.WARNING, "recovery draft without a valid header, treating it as text: " + file);
+            return new Candidate(new Draft(decode(bytes), null, modified), file, modified);
+        }
+
+        var headerStart = MAGIC_BYTES.length;
+        if (bytes.length <= headerStart || bytes[headerStart] != '\n') {
+            LOG.log(Level.WARNING, "recovery draft header is not terminated, treating it as text: " + file);
+            return new Candidate(new Draft(decode(bytes), null, modified), file, modified);
+        }
+        var separator = indexOfBlankLine(bytes, headerStart);
+        if (separator < 0) {
+            LOG.log(Level.WARNING, "recovery draft has no header separator, treating it as text: " + file);
+            return new Candidate(new Draft(decode(bytes), null, modified), file, modified);
+        }
+
+        var headerBytes = Arrays.copyOfRange(bytes, headerStart + 1, separator);
+        var contentBytes = Arrays.copyOfRange(bytes, separator + 2, bytes.length);
+        var savedAt = modified;
+        Path original = null;
+        for (var line : new String(headerBytes, StandardCharsets.UTF_8).split("\n", -1)) {
+            var trimmed = line.endsWith("\r") ? line.substring(0, line.length() - 1) : line;
+            var equals = trimmed.indexOf('=');
+            if (equals < 0) {
+                continue;
+            }
+            var key = trimmed.substring(0, equals);
+            var value = trimmed.substring(equals + 1);
+            if (KEY_SAVED_AT.equals(key)) {
+                savedAt = parseSavedAt(file, value, modified);
+            } else if (KEY_ORIGINAL_PATH.equals(key)) {
+                original = parseOriginalPath(file, value);
+            }
+        }
+        return new Candidate(new Draft(decode(contentBytes), original, savedAt), file, modified);
+    }
+
+    private static Instant parseSavedAt(Path file, String value, Instant fallback) {
+        if (value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Instant.parse(value);
+        } catch (DateTimeParseException e) {
+            LOG.log(Level.WARNING, "malformed saved.at in recovery draft, using its mtime: " + file, e);
+            return fallback;
+        }
+    }
+
+    /**
+     * The original path is optional information. A blank value means "not
+     * associated with a file"; otherwise it is Base64-decoded, because the raw
+     * path may contain separators, newlines or NUL characters. An unusable
+     * value only loses the link to the file, never the draft text.
+     */
+    private static Path parseOriginalPath(Path file, String value) {
+        if (value.isBlank()) {
+            return null;
+        }
+        try {
+            var decoded = new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
+            return decoded.isBlank() ? null : Path.of(decoded);
+        } catch (IllegalArgumentException e) { // bad Base64, or InvalidPathException
+            LOG.log(Level.WARNING, "unusable original path in recovery draft, dropping it: " + file, e);
             return null;
         }
     }
 
-    /** Drops the draft (successful save or clean exit). */
-    public synchronized void clear() {
-        try {
-            Files.deleteIfExists(dir.resolve(DRAFT_FILE));
-            Files.deleteIfExists(dir.resolve(META_FILE));
-        } catch (IOException ignored) {
-            // a leftover draft is retried on the next autosave; never fatal
+    /** @return the index of the blank-line separator, or {@code -1} when absent */
+    private static int indexOfBlankLine(byte[] bytes, int from) {
+        for (var i = from; i + 1 < bytes.length; i++) {
+            if (bytes[i] == '\n' && bytes[i + 1] == '\n') {
+                return i;
+            }
         }
+        return -1;
+    }
+
+    private static boolean startsWithMagic(byte[] bytes) {
+        return bytes.length >= MAGIC_BYTES.length
+                && Arrays.equals(bytes, 0, MAGIC_BYTES.length, MAGIC_BYTES, 0, MAGIC_BYTES.length);
+    }
+
+    private static Instant lastModified(Path file) {
+        try {
+            return Files.getLastModifiedTime(file).toInstant();
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "cannot read mtime of recovery draft " + file, e);
+            return Instant.EPOCH;
+        }
+    }
+
+    /**
+     * Strict UTF-8 decode with a lossy fallback: a draft with invalid bytes is
+     * still more useful than a deleted one (RW-02).
+     */
+    private static String decode(byte[] bytes) {
+        try {
+            return StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(bytes))
+                    .toString();
+        } catch (CharacterCodingException e) {
+            LOG.log(Level.WARNING, "recovery draft is not valid UTF-8, replacing broken characters", e);
+            return new String(bytes, StandardCharsets.UTF_8);
+        }
+    }
+
+    private static byte[] serialize(Draft draft) {
+        var encodedPath = draft.originalFile() == null
+                ? ""
+                : Base64.getEncoder().encodeToString(
+                        draft.originalFile().toAbsolutePath().toString().getBytes(StandardCharsets.UTF_8));
+        var header = MAGIC + "\n"
+                + KEY_SAVED_AT + "=" + draft.savedAt() + "\n"
+                + KEY_ORIGINAL_PATH + "=" + encodedPath + "\n\n";
+        var out = new ByteArrayOutputStream();
+        out.writeBytes(header.getBytes(StandardCharsets.UTF_8));
+        out.writeBytes(draft.content().getBytes(StandardCharsets.UTF_8));
+        return out.toByteArray();
     }
 }
