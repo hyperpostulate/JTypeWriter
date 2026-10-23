@@ -139,7 +139,8 @@ org.mesutormanli.jtypewriter
 
 | Component | Description |
 |-----------|-------------|
-| `EditorArea` | TextArea subclass that routes every edit through the YOLO policy |
+| `EditorArea` | TextArea subclass that routes every edit through the YOLO policy; loads documents through `setDocument` |
+| `UndoHistoryReset` | Clears the TextArea undo/redo history on every document load (reflective, JavaFX has no API) |
 | `YoloPolicy` | YOLO mode edit policy (blocks deletions, allows insertions) |
 | `EditorKeyHandler` | Handles keystroke sound effects and session stats tracking |
 | `StatsBar` | Renders the clock and live session statistics in the bottom bar |
@@ -150,7 +151,7 @@ org.mesutormanli.jtypewriter
 | `DialogService` | UI dialog management (FileChooser, Alert) |
 | `TextCodec` | Encoding detection (BOM/UTF-8) and lossless round trips |
 | `BackupKeeper` | Rotating `.bak` backups taken before overwrites |
-| `RecoveryStore` | Crash-recovery draft storage under `~/.jtypewriter/recovery/` |
+| `RecoveryStore` | Crash-recovery draft storage: one atomic `draft-<uuid>.jtw` file per session under `~/.jtypewriter/recovery/` |
 | `AutoSaveService` | Periodic draft snapshots and startup recovery offer |
 | `CrashHandler` | Global crash net: logging plus user-facing error dialog |
 | `InstanceLock` | Advisory file lock that rejects a second instance per user |
@@ -207,10 +208,10 @@ on screen.
 ### Data Safety & Crash Recovery
 
 - **Atomic, durable saves with backups:** every save is written to a temp file, fsynced and then renamed into place, so a crash mid-save or a power cut cannot leave a truncated document; when the file system does not support an atomic move, the rename degrades to a plain move with the bytes already on disk. Overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`) and preserve the document's existing file permissions
-- **Document awareness:** the window title shows the open document name and a `*` while there are unsaved changes (alongside the `[YOLO]` badge)
+- **Document awareness:** the window title shows the open document name and a `*` while there are unsaved changes (alongside the `[YOLO]` badge). `Ctrl+N` starts a fresh untitled document (it also works while YOLO mode is on) after the same save/discard/cancel prompt as opening a file; loading or creating a document clears the undo history, so `Ctrl+Z` can never bring back the previous document's text
 - **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`; after a crash the draft is offered for restoration on the next startup. The prompt offers restore, discard and later - closing it never deletes the draft, and a postponed draft is offered again on the next start
 - **Encoding safety:** a BOM-marked file is decoded with the encoding of its BOM; a file without a BOM must be valid UTF-8, otherwise you are asked whether it is Windows-1254 or UTF-8 instead of getting silent corruption. Documents are written back in the same encoding unless you accept the offered switch to UTF-8 when the text no longer fits (e.g. a pasted emoji in a Windows-1254 file) - unmappable characters are never silently replaced with `?`
-- **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently
+- **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently. Thrown exceptions are written with their full stack trace (including the cause chain), and a corrupt settings file is moved aside as `settings.properties.corrupt` instead of being silently overwritten
 
 ### Settings & Session Restore
 
@@ -262,6 +263,7 @@ Shortcuts use `Ctrl` on Windows/Linux and `⌘` (Cmd) on macOS — plain `Ctrl` 
 | `Ctrl+Z` | Undo |
 | `Ctrl+Shift+Z` | Redo |
 | `Ctrl+Y` | Redo |
+| `Ctrl+N` | New document |
 | `Ctrl+O` | Open file |
 | `Ctrl+S` | Save file |
 | `Ctrl+Shift+S` | Save file as |
@@ -316,22 +318,22 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | Test Class | Coverage |
 |------------|----------|
 | `SessionStatsTest` | Word count, char count, line count, keystrokes, reset, WPM from active typing time (idle decay regression) |
-| `FileServiceTest` | Unsaved-change handling on open (cancel/discard/save-first), atomic writes, rotated backups, encoding round trips incl. the UTF-8 upgrade for unrepresentable characters, lifecycle listeners, recovery attachment |
+| `FileServiceTest` | Unsaved-change handling on open and on a new document (cancel/discard/save-first), atomic writes, rotated backups, encoding round trips incl. the UTF-8 upgrade for unrepresentable characters, encoding reset for a new document, lifecycle listeners, recovery attachment |
 | `TextCodecTest` | Encoding detection (BOMs, strict UTF-8), legacy prompts, lossless encoding round trips, strict encode (unrepresentable characters fail instead of turning into `?`) |
 | `BackupKeeperTest` | Pre-overwrite backup rotation and retention |
-| `RecoveryStoreTest` | Crash-recovery draft lifecycle (save/restore/drop), tolerance for corrupt draft metadata |
-| `AutoSaveServiceTest` | Opening a document drops the previous document's stale recovery draft (regression) |
+| `RecoveryStoreTest` | Crash-recovery draft lifecycle (save/restore/drop) in one atomic per-session `.jtw` file, newest-draft adoption, isolation between concurrent sessions, tolerance for corrupt headers, bad timestamps, unusable paths and invalid UTF-8 |
+| `AutoSaveServiceTest` | Opening or creating a document drops the previous document's stale recovery draft; a postponed draft survives a clean exit (regression) |
 | `YoloPolicyTest` | YOLO mode edit policy (deletions blocked, insertions allowed, safe replacement) |
-| `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S) and numpad equivalents |
+| `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S), Ctrl+N for a new document and numpad equivalents |
 | `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge) |
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
-| `AppSettingsTest` | Preference persistence across restarts, defaults, tolerance for unknown/corrupt values and unusable paths |
+| `AppSettingsTest` | Preference persistence across restarts, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it |
 | `FontSizeManagerTest` | Font size clamping to the supported range, persisted reset to the default size |
 | `AtomicFilesTest` | Durable atomic writes: content integrity, no temp leftovers, cleanup after failures |
 | `MessagesTest` | i18n bundle parity across all 6 languages, localised theme/colour names, locale-independent bundle resolution |
 | `DialogServiceTest` | Save-as file naming rules (default extension handling) |
 | `JTypeWriterAppTests` | Main method presence |
-| `AppLoggingTest` | One-line log formatter builds a line from a `LogRecord` without throwing (regression) |
+| `AppLoggingTest` | Log formatter builds its header without throwing (regression) and appends an indented stack trace with the cause chain for thrown exceptions |
 | `InstanceLockTest` | Instance-lock acquisition, rejection of a second acquire in the same JVM, release and idempotent close, fail-open behaviour for an unusable lock file |
 
 ---
@@ -501,7 +503,8 @@ org.mesutormanli.jtypewriter
 
 | Bileşen | Açıklama |
 |---------|----------|
-| `EditorArea` | Her düzenlemeyi YOLO politikasından geçiren TextArea alt sınıfı |
+| `EditorArea` | Her düzenlemeyi YOLO politikasından geçiren TextArea alt sınıfı; belgeleri `setDocument` ile yükler |
+| `UndoHistoryReset` | Her belge yüklemesinde TextArea'nın geri al/ileri al geçmişini temizler (yansıma ile; JavaFX'te API yok) |
 | `YoloPolicy` | YOLO modu düzenleme politikası (silmeyi engeller, eklemeye izin verir) |
 | `EditorKeyHandler` | Tuş vuruşu ses efektleri ve oturum istatistiklerini yönetir |
 | `StatsBar` | Saati ve canlı oturum istatistiklerini alt çubukta gösterir |
@@ -512,7 +515,7 @@ org.mesutormanli.jtypewriter
 | `DialogService` | UI dialog yönetimi (FileChooser, Alert) |
 | `TextCodec` | Kodlama tespiti (BOM/UTF-8) ve kayıpsız gidiş-dönüşler |
 | `BackupKeeper` | Yazımdan önce alınan dönen `.bak` yedekleri |
-| `RecoveryStore` | `~/.jtypewriter/recovery/` altında çökme kurtarma taslakları |
+| `RecoveryStore` | Çökme kurtarma taslakları: `~/.jtypewriter/recovery/` altında oturum başına tek atomik `draft-<uuid>.jtw` dosyası |
 | `AutoSaveService` | Dönemsel taslak anlık görüntüleri ve açılışta kurtarma teklifi |
 | `CrashHandler` | Global çökme ağı: log + kullanıcıya hata diyaloğu |
 | `InstanceLock` | İkinci örneği kullanıcı başına reddeden danışma amaçlı dosya kilidi |
@@ -569,10 +572,10 @@ gizleyebilirsiniz.
 ### Veri Güvenliği ve Kurtarma
 
 - **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya yazılır, fsync edilir ve yeniden adlandırılarak yerine konur; kayıt ortasında çökme ya da elektrik kesintisi belgeyi yarım bırakamaz. Dosya sistemi atomik taşımayı desteklemiyorsa yeniden adlandırma düz taşımaya düşer; baytlar o anda zaten diskte olur. Üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`) ve belgenin mevcut dosya izinleri korunur
-- **Belge farkındalığı:** pencere başlığı açık belgenin adını ve kaydedilmemiş değişiklik varken bir `*` işaretini gösterir (`[YOLO]` rozetinin yanında)
+- **Belge farkındalığı:** pencere başlığı açık belgenin adını ve kaydedilmemiş değişiklik varken bir `*` işaretini gösterir (`[YOLO]` rozetinin yanında). `Ctrl+N` boş, adlandırılmamış bir belge açar (YOLO modu açıkken de çalışır); dosya açarken sorulan kaydet / kaydetme / iptal sorusu burada da sorulur. Belge açmak veya yeni belge oluşturmak geri alma geçmişini sıfırlar, böylece `Ctrl+Z` önceki belgenin metnini asla geri getiremez
 - **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökme sonrası taslak bir sonraki açılışta geri yükleme için teklif edilir. İstem geri yükle / sil / sonra sor seçeneklerini sunar — kapatmak taslağı asla silmez ve ertelenen taslak sonraki açılışta yeniden sorulur
 - **Kodlama güvenliği:** BOM'lu bir dosya, BOM'unun belirttiği kodlamayla çözülür; BOM'suz bir dosya geçerli UTF-8 olmalıdır, aksi halde sessiz bozulma yerine Windows-1254 mü UTF-8 mi olduğu sorulur. Belgeler aynı kodlamayla geri yazılır; yalnızca metin o kodlamaya sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) sunulan UTF-8'e geçişi kabul ederseniz kodlama değişir — temsil edilemeyen karakterler asla sessizce `?` yapılmaz
-- **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir
+- **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir. Fırlatılan istisnalar tam yığın iziyle (neden zinciri dahil) yazılır. Bozuk ayar dosyası sessizce üzerine yazılmaz: `settings.properties.corrupt` olarak kenara alınır ve içeriği tanılama için korunur
 
 ### Ayarlar ve Oturum Geri Yükleme
 
@@ -625,6 +628,7 @@ Kısayollar Windows/Linux'ta `Ctrl`, macOS'ta `⌘` (Cmd) ile çalışır — ma
 | `Ctrl+Z` | Geri al |
 | `Ctrl+Shift+Z` | İleri al |
 | `Ctrl+Y` | İleri al |
+| `Ctrl+N` | Yeni belge |
 | `Ctrl+O` | Dosya aç |
 | `Ctrl+S` | Dosyayı kaydet |
 | `Ctrl+Shift+S` | Farklı kaydet |
@@ -679,22 +683,22 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | Test Sınıfı | Kapsam |
 |-------------|--------|
 | `SessionStatsTest` | Kelime/karakter/satır sayısı, tuş vuruşları, sıfırlama, aktif yazım süreli WPM (durağanlık bozulması regresyonu) |
-| `FileServiceTest` | Açık sırasında kaydedilmemiş değişiklik akışı (iptal/atla/önce kaydet), atomik yazım, dönen yedekler, kodlama gidiş-dönüşü (temsil edilemeyen karakterler için UTF-8'e geçiş), yaşam döngüsü dinleyicileri, kurtarma bağlama |
+| `FileServiceTest` | Açık sırasında ve yeni belgede kaydedilmemiş değişiklik akışı (iptal/atla/önce kaydet), atomik yazım, dönen yedekler, kodlama gidiş-dönüşü (temsil edilemeyen karakterler için UTF-8'e geçiş), yeni belgede kodlama sıfırlama, yaşam döngüsü dinleyicileri, kurtarma bağlama |
 | `TextCodecTest` | Kodlama tespiti (BOM, sıkı UTF-8), eski kodlama sorusu, kayıpsız kodlama gidiş-dönüşü, sıkı kodlama (temsil edilemeyen karakterler `?` olmak yerine hata verir) |
 | `BackupKeeperTest` | Yazımdan önce yedek rotasyonu ve saklama |
-| `RecoveryStoreTest` | Çökme kurtarma taslağı yaşam döngüsü (kaydet/geri yükle/sil), bozuk taslak meta verisine tolerans |
-| `AutoSaveServiceTest` | Belge açıldığında önceki belgenin bayat kurtarma taslağının silinmesi (regresyon) |
+| `RecoveryStoreTest` | Çökme kurtarma taslağı yaşam döngüsü (kaydet/geri yükle/sil); oturum başına tek atomik `.jtw` dosyası, en yeni taslağın devralınması, eşzamanlı oturumların izolasyonu, bozuk başlık, hatalı zaman damgası, kullanılamayan yol ve geçersiz UTF-8'e tolerans |
+| `AutoSaveServiceTest` | Belge açıldığında veya yeni belge oluşturulduğunda önceki belgenin bayat kurtarma taslağının silinmesi; ertelenen taslağın temiz çıkışta korunması (regresyon) |
 | `YoloPolicyTest` | YOLO modu düzenleme politikası (silme engelli, ekleme serbest, güvenli değiştirme) |
-| `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S) ve numpad eşdeğerleri |
+| `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S), yeni belge için Ctrl+N ve numpad eşdeğerleri |
 | `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti) |
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
-| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, varsayılanlar, bilinmeyen/bozuk değerlere ve kullanılamayan yollara tolerans |
+| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması |
 | `FontSizeManagerTest` | Yazı boyutunun desteklenen aralığa kısıtlanması, varsayılan boyuta kalıcı sıfırlama |
 | `AtomicFilesTest` | Dayanıklı atomik yazım: içerik bütünlüğü, artık temp dosyası yok, hata sonrası temizlik |
 | `MessagesTest` | 6 dilin tamamında i18n anahtar eşitliği, yerelleştirilmiş tema/renk adları, sistem dilinden bağımsız bundle çözümlemesi |
 | `DialogServiceTest` | "Farklı Kaydet" dosya adlandırma kuralları (uzantı işleme) |
 | `JTypeWriterAppTests` | Ana metod varlığı |
-| `AppLoggingTest` | Tek satırlık log biçimlendiricisinin bir `LogRecord`'dan satırı hata vermeden üretmesi (regresyon) |
+| `AppLoggingTest` | Log biçimlendiricisinin başlık satırını hata vermeden üretmesi (regresyon) ve fırlatılan istisnalar için neden zinciriyle birlikte girintili yığın izi eklemesi |
 | `InstanceLockTest` | Örnek kilidinin alınması, aynı JVM'de ikinci alımın reddedilmesi, bırakma ve yinelenebilir kapatma, kullanılamayan kilit dosyasında fail-open davranışı |
 
 ---
