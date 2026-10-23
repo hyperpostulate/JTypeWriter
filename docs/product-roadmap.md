@@ -48,10 +48,10 @@ Tek tek ele alındığında 1-2 saatlik, toplamda ürün algısını değiştire
 | RW-10 | DE `toolbarRedo` → **Wiederholen**; TR hoş geldin metnini tamamla; `recoveryNo` → **Vazgeç** (TR/FR/IT) | S | Yanlış çeviri veri kaybı riskini artırıyor | `messages_de.properties:56`, `messages_tr.properties:28,66` |
 | RW-11 | Dil değişiminde **pencere başlığını** yenile | S | Başlık eski dilde kalıyor | `MainController.java:35-67` |
 | RW-12 | `Ctrl+Shift+T` sonrası **tema etiketini** güncelle | S | Etiket ile gerçek tema ayrışıyor | `MainController.java:123-128` vs `ToolbarView.java:189-196` |
-| RW-13 | README dürüstlüğü: fat JAR platforma özgü; WAV kaynağı; macOS `⌘` | S | Yanlış vaat güven kaybı | `README.md:60-67,227` |
+| RW-13 | README dürüstlüğü: fat JAR platforma özgü; WAV kaynağı; macOS `⌘` | S | Yanlış vaat güven kaybı | `README.md` — **tamamlandı (17b72cf):** EN + TR eşlendi; ince/fat JAR ayrımı, fat JAR'ın platforma özgülüğü, atomik move fallback'i, BOM tabanlı kodlama tespiti, tema döngüsü, çoklu dil kapsamı, tek örnek kilidi, tam ekran/araç çubuğu, durum çubuğu boyut döngüsü, mimari ve test tabloları gerçek davranışa göre düzeltildi |
 | RW-14 | `--license-file` ile kuruluma **lisans dosyası** ekle | S | GPLv3 dağıtım uyumu | `package.sh` |
 
-**P0 ilk gün sırası:** RW-01 → RW-02 → RW-03 → RW-04 (tek oturum, kurtarma alt sistemi) → RW-05 → RW-06/07 (bağımsız, paralel) → RW-10/11/12 (i18n/UI tek oturum) → RW-08/09/14 → RW-13 (en son, çünkü diğer kararlar README'yi etkiler).
+**P0 ilk gün sırası:** RW-01 → RW-02 → RW-03 → RW-04 (tek oturum, kurtarma alt sistemi) → RW-05 → RW-06/07 (bağımsız, paralel) → RW-10/11/12 (i18n/UI tek oturum) → RW-08/09/14. RW-13 (README hizalaması) ayrıca **tamamlandı**; kalan P0 kararları (RW-01..05, RW-08/09) uygulandıkça EN + TR README'ye işlenir.
 
 ### P0 kalan işler (gün 2-5) — "profesyonel görünüm"
 
@@ -71,7 +71,7 @@ Tek tek ele alındığında 1-2 saatlik, toplamda ürün algısını değiştire
 3. Uygulama ikonu, pencere başlıkları, tooltip'ler, odak halkaları mevcut; toolbar DE/FR'de taşmıyor.
 4. 6 bundle'da çeviri hatası yok; dil değişimi tüm görünür metni yeniliyor.
 5. `mvn clean test` yeşil; TR/DE locale koşuları yeşil; `package.sh --installer` çalışıyor.
-6. README, ürünün gerçekten yaptığını anlatıyor.
+6. README (EN + TR) ürünün gerçekten yaptığını anlatıyor — temel hizalama **tamamlandı**; kalan P0 işleri (RW-01..05, RW-08/09) uygulandıkça iki dilde güncellenir.
 
 ---
 
@@ -228,7 +228,7 @@ Bilinçli olarak **yapılmayacak** işler — kapsam kaymasını önlemek için 
 |---|---|---|
 | **A — Güven** | RW-01..04, RW-20, RW-24, RW-44 | Veri yolu; en yüksek risk, en sıkı test |
 | **B — Arayüz** | RW-08, RW-09, RW-15..19, RW-28, RW-33 | Görsel/erişilebilirlik; ancak A ile çakışmaz |
-| **C — i18n** | RW-10..13, RW-29, yeni anahtarlar | 6 bundle kuralı; B ile koordineli |
+| **C — i18n** | RW-10..12, RW-29, yeni anahtarlar, README bakımı (RW-13 tamamlandı) | 6 bundle kuralı; B ile koordineli |
 | **D — Dağıtım** | RW-14, RW-26, RW-27, RW-38..43, RW-51 | Paketleme/CI; A ve B'den bağımsız ilerleyebilir |
 | **E — Yetenek** | RW-21..23, RW-31..37 | Editör özellikleri; A tamamlanmadan başlamaz |
 
