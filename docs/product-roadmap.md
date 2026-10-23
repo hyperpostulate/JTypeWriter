@@ -36,7 +36,7 @@ Tek tek ele alındığında 1-2 saatlik, toplamda ürün algısını değiştire
 
 | ID | İş | Efor | Neden şimdi | Kanıt / dosya |
 |---|---|---|---|---|
-| RW-01 | Kurtarma diyaloğuna **"İptal / Sonra sor"** ekle; pencere kapatma taslağı silmesin | S | Ürünün tek vaadini çürüten en kısa yol | `DialogService.java:185-200`, `AutoSaveService.java:86-92` |
+| RW-01 | Kurtarma diyaloğuna **"İptal / Sonra sor"** ekle; pencere kapatma taslağı silmesin | S | Ürünün tek vaadini çürüten en kısa yol | `DialogService.java`, `AutoSaveService.java` — **tamamlandı (ab6f92f):** üç seçenek (geri yükle / sil / sonra sor); kapatma = sonra sor; ertelenen taslak temiz çıkışta, yeni snapshot'larda ve belge açılışlarında korunur; `DialogServiceTest` + `AutoSaveServiceTest` regresyon testleri |
 | RW-02 | Bozuk zaman damgası/metadata **taslağı düşürmesin**; `draft.txt` sağlamsa teklif edilsin | S | Kurtarılabilir metni çöpe atan hata | `RecoveryStore.java:81-90` |
 | RW-03 | Draft + metadata'yı **tek atomik dosyaya** indir (veya yazma sırasını ters çevir) | S | İki yazma arası çökme yarım durum bırakıyor | `RecoveryStore.java:49-58` |
 | RW-04 | Kurtarma dosyasını **örnek/oturum başına** ayır (`draft-<pid>.txt` veya kilit) | S-M | İki pencere birbirinin taslağını eziyor | `RecoveryStore.java:35`, `AppDirs.java:20-23` |
@@ -51,7 +51,7 @@ Tek tek ele alındığında 1-2 saatlik, toplamda ürün algısını değiştire
 | RW-13 | README dürüstlüğü: fat JAR platforma özgü; WAV kaynağı; macOS `⌘` | S | Yanlış vaat güven kaybı | `README.md` — **tamamlandı (17b72cf):** EN + TR eşlendi; ince/fat JAR ayrımı, fat JAR'ın platforma özgülüğü, atomik move fallback'i, BOM tabanlı kodlama tespiti, tema döngüsü, çoklu dil kapsamı, tek örnek kilidi, tam ekran/araç çubuğu, durum çubuğu boyut döngüsü, mimari ve test tabloları gerçek davranışa göre düzeltildi |
 | RW-14 | `--license-file` ile kuruluma **lisans dosyası** ekle | S | GPLv3 dağıtım uyumu | `package.sh` |
 
-**P0 ilk gün sırası:** RW-01 → RW-02 → RW-03 → RW-04 (tek oturum, kurtarma alt sistemi) → RW-05 → RW-06/07 (bağımsız, paralel) → RW-10/11/12 (i18n/UI tek oturum) → RW-08/09/14. RW-13 (README hizalaması) ayrıca **tamamlandı**; kalan P0 kararları (RW-01..05, RW-08/09) uygulandıkça EN + TR README'ye işlenir.
+**P0 ilk gün sırası:** RW-01 → RW-02 → RW-03 → RW-04 (tek oturum, kurtarma alt sistemi) → RW-05 → RW-06/07 (bağımsız, paralel) → RW-10/11/12 (i18n/UI tek oturum) → RW-08/09/14. RW-01 (kurtarma iptali) ve RW-13 (README hizalaması) **tamamlandı**; kalan P0 kararları (RW-02..05, RW-08/09) uygulandıkça EN + TR README'ye işlenir.
 
 ### P0 kalan işler (gün 2-5) — "profesyonel görünüm"
 
