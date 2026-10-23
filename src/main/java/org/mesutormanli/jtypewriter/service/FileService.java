@@ -41,6 +41,15 @@ public class FileService {
 
         default void onSaved(Path file) {
         }
+
+        /**
+         * Called after a brand-new, untitled document replaced the previous one.
+         * Unlike {@link #onLoaded(Path)} there is no file to report: the new
+         * document has no path yet (it is only assigned on the first save), so
+         * listeners must not try to remember or re-read a file here.
+         */
+        default void onNewDocument() {
+        }
     }
 
     private static final Logger LOG = AppLogging.logger(FileService.class);
@@ -85,26 +94,64 @@ public class FileService {
      * Cancel - or abandoning the save - aborts the open so no text is ever lost.
      */
     public Optional<Path> openFile(javafx.stage.Stage stage) {
-        if (hasUnsavedChanges()) {
-            switch (dialogService.showUnsavedChangesDialog(stage)) {
-                case SAVE -> {
-                    if (saveFile(stage, currentContent).isEmpty()) {
-                        return Optional.empty(); // save cancelled or failed: keep the draft
-                    }
-                }
-                case DISCARD -> {
-                    // the user explicitly accepted losing the draft
-                }
-                case CANCEL -> {
-                    return Optional.empty();
-                }
-            }
+        if (!confirmDiscardOrSave(stage)) {
+            return Optional.empty();
         }
 
         var file = dialogService.showOpenDialog(stage);
         if (file.isEmpty()) return Optional.empty();
 
         return loadFile(stage, file.get().toPath());
+    }
+
+    /**
+     * Starts a new, empty document. The unsaved-changes prompt is exactly the
+     * one used by {@link #openFile(javafx.stage.Stage)}: choosing Cancel - or
+     * abandoning the save - aborts the switch so no text is ever lost.
+     *
+     * <p>The resulting document is clean (no dirty marker) and does not inherit
+     * anything from the previous file: it has no path and uses plain UTF-8
+     * without a BOM, exactly as if the application had just started.</p>
+     *
+     * @return {@code true} when the new document was created, {@code false}
+     *         when the user cancelled or the save of the old draft failed
+     */
+    public boolean newDocument(javafx.stage.Stage stage) {
+        if (!confirmDiscardOrSave(stage)) {
+            return false;
+        }
+        currentFilePath = null;
+        currentCharset = StandardCharsets.UTF_8;
+        currentBom = false;
+        savedContent = "";
+        currentContent = "";
+        listeners.forEach(Listener::onNewDocument);
+        return true;
+    }
+
+    /**
+     * Shared guard for every document switch: returns {@code true} when it is
+     * safe to leave the current document, {@code false} when the user
+     * cancelled or the draft could not be saved.
+     */
+    private boolean confirmDiscardOrSave(javafx.stage.Stage stage) {
+        if (!hasUnsavedChanges()) {
+            return true;
+        }
+        switch (dialogService.showUnsavedChangesDialog(stage)) {
+            case SAVE -> {
+                if (saveFile(stage, currentContent).isEmpty()) {
+                    return false; // save cancelled or failed: keep the draft
+                }
+            }
+            case DISCARD -> {
+                // the user explicitly accepted losing the draft
+            }
+            case CANCEL -> {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

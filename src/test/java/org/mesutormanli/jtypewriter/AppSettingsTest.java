@@ -1,5 +1,6 @@
 package org.mesutormanli.jtypewriter;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mesutormanli.jtypewriter.locale.Language;
@@ -10,8 +11,14 @@ import org.mesutormanli.jtypewriter.ui.theme.Theme;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -103,6 +110,121 @@ class AppSettingsTest {
         var settings = new AppSettings(file);
 
         assertEquals(Theme.DARK, settings.getTheme());
+    }
+
+    @Test
+    void aCorruptFileIsQuarantinedInsteadOfOverwritten(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        var corrupt = "bad=\\u00\ntheme=LIGHT\n";
+        Files.writeString(file, corrupt);
+
+        var settings = new AppSettings(file);
+
+        assertEquals(Theme.DARK, settings.getTheme());
+        assertFalse(Files.exists(file), "the corrupt file must be moved aside");
+        var copies = quarantined(dir);
+        assertEquals(1, copies.size());
+        assertTrue(Files.readString(copies.get(0)).contains("bad=\\u00"),
+                "the quarantined copy must still contain the original corrupt bytes");
+    }
+
+    @Test
+    void savingAfterQuarantineCreatesAFreshValidFile(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "bad=\\u00\ntheme=LIGHT\n");
+        var settings = new AppSettings(file);
+        var copy = quarantined(dir).get(0);
+        var quarantinedBytes = Files.readAllBytes(copy);
+
+        settings.setTheme(Theme.SEPIA);
+
+        assertTrue(Files.isRegularFile(file));
+        assertEquals(Theme.SEPIA, new AppSettings(file).getTheme());
+        assertArrayEquals(quarantinedBytes, Files.readAllBytes(copy),
+                "the quarantined copy must not be touched by later saves");
+    }
+
+    @Test
+    void aSecondCorruptionDoesNotOverwriteTheFirstCopy(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "bad=\\u00\nmarker=first\n");
+        new AppSettings(file);
+
+        Files.writeString(file, "bad=\\u00\nmarker=second\n");
+        new AppSettings(file);
+
+        var copies = quarantined(dir);
+        assertEquals(2, copies.size());
+        var contents = new ArrayList<String>();
+        for (var copy : copies) {
+            contents.add(Files.readString(copy));
+        }
+        assertTrue(contents.stream().anyMatch(c -> c.contains("marker=first")));
+        assertTrue(contents.stream().anyMatch(c -> c.contains("marker=second")));
+    }
+
+    @Test
+    void anExistingQuarantineCopyIsPreserved(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        var existing = file.resolveSibling("settings.properties.corrupt");
+        Files.writeString(existing, "previous run evidence");
+        Files.writeString(file, "bad=\\u00\n");
+
+        new AppSettings(file);
+
+        assertEquals("previous run evidence", Files.readString(existing));
+        var copies = quarantined(dir);
+        assertEquals(2, copies.size());
+        var moved = new ArrayList<String>();
+        for (var copy : copies) {
+            if (!copy.equals(existing)) {
+                moved.add(Files.readString(copy));
+            }
+        }
+        assertEquals(1, moved.size());
+        assertTrue(moved.get(0).contains("bad=\\u00"));
+    }
+
+    @Test
+    void anUnpreservableCorruptFileStillFallsBackToDefaults(@TempDir Path dir) throws IOException {
+        Assumptions.assumeTrue(dir.getFileSystem().supportedFileAttributeViews().contains("posix"),
+                "requires a POSIX file system");
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "bad=\\u00\ntheme=LIGHT\n");
+        var original = Files.getPosixFilePermissions(dir);
+        try {
+            Files.setPosixFilePermissions(dir, PosixFilePermissions.fromString("r-xr-xr-x"));
+            Assumptions.assumeFalse(Files.isWritable(dir),
+                    "privileges ignore directory permissions, cannot simulate a failed quarantine");
+
+            var settings = assertDoesNotThrow(() -> new AppSettings(file));
+
+            assertEquals(Theme.DARK, settings.getTheme());
+            assertEquals(Optional.empty(), settings.getLanguage());
+            assertTrue(Files.exists(file), "the corrupt file must be left in place when it cannot be moved");
+        } finally {
+            Files.setPosixFilePermissions(dir, original);
+        }
+    }
+
+    @Test
+    void validSettingsAreNeverQuarantined(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "theme=SEPIA\n");
+
+        new AppSettings(file);
+        new AppSettings(file);
+
+        assertTrue(quarantined(dir).isEmpty());
+    }
+
+    private static List<Path> quarantined(Path dir) throws IOException {
+        try (Stream<Path> entries = Files.list(dir)) {
+            return entries
+                    .filter(path -> path.getFileName().toString().startsWith("settings.properties.corrupt"))
+                    .sorted()
+                    .toList();
+        }
     }
 
     @Test

@@ -76,6 +76,6 @@ public class FxApplication extends Application {
         app.settings.getLastFile()
                 .filter(java.nio.file.Files::isRegularFile)
                 .flatMap(path -> app.fileService.loadFile(stage, path))
-                .ifPresent(path -> app.editorArea.setText(app.fileService.getCurrentContent()));
+                .ifPresent(path -> app.editorArea.setDocument(app.fileService.getCurrentContent()));
     }
 }

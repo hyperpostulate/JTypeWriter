@@ -40,7 +40,7 @@ public class KeyboardShortcutHandler {
     /** Decoded meaning of a shortcut key press. */
     enum ShortcutAction {
         NONE, TOGGLE_TOOLBAR, CYCLE_THEME, UNDO, REDO, TOGGLE_YOLO, CYCLE_TEXT_COLOR,
-        OPEN, SAVE, SAVE_AS, FONT_RESET, FONT_UP, FONT_DOWN, TOGGLE_FULLSCREEN
+        OPEN, NEW_DOCUMENT, SAVE, SAVE_AS, FONT_RESET, FONT_UP, FONT_DOWN, TOGGLE_FULLSCREEN
     }
 
     /**
@@ -49,7 +49,7 @@ public class KeyboardShortcutHandler {
      * key filters the Ctrl+Shift+Y combination leaked into the Ctrl+Y branch and
      * ran Redo instead of toggling YOLO mode. Numpad keys are accepted as
      * equivalents of their main-keyboard neighbours (Ctrl+Num0 resets the font
-     * just like Ctrl+0).
+     * just like Ctrl+0). Ctrl+N and Ctrl+Shift+N both start a new document.
      */
     static ShortcutAction resolve(KeyCode code, boolean shift) {
         return switch (code) {
@@ -58,6 +58,7 @@ public class KeyboardShortcutHandler {
             case Z -> shift ? ShortcutAction.REDO : ShortcutAction.UNDO;
             case C -> shift ? ShortcutAction.CYCLE_TEXT_COLOR : ShortcutAction.NONE;
             case O -> ShortcutAction.OPEN;
+            case N -> ShortcutAction.NEW_DOCUMENT;
             case S -> shift ? ShortcutAction.SAVE_AS : ShortcutAction.SAVE;
             case DIGIT0, NUMPAD0 -> ShortcutAction.FONT_RESET;
             case EQUALS, PLUS, ADD -> ShortcutAction.FONT_UP;
@@ -84,7 +85,12 @@ public class KeyboardShortcutHandler {
             case TOGGLE_YOLO -> toolbarView.toggleYolo();
             case CYCLE_TEXT_COLOR -> toolbarView.cycleTextColor();
             case OPEN -> fileService.openFile(stage).ifPresent(path ->
-                    editorArea.setText(fileService.getCurrentContent()));
+                    editorArea.setDocument(fileService.getCurrentContent()));
+            case NEW_DOCUMENT -> {
+                if (fileService.newDocument(stage)) {
+                    editorArea.setDocument("");
+                }
+            }
             case SAVE -> fileService.saveFile(stage, editorArea.getText());
             case SAVE_AS -> fileService.saveFileAs(stage, editorArea.getText());
             case FONT_RESET -> toolbarView.resetFontSize();

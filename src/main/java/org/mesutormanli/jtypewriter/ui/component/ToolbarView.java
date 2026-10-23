@@ -97,7 +97,7 @@ public class ToolbarView extends HBox {
 
         openBtn.setOnAction(e -> {
             fileService.openFile(stage).ifPresent(path ->
-                    editorArea.setText(fileService.getCurrentContent()));
+                    editorArea.setDocument(fileService.getCurrentContent()));
         });
         saveBtn.setOnAction(e -> {
             if (editorArea != null) {

@@ -58,6 +58,20 @@ class KeyboardShortcutHandlerTest {
     }
 
     @Test
+    void ctrlNCreatesANewDocumentWithOrWithoutShift() {
+        assertEquals(ShortcutAction.NEW_DOCUMENT, resolve(KeyCode.N, false));
+        assertEquals(ShortcutAction.NEW_DOCUMENT, resolve(KeyCode.N, true));
+    }
+
+    @Test
+    void newDocumentShortcutDoesNotLeakIntoNeighbouringLetters() {
+        assertEquals(ShortcutAction.OPEN, resolve(KeyCode.O, false));
+        assertEquals(ShortcutAction.OPEN, resolve(KeyCode.O, true));
+        assertEquals(ShortcutAction.NONE, resolve(KeyCode.M, false));
+        assertEquals(ShortcutAction.NONE, resolve(KeyCode.M, true));
+    }
+
+    @Test
     void numpadKeysWorkAsEquivalentsOfTheMainKeyboard() {
         assertEquals(ShortcutAction.FONT_RESET, resolve(KeyCode.NUMPAD0, false));
         assertEquals(ShortcutAction.FONT_UP, resolve(KeyCode.ADD, false));
@@ -73,7 +87,6 @@ class KeyboardShortcutHandlerTest {
     @Test
     void unrelatedKeysAreNotShortcuts() {
         assertEquals(ShortcutAction.NONE, resolve(KeyCode.A, true));
-        assertEquals(ShortcutAction.NONE, resolve(KeyCode.N, false));
         assertEquals(ShortcutAction.NONE, resolve(KeyCode.F1, true));
     }
 }

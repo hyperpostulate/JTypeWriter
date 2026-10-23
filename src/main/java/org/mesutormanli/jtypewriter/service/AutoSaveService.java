@@ -65,6 +65,17 @@ public class AutoSaveService {
                     store.clear(); // content is on disk now, nothing left to recover
                 }
             }
+
+            /**
+             * A new document also resolves the previous one (it was saved or
+             * explicitly discarded), so any draft left from it is stale.
+             */
+            @Override
+            public void onNewDocument() {
+                if (!draftPending) {
+                    store.clear();
+                }
+            }
         });
     }
 
@@ -101,7 +112,7 @@ public class AutoSaveService {
         if (choice == RecoveryChoice.RESTORE) {
             draftPending = false;
             fileService.restoreRecovered(draft.get().originalFile(), draft.get().content());
-            editorArea.setText(fileService.getCurrentContent());
+            editorArea.setDocument(fileService.getCurrentContent());
             return true;
         }
         if (choice == RecoveryChoice.DISCARD) {

@@ -90,6 +90,11 @@ public final class AppGraph {
             public void onSaved(java.nio.file.Path file) {
                 settings.rememberFile(file);
             }
+
+            @Override
+            public void onNewDocument() {
+                sessionStats.reset(); // the stats follow the document, not the window
+            }
         });
     }
 

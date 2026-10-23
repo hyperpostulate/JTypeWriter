@@ -62,6 +62,11 @@ public class MainController implements Initializable {
             public void onSaved(java.nio.file.Path file) {
                 refreshTitle();
             }
+
+            @Override
+            public void onNewDocument() {
+                refreshTitle();
+            }
         });
         refreshTitle();
     }

@@ -91,6 +91,25 @@ public class EditorArea extends TextArea {
     }
 
     /**
+     * Replaces the editor content with a loaded document and resets the
+     * undo/redo history.
+     *
+     * <p>Every document load - opening a file, session restore, a recovered
+     * draft and a new document - must go through this method, so the undo stack
+     * can never cross a document boundary (Ctrl+Z must not restore the previous
+     * document's text). {@code setText} alone leaves JavaFX's history intact
+     * (JDK-8090123); it is still used here because it intentionally bypasses the
+     * YOLO-mode funnel, so loading is never blocked while drafting.</p>
+     */
+    public void setDocument(String text) {
+        setText(text);
+        deselect();
+        positionCaret(0);
+        setScrollTop(0);
+        UndoHistoryReset.reset(this);
+    }
+
+    /**
      * Undo only when YOLO mode permits it. Undoing an insertion removes
      * characters, so it is a deletion and must be blocked while drafting.
      */

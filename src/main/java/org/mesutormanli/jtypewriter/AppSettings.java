@@ -8,9 +8,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -25,7 +28,9 @@ import java.util.logging.Logger;
  *       file immediately (small, atomic - see {@link AtomicFiles});</li>
  *   <li><b>Never fatal:</b> a missing, unreadable or malformed settings file
  *       degrades to the built-in defaults and only logs. Preferences are a
- *       convenience, never a data channel;</li>
+ *       convenience, never a data channel. A malformed file is first moved
+ *       aside (quarantined) so the evidence is not overwritten by the next
+ *       save;</li>
  *   <li><b>Defensive reads:</b> unknown or invalid values (e.g. a renamed enum
  *       constant from an older version) fall back to the default instead of
  *       breaking startup.</li>
@@ -183,7 +188,59 @@ public final class AppSettings {
         try (InputStream in = Files.newInputStream(file)) {
             props.load(in);
         } catch (IOException | IllegalArgumentException e) {
-            LOG.log(Level.WARNING, "cannot read settings from " + file + "; using defaults", e);
+            quarantineCorruptFile(e);
+        }
+    }
+
+    /**
+     * Moves a corrupt settings file aside so the following {@link #save()}
+     * cannot silently destroy it. Never throws: if the file cannot be
+     * preserved the app continues with defaults and says so in the log.
+     */
+    private void quarantineCorruptFile(Exception cause) {
+        var target = quarantineTarget();
+        try {
+            // A move of an existing file, not a write: AtomicFiles creates the
+            // destination from a buffer and is the wrong tool here.
+            move(file, target);
+        } catch (IOException moveFailure) {
+            LOG.log(Level.WARNING, "cannot read settings from " + file + "; using defaults", cause);
+            LOG.log(Level.WARNING,
+                    "cannot preserve corrupt settings " + file
+                            + " (tried to quarantine as " + target + "); the file is left in place",
+                    moveFailure);
+            return;
+        }
+        LOG.log(Level.WARNING,
+                "cannot read settings from " + file + "; quarantined corrupt settings "
+                        + file + " as " + target + "; using defaults",
+                cause);
+    }
+
+    /**
+     * {@code <file>.corrupt}, or {@code <file>.corrupt.<millis>} (incremented
+     * until free) so an earlier quarantined copy is never overwritten.
+     */
+    private Path quarantineTarget() {
+        var name = file.getFileName().toString();
+        var plain = file.resolveSibling(name + ".corrupt");
+        if (!Files.exists(plain, LinkOption.NOFOLLOW_LINKS)) {
+            return plain;
+        }
+        var stamp = System.currentTimeMillis();
+        Path candidate;
+        do {
+            candidate = file.resolveSibling(name + ".corrupt." + stamp);
+            stamp++;
+        } while (Files.exists(candidate, LinkOption.NOFOLLOW_LINKS));
+        return candidate;
+    }
+
+    private static void move(Path source, Path target) throws IOException {
+        try {
+            Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(source, target);
         }
     }
 

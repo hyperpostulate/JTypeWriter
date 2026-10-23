@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class FileServiceTest {
@@ -311,5 +312,97 @@ class FileServiceTest {
 
         assertArrayEquals(ansi, Files.readAllBytes(target)); // nothing written, no '?' anywhere
         assertTrue(fileService.hasUnsavedChanges()); // the draft is still there to be saved
+    }
+
+    // --- new document (Ctrl+N) ----------------------------------------------
+
+    @Test
+    void newDocumentOnACleanDocumentNeedsNoDialogs() {
+        assertTrue(fileService.newDocument(null));
+
+        verifyNoInteractions(dialogService);
+        assertEquals(null, fileService.getCurrentFilePath());
+        assertFalse(fileService.hasUnsavedChanges());
+        assertEquals("", fileService.getCurrentContent());
+    }
+
+    @Test
+    void newDocumentIsAbortedWhenUnsavedChangesAreCancelled() {
+        fileService.setCurrentContent("draft");
+        when(dialogService.showUnsavedChangesDialog(any())).thenReturn(DialogService.SaveChoice.CANCEL);
+
+        assertFalse(fileService.newDocument(null));
+
+        assertEquals("draft", fileService.getCurrentContent());
+        assertEquals(null, fileService.getCurrentFilePath());
+        verify(dialogService, never()).showOpenDialog(any());
+    }
+
+    @Test
+    void newDocumentDiscardsTheDraftOnlyOnExplicitConfirmation() {
+        fileService.setCurrentContent("draft");
+        when(dialogService.showUnsavedChangesDialog(any())).thenReturn(DialogService.SaveChoice.DISCARD);
+
+        assertTrue(fileService.newDocument(null));
+
+        assertEquals("", fileService.getCurrentContent());
+        assertFalse(fileService.hasUnsavedChanges());
+        assertEquals(null, fileService.getCurrentFilePath());
+    }
+
+    @Test
+    void newDocumentSavesTheDraftFirstWhenRequested(@TempDir Path dir) throws IOException {
+        var backup = dir.resolve("backup.txt");
+        fileService.setCurrentContent("draft");
+        when(dialogService.showUnsavedChangesDialog(any())).thenReturn(DialogService.SaveChoice.SAVE);
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(backup.toFile()));
+
+        assertTrue(fileService.newDocument(null));
+
+        assertEquals("draft", Files.readString(backup));
+        assertEquals("", fileService.getCurrentContent());
+        assertEquals(null, fileService.getCurrentFilePath());
+    }
+
+    @Test
+    void newDocumentForgetsTheEncodingOfThePreviousDocument(@TempDir Path dir) throws IOException {
+        var legacy = dir.resolve("ansi.txt");
+        Files.write(legacy, TURKISH.getBytes(TextCodec.WINDOWS_1254));
+        when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(legacy.toFile()));
+        when(dialogService.showEncodingDialog(any(), any()))
+                .thenReturn(DialogService.EncodingChoice.WINDOWS1254);
+        assertTrue(fileService.openFile(null).isPresent());
+
+        assertTrue(fileService.newDocument(null));
+
+        var target = dir.resolve("fresh.txt");
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(target.toFile()));
+        var text = "Yeni \u00e7\u00f6\u011f\u00fc \uD83D\uDE00";
+        assertTrue(fileService.saveFile(null, text).isPresent());
+
+        // The emoji is not representable in windows-1254: had the charset
+        // survived the reset, this would have needed an upgrade prompt.
+        assertArrayEquals(text.getBytes(StandardCharsets.UTF_8), Files.readAllBytes(target));
+        verify(dialogService, never()).showEncodingUpgradeDialog(any(), any());
+    }
+
+    @Test
+    void notifiesListenersAboutNewDocumentsInsteadOfLoads() {
+        var events = new ArrayList<String>();
+        fileService.addListener(new FileService.Listener() {
+            @Override
+            public void onLoaded(Path file) {
+                events.add("loaded");
+            }
+
+            @Override
+            public void onNewDocument() {
+                events.add("new");
+            }
+        });
+
+        assertTrue(fileService.newDocument(null));
+
+        assertEquals(List.of("new"), events);
     }
 }
