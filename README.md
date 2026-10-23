@@ -50,21 +50,25 @@ mvn clean install
 ```bash
 mvn clean javafx:run                 # Build and launch the application
 mvn clean test                       # Run all tests
-mvn clean package                    # Build + tests + thin JAR + runnable fat JAR
+mvn clean package                    # Build + tests + thin JAR + fat JAR
 ./scripts/package.sh                 # Build + wrap into a native app image (releases/<os>/)
-./scripts/package.sh --installer    # Same, plus the platform installer (.deb / .msi / .dmg)
+./scripts/package.sh --skip-build    # Reuse the last build, only re-wrap it
+./scripts/package.sh --installer     # Same, plus the platform installer (.deb / .msi / .dmg)
 mvn test -Dtest=SessionStatsTest     # Run a single test class
 mvn test -Dtest=FileServiceTest      # Run a single test class
 ```
 
-Packaging produces two artifacts: a thin JAR and a runnable `jar-with-dependencies`
-(both carry a `Main-Class` manifest entry). `mvn javafx:run` is the development entry
-point. `scripts/package.sh` wraps the fat JAR into a native application image with a
-bundled runtime via `jpackage`, and `--installer` wraps that image into the platform
-installer (`.deb`, `.msi`, `.dmg`) for Linux, Windows and macOS - the same command the
-CI workflow runs. The application version has a single source of truth: `pom.xml`.
-The script reads it back from the built artifact and validates it against jpackage's
-rules (macOS, for one, rejects `0.x` bundle versions).
+Packaging produces two JARs: a thin one (application classes only) and a
+`jar-with-dependencies` that bundles JavaFX together with its native libraries.
+Because those natives come from the build machine, the fat JAR runs only on the
+platform it was built on - it is a convenience artifact, not a cross-platform
+distribution; use `scripts/package.sh` for that. `mvn javafx:run` is the development
+entry point. `scripts/package.sh` wraps the fat JAR into a native application image
+with a bundled runtime via `jpackage`, and `--installer` wraps that image into the
+platform installer (`.deb`, `.msi`, `.dmg`) for Linux, Windows and macOS - the same
+command the CI workflow runs. The application version has a single source of truth:
+`pom.xml`. The script reads it back from the built artifact and validates it against
+jpackage's rules (macOS, for one, rejects `0.x` bundle versions).
 
 ---
 
@@ -107,13 +111,14 @@ org.mesutormanli.jtypewriter
 │   ├── AboutDialog.java                  # About dialog with author info
 │   ├── KeyboardShortcutHandler.java      # Centralized keyboard shortcut handling
 │   ├── CrashHandler.java                 # Global crash net: log + error dialog
-│   └── component/
-│       ├── EditorArea.java               # Pure TextArea wrapper
-│       ├── YoloPolicy.java               # YOLO mode edit policy (pure logic)
-│       ├── EditorKeyHandler.java         # Keystroke sound + stats tracking
-│       ├── StatsBar.java                 # Bottom status bar (clock + stats)
-│       ├── ToolbarView.java              # Top toolbar (buttons + labels)
-│       └── ToolbarState.java             # YOLO mode + sound on/off state
+│   ├── SingleInstanceWarning.java        # "Already running" warning window
+│   ├── component/
+│   │   ├── EditorArea.java               # TextArea enforcing the YOLO policy
+│   │   ├── YoloPolicy.java               # YOLO mode edit policy (pure logic)
+│   │   ├── EditorKeyHandler.java         # Keystroke sound + stats tracking
+│   │   ├── StatsBar.java                 # Bottom status bar (clock + stats)
+│   │   ├── ToolbarView.java              # Top toolbar (buttons + labels)
+│   │   └── ToolbarState.java             # YOLO mode + sound on/off state
 │   └── theme/
 │       ├── Theme.java                    # Theme enum (Light/Dark/Sepia)
 │       ├── ThemeManager.java             # CSS stylesheet loading & switching
@@ -126,6 +131,7 @@ org.mesutormanli.jtypewriter
 ├── AppLogging.java                       # Rotating log setup (java.util.logging)
 ├── AppSettings.java                      # Persisted preferences (settings.properties)
 ├── AtomicFiles.java                      # Durable atomic writes (fsync + rename)
+├── InstanceLock.java                     # Per-user instance lock (single instance)
 └── FxApplication.java                    # JavaFX application lifecycle bridge
 ```
 
@@ -133,7 +139,7 @@ org.mesutormanli.jtypewriter
 
 | Component | Description |
 |-----------|-------------|
-| `EditorArea` | Pure TextArea wrapper with YOLO mode support |
+| `EditorArea` | TextArea subclass that routes every edit through the YOLO policy |
 | `YoloPolicy` | YOLO mode edit policy (blocks deletions, allows insertions) |
 | `EditorKeyHandler` | Handles keystroke sound effects and session stats tracking |
 | `StatsBar` | Renders the clock and live session statistics in the bottom bar |
@@ -147,6 +153,8 @@ org.mesutormanli.jtypewriter
 | `RecoveryStore` | Crash-recovery draft storage under `~/.jtypewriter/recovery/` |
 | `AutoSaveService` | Periodic draft snapshots and startup recovery offer |
 | `CrashHandler` | Global crash net: logging plus user-facing error dialog |
+| `InstanceLock` | Advisory file lock that rejects a second instance per user |
+| `SingleInstanceWarning` | Minimal window that shows the "already running" warning and exits |
 | `AppSettings` | Persisted preferences under `~/.jtypewriter/settings.properties` |
 | `AtomicFiles` | Durable atomic file writes (fsync, rename, directory flush) |
 | `ThemeManager` | CSS theme loading and switching |
@@ -167,7 +175,7 @@ org.mesutormanli.jtypewriter
 | JUnit Jupiter | 6.0.3 | Test framework |
 | Mockito | 5.23.0 | Test mocking |
 
-Dependency injection is framework-free: `AppGraph` wires the object graph manually.
+JavaFX Graphics and Base come in transitively with Controls. Dependency injection is framework-free: `AppGraph` wires the object graph manually.
 
 ---
 
@@ -175,7 +183,7 @@ Dependency injection is framework-free: `AppGraph` wires the object graph manual
 
 ### Typewriter Sound Effects
 
-Authentic typewriter keystroke sound on every key press. Can be toggled on/off via the toolbar.
+Authentic typewriter keystroke sound on every non-modifier key press. Can be toggled on/off via the toolbar.
 
 ### YOLO Mode
 
@@ -188,28 +196,38 @@ Live stats bar showing:
 - Total keystrokes
 - Session duration (HH:MM:SS)
 - Words per minute (WPM) - sustained speed based on active typing time, so breaks do not drag it down
+- The status bar size cycles between small, medium and large when you double-click it
+
+### Fullscreen & Toolbar
+
+`F11` toggles fullscreen and `Escape` leaves it (the platform's default exit hint is
+suppressed). The toolbar can be hidden with `Ctrl+T` when you want nothing but text
+on screen.
 
 ### Data Safety & Crash Recovery
 
-- **Atomic, durable saves with backups:** every save is fsynced to a temp file and renamed into place, so neither a crash mid-save nor a power cut can truncate the document; overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`) and preserve the document's existing file permissions
+- **Atomic, durable saves with backups:** every save is written to a temp file, fsynced and then renamed into place, so a crash mid-save or a power cut cannot leave a truncated document; when the file system does not support an atomic move, the rename degrades to a plain move with the bytes already on disk. Overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`) and preserve the document's existing file permissions
 - **Document awareness:** the window title shows the open document name and a `*` while there are unsaved changes (alongside the `[YOLO]` badge)
 - **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`; after a crash the draft is offered for restoration on the next startup
-- **Encoding safety:** documents are detected (UTF-8/UTF-16 BOMs, strict UTF-8) and always written back in the same encoding; unknown legacy files (e.g. Turkish Windows-1254) trigger a prompt instead of silent corruption. When text no longer fits the document's encoding (e.g. a pasted emoji in a Windows-1254 file), saving offers to switch the document to UTF-8 - unmappable characters are never silently replaced with `?`
+- **Encoding safety:** a BOM-marked file is decoded with the encoding of its BOM; a file without a BOM must be valid UTF-8, otherwise you are asked whether it is Windows-1254 or UTF-8 instead of getting silent corruption. Documents are written back in the same encoding unless you accept the offered switch to UTF-8 when the text no longer fits (e.g. a pasted emoji in a Windows-1254 file) - unmappable characters are never silently replaced with `?`
 - **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently
 
 ### Settings & Session Restore
 
-Language, theme, text colour, font size, sound, the last document and the window
-geometry are persisted to `~/.jtypewriter/settings.properties`. The next session
-starts where the last one ended: same look, same document, same window. A
-document that has disappeared in the meantime is skipped silently, and a broken
-settings file falls back to the defaults instead of blocking startup.
+Language, theme, text colour, font size, sound, the last document and its folder,
+and the window geometry are persisted to `~/.jtypewriter/settings.properties`. The
+next session starts where the last one ended: same look, same document, same window.
+A document that has disappeared in the meantime is skipped silently, and a broken
+settings file falls back to the defaults instead of blocking startup. YOLO mode is
+deliberately *not* persisted: a mode that blocks deletions should not still be armed
+at the next start.
 
 ### Single Instance
 
-Only one JTypeWriter instance runs per user account: starting the application
-while another instance is already running for the same OS user shows a
-localized warning popup and exits instead of opening a second window.
+Only one JTypeWriter instance runs per user account: a lock file in `~/.jtypewriter/`
+stops a second start, which then shows a localized warning popup and exits instead of
+opening another window. The operating system releases the lock automatically if the
+running instance crashes, so a crash never locks you out.
 
 ### Multiple Themes
 
@@ -224,7 +242,7 @@ Six text colors (one default plus five accents): Default, Sage, Lavender, Sand, 
 
 ### Multi-Language Support
 
-6 languages: English, Turkish, German, French, Italian, Spanish. UI updates instantly on language switch.
+6 languages: English, Turkish, German, French, Italian, Spanish. Toolbar, dialogs and the status bar update immediately when the language is switched.
 
 ---
 
@@ -235,7 +253,7 @@ Shortcuts use `Ctrl` on Windows/Linux and `⌘` (Cmd) on macOS — plain `Ctrl` 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+T` | Toggle toolbar |
-| `Ctrl+Shift+T` | Cycle theme (Dark/Light/Sepia) |
+| `Ctrl+Shift+T` | Cycle through the three themes |
 | `Ctrl+Shift+Y` | Toggle YOLO mode |
 | `Ctrl+Shift+C` | Cycle text color |
 | `Ctrl++` | Increase font size |
@@ -314,6 +332,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `DialogServiceTest` | Save-as file naming rules (default extension handling) |
 | `JTypeWriterAppTests` | Main method presence |
 | `AppLoggingTest` | One-line log formatter builds a line from a `LogRecord` without throwing (regression) |
+| `InstanceLockTest` | Instance-lock acquisition, rejection of a second acquire in the same JVM, release and idempotent close, fail-open behaviour for an unusable lock file |
 
 ---
 
@@ -394,21 +413,24 @@ mvn clean install
 ```bash
 mvn clean javafx:run                 # Uygulamayı derle ve başlat
 mvn clean test                       # Tüm testleri çalıştır
-mvn clean package                    # Derleme + test + ince JAR + çalıştırılabilir fat JAR
+mvn clean package                    # Derleme + test + ince JAR + fat JAR
 ./scripts/package.sh                 # Derleme + yerel uygulama görüntüsü (releases/<os>/)
-./scripts/package.sh --installer    # Aynı + platform kurulum paketi (.deb / .msi / .dmg)
+./scripts/package.sh --skip-build    # Son derlemeyi kullan, yalnızca yeniden sar
+./scripts/package.sh --installer     # Aynı + platform kurulum paketi (.deb / .msi / .dmg)
 mvn test -Dtest=SessionStatsTest     # Tek test sınıfı
 mvn test -Dtest=FileServiceTest      # Tek test sınıfı
 ```
 
-Paketleme iki artefakt üretir: ince bir JAR ve çalıştırılabilir bir `jar-with-dependencies`
-(ikisinde de `Main-Class` manifest girdisi vardır). Geliştirme girişi `mvn javafx:run`
-komutudur. `scripts/package.sh`, fat JAR'ı `jpackage` ile gömülü çalışma zamanlı yerel bir
-uygulama görüntüsüne sarar; `--installer` seçeneği bu görüntüyü Linux, Windows ve macOS için
-platform kurulum paketine (`.deb`, `.msi`, `.dmg`) dönüştürür — CI iş akışının çalıştırdığı
-komut da budur. Uygulama sürümünün tek kaynağı `pom.xml`'dir: script sürümü üretilen
-artefaktten geri okur ve jpackage kurallarına karşı doğrular (örneğin macOS `0.x`
-paket sürümlerini reddeder).
+Paketleme iki JAR üretir: ince olanı (yalnızca uygulama sınıfları) ve JavaFX'i kendi native
+kütüphaneleriyle birlikte taşıyan `jar-with-dependencies`. Bu native kütüphaneler derlemenin
+yapıldığı makineden geldiği için fat JAR yalnızca derlendiği platformda çalışır; kolaylık
+artefaktıdır, platformlar arası dağıtım için `scripts/package.sh` kullanılır. Geliştirme
+girişi `mvn javafx:run` komutudur. `scripts/package.sh`, fat JAR'ı `jpackage` ile gömülü
+çalışma zamanlı yerel bir uygulama görüntüsüne sarar; `--installer` seçeneği bu görüntüyü
+Linux, Windows ve macOS için platform kurulum paketine (`.deb`, `.msi`, `.dmg`) dönüştürür —
+CI iş akışının çalıştırdığı komut da budur. Uygulama sürümünün tek kaynağı `pom.xml`'dir:
+script sürümü üretilen artefaktten geri okur ve jpackage kurallarına karşı doğrular
+(örneğin macOS `0.x` paket sürümlerini reddeder).
 
 ---
 
@@ -451,13 +473,14 @@ org.mesutormanli.jtypewriter
 │   ├── AboutDialog.java                  # Yazar bilgisiyle hakkında dialogu
 │   ├── KeyboardShortcutHandler.java      # Merkezi klavye kısayolu yönetimi
 │   ├── CrashHandler.java                 # Global çökme ağı: log + hata diyaloğu
-│   └── component/
-│       ├── EditorArea.java               # Saf TextArea sarmalayıcı
-│       ├── YoloPolicy.java               # YOLO modu düzenleme politikası (saf mantık)
-│       ├── EditorKeyHandler.java         # Tuş vuruşu sesi + istatistik takibi
-│       ├── StatsBar.java                 # Alt durum çubuğu (saat + istatistikler)
-│       ├── ToolbarView.java              # Üst araç çubuğu (düğmeler + etiketler)
-│       └── ToolbarState.java             # YOLO modu + ses aç/kapa durumu
+│   ├── SingleInstanceWarning.java        # "Zaten çalışıyor" uyarı penceresi
+│   ├── component/
+│   │   ├── EditorArea.java               # YOLO politikasını uygulayan TextArea
+│   │   ├── YoloPolicy.java               # YOLO modu düzenleme politikası (saf mantık)
+│   │   ├── EditorKeyHandler.java         # Tuş vuruşu sesi + istatistik takibi
+│   │   ├── StatsBar.java                 # Alt durum çubuğu (saat + istatistikler)
+│   │   ├── ToolbarView.java              # Üst araç çubuğu (düğmeler + etiketler)
+│   │   └── ToolbarState.java             # YOLO modu + ses aç/kapa durumu
 │   └── theme/
 │       ├── Theme.java                    # Tema enum'u (Açık/Koyu/Sepya)
 │       ├── ThemeManager.java             # CSS stil sayfası yükleme ve değiştirme
@@ -470,6 +493,7 @@ org.mesutormanli.jtypewriter
 ├── AppLogging.java                       # Dönen log kurulumu (java.util.logging)
 ├── AppSettings.java                      # Kalıcı tercihler (settings.properties)
 ├── AtomicFiles.java                      # Dayanıklı atomik dosya yazımı (fsync + rename)
+├── InstanceLock.java                     # Kullanıcı başına örnek kilidi (tek örnek)
 └── FxApplication.java                    # JavaFX yaşam döngüsü köprüsü
 ```
 
@@ -477,7 +501,7 @@ org.mesutormanli.jtypewriter
 
 | Bileşen | Açıklama |
 |---------|----------|
-| `EditorArea` | YOLO modu destekli saf TextArea sarmalayıcı |
+| `EditorArea` | Her düzenlemeyi YOLO politikasından geçiren TextArea alt sınıfı |
 | `YoloPolicy` | YOLO modu düzenleme politikası (silmeyi engeller, eklemeye izin verir) |
 | `EditorKeyHandler` | Tuş vuruşu ses efektleri ve oturum istatistiklerini yönetir |
 | `StatsBar` | Saati ve canlı oturum istatistiklerini alt çubukta gösterir |
@@ -491,6 +515,8 @@ org.mesutormanli.jtypewriter
 | `RecoveryStore` | `~/.jtypewriter/recovery/` altında çökme kurtarma taslakları |
 | `AutoSaveService` | Dönemsel taslak anlık görüntüleri ve açılışta kurtarma teklifi |
 | `CrashHandler` | Global çökme ağı: log + kullanıcıya hata diyaloğu |
+| `InstanceLock` | İkinci örneği kullanıcı başına reddeden danışma amaçlı dosya kilidi |
+| `SingleInstanceWarning` | "Zaten çalışıyor" uyarısını gösterip kapanan minimal pencere |
 | `AppSettings` | `~/.jtypewriter/settings.properties` altında kalıcı tercihler |
 | `AtomicFiles` | Dayanıklı atomik dosya yazımı (fsync, rename, dizin flush) |
 | `ThemeManager` | CSS tema yükleme ve değiştirme |
@@ -511,7 +537,7 @@ org.mesutormanli.jtypewriter
 | JUnit Jupiter | 6.0.3 | Test çerçevesi |
 | Mockito | 5.23.0 | Test mock'lama |
 
-Bağımlılık enjeksiyonu framework'süzdür: nesne grafiğini `AppGraph` elle kurar.
+JavaFX Graphics ve Base, Controls ile dolaylı olarak gelir. Bağımlılık enjeksiyonu framework'süzdür: nesne grafiğini `AppGraph` elle kurar.
 
 ---
 
@@ -519,7 +545,7 @@ Bağımlılık enjeksiyonu framework'süzdür: nesne grafiğini `AppGraph` elle 
 
 ### Daktilo Ses Efektleri
 
-Her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki düğmeyle açılıp kapatılabilir.
+Değiştirici olmayan her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki düğmeyle açılıp kapatılabilir.
 
 ### YOLO Modu
 
@@ -532,29 +558,39 @@ Canlı istatistik çubuğu:
 - Toplam tuş vuruşu
 - Oturum süresi (SS:DD:SS)
 - Dakikada kelime (WPM) - aktif yazım süresine dayalı kalıcı hız; molalar değeri düşürmez
+- Durum çubuğuna çift tıklandığında boyutu küçük, orta ve büyük arasında döner
+
+### Tam Ekran ve Araç Çubuğu
+
+`F11` tam ekranı açar/kapatır, `Escape` tam ekrandan çıkar (platformun varsayılan çıkış
+ipucu gizlenir). Ekranda yalnızca metin kalsın istiyorsanız araç çubuğunu `Ctrl+T` ile
+gizleyebilirsiniz.
 
 ### Veri Güvenliği ve Kurtarma
 
-- **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya fsync edilip yeniden adlandırılarak yerine konur; kayıt ortasında çökme ya da elektrik kesintisi belgeyi asla yaralamaz; üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`) ve belgenin mevcut dosya izinleri korunur
+- **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya yazılır, fsync edilir ve yeniden adlandırılarak yerine konur; kayıt ortasında çökme ya da elektrik kesintisi belgeyi yarım bırakamaz. Dosya sistemi atomik taşımayı desteklemiyorsa yeniden adlandırma düz taşımaya düşer; baytlar o anda zaten diskte olur. Üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`) ve belgenin mevcut dosya izinleri korunur
 - **Belge farkındalığı:** pencere başlığı açık belgenin adını ve kaydedilmemiş değişiklik varken bir `*` işaretini gösterir (`[YOLO]` rozetinin yanında)
 - **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökme sonrası taslak bir sonraki açılışta geri yükleme için teklif edilir
-- **Kodlama güvenliği:** belgeler tespit edilir (UTF-8/UTF-16 BOM, sıkı UTF-8) ve her zaman aynı kodlamayla geri yazılır; bilinmeyen eski dosyalarda (örn. Windows-1254 Türkçe) sessiz bozulma yerine sorulur. Metin belgenin kodlamasına sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) kayıtta belgeyi UTF-8'e geçirme teklif edilir — temsil edilemeyen karakterler asla sessizce `?` yapılmaz
+- **Kodlama güvenliği:** BOM'lu bir dosya, BOM'unun belirttiği kodlamayla çözülür; BOM'suz bir dosya geçerli UTF-8 olmalıdır, aksi halde sessiz bozulma yerine Windows-1254 mü UTF-8 mi olduğu sorulur. Belgeler aynı kodlamayla geri yazılır; yalnızca metin o kodlamaya sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) sunulan UTF-8'e geçişi kabul ederseniz kodlama değişir — temsil edilemeyen karakterler asla sessizce `?` yapılmaz
 - **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir
 
 ### Ayarlar ve Oturum Geri Yükleme
 
-Dil, tema, metin rengi, font boyutu, ses, son belge ve pencere geometrisi
+Dil, tema, metin rengi, font boyutu, ses, son belge ve klasörü ile pencere geometrisi
 `~/.jtypewriter/settings.properties` dosyasına kaydedilir. Bir sonraki oturum,
 öncekinin bittiği yerden başlar: aynı görünüm, aynı belge, aynı pencere. Aradan
 geçen sürede silinmiş bir belge sessizce atlanır; bozuk bir ayar dosyası ise
-başlangıcı engellemek yerine varsayılanlara döner.
+başlangıcı engellemek yerine varsayılanlara döner. YOLO modu bilinçli olarak
+*kaydedilmez*: silmeyi engelleyen bir modun bir sonraki açılışta hâlâ etkin olması
+istenmez.
 
 ### Tek Örnek
 
-Kullanıcı hesabı başına yalnızca bir JTypeWriter örneği çalışır: aynı işletim
-sistemi kullanıcısı için uygulama zaten çalışıyorken yeniden başlatılırsa
-ikinci bir pencere açılmaz; yerelleştirilmiş bir uyarı penceresi gösterilir ve
-uygulama kapanır.
+Kullanıcı hesabı başına yalnızca bir JTypeWriter örneği çalışır: `~/.jtypewriter/`
+altındaki bir kilit dosyası ikinci başlatmayı durdurur; ikinci bir pencere açılmaz,
+yerelleştirilmiş bir uyarı penceresi gösterilir ve uygulama kapanır. Çalışan örnek
+çökerse kilit işletim sistemi tarafından otomatik bırakılır; çökme sizi dışarıda
+bırakmaz.
 
 ### Çoklu Tema
 
@@ -569,7 +605,7 @@ Altı metin rengi (bir varsayılan + beş vurgu rengi): Varsayılan, Adaçayı, 
 
 ### Çoklu Dil Desteği
 
-6 dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Dil değişikliğinde anında güncellenir.
+6 dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Dil değiştirildiğinde araç çubuğu, diyaloglar ve durum çubuğu anında güncellenir.
 
 ---
 
@@ -580,7 +616,7 @@ Kısayollar Windows/Linux'ta `Ctrl`, macOS'ta `⌘` (Cmd) ile çalışır — ma
 | Kısayol | İşlem |
 |---------|-------|
 | `Ctrl+T` | Araç çubuğunu aç/kapat |
-| `Ctrl+Shift+T` | Tema değiştir (Koyu/Açık/Sepya) |
+| `Ctrl+Shift+T` | Üç tema arasında geçiş yap |
 | `Ctrl+Shift+Y` | YOLO modunu aç/kapat |
 | `Ctrl+Shift+C` | Metin rengini değiştir |
 | `Ctrl++` | Font boyutunu artır |
@@ -659,6 +695,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `DialogServiceTest` | "Farklı Kaydet" dosya adlandırma kuralları (uzantı işleme) |
 | `JTypeWriterAppTests` | Ana metod varlığı |
 | `AppLoggingTest` | Tek satırlık log biçimlendiricisinin bir `LogRecord`'dan satırı hata vermeden üretmesi (regresyon) |
+| `InstanceLockTest` | Örnek kilidinin alınması, aynı JVM'de ikinci alımın reddedilmesi, bırakma ve yinelenebilir kapatma, kullanılamayan kilit dosyasında fail-open davranışı |
 
 ---
 
