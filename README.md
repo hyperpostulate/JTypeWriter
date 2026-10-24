@@ -13,7 +13,8 @@
   <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fhyperpostulate%2FJTypeWriter%2Fgh-pages%2Fbadges%2Ftests.json" alt="Tests"></a>
 </p>
 
-<p align="center">A quiet, offline desktop editor for creative writers. It sounds like a typewriter, counts what you write, and makes losing that writing very hard.</p>
+<p align="center">A quiet, offline desktop text editor for creative writers.</p>
+<p align="center">It sounds like a typewriter, counts what you write, and makes losing that writing very hard.</p>
 
 <p align="center">Türkçe sürüm: <a href="README-TR.md">README-TR.md</a></p>
 

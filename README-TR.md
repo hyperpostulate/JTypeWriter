@@ -13,7 +13,8 @@
   <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fhyperpostulate%2FJTypeWriter%2Fgh-pages%2Fbadges%2Ftests.json" alt="Tests"></a>
 </p>
 
-<p align="center">Yaratıcı yazarlar için sessiz, çevrimdışı bir masaüstü editör. Daktilo gibi ses çıkarır, yazdığını sayar ve o yazıyı kaybetmeyi olabildiğince zorlaştırır.</p>
+<p align="center">Yaratıcı yazarlar için sessiz, çevrimdışı bir masaüstü metin editörü.</p>
+<p align="center">Daktilo gibi ses çıkarır, yazdığını sayar ve o yazıyı kaybetmeyi olabildiğince zorlaştırır.</p>
 
 <p align="center">English version: <a href="README.md">README.md</a></p>
 
