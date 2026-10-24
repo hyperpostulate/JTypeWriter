@@ -4,6 +4,8 @@ import javafx.scene.Scene;
 import javafx.scene.paint.Color;
 import org.mesutormanli.jtypewriter.AppSettings;
 
+import java.util.List;
+
 public class ThemeManager {
 
     private final AppSettings settings;
@@ -44,9 +46,30 @@ public class ThemeManager {
         settings.setTheme(theme);
     }
 
+    /**
+     * The single entry point used by the toolbar's theme dropdown: applies the
+     * chosen theme and persists it exactly like the cycle path did. A repeat
+     * request for the theme already in force is ignored, so re-selecting the
+     * dropdown's current entry does not reload the stylesheets.
+     */
+    public void setTheme(Scene scene, Theme theme) {
+        if (theme == currentTheme) {
+            return;
+        }
+        applyTheme(scene, theme);
+    }
+
     public Theme cycleTheme(Scene scene) {
         var next = currentTheme.next();
-        applyTheme(scene, next);
-        return next;
+        setTheme(scene, next);
+        return currentTheme;
+    }
+
+    /**
+     * The dropdown's option list: every {@link Theme} in declaration order
+     * (Light, Dark, Sepia), the same order the cycle button used.
+     */
+    public static List<Theme> options() {
+        return List.of(Theme.values());
     }
 }

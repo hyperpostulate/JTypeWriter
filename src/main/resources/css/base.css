@@ -78,8 +78,8 @@
     -fx-border-color: transparent;
     -fx-border-width: 0;
     -fx-border-insets: 0;
-    -fx-padding: 4px 10px;
-    -fx-font-size: 12px;
+    -fx-padding: 4px 7px;
+    -fx-font-size: 11px;
     -fx-cursor: hand;
     -fx-text-fill: -toolbar-text;
     -fx-focus-color: transparent;
@@ -101,45 +101,117 @@
     -fx-background-radius: 4px;
 }
 
-.toolbar-lang {
-    -fx-background-color: -toolbar-hover;
+/* --- Toolbar dropdowns ----------------------------------------------------
+   The six settings pickers. Closed, a dropdown mirrors the flat toolbar
+   buttons: transparent fill, theme border, hover wash. Everything resolves
+   through the themes' -toolbar-* looked-up colours, so light, dark and sepia
+   each theme these rules without a single theme-specific selector. */
+.toolbar-combo {
+    -fx-font-size: 11px;
+    -fx-text-fill: -toolbar-text;
+    -fx-background-color: transparent;
     -fx-background-insets: 0;
+    -fx-background-radius: 4px;
     -fx-border-color: -toolbar-border;
     -fx-border-width: 1px;
     -fx-border-radius: 4px;
-    -fx-padding: 4px 12px;
-    -fx-font-size: 12px;
-    -fx-font-weight: bold;
+    -fx-padding: 1 2 1 5;
     -fx-cursor: hand;
-    -fx-text-fill: -toolbar-text;
-    -fx-background-radius: 4px;
-    -fx-focus-color: transparent;
-    -fx-faint-focus-color: transparent;
 }
 
-.toolbar-lang:focused,
-.toolbar-lang:armed,
-.toolbar-lang:pressed {
+.toolbar-combo:hover,
+.toolbar-combo:showing {
     -fx-background-color: -toolbar-hover;
-    -fx-background-insets: 0;
+}
+
+/* The cell shown inside the closed dropdown is the button's label. The cell
+   metrics are part of the ComboBox' computed preferred width, so tight cell
+   padding is what makes six pickers plus five buttons fit a 900 px window
+   even in German. The later .combo-box-popup rules (more specific) keep the
+   open list comfortably padded. */
+.toolbar-combo .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -toolbar-text;
+    -fx-font-size: 11px;
+    -fx-padding: 2 4 2 3;
+}
+
+/* The arrow keeps Modena's shape but a toolbar-friendly footprint: six
+   dropdowns in one row cannot each carry the default button padding. */
+.toolbar-combo > .arrow-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0 0 0 2;
+}
+
+.toolbar-combo > .arrow-button > .arrow {
+    -fx-background-color: -toolbar-text;
+    -fx-padding: 0 2.5px 0 2.5px;
+}
+
+/* The language picker keeps the old code button's pill look. */
+.toolbar-lang-combo,
+.toolbar-lang-combo:hover,
+.toolbar-lang-combo:showing {
+    -fx-background-color: -toolbar-hover;
     -fx-border-color: -toolbar-border;
-    -fx-focus-color: transparent;
-    -fx-faint-focus-color: transparent;
 }
 
-.toolbar-lang:hover {
-    -fx-background-color: -toolbar-separator-color;
+/* --- Dropdown popups ------------------------------------------------------
+   A ComboBox popup is a separate window: paint its surface, cells and
+   scrollbar from the same -toolbar-* colours so the open list is legible in
+   dark and sepia, not just the closed button. */
+.combo-box-popup .list-view {
+    -fx-background-color: -toolbar-border, -toolbar-bg;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 0, 3px;
+    -fx-padding: 3;
 }
 
-.toolbar-label {
+.combo-box-popup .list-view .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -toolbar-text;
     -fx-font-size: 12px;
-    -fx-text-fill: -toolbar-text-muted;
-    -fx-padding: 0 4px;
+    -fx-padding: 4 10 4 10;
+    -fx-background-radius: 3px;
 }
 
-.toolbar-separator {
-    -fx-text-fill: -toolbar-separator-color;
-    -fx-padding: 0 2px;
+.combo-box-popup .list-view .list-cell:filled:hover {
+    -fx-background-color: -toolbar-hover;
+    -fx-text-fill: -toolbar-text;
+}
+
+.combo-box-popup .list-view .list-cell:filled:selected {
+    -fx-background-color: -toolbar-hover;
+    -fx-text-fill: -toolbar-text;
+    -fx-font-weight: bold;
+}
+
+.combo-box-popup .list-view .list-cell:empty {
+    -fx-background-color: transparent;
+}
+
+/* Slim scrollbar for the long font-size ladder. */
+.combo-box-popup .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 8px;
+}
+
+.combo-box-popup .scroll-bar:vertical .thumb {
+    -fx-background-color: -toolbar-separator-color;
+    -fx-background-radius: 4px;
+}
+
+.combo-box-popup .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+}
+
+.combo-box-popup .scroll-bar .increment-button,
+.combo-box-popup .scroll-bar .decrement-button,
+.combo-box-popup .scroll-bar .increment-arrow,
+.combo-box-popup .scroll-bar .decrement-arrow {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
 }
 
 .stats-bar {

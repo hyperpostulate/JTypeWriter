@@ -1,20 +1,42 @@
 package org.mesutormanli.jtypewriter.ui.component;
 
+import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ListCell;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.stage.Stage;
-import org.mesutormanli.jtypewriter.service.FileService;
+import javafx.util.StringConverter;
+import org.mesutormanli.jtypewriter.locale.Language;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.ui.AboutDialog;
 import org.mesutormanli.jtypewriter.ui.theme.FontSizeManager;
+import org.mesutormanli.jtypewriter.ui.theme.TextColor;
 import org.mesutormanli.jtypewriter.ui.theme.TextColorManager;
+import org.mesutormanli.jtypewriter.ui.theme.Theme;
 import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
 
+import java.util.List;
+import java.util.function.Supplier;
+
+/**
+ * The top toolbar: file and undo actions, an About button and six dropdowns -
+ * theme, YOLO mode, sound, text colour, font size and language.
+ *
+ * <p>Every dropdown mirrors state owned by a manager ({@link ThemeManager},
+ * {@link ToolbarState}, {@link TextColorManager}, {@link FontSizeManager},
+ * {@link LocaleManager}); none of them owns anything. Dropdown selections,
+ * keyboard shortcuts and language switches all funnel through
+ * {@link #refresh()}, so a control can never show a stale value - the two
+ * paths used to be separate and the Ctrl+Shift+T shortcut left the theme
+ * label behind (RW-12).</p>
+ */
 public class ToolbarView extends HBox {
 
     private final FileService fileService;
@@ -30,19 +52,16 @@ public class ToolbarView extends HBox {
     private final Button saveBtn;
     private final Button undoBtn;
     private final Button redoBtn;
-    private final Button themeBtn;
-    private final Button yoloBtn;
-    private final Button soundBtn;
-    private final Button langBtn;
+    private final ComboBox<Theme> themeCombo;
+    private final ComboBox<Boolean> yoloCombo;
+    private final ComboBox<Boolean> soundCombo;
+    private final ComboBox<TextColor> colorCombo;
+    private final ComboBox<Integer> fontSizeCombo;
+    private final ComboBox<Language> languageCombo;
     private final Button aboutBtn;
-    private final Label themeLabel;
-    private final Label yoloLabel;
-    private final Label soundLabel;
-    private final Button colorBtn;
-    private final Label colorLabel;
-    private final Button fontSizeUpBtn;
-    private final Button fontSizeDownBtn;
-    private final Label fontSizeLabel;
+
+    /** Set while {@link #refresh()} re-pushes values, to suppress the change listeners. */
+    private boolean refreshing;
 
     private EditorArea editorArea;
     private Runnable onStyleChange;
@@ -64,36 +83,64 @@ public class ToolbarView extends HBox {
         this.editorArea = null;
 
         getStyleClass().add("toolbar");
-        setPadding(new Insets(8, 12, 8, 12));
-        setSpacing(8);
+        // Deliberately compact: with the longest translations (German) the
+        // row's preferred width stays under the 900 px minimum window.
+        setPadding(new Insets(8, 10, 8, 10));
+        setSpacing(3);
+        setAlignment(Pos.CENTER_LEFT);
 
         openBtn = createButton(messages.toolbarOpen());
         saveBtn = createButton(messages.toolbarSave());
         undoBtn = createButton(messages.toolbarUndo());
         redoBtn = createButton(messages.toolbarRedo());
-        themeBtn = createButton(messages.toolbarTheme());
-        yoloBtn = createButton(messages.toolbarYolo());
-        soundBtn = createButton(messages.toolbarSound());
-        colorBtn = createButton(messages.toolbarColor());
-        colorLabel = new Label(textColorManager.getCurrentDisplayName(messages));
-        colorLabel.getStyleClass().add("toolbar-label");
-        langBtn = new Button(messages.langCode());
-        langBtn.getStyleClass().add("toolbar-lang");
-        langBtn.setFocusTraversable(false);
-
         aboutBtn = createButton(messages.toolbarAbout());
 
-        themeLabel = new Label(themeManager.getCurrentTheme().getDisplayName(messages));
-        themeLabel.getStyleClass().add("toolbar-label");
-        yoloLabel = new Label(messages.yoloModeOff());
-        yoloLabel.getStyleClass().add("toolbar-label");
-        soundLabel = new Label(messages.soundOn());
-        soundLabel.getStyleClass().add("toolbar-label");
+        themeCombo = createCombo(ThemeManager.options(), themeName(), value -> {
+            themeManager.setTheme(getScene(), value);
+            refresh();
+        });
+        showAsCaptionedCombo(themeCombo, messages::toolbarTheme);
 
-        fontSizeUpBtn = createButton(messages.toolbarFontUp());
-        fontSizeDownBtn = createButton(messages.toolbarFontDown());
-        fontSizeLabel = new Label(String.valueOf(fontSizeManager.getCurrentSize()));
-        fontSizeLabel.getStyleClass().add("toolbar-label");
+        yoloCombo = createCombo(ToolbarState.TOGGLE_OPTIONS, onOff(), value -> {
+            if (editorArea == null) {
+                refresh(); // nothing to switch yet: put the dropdown back in step
+                return;
+            }
+            toolbarState.setYolo(value, editorArea);
+            refresh();
+            if (onYoloChange != null) {
+                onYoloChange.run(); // keeps the [YOLO] window title badge honest
+            }
+        });
+        showAsCaptionedCombo(yoloCombo, messages::toolbarYolo);
+
+        soundCombo = createCombo(ToolbarState.TOGGLE_OPTIONS, onOff(), value -> {
+            toolbarState.setSound(value);
+            refresh();
+        });
+        showAsCaptionedCombo(soundCombo, messages::toolbarSound);
+
+        colorCombo = createCombo(TextColorManager.options(), colourName(), value -> {
+            textColorManager.set(value);
+            refresh();
+            notifyStyleChange();
+        });
+        showAsCaptionedCombo(colorCombo, messages::toolbarColor);
+
+        fontSizeCombo = createCombo(
+                FontSizeManager.optionsFor(fontSizeManager.getCurrentSize()), plainNumber(),
+                value -> {
+                    fontSizeManager.setSize(value);
+                    refresh();
+                    notifyStyleChange();
+                });
+
+        languageCombo = createCombo(List.of(Language.values()), nativeName(), value -> {
+            // fires the LocaleManager listener, which re-enters refresh()
+            localeManager.setLanguage(value);
+            refresh();
+        });
+        languageCombo.getStyleClass().add("toolbar-lang-combo");
 
         openBtn.setOnAction(e -> {
             fileService.openFile(stage).ifPresent(path ->
@@ -104,49 +151,155 @@ public class ToolbarView extends HBox {
                 fileService.saveFile(stage, editorArea.getText());
             }
         });
-
         undoBtn.setOnAction(e -> {
             if (editorArea != null) editorArea.requestUndo(); // no-op while YOLO mode is on
         });
         redoBtn.setOnAction(e -> {
             if (editorArea != null) editorArea.requestRedo();
         });
-
-        themeBtn.setOnAction(e -> cycleTheme());
-        yoloBtn.setOnAction(e -> toggleYolo());
-        soundBtn.setOnAction(e -> toggleSound());
-        colorBtn.setOnAction(e -> cycleTextColor());
         aboutBtn.setOnAction(e -> {
             if (stage != null) aboutDialog.show(stage);
         });
-        langBtn.setOnAction(e -> localeManager.toggle());
-        fontSizeUpBtn.setOnAction(e -> changeFontSize(1));
-        fontSizeDownBtn.setOnAction(e -> changeFontSize(-1));
 
+        // Visual grouping replaces the old "Label("|")" separators: file
+        // actions, edit actions, the settings dropdowns, and About + language.
         var spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox.setMargin(themeCombo, new Insets(0, 0, 0, 4));
 
         getChildren().addAll(
                 openBtn, saveBtn,
-                sep(),
                 undoBtn, redoBtn,
-                sep(),
-                themeBtn, themeLabel,
-                sep(),
-                yoloBtn, yoloLabel,
-                sep(),
-                soundBtn, soundLabel,
-                sep(),
-                colorBtn, colorLabel,
-                sep(),
-                fontSizeDownBtn, fontSizeLabel, fontSizeUpBtn,
+                themeCombo, yoloCombo, soundCombo, colorCombo, fontSizeCombo,
                 spacer,
                 aboutBtn,
-                langBtn
+                languageCombo
         );
 
-        localeManager.addListener(lang -> refreshTexts());
+        localeManager.addListener(lang -> refresh());
+        refresh();
     }
+
+    // --- dropdown option lists (pure; unit tested headlessly) -------------
+
+    /** Theme dropdown order: Light, Dark, Sepia (the {@link Theme} declaration order). */
+    public static List<Theme> themeOptions() {
+        return ThemeManager.options();
+    }
+
+    /** YOLO and Sound dropdown order: On, then Off. */
+    public static List<Boolean> toggleOptions() {
+        return ToolbarState.TOGGLE_OPTIONS;
+    }
+
+    /** Text colour dropdown order: Default, Sage, Lavender, Sand, Steel, Rose. */
+    public static List<TextColor> textColorOptions() {
+        return TextColorManager.options();
+    }
+
+    /**
+     * Font size dropdown for the given persisted size: the fixed ladder from
+     * {@link FontSizeManager#optionsFor(int)}, with an off-ladder size inserted
+     * in sorted position so the real value stays visible.
+     */
+    public static List<Integer> fontSizeOptions(int currentSize) {
+        return FontSizeManager.optionsFor(currentSize);
+    }
+
+    /** Language dropdown order: the {@link Language} declaration order. */
+    public static List<Language> languageOptions() {
+        return List.of(Language.values());
+    }
+
+    // --- the single sync point ---------------------------------------------
+
+    /**
+     * Re-reads every manager and re-renders the whole toolbar: button texts,
+     * dropdown items (so a language switch re-localises them) and selections
+     * (so a shortcut cannot leave a dropdown stale). Dropdown handlers,
+     * keyboard shortcuts and the locale listener all end here - there is no
+     * second path that could drift out of step.
+     */
+    public void refresh() {
+        refreshing = true;
+        try {
+            openBtn.setText(messages.toolbarOpen());
+            saveBtn.setText(messages.toolbarSave());
+            undoBtn.setText(messages.toolbarUndo());
+            redoBtn.setText(messages.toolbarRedo());
+            aboutBtn.setText(messages.toolbarAbout());
+
+            resync(themeCombo, themeOptions(), themeManager.getCurrentTheme());
+            resync(yoloCombo, toggleOptions(), toolbarState.isYoloMode());
+            resync(soundCombo, toggleOptions(), toolbarState.isSoundEnabled());
+            resync(colorCombo, textColorOptions(), textColorManager.getCurrent());
+            var size = fontSizeManager.getCurrentSize();
+            resync(fontSizeCombo, fontSizeOptions(size), size);
+            resync(languageCombo, languageOptions(), localeManager.getCurrent());
+        } finally {
+            refreshing = false;
+        }
+    }
+
+    // --- keyboard shortcut entry points -------------------------------------
+
+    /**
+     * Ctrl+Shift+T: advances the theme through {@link ThemeManager#setTheme}
+     * and refreshes, so the dropdown always shows the applied theme.
+     */
+    public void cycleTheme() {
+        var scene = getScene();
+        if (scene != null) {
+            themeManager.cycleTheme(scene);
+            refresh();
+        }
+    }
+
+    /**
+     * Ctrl+Shift+Y: toggles YOLO mode through {@link ToolbarState#setYolo} -
+     * the same single path the dropdown uses - and keeps the {@code [YOLO]}
+     * window title badge (via {@code onYoloChange}) in step.
+     */
+    public void toggleYolo() {
+        if (editorArea == null) {
+            return;
+        }
+        toolbarState.setYolo(!toolbarState.isYoloMode(), editorArea);
+        refresh();
+        if (onYoloChange != null) {
+            onYoloChange.run();
+        }
+    }
+
+    /** Ctrl+Shift+C: advances the text colour through {@link TextColorManager#set}. */
+    public void cycleTextColor() {
+        textColorManager.cycle();
+        refresh();
+        notifyStyleChange();
+    }
+
+    /**
+     * Ctrl++ / Ctrl+-: one ladder step ({@link FontSizeManager#stepUp(int)} /
+     * {@link FontSizeManager#stepDown(int)}) through {@link FontSizeManager#setSize},
+     * so the shortcut and the dropdown always agree on the available sizes.
+     */
+    public void changeFontSize(int delta) {
+        var current = fontSizeManager.getCurrentSize();
+        fontSizeManager.setSize(delta >= 0
+                ? FontSizeManager.stepUp(current)
+                : FontSizeManager.stepDown(current));
+        refresh();
+        notifyStyleChange();
+    }
+
+    /** Ctrl+0: restores the default editor font size (single source: {@link FontSizeManager#DEFAULT_SIZE}). */
+    public void resetFontSize() {
+        fontSizeManager.reset();
+        refresh();
+        notifyStyleChange();
+    }
+
+    // --- wiring to the rest of the window ------------------------------------
 
     public void setEditorArea(EditorArea editorArea) {
         this.editorArea = editorArea;
@@ -168,89 +321,134 @@ public class ToolbarView extends HBox {
         return fontSizeManager.getCurrentSize();
     }
 
-    private void refreshTexts() {
-        openBtn.setText(messages.toolbarOpen());
-        saveBtn.setText(messages.toolbarSave());
-        undoBtn.setText(messages.toolbarUndo());
-        redoBtn.setText(messages.toolbarRedo());
-        themeBtn.setText(messages.toolbarTheme());
-        yoloBtn.setText(messages.toolbarYolo());
-        soundBtn.setText(messages.toolbarSound());
-        colorBtn.setText(messages.toolbarColor());
-        colorLabel.setText(textColorManager.getCurrentDisplayName(messages));
-        aboutBtn.setText(messages.toolbarAbout());
-        langBtn.setText(messages.langCode());
-        fontSizeUpBtn.setText(messages.toolbarFontUp());
-        fontSizeDownBtn.setText(messages.toolbarFontDown());
-        themeLabel.setText(themeManager.getCurrentTheme().getDisplayName(messages));
-        updateYoloLabel();
-        updateSoundLabel();
-    }
-
-    /**
-     * Cycles the theme and refreshes the label next to the button. Public and
-     * used by both the toolbar button and the Ctrl+Shift+T shortcut, so the
-     * label can never disagree with the applied theme: the two paths used to
-     * be separate and the shortcut left the label stale.
-     */
-    public void cycleTheme() {
-        var scene = getScene();
-        if (scene != null) {
-            var theme = themeManager.cycleTheme(scene);
-            themeLabel.setText(theme.getDisplayName(messages));
-        }
-    }
-
-    /**
-     * Toggles YOLO mode through {@link ToolbarState} - the single path used by
-     * both the toolbar button and the Ctrl+Shift+Y shortcut, so the status
-     * label can never disagree with the editor. The {@code [YOLO]} window title
-     * badge (refreshed through {@code onYoloChange}) indicates the mode when
-     * the toolbar is hidden.
-     */
-    public void toggleYolo() {
-        if (editorArea == null) return;
-        toolbarState.toggleYolo(editorArea);
-        updateYoloLabel();
-        if (onYoloChange != null) {
-            onYoloChange.run();
-        }
-    }
-
-    private void toggleSound() {
-        toolbarState.toggleSound();
-        updateSoundLabel();
-    }
-
-    private void updateYoloLabel() {
-        yoloLabel.setText(toolbarState.isYoloMode() ? messages.yoloModeOn() : messages.yoloModeOff());
-    }
-
-    private void updateSoundLabel() {
-        soundLabel.setText(toolbarState.isSoundEnabled() ? messages.soundOn() : messages.soundOff());
-    }
-
-    public void changeFontSize(int delta) {
-        fontSizeManager.changeSize(delta);
-        fontSizeLabel.setText(String.valueOf(fontSizeManager.getCurrentSize()));
-        notifyStyleChange();
-    }
-
-    /** Restores the default editor font size (single source: {@link FontSizeManager#DEFAULT_SIZE}). */
-    public void resetFontSize() {
-        fontSizeManager.reset();
-        fontSizeLabel.setText(String.valueOf(fontSizeManager.getCurrentSize()));
-        notifyStyleChange();
-    }
-
     public String getCurrentTextCssColor() {
         return textColorManager.getCurrentCssColor();
     }
 
-    public void cycleTextColor() {
-        textColorManager.cycle();
-        colorLabel.setText(textColorManager.getCurrentDisplayName(messages));
-        notifyStyleChange();
+    // --- plumbing -------------------------------------------------------------
+
+    /**
+     * Builds one flat toolbar dropdown: non-editable, keyboard-transparent
+     * (the shortcuts cover everything), styled by {@code .toolbar-combo}.
+     * {@code onSelect} never runs for values pushed in by {@link #refresh()}.
+     */
+    private <T> ComboBox<T> createCombo(List<T> options, StringConverter<T> converter,
+                                        java.util.function.Consumer<T> onSelect) {
+        var combo = new ComboBox<>(FXCollections.observableArrayList(options));
+        combo.setConverter(converter);
+        combo.setEditable(false);
+        combo.setFocusTraversable(false);
+        combo.getStyleClass().add("toolbar-combo");
+        combo.valueProperty().addListener((obs, oldV, newV) -> {
+            if (refreshing || newV == null) {
+                return;
+            }
+            onSelect.accept(newV);
+        });
+        return combo;
+    }
+
+    /**
+     * The closed dropdown reads {@code "Theme: Dark"}-style (caption from the
+     * bundle, value from the converter), while the open popup lists the plain
+     * localised values. The caption is read through the supplier on every
+     * render, so a language switch re-localises button and items together.
+     */
+    private <T> void showAsCaptionedCombo(ComboBox<T> combo, Supplier<String> caption) {
+        combo.setButtonCell(new ListCell<T>() {
+            @Override
+            protected void updateItem(T item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(caption.get() + ": " + combo.getConverter().toString(item));
+                }
+            }
+        });
+    }
+
+    /**
+     * Replaces the items (fresh list, so the localized converter text re-renders)
+     * and re-pushes the value. The brief null-reset makes even an unchanged
+     * selection re-run the cell update, which is what re-localises the button
+     * text after a language switch.
+     */
+    private static <T> void resync(ComboBox<T> combo, List<T> items, T value) {
+        combo.setItems(FXCollections.observableArrayList(items));
+        combo.setValue(null);
+        combo.setValue(value);
+    }
+
+    private StringConverter<Theme> themeName() {
+        return new StringConverter<>() {
+            @Override
+            public String toString(Theme theme) {
+                return theme == null ? "" : theme.getDisplayName(messages);
+            }
+
+            @Override
+            public Theme fromString(String text) {
+                return null; // the dropdown is never editable
+            }
+        };
+    }
+
+    private StringConverter<TextColor> colourName() {
+        return new StringConverter<>() {
+            @Override
+            public String toString(TextColor color) {
+                return color == null ? "" : color.getDisplayName(messages);
+            }
+
+            @Override
+            public TextColor fromString(String text) {
+                return null;
+            }
+        };
+    }
+
+    private StringConverter<Boolean> onOff() {
+        return new StringConverter<>() {
+            @Override
+            public String toString(Boolean on) {
+                return Boolean.TRUE.equals(on) ? messages.labelOn() : messages.labelOff();
+            }
+
+            @Override
+            public Boolean fromString(String text) {
+                return null;
+            }
+        };
+    }
+
+    private StringConverter<Integer> plainNumber() {
+        return new StringConverter<>() {
+            @Override
+            public String toString(Integer size) {
+                return size == null ? "" : String.valueOf(size);
+            }
+
+            @Override
+            public Integer fromString(String text) {
+                return null;
+            }
+        };
+    }
+
+    /** Native language names - identical in every UI language, see {@link Language#nativeName()}. */
+    private StringConverter<Language> nativeName() {
+        return new StringConverter<>() {
+            @Override
+            public String toString(Language language) {
+                return language == null ? "" : language.nativeName();
+            }
+
+            @Override
+            public Language fromString(String text) {
+                return null;
+            }
+        };
     }
 
     private void notifyStyleChange() {
@@ -264,11 +462,5 @@ public class ToolbarView extends HBox {
         btn.getStyleClass().add("toolbar-button");
         btn.setFocusTraversable(false);
         return btn;
-    }
-
-    private Label sep() {
-        var s = new Label("|");
-        s.getStyleClass().add("toolbar-separator");
-        return s;
     }
 }
