@@ -7,7 +7,14 @@
     -toolbar-text-muted: #8b7355;
     -toolbar-hover: #d4c5ae;
     -toolbar-separator-color: #b8a88a;
-    -stats-text: #8b7355;
+    /* #6f5a3f on #e8dcc8 = 4.83:1 (was #8b7355, 3.31:1 - below AA); still a
+       warm coffee brown, not black, so the sepia identity survives. */
+    -stats-text: #6f5a3f;
+    /* Focus ring (RW-17): a deepened brand brown - the lighter #8b7355 only
+       reaches 2.65:1 against the hover wash. 5.42:1 against the toolbar,
+       6.24:1 against the editor, 4.34:1 against the hover wash. */
+    -focus-ring: #6b5138;
+    -focus-ring-text: #f4ecd8;
     -welcome-bg: #efe6d4;
     -welcome-border: #d4c5ae;
     -welcome-shadow: #3d3022;

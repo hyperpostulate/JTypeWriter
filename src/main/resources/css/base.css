@@ -1,5 +1,16 @@
 /* Base styles - shared across themes */
 
+/* --- Focus indicator tokens (RW-17) ---------------------------------------
+   Every focus cue in the app resolves through -focus-ring, a looked-up colour
+   each theme defines (a warm brown in light/sepia, amber in dark). The faint
+   Modena halo stays off: one crisp ring per control reads better on a flat
+   toolbar than Modena's double halo, and unstyled controls (dialog buttons)
+   still get a themed single ring from Modena's own :focused rules. */
+.root {
+    -fx-focus-color: -focus-ring;
+    -fx-faint-focus-color: transparent;
+}
+
 .editor-area {
     -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
     -fx-font-size: 16px;
@@ -7,9 +18,19 @@
     -fx-background-color: -editor-bg;
     -fx-background-insets: 0;
     -fx-background-radius: 0;
-    -fx-border-width: 0;
-    -fx-focus-color: transparent;
-    -fx-faint-focus-color: transparent;
+    /* The 1px border is reserved transparently so the focus frame below can
+       appear without shifting the text by a pixel. */
+    -fx-border-color: transparent;
+    -fx-border-width: 1px;
+}
+
+/* The editor keeps the blinking caret as its primary focus cue (the themes
+   stroke it), but a hairline accent frame confirms "Tab landed in the text"
+   before the first keystroke. Anything heavier would fight the caret and the
+   flush full-window layout; Modena's background halo is invisible here anyway
+   because the child scroll-pane paints over it. */
+.editor-area:focused {
+    -fx-border-color: -focus-ring;
 }
 
 /* Every layer of the text-input chain is explicitly painted with the theme's
@@ -75,25 +96,31 @@
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-background-radius: 0;
+    /* The ring border is reserved transparently so focusing never shifts the
+       label; only the colour changes on :focused. */
     -fx-border-color: transparent;
-    -fx-border-width: 0;
+    -fx-border-width: 2px;
+    -fx-border-radius: 4px;
     -fx-border-insets: 0;
     -fx-padding: 4px 7px;
     -fx-font-size: 11px;
     -fx-cursor: hand;
     -fx-text-fill: -toolbar-text;
-    -fx-focus-color: transparent;
-    -fx-faint-focus-color: transparent;
 }
 
-.toolbar-button:focused,
-.toolbar-button:armed,
-.toolbar-button:pressed {
+/* A 2px accent ring on keyboard focus (RW-17). Declared before :hover so a
+   mouse-over keeps the wash; the ring survives hover, armed and pressed. */
+.toolbar-button:focused {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
-    -fx-border-color: transparent;
-    -fx-focus-color: transparent;
-    -fx-faint-focus-color: transparent;
+    -fx-border-color: -focus-ring;
+}
+
+.toolbar-button:armed,
+.toolbar-button:pressed {
+    -fx-background-color: -toolbar-hover;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px;
 }
 
 .toolbar-button:hover {
@@ -112,11 +139,41 @@
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-background-radius: 4px;
+    /* 2px at rest (a very light theme border) so the focus ring below is a
+       pure colour change - a width change would nudge the picker's metrics. */
     -fx-border-color: -toolbar-border;
-    -fx-border-width: 1px;
+    -fx-border-width: 2px;
     -fx-border-radius: 4px;
-    -fx-padding: 1 2 1 5;
+    /* Padding shrank 1 px left/right exactly where the border grew (1→2 px),
+       so the six pickers' preferred width is unchanged for RW-15's 900 px fit. */
+    -fx-padding: 1 1 1 4;
     -fx-cursor: hand;
+}
+
+/* Focus ring for the pickers (RW-17). Declared before :hover/:showing so the
+   hover wash still wins the background, but the accent border keeps the ring
+   while the popup is open. The explicit transparent background also re-pins
+   the closed combo against Modena's opaque .combo-box-base:focused repaint,
+   and the inner arrow-button/list-cell rules keep the ComboBoxBase layers from
+   leaking default focus colours through the transparent fill. */
+.toolbar-combo:focused {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 4px;
+    -fx-border-color: -focus-ring;
+}
+
+.toolbar-combo:focused > .arrow-button {
+    -fx-background-color: transparent;
+}
+
+.toolbar-combo:focused .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -toolbar-text;
+}
+
+.toolbar-combo:focused > .arrow-button > .arrow {
+    -fx-background-color: -toolbar-text;
 }
 
 .toolbar-combo:hover,
@@ -156,6 +213,12 @@
     -fx-border-color: -toolbar-border;
 }
 
+/* Same pill wash under focus; the accent ring border comes from
+   .toolbar-combo:focused above. */
+.toolbar-lang-combo:focused {
+    -fx-background-color: -toolbar-hover;
+}
+
 /* --- Dropdown popups ------------------------------------------------------
    A ComboBox popup is a separate window: paint its surface, cells and
    scrollbar from the same -toolbar-* colours so the open list is legible in
@@ -167,12 +230,23 @@
     -fx-padding: 3;
 }
 
+/* Cell font matches the 11 px closed control (was 12 px): one type scale from
+   button to open list, per RW-17. */
 .combo-box-popup .list-view .list-cell {
     -fx-background-color: transparent;
     -fx-text-fill: -toolbar-text;
-    -fx-font-size: 12px;
+    -fx-font-size: 11px;
     -fx-padding: 4 10 4 10;
     -fx-background-radius: 3px;
+}
+
+/* Keyboard traversal inside the open list (only under .list-view:focused, so
+   a mouse click never fakes it): the accent becomes the row wash and the cell
+   text switches to the theme's on-accent colour, both >=4.5:1. */
+.combo-box-popup .list-view:focused .list-cell:filled:selected:focused {
+    -fx-background-color: -focus-ring;
+    -fx-text-fill: -focus-ring-text;
+    -fx-font-weight: bold;
 }
 
 .combo-box-popup .list-view .list-cell:filled:hover {
@@ -230,14 +304,18 @@
     -fx-alignment: center-right;
 }
 
+/* 13 px floor (RW-17): the acceptance criterion "status text >= 13 px". The
+   inline style from StatsBar normally overrides this; the floor keeps the
+   guarantee even if the inline style ever goes away. StatsBar still cycles
+   11/13/15 on double-click; it just starts at 13. */
 .stats-clock {
-    -fx-font-size: 11px;
+    -fx-font-size: 13px;
     -fx-text-fill: -stats-text;
     -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
 }
 
 .stats-label {
-    -fx-font-size: 11px;
+    -fx-font-size: 13px;
     -fx-text-fill: -stats-text;
     -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
 }

@@ -7,7 +7,14 @@
     -toolbar-text-muted: #888888;
     -toolbar-hover: #e0e0e0;
     -toolbar-separator-color: #cccccc;
-    -stats-text: #888888;
+    /* #6e6e6e on #f5f5f5 = 4.68:1 (was #888888, 3.25:1 - below AA). */
+    -stats-text: #6e6e6e;
+    /* Focus ring (RW-17): a hair deeper than the brand brown #8b7355 (whose
+       white on-accent text would land at 4.49:1). 4.41:1 against the toolbar,
+       4.80:1 against the editor, 3.64:1 against the hover wash (>=3:1 for
+       non-text UI). -focus-ring-text is the on-accent colour for popup rows. */
+    -focus-ring: #876e4e;
+    -focus-ring-text: #ffffff;
     -welcome-bg: #f8f6f2;
     -welcome-border: #e4dfd6;
     -welcome-shadow: #000000;

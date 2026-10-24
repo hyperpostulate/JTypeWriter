@@ -65,13 +65,22 @@ Live stats bar showing:
 - Total keystrokes
 - Session duration (HH:MM:SS)
 - Words per minute (WPM) - sustained speed based on active typing time, so breaks do not drag it down
-- The status bar size cycles between small, medium and large when you double-click it
+- The status bar text is 13 px by default and cycles between small, medium and large when you double-click it; its colour meets WCAG AA contrast (at least 4.5:1) in all three themes
 
 ### Fullscreen & Toolbar
 
 `F11` toggles fullscreen and `Escape` leaves it (the platform's default exit hint is
 suppressed). The toolbar can be hidden with `Ctrl+T` when you want nothing but text
 on screen.
+
+The toolbar always stays a single row at every window width. Each of the six dropdowns
+normally shows a caption with its value ("Theme: Dark", "Size: 16", "Language: Deutsch");
+when the fully-captioned row no longer fits, all six captions collapse to the bare value
+("Dark", "16", "Deutsch"), measured from the actual localised labels, so nothing overflows
+or gets clipped. The five buttons are never collapsed and always stay visible. Every
+toolbar control is reachable with `Tab` in left-to-right visual order (buttons first, then
+the dropdowns), shows a visible focus ring, and has a tooltip from the UI language that
+includes the shortcut where one exists, such as "Save (Ctrl+S)".
 
 ### Data Safety & Crash Recovery
 
@@ -367,6 +376,8 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `InstanceLockTest` | Instance-lock acquisition, rejection of a second acquire in the same JVM, release and idempotent close, fail-open behaviour for an unusable lock file |
 | `LanguageTest` | Native language names are stable code constants under every system locale (no `getDisplayLanguage` trap) |
 | `ToolbarStateTest` | The sound dropdown's single setter: persistence across a restart, the audio engine follows, repeats are no-ops |
+| `ToolbarFitTest` | Toolbar overflow policy: how the captioned row is measured (buttons, dropdowns, spacer, chrome) with injected metrics, the FULL→COMPACT switch and its 40 px hysteresis, plus acceptance tests proving German and French are not clipped at 1280 px and that the collapsed row fits 900 px in all six languages |
+| `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text, focus-ring or popup-cell rules drift below AA / below 13 px / make the focus colour transparent again |
 
 ---
 

@@ -23,7 +23,22 @@ public class StatsBar extends BorderPane {
     private final Label statsLabel;
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
-    private Size currentSize = Size.MEDIUM;
+    private Size currentSize = defaultSize();
+
+    /**
+     * RW-17: the status bar must start at >= 13 px without the user cycling
+     * sizes, so the default is MEDIUM (13 px), never SMALL. Double-click
+     * cycling through all three sizes is untouched.
+     */
+    static Size defaultSize() {
+        return Size.MEDIUM;
+    }
+
+    /** The default status text size in px, for headless assertions (RW-17). */
+    public static int defaultStatusFontSizePx() {
+        return defaultSize().fontSize;
+    }
+
     public StatsBar(SessionStats sessionStats, Messages messages) {
         this.sessionStats = sessionStats;
         this.messages = messages;

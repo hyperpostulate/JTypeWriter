@@ -91,6 +91,16 @@ public class Messages {
         return bundle.getString("toolbarFontDown");
     }
 
+    /** Caption of the font-size dropdown: {@code "Size: 13"}, tooltip {@code "Size (Ctrl++ / ...)"}. */
+    public String toolbarFontSize() {
+        return bundle.getString("toolbarFontSize");
+    }
+
+    /** Caption of the language dropdown: {@code "Language: Deutsch"}. */
+    public String toolbarLanguage() {
+        return bundle.getString("toolbarLanguage");
+    }
+
     public String labelOn() {
         return bundle.getString("labelOn");
     }

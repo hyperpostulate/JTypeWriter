@@ -3,9 +3,13 @@ package org.mesutormanli.jtypewriter.ui.component;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.AccessibleRole;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Control;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -22,6 +26,7 @@ import org.mesutormanli.jtypewriter.ui.theme.TextColorManager;
 import org.mesutormanli.jtypewriter.ui.theme.Theme;
 import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -36,6 +41,12 @@ import java.util.function.Supplier;
  * {@link #refresh()}, so a control can never show a stale value - the two
  * paths used to be separate and the Ctrl+Shift+T shortcut left the theme
  * label behind (RW-12).</p>
+ *
+ * <p>At narrow widths the row never wraps and never clips: {@link ToolbarFit}
+ * measures the labels (RW-15) and the dropdowns collapse from
+ * {@code "Theme: Dark"} to {@code "Dark"} so the five buttons and all six
+ * dropdowns always stay visible. Every control carries a tooltip from the
+ * bundle and is Tab-reachable in visual order (RW-16).</p>
  */
 public class ToolbarView extends HBox {
 
@@ -60,6 +71,32 @@ public class ToolbarView extends HBox {
     private final ComboBox<Language> languageCombo;
     private final Button aboutBtn;
 
+    /**
+     * Language-neutral key notation, matching the shortcut list in the
+     * localized {@code welcomeShortcuts} text; only the label part of a
+     * tooltip comes from the bundle.
+     */
+    private static final String SHORTCUT_OPEN = "Ctrl+O";
+    private static final String SHORTCUT_SAVE = "Ctrl+S";
+    private static final String SHORTCUT_UNDO = "Ctrl+Z";
+    private static final String SHORTCUT_REDO = "Ctrl+Y";
+    private static final String SHORTCUT_THEME = "Ctrl+Shift+T";
+    private static final String SHORTCUT_YOLO = "Ctrl+Shift+Y";
+    private static final String SHORTCUT_COLOR = "Ctrl+Shift+C";
+    private static final String SHORTCUT_FONT = "Ctrl++ / Ctrl+- / Ctrl+0";
+
+    /** One tooltip and the bundle-derived text behind it, re-read on every {@link #refresh()}. */
+    private record TooltipBinding(Tooltip tooltip, Supplier<String> text) {
+    }
+
+    private final List<TooltipBinding> tooltipBindings = new ArrayList<>();
+
+    /** The current caption style; changed only by {@link #applyFit(double)} (RW-15). */
+    private ToolbarFit.LayoutMode layoutMode = ToolbarFit.LayoutMode.FULL;
+
+    /** Preferred width of the fully-captioned row; recomputed in every {@link #refresh()}. */
+    private double requiredFullWidthPx;
+
     /** Set while {@link #refresh()} re-pushes values, to suppress the change listeners. */
     private boolean refreshing;
 
@@ -83,8 +120,8 @@ public class ToolbarView extends HBox {
         this.editorArea = null;
 
         getStyleClass().add("toolbar");
-        // Deliberately compact: with the longest translations (German) the
-        // row's preferred width stays under the 900 px minimum window.
+        // Deliberately compact; when even that is not enough at a narrow
+        // window, applyFit() collapses the dropdown captions (RW-15).
         setPadding(new Insets(8, 10, 8, 10));
         setSpacing(3);
         setAlignment(Pos.CENTER_LEFT);
@@ -134,12 +171,14 @@ public class ToolbarView extends HBox {
                     refresh();
                     notifyStyleChange();
                 });
+        showAsCaptionedCombo(fontSizeCombo, messages::toolbarFontSize);
 
         languageCombo = createCombo(List.of(Language.values()), nativeName(), value -> {
             // fires the LocaleManager listener, which re-enters refresh()
             localeManager.setLanguage(value);
             refresh();
         });
+        showAsCaptionedCombo(languageCombo, messages::toolbarLanguage);
         languageCombo.getStyleClass().add("toolbar-lang-combo");
 
         openBtn.setOnAction(e -> {
@@ -176,8 +215,45 @@ public class ToolbarView extends HBox {
                 languageCombo
         );
 
+        // Tooltips: the localized label plus the language-neutral key hint,
+        // re-read from the bundle in every refresh() so a language switch
+        // cannot leave a stale-language tooltip behind (RW-16).
+        attachTooltip(openBtn, () -> withShortcut(messages.toolbarOpen(), SHORTCUT_OPEN));
+        attachTooltip(saveBtn, () -> withShortcut(messages.toolbarSave(), SHORTCUT_SAVE));
+        attachTooltip(undoBtn, () -> withShortcut(messages.toolbarUndo(), SHORTCUT_UNDO));
+        attachTooltip(redoBtn, () -> withShortcut(messages.toolbarRedo(), SHORTCUT_REDO));
+        attachTooltip(themeCombo, () -> withShortcut(messages.toolbarTheme(), SHORTCUT_THEME));
+        attachTooltip(yoloCombo, () -> withShortcut(messages.toolbarYolo(), SHORTCUT_YOLO));
+        attachTooltip(soundCombo, messages::toolbarSound);
+        attachTooltip(colorCombo, () -> withShortcut(messages.toolbarColor(), SHORTCUT_COLOR));
+        attachTooltip(fontSizeCombo, () -> withShortcut(messages.toolbarFontSize(), SHORTCUT_FONT));
+        attachTooltip(languageCombo, messages::toolbarLanguage);
+        attachTooltip(aboutBtn, messages::toolbarAbout);
+
+        // Tab order = visual order, left to right, buttons first and the
+        // dropdowns after them. JavaFX 26 has no nextFocus API, so the order
+        // is pinned deliberately through viewOrder, which both the indexed
+        // and the geometrical traversal methods honour (RW-16). It follows
+        // the child order, so the paint order cannot change.
+        var traversalOrder = new Node[]{
+                openBtn, saveBtn, undoBtn, redoBtn,
+                themeCombo, yoloCombo, soundCombo, colorCombo, fontSizeCombo,
+                aboutBtn, languageCombo
+        };
+        for (var index = 0; index < traversalOrder.length; index++) {
+            traversalOrder[index].setViewOrder(10 * (index + 1));
+        }
+
         localeManager.addListener(lang -> refresh());
         refresh();
+
+        // RW-15: keep the single row at every width by collapsing the
+        // dropdown captions when the fully-captioned row would not fit.
+        widthProperty().addListener((obs, oldWidth, width) -> {
+            if (applyFit(width.doubleValue())) {
+                refresh();
+            }
+        });
     }
 
     // --- dropdown option lists (pure; unit tested headlessly) -------------
@@ -211,16 +287,92 @@ public class ToolbarView extends HBox {
         return List.of(Language.values());
     }
 
+    // --- overflow fit (RW-15) -------------------------------------------------
+
+    /**
+     * The toolbar row as pure measurement data, in child order: every label
+     * the buttons render and, per dropdown, the popup values plus their
+     * captioned closed form (or the bare value when {@code compact}). Shared
+     * by the live fit decision and the headless DE/FR acceptance measurements
+     * in {@code ToolbarFitTest} - there is no second copy that could drift.
+     */
+    public static List<ToolbarFit.Control> fitControls(Messages messages, boolean compact) {
+        var themeTexts = themeOptions().stream().map(theme -> theme.getDisplayName(messages)).toList();
+        var onOffTexts = List.of(messages.labelOn(), messages.labelOff());
+        var colorTexts = textColorOptions().stream().map(color -> color.getDisplayName(messages)).toList();
+        var sizeTexts = fontSizeOptions(FontSizeManager.DEFAULT_SIZE).stream()
+                .map(String::valueOf).toList();
+        var languageTexts = languageOptions().stream().map(Language::nativeName).toList();
+        // A null caption is the COMPACT form: the closed dropdown shows the bare value.
+        return List.of(
+                ToolbarFit.Control.button(messages.toolbarOpen()),
+                ToolbarFit.Control.button(messages.toolbarSave()),
+                ToolbarFit.Control.button(messages.toolbarUndo()),
+                ToolbarFit.Control.button(messages.toolbarRedo()),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarTheme(), themeTexts),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarYolo(), onOffTexts),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarSound(), onOffTexts),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarColor(), colorTexts),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarFontSize(), sizeTexts),
+                ToolbarFit.Control.button(messages.toolbarAbout()),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarLanguage(), languageTexts),
+                ToolbarFit.Control.spacer()
+        );
+    }
+
+    /**
+     * Applies the overflow decision for the current toolbar width.
+     *
+     * <p>Returns whether the mode changed; the caller re-renders through
+     * {@link #refresh()} - the one sync path. It must return the verdict
+     * instead of refreshing itself: {@link #refresh()} calls back into this
+     * method once the captions (and therefore the required width) have been
+     * re-measured, and a direct recursive refresh would render twice.</p>
+     */
+    private boolean applyFit(double availableWidth) {
+        var next = ToolbarFit.decide(availableWidth, requiredFullWidthPx, layoutMode);
+        if (next == layoutMode) {
+            return false;
+        }
+        layoutMode = next;
+        return true;
+    }
+
+    /** Re-measures the fully-captioned row; see {@link #fitControls}. */
+    private void recomputeFitRequirement() {
+        requiredFullWidthPx = ToolbarFit.requiredWidth(
+                fitControls(messages, false),
+                ToolbarFit.TOOLBAR_FONT_SIZE_PX,
+                ToolbarFit::awtTextWidth);
+    }
+
     // --- the single sync point ---------------------------------------------
 
     /**
      * Re-reads every manager and re-renders the whole toolbar: button texts,
-     * dropdown items (so a language switch re-localises them) and selections
-     * (so a shortcut cannot leave a dropdown stale). Dropdown handlers,
+     * dropdown items (so a language switch re-localises them), selections (so
+     * a shortcut cannot leave a dropdown stale), tooltip and accessible texts,
+     * and the measured width of the fully-captioned row. Dropdown handlers,
      * keyboard shortcuts and the locale listener all end here - there is no
      * second path that could drift out of step.
      */
     public void refresh() {
+        // A language switch re-measures the row (German and French labels are
+        // far wider), so one pass can flip FULL -> COMPACT. The second pass
+        // then renders the collapsed captions. Three passes is a hard stop:
+        // the policy is idempotent, so this loop exits after at most two.
+        for (var pass = 0; pass < 3; pass++) {
+            if (!renderOnce()) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * One render pass of {@link #refresh()}; returns whether the fit mode
+     * changed and another pass is needed.
+     */
+    private boolean renderOnce() {
         refreshing = true;
         try {
             openBtn.setText(messages.toolbarOpen());
@@ -236,6 +388,23 @@ public class ToolbarView extends HBox {
             var size = fontSizeManager.getCurrentSize();
             resync(fontSizeCombo, fontSizeOptions(size), size);
             resync(languageCombo, languageOptions(), localeManager.getCurrent());
+
+            themeCombo.setAccessibleText(messages.toolbarTheme());
+            yoloCombo.setAccessibleText(messages.toolbarYolo());
+            soundCombo.setAccessibleText(messages.toolbarSound());
+            colorCombo.setAccessibleText(messages.toolbarColor());
+            fontSizeCombo.setAccessibleText(messages.toolbarFontSize());
+            languageCombo.setAccessibleText(messages.toolbarLanguage());
+            for (var binding : tooltipBindings) {
+                binding.tooltip().setText(binding.text().get());
+            }
+
+            // Captions are bundle texts, so the fit measurement re-runs here
+            // too - a switch from English to German can change the mode. The
+            // window width is unchanged in that case, so nothing else would
+            // re-evaluate the decision.
+            recomputeFitRequirement();
+            return getWidth() > 0 && applyFit(getWidth());
         } finally {
             refreshing = false;
         }
@@ -328,16 +497,16 @@ public class ToolbarView extends HBox {
     // --- plumbing -------------------------------------------------------------
 
     /**
-     * Builds one flat toolbar dropdown: non-editable, keyboard-transparent
-     * (the shortcuts cover everything), styled by {@code .toolbar-combo}.
-     * {@code onSelect} never runs for values pushed in by {@link #refresh()}.
+     * Builds one flat toolbar dropdown: non-editable, Tab-reachable like the
+     * rest of the toolbar (RW-16; the popup list is keyboard-driven by
+     * JavaFX itself), styled by {@code .toolbar-combo}. {@code onSelect}
+     * never runs for values pushed in by {@link #refresh()}.
      */
     private <T> ComboBox<T> createCombo(List<T> options, StringConverter<T> converter,
                                         java.util.function.Consumer<T> onSelect) {
         var combo = new ComboBox<>(FXCollections.observableArrayList(options));
         combo.setConverter(converter);
         combo.setEditable(false);
-        combo.setFocusTraversable(false);
         combo.getStyleClass().add("toolbar-combo");
         combo.valueProperty().addListener((obs, oldV, newV) -> {
             if (refreshing || newV == null) {
@@ -352,17 +521,23 @@ public class ToolbarView extends HBox {
      * The closed dropdown reads {@code "Theme: Dark"}-style (caption from the
      * bundle, value from the converter), while the open popup lists the plain
      * localised values. The caption is read through the supplier on every
-     * render, so a language switch re-localises button and items together.
+     * render, so a language switch re-localises button and items together. In
+     * {@link ToolbarFit.LayoutMode#COMPACT} the caption is left out and the
+     * closed dropdown shows the bare value - that is the RW-15 degradation.
      */
     private <T> void showAsCaptionedCombo(ComboBox<T> combo, Supplier<String> caption) {
+        combo.setAccessibleRole(AccessibleRole.COMBO_BOX);
         combo.setButtonCell(new ListCell<T>() {
             @Override
             protected void updateItem(T item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
+                } else if (layoutMode == ToolbarFit.LayoutMode.COMPACT) {
+                    setText(combo.getConverter().toString(item));
                 } else {
-                    setText(caption.get() + ": " + combo.getConverter().toString(item));
+                    setText(caption.get() + ToolbarFit.CAPTION_SEPARATOR
+                            + combo.getConverter().toString(item));
                 }
             }
         });
@@ -460,7 +635,18 @@ public class ToolbarView extends HBox {
     private Button createButton(String text) {
         var btn = new Button(text);
         btn.getStyleClass().add("toolbar-button");
-        btn.setFocusTraversable(false);
         return btn;
+    }
+
+    /** Gives a control its tooltip; the text supplier is re-read in every {@link #refresh()}. */
+    private void attachTooltip(Control control, Supplier<String> text) {
+        var tooltip = new Tooltip(text.get());
+        control.setTooltip(tooltip);
+        tooltipBindings.add(new TooltipBinding(tooltip, text));
+    }
+
+    /** Localized label plus the platform-neutral key hint, e.g. {@code "Save (Ctrl+S)"}. */
+    private static String withShortcut(String label, String shortcut) {
+        return label + " (" + shortcut + ")";
     }
 }

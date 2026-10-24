@@ -65,13 +65,22 @@ Canlı istatistik çubuğu:
 - Toplam tuş vuruşu
 - Oturum süresi (SS:DD:SS)
 - Dakikada kelime (WPM) - aktif yazım süresine dayalı kalıcı hız; molalar değeri düşürmez
-- Durum çubuğuna çift tıklandığında boyutu küçük, orta ve büyük arasında döner
+- Durum çubuğu metni varsayılan olarak 13 px'tir ve çift tıklandığında küçük, orta ve büyük arasında döner; rengi üç temada da WCAG AA kontrastını (en az 4.5:1) karşılar
 
 ### Tam Ekran ve Araç Çubuğu
 
 `F11` tam ekranı açar/kapatır, `Escape` tam ekrandan çıkar (platformun varsayılan çıkış
 ipucu gizlenir). Ekranda yalnızca metin kalsın istiyorsanız araç çubuğunu `Ctrl+T` ile
 gizleyebilirsiniz.
+
+Araç çubuğu her pencere genişliğinde tek satır kalır. Altı açılır listenin her biri normalde
+değeriyle birlikte bir başlık gösterir ("Tema: Koyu", "Boyut: 16", "Dil: Deutsch"); başlıklı
+satır sığmadığında altı başlığın tamamı yalın değere iner ("Koyu", "16", "Deutsch"). Bu,
+gerçek yerelleştirilmiş etiketlerden ölçülür; böylece hiçbir şey taşmaz veya kırpılmaz. Beş
+düğme hiçbir zaman daralmaz ve görünür kalır. Her araç çubuğu kontrolüne `Tab` ile soldan sağa
+görsel sırayla ulaşılır (önce düğmeler, sonra açılır listeler), odaklanan kontrol görünür bir
+halka gösterir ve arayüz dilinden gelen, varsa kısayolu da içeren bir tooltip'i vardır; örneğin
+"Kaydet (Ctrl+S)".
 
 ### Veri Güvenliği ve Kurtarma
 
@@ -368,6 +377,8 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `InstanceLockTest` | Örnek kilidinin alınması, aynı JVM'de ikinci alımın reddedilmesi, bırakma ve yinelenebilir kapatma, kullanılamayan kilit dosyasında fail-open davranışı |
 | `LanguageTest` | Yerel dil adlarının her sistem dilinde sabit kod sabitleri olması (`getDisplayLanguage` tuzağı yok) |
 | `ToolbarStateTest` | Ses açılır listesinin tek ayarlayıcısı: yeniden başlatmada kalıcılık, ses motorunun takip etmesi, tekrarların etkisiz olması |
+| `ToolbarFitTest` | Araç çubuğu taşma politikası: başlıklı satırın (düğmeler, açılır listeler, ayırıcı, çerçeve) enjekte edilen ölçülerle nasıl hesaplandığı, FULL→COMPACT geçişi ve 40 px histerezisi; ayrıca Almanca ve Fransızcanın 1280 px'te kırpılmadığını ve daraltılmış satırın altı dilde 900 px'e sığdığını kanıtlayan kabul testleri |
+| `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni, odak halkası veya popup hücresi kuralları AA'nın / 13 px'in altına düşerse ya da odak rengi yeniden saydamlaşırsa derlemeyi başarısız kılan CSS ayrıştırma korumaları |
 
 ---
 
