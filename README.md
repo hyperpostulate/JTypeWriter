@@ -259,9 +259,9 @@ running instance crashes, so a crash never locks you out.
 
 ### Multiple Themes
 
-Three built-in themes:
-- **Dark** - Default, easy on the eyes
+Three built-in themes, cycled in this order by `Ctrl+Shift+T`:
 - **Light** - Clean and bright
+- **Dark** - Default, easy on the eyes
 - **Sepia** - Warm, paper-like feel
 
 ### Text Colors
@@ -270,7 +270,7 @@ Six text colors (one default plus five accents): Default, Sage, Lavender, Sand, 
 
 ### Multi-Language Support
 
-6 languages: English, Turkish, German, French, Italian, Spanish. Toolbar, dialogs and the status bar update immediately when the language is switched.
+6 languages: English, Turkish, German, French, Italian, Spanish. Toolbar, dialogs, the window title and the status bar update immediately when the language is switched.
 
 ---
 
@@ -281,7 +281,7 @@ Shortcuts use `Ctrl` on Windows/Linux and `⌘` (Cmd) on macOS — plain `Ctrl` 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+T` | Toggle toolbar |
-| `Ctrl+Shift+T` | Cycle through the three themes |
+| `Ctrl+Shift+T` | Cycle through the three themes (Light, Dark, Sepia) |
 | `Ctrl+Shift+Y` | Toggle YOLO mode |
 | `Ctrl+Shift+C` | Cycle text color |
 | `Ctrl++` | Increase font size |
@@ -652,9 +652,9 @@ bırakmaz.
 
 ### Çoklu Tema
 
-Üç yerleşik tema:
-- **Koyu** - Varsayılan, göz yormaz
+Üç yerleşik tema (`Ctrl+Shift+T` bu sırayla geçer):
 - **Açık** - Temiz ve parlak
+- **Koyu** - Varsayılan, göz yormaz
 - **Sepya** - Sıcak, kağıt hissi
 
 ### Metin Renkleri
@@ -663,7 +663,7 @@ Altı metin rengi (bir varsayılan + beş vurgu rengi): Varsayılan, Adaçayı, 
 
 ### Çoklu Dil Desteği
 
-6 dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Dil değiştirildiğinde araç çubuğu, diyaloglar ve durum çubuğu anında güncellenir.
+6 dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Dil değiştirildiğinde araç çubuğu, diyaloglar, pencere başlığı ve durum çubuğu anında güncellenir.
 
 ---
 
@@ -674,7 +674,7 @@ Kısayollar Windows/Linux'ta `Ctrl`, macOS'ta `⌘` (Cmd) ile çalışır — ma
 | Kısayol | İşlem |
 |---------|-------|
 | `Ctrl+T` | Araç çubuğunu aç/kapat |
-| `Ctrl+Shift+T` | Üç tema arasında geçiş yap |
+| `Ctrl+Shift+T` | Üç tema arasında geçiş yap (Açık, Koyu, Sepya) |
 | `Ctrl+Shift+Y` | YOLO modunu aç/kapat |
 | `Ctrl+Shift+C` | Metin rengini değiştir |
 | `Ctrl++` | Font boyutunu artır |
