@@ -43,7 +43,7 @@ Tek tek ele alındığında 1-2 saatlik, toplamda ürün algısını değiştire
 | RW-05 | **Yeni Belge** (`Ctrl+N`) + belge yüklerken undo geçmişini sıfırla | S | Editörün en temel eksiği; YOLO açıkken yeni belge imkânsız | `FileService.java:87-170`, `FxApplication.java:77-80` — **tamamlandı:** `FileService.newDocument` ortak kaydet/at/iptal kapısını kullanıyor; yeni belge yolsuz, temiz, UTF-8 (kodlama devralınmıyor). Tüm belge yükleme noktaları `EditorArea.setDocument` üzerinden geçiyor; `UndoHistoryReset` geri al/ileri al geçmişini sıfırlıyor (yansıma; sınıf yoluyla çalışır, modül yolunda uyarı loglayıp `setText` davranışına düşer). `Ctrl+N` altı bundle'da kısayol listesine eklendi |
 | RW-06 | Log formatter'a **stack trace** ekle | S | Şu an hata raporu teşhis edilemez | `AppLogging.java:37-43` — **tamamlandı:** başlık satırı tek satır kalıyor; fırlatılan istisna 4 boşluk girintili tam yığın izi ve `Caused by:` zinciri olarak yazılıyor; biçimlendirici asla istisna fırlatmıyor (bozuk `printStackTrace` eski tek satırlık biçime düşer) |
 | RW-07 | Bozuk ayarları `.corrupt` olarak **karantinaya al** | S | Sessiz üzerine yazma | `AppSettings.java:179-199` — **tamamlandı:** `Properties.load`/okuma hatasında dosya `settings.properties.corrupt` (doluysa `.corrupt.<millis>`, eskisi korunur) adına taşınıyor; taşınamazsa uyarı loglanıp dosya yerinde bırakılıyor. Varsayılanlara dönüş ve public API değişmedi |
-| RW-08 | **Uygulama ikonu** ekle (`--icon`, pencereler, görev çubuğu) | S | İlk izlenimde "gerçek uygulama" sinyali | `package.sh`, `src/main/resources` |
+| RW-08 | **Uygulama ikonu** ekle (`--icon`, pencereler, görev çubuğu) | S | İlk izlenimde "gerçek uygulama" sinyali | `scripts/generate-icons.py`, `AppIcons.java:49`, `package.sh:80-95` — **tamamlandı:** ikonun tek kaynağı `src/main/resources/icons/jtypewriter.svg`; `scripts/generate-icons.py` bundan 16..1024 px PNG setini + Windows `.ico` + macOS `.icns` üretiyor (`--check` bayat asset'i yakalar). `AppIcons.applyTo` altı PNG'yi `stage.getIcons()`'a veriyor (pencere/görev çubuğu/dock); eksik veya bozuk asset başlangıcı düşürmüyor, `AppLogging`'e yazılıyor. `package.sh` platforma göre PNG/.ico/.icns seçip `--icon` ile hem app-image hem installer'a geçiyor; eksikse net hata verip duruyor. `AppIconsTest` 5 test (classpath, PNG boyutları, ICO/ICNS magic byte'ları) |
 | RW-09 | Diyaloglara pencere **başlığı** ver; `showError`'ı ana pencereye **sahiplendir** | S | Görev değiştiricide boş isim, arkada kalan hata | `WelcomeDialog.java:66`, `AboutDialog.java:99`, `DialogService.java:203-210` |
 | RW-10 | DE `toolbarRedo` → **Wiederholen**; TR hoş geldin metnini tamamla; `recoveryNo` → **Vazgeç** (TR/FR/IT) | S | Yanlış çeviri veri kaybı riskini artırıyor | `messages_de.properties:56`, `messages_tr.properties:28,66` |
 | RW-11 | Dil değişiminde **pencere başlığını** yenile | S | Başlık eski dilde kalıyor | `MainController.java:35-67` |
@@ -51,7 +51,7 @@ Tek tek ele alındığında 1-2 saatlik, toplamda ürün algısını değiştire
 | RW-13 | README dürüstlüğü: fat JAR platforma özgü; WAV kaynağı; macOS `⌘` | S | Yanlış vaat güven kaybı | `README.md` — **tamamlandı (17b72cf):** EN + TR eşlendi; ince/fat JAR ayrımı, fat JAR'ın platforma özgülüğü, atomik move fallback'i, BOM tabanlı kodlama tespiti, tema döngüsü, çoklu dil kapsamı, tek örnek kilidi, tam ekran/araç çubuğu, durum çubuğu boyut döngüsü, mimari ve test tabloları gerçek davranışa göre düzeltildi |
 | RW-14 | `--license-file` ile kuruluma **lisans dosyası** ekle | S | GPLv3 dağıtım uyumu | `package.sh` |
 
-**P0 ilk gün sırası:** RW-01 → RW-02 → RW-03 → RW-04 (tek oturum, kurtarma alt sistemi) → RW-05 → RW-06/07 (bağımsız, paralel) → RW-10/11/12 (i18n/UI tek oturum) → RW-08/09/14. RW-01 (kurtarma iptali), RW-02..04 (kurtarma deposu), RW-05 (yeni belge + undo sıfırlama), RW-06 (log yığın izi), RW-07 (ayar karantinası) ve RW-13 (README hizalaması) **tamamlandı**; kalan P0 işleri (RW-08..12, RW-15..20) uygulandıkça EN + TR README'ye işlenir.
+**P0 ilk gün sırası:** RW-01 → RW-02 → RW-03 → RW-04 (tek oturum, kurtarma alt sistemi) → RW-05 → RW-06/07 (bağımsız, paralel) → RW-10/11/12 (i18n/UI tek oturum) → RW-08/09/14. RW-01 (kurtarma iptali), RW-02..04 (kurtarma deposu), RW-05 (yeni belge + undo sıfırlama), RW-06 (log yığın izi), RW-07 (ayar karantinası), RW-08 (uygulama ikonu) ve RW-13 (README hizalaması) **tamamlandı**; kalan P0 işleri (RW-09..12, RW-15..20) uygulandıkça EN + TR README'ye işlenir.
 
 ### P0 kalan işler (gün 2-5) — "profesyonel görünüm"
 
@@ -71,7 +71,7 @@ Tek tek ele alındığında 1-2 saatlik, toplamda ürün algısını değiştire
 3. Uygulama ikonu, pencere başlıkları, tooltip'ler, odak halkaları mevcut; toolbar DE/FR'de taşmıyor.
 4. 6 bundle'da çeviri hatası yok; dil değişimi tüm görünür metni yeniliyor.
 5. `mvn clean test` yeşil; TR/DE locale koşuları yeşil; `package.sh --installer` çalışıyor.
-6. README (EN + TR) ürünün gerçekten yaptığını anlatıyor — temel hizalama **tamamlandı**; kalan P0 işleri (RW-01..05, RW-08/09) uygulandıkça iki dilde güncellenir.
+6. README (EN + TR) ürünün gerçekten yaptığını anlatıyor — temel hizalama **tamamlandı**; kalan P0 işleri (RW-09..12, RW-15..20) uygulandıkça iki dilde güncellenir.
 
 ---
 
@@ -240,6 +240,6 @@ Bilinçli olarak **yapılmayacak** işler — kapsam kaymasını önlemek için 
 
 1. **RW-01 + RW-02 + RW-03** — kurtarma alt sistemi tek oturumda; ardından RW-24'ün ilk sürümü (kill-testi) yazılır. Bu, ürünün en büyük riskini kapatır ve regresyon koruması kurar. *Durum: RW-01..04 tamamlandı; sırada RW-24 (uçtan uca kill-testi).*
 2. **RW-05 + RW-06 + RW-07** — bağımsız, düşük riskli; ilk gün içinde üç görünür kazanç. *Durum: tamamlandı.*
-3. **RW-08 + RW-09 + RW-10/11/12** — "profesyonel görünüm" partisi; ilk ekran görüntüsü yayınlanabilir hale gelir.
+3. **RW-08 + RW-09 + RW-10/11/12** — "profesyonel görünüm" partisi; ilk ekran görüntüsü yayınlanabilir hale gelir. *Durum: RW-08 tamamlandı; sırada RW-09.*
 
 > Bu üç adım ~3 günde tamamlanır ve P0'ın en görünür %60'ını kapatır.

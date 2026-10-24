@@ -1,6 +1,17 @@
-# JTypeWriter
+<p align="center">
+  <img src="src/main/resources/icons/jtypewriter-512.png" alt="JTypeWriter" width="512" height="512">
+</p>
 
-[![Java CI](https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml/badge.svg)](https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+<h1 align="center">JTypeWriter</h1>
+
+<p align="center">
+  <a href="https://github.com/hyperpostulate/JTypeWriter/blob/main/pom.xml"><img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25"></a>
+  <img src="https://img.shields.io/badge/Platforms-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg" alt="Platforms">
+  <img src="https://img.shields.io/badge/Languages-6-blue.svg" alt="6 languages">
+  <a href="https://www.gnu.org/licenses/gpl-3.0"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
+  <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml/badge.svg" alt="Java CI"></a>
+  <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fhyperpostulate%2FJTypeWriter%2Fgh-pages%2Fbadges%2Ftests.json" alt="Tests"></a>
+</p>
 
 A distraction-free text editor built with JavaFX. Uses plain-Java dependency injection (manual composition root, no DI framework) for focused writing with typewriter sound effects, real-time statistics, multiple themes, and multi-language support.
 
@@ -69,6 +80,11 @@ platform installer (`.deb`, `.msi`, `.dmg`) for Linux, Windows and macOS - the s
 command the CI workflow runs. The application version has a single source of truth:
 `pom.xml`. The script reads it back from the built artifact and validates it against
 jpackage's rules (macOS, for one, rejects `0.x` bundle versions).
+
+The launcher, window and taskbar icon is generated from the single source of the
+artwork, `src/main/resources/icons/jtypewriter.svg`: `scripts/generate-icons.py`
+regenerates the PNG set plus the Windows `.ico` and macOS `.icns` (`--check` verifies
+they are current), and `scripts/package.sh` picks the right format per platform.
 
 ---
 
@@ -363,9 +379,20 @@ This project is licensed under the GNU General Public License v3.0. See [LICENSE
 
 ---
 
-# JTypeWriter
+<p align="center">
+  <img src="src/main/resources/icons/jtypewriter-512.png" alt="JTypeWriter" width="512" height="512">
+</p>
 
-[![Java CI](https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml/badge.svg)](https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml) [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+<h1 align="center">JTypeWriter</h1>
+
+<p align="center">
+  <a href="https://github.com/hyperpostulate/JTypeWriter/blob/main/pom.xml"><img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25"></a>
+  <img src="https://img.shields.io/badge/Platforms-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg" alt="Platforms">
+  <img src="https://img.shields.io/badge/Languages-6-blue.svg" alt="6 languages">
+  <a href="https://www.gnu.org/licenses/gpl-3.0"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
+  <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml/badge.svg" alt="Java CI"></a>
+  <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fhyperpostulate%2FJTypeWriter%2Fgh-pages%2Fbadges%2Ftests.json" alt="Tests"></a>
+</p>
 
 JavaFX ile oluşturulmuş, dikkat dağıtmayan bir metin editörü. Bağımlılık enjeksiyonu framework'süz, saf Java ile (manuel kompozisyon kökü) yapılır. Daktilo ses efektleri, gerçek zamanlı istatistikler, çoklu tema ve çoklu dil desteği ile odaklanarak yazma deneyimi sunar.
 
@@ -433,6 +460,12 @@ Linux, Windows ve macOS için platform kurulum paketine (`.deb`, `.msi`, `.dmg`)
 CI iş akışının çalıştırdığı komut da budur. Uygulama sürümünün tek kaynağı `pom.xml`'dir:
 script sürümü üretilen artefaktten geri okur ve jpackage kurallarına karşı doğrular
 (örneğin macOS `0.x` paket sürümlerini reddeder).
+
+Başlatıcı, pencere ve görev çubuğu simgesi, görselin tek kaynağı olan
+`src/main/resources/icons/jtypewriter.svg` dosyasından üretilir: `scripts/generate-icons.py`
+PNG setini, Windows `.ico` ve macOS `.icns` dosyalarını yeniden oluşturur (`--check`
+güncelliklerini doğrular); `scripts/package.sh` platforma göre doğru biçimi seçip
+`jpackage`'a aktarır.
 
 ---
 
