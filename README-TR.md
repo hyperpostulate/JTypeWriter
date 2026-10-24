@@ -264,6 +264,7 @@ org.mesutormanli.jtypewriter
 │   ├── BackupKeeper.java                 # Yazımdan önce dönen .bak yedekleri
 │   ├── DialogService.java                # FileChooser ve Alert dialog yönetimi
 │   ├── FileService.java                  # Atomik dosya G/Ç (kodlama korumalı)
+│   ├── RecoveryChoice.java               # Kurtarma istemine yanıt (geri yükle / sil / sonra sor)
 │   ├── RecoveryStore.java                # Çökme kurtarma taslak deposu
 │   └── TextCodec.java                    # Kodlama tespiti + kayıpsız gidiş-dönüş
 ├── stats/
@@ -271,6 +272,7 @@ org.mesutormanli.jtypewriter
 ├── ui/
 │   ├── MainController.java               # Kök yerleşim denetleyicisi
 │   ├── MainStage.java                    # Sahne yapılandırması (tam ekran, kapatma)
+│   ├── AppIcons.java                     # /icons/ altından pencere/görev çubuğu/dock ikonları
 │   ├── WelcomeDialog.java                # Kısayollarla hoş geldin ekranı
 │   ├── AboutDialog.java                  # Yazar bilgisiyle hakkında dialogu
 │   ├── KeyboardShortcutHandler.java      # Merkezi klavye kısayolu yönetimi
@@ -280,15 +282,19 @@ org.mesutormanli.jtypewriter
 │   │   ├── EditorArea.java               # YOLO politikasını uygulayan TextArea
 │   │   ├── YoloPolicy.java               # YOLO modu düzenleme politikası (saf mantık)
 │   │   ├── EditorKeyHandler.java         # Tuş vuruşu sesi + istatistik takibi
+│   │   ├── UndoHistoryReset.java         # Belge yüklenirken geri al/ileri al geçmişini temizler (yansıma)
 │   │   ├── StatsBar.java                 # Alt durum çubuğu (saat + istatistikler)
+│   │   ├── StatsBarState.java            # Kalıcı durum çubuğu boyutu (Node olmayan durum)
 │   │   ├── ToolbarView.java              # Üst araç çubuğu (dosya/düzenleme düğmeleri + ayar açılır listeleri)
+│   │   ├── ToolbarFit.java               # Araç çubuğu taşma politikası (saf, başsız ölçüm)
 │   │   └── ToolbarState.java             # YOLO modu + ses aç/kapa durumu
 │   └── theme/
 │       ├── Theme.java                    # Tema enum'u (Açık/Koyu/Sepya)
 │       ├── ThemeManager.java             # CSS stil sayfası yükleme ve değiştirme
 │       ├── FontSizeManager.java          # Editör font boyutu durumu
 │       ├── TextColorManager.java         # Metin rengi döngüsü durumu
-│       └── TextColor.java                # CSS değerleriyle metin rengi enum'u
+│       ├── TextColor.java                # CSS değerleriyle metin rengi enum'u
+│       └── ContrastRatio.java            # WCAG kontrast matematiği (saf, CSS denetimli)
 ├── JTypeWriterApp.java                   # Ana giriş noktası
 ├── AppDirs.java                          # Kullanıcı veri/log/kurtarma/ayar dizinleri
 ├── AppGraph.java                         # Kompozisyon kökü (manuel bağımlılık enjeksiyonu)
@@ -310,12 +316,16 @@ org.mesutormanli.jtypewriter
 | `StatsBar` | Saati ve canlı oturum istatistiklerini alt çubukta gösterir |
 | `KeyboardShortcutHandler` | Merkezi klavye kısayolu yönlendirmesi |
 | `ToolbarView` | Tüm editör kontrollerini içeren üst araç çubuğu |
+| `ToolbarFit` | Araç çubuğu taşma politikası: başlıklı satır sığmadığında açılır liste başlıklarını değere indiren saf, JavaFX'siz ölçüm |
 | `ToolbarState` | YOLO modu ve ses aç/kapa durumunu yönetir |
+| `StatsBarState` | Kalıcı durum çubuğu boyutu; nötr `AppSettings.StatsBarSize` üzerinden Node olmayan durum |
+| `AppIcons` | `/icons/` altından yüklenen pencere, görev çubuğu ve dock ikon seti; eksik varlık açılışı bozmaz |
 | `FileService` | Atomik dosya G/Ç (geçici dosya + fsync + taşıma), kodlama korumalı |
 | `DialogService` | UI dialog yönetimi (FileChooser, Alert) |
 | `TextCodec` | Kodlama tespiti (BOM/UTF-8) ve kayıpsız gidiş-dönüşler |
 | `BackupKeeper` | Yazımdan önce alınan dönen `.bak` yedekleri |
 | `RecoveryStore` | Çökme kurtarma taslakları: `~/.jtypewriter/recovery/` altında oturum başına tek atomik `draft-<uuid>.jtw` dosyası; ayrıca "sonra sor" denen taslak için `pending-<uuid>.jtw` |
+| `RecoveryChoice` | Kurtarma istemine yanıt: geri yükle, sil veya sonra sor; `LATER` hiçbir şeyi silmeyen ve geri yüklemeyen güvenli varsayılan |
 | `AutoSaveService` | Dönemsel taslak anlık görüntüleri ve açılışta kurtarma teklifi |
 | `CrashHandler` | Global çökme ağı: log + kullanıcıya hata diyaloğu |
 | `InstanceLock` | İkinci örneği kullanıcı başına reddeden danışma amaçlı dosya kilidi |
@@ -323,6 +333,7 @@ org.mesutormanli.jtypewriter
 | `AppSettings` | `~/.jtypewriter/settings.properties` altında kalıcı tercihler |
 | `AtomicFiles` | Dayanıklı atomik dosya yazımı (fsync, rename, dizin flush) |
 | `ThemeManager` | CSS tema yükleme ve değiştirme |
+| `ContrastRatio` | WCAG 2.1 kontrast matematiği; gerçek tema CSS'i başsız denetlenebilsin diye JavaFX'siz |
 | `FontSizeManager` | Editör font boyutu durumu (10-48px) |
 | `TextColorManager` | Metin rengi döngüsü durumu |
 | `SessionStats` | Gerçek zamanlı yazma istatistikleri (WPM, kelime/karakter/satır sayısı) |

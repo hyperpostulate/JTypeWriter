@@ -263,6 +263,7 @@ org.mesutormanli.jtypewriter
 │   ├── BackupKeeper.java                 # Rotating .bak backups before overwrites
 │   ├── DialogService.java                # FileChooser & Alert dialog management
 │   ├── FileService.java                  # Atomic file I/O (encoding-stable)
+│   ├── RecoveryChoice.java               # Answer to the "recover draft" prompt (restore / discard / later)
 │   ├── RecoveryStore.java                # Crash-recovery draft storage
 │   └── TextCodec.java                    # Encoding detection & lossless round trips
 ├── stats/
@@ -270,6 +271,7 @@ org.mesutormanli.jtypewriter
 ├── ui/
 │   ├── MainController.java               # Root layout controller
 │   ├── MainStage.java                    # Stage configuration (fullscreen, close)
+│   ├── AppIcons.java                     # Window/taskbar/dock icon set from /icons/
 │   ├── WelcomeDialog.java                # Welcome screen with shortcuts
 │   ├── AboutDialog.java                  # About dialog with author info
 │   ├── KeyboardShortcutHandler.java      # Centralized keyboard shortcut handling
@@ -279,15 +281,19 @@ org.mesutormanli.jtypewriter
 │   │   ├── EditorArea.java               # TextArea enforcing the YOLO policy
 │   │   ├── YoloPolicy.java               # YOLO mode edit policy (pure logic)
 │   │   ├── EditorKeyHandler.java         # Keystroke sound + stats tracking
+│   │   ├── UndoHistoryReset.java         # Clears undo/redo on document load (reflectively)
 │   │   ├── StatsBar.java                 # Bottom status bar (clock + stats)
+│   │   ├── StatsBarState.java            # Persisted status-bar size (non-Node state)
 │   │   ├── ToolbarView.java              # Top toolbar (file/edit buttons + settings dropdowns)
+│   │   ├── ToolbarFit.java               # Toolbar overflow policy (pure, headless measurement)
 │   │   └── ToolbarState.java             # YOLO mode + sound on/off state
 │   └── theme/
 │       ├── Theme.java                    # Theme enum (Light/Dark/Sepia)
 │       ├── ThemeManager.java             # CSS stylesheet loading & switching
 │       ├── FontSizeManager.java          # Editor font size state
 │       ├── TextColorManager.java         # Text color cycling state
-│       └── TextColor.java                # Text color enum with CSS values
+│       ├── TextColor.java                # Text color enum with CSS values
+│       └── ContrastRatio.java            # WCAG contrast maths (pure, CSS-audited)
 ├── JTypeWriterApp.java                   # Main entry point
 ├── AppDirs.java                          # Per-user data/log/recovery/settings directories
 ├── AppGraph.java                         # Composition root (manual dependency injection)
@@ -309,12 +315,16 @@ org.mesutormanli.jtypewriter
 | `StatsBar` | Renders the clock and live session statistics in the bottom bar |
 | `KeyboardShortcutHandler` | Centralized keyboard shortcut routing |
 | `ToolbarView` | Top toolbar with all editor controls |
+| `ToolbarFit` | Toolbar overflow policy: pure, JavaFX-free measurement that collapses the dropdown captions when the captioned row would not fit |
 | `ToolbarState` | Manages YOLO mode and sound on/off state |
+| `StatsBarState` | Persisted status-bar size; non-Node state over a neutral `AppSettings.StatsBarSize` |
+| `AppIcons` | Window, taskbar and dock icon set loaded from `/icons/`; a missing asset never breaks startup |
 | `FileService` | Atomic file I/O (temp write + fsync + move) with encoding stability |
 | `DialogService` | UI dialog management (FileChooser, Alert) |
 | `TextCodec` | Encoding detection (BOM/UTF-8) and lossless round trips |
 | `BackupKeeper` | Rotating `.bak` backups taken before overwrites |
 | `RecoveryStore` | Crash-recovery draft storage: one atomic `draft-<uuid>.jtw` file per session under `~/.jtypewriter/recovery/`, plus `pending-<uuid>.jtw` for a draft the user postponed |
+| `RecoveryChoice` | Answer to the recovery prompt: restore, discard or later; `LATER` is the safe default that neither deletes nor restores |
 | `AutoSaveService` | Periodic draft snapshots and startup recovery offer |
 | `CrashHandler` | Global crash net: logging plus user-facing error dialog |
 | `InstanceLock` | Advisory file lock that rejects a second instance per user |
@@ -322,6 +332,7 @@ org.mesutormanli.jtypewriter
 | `AppSettings` | Persisted preferences under `~/.jtypewriter/settings.properties` |
 | `AtomicFiles` | Durable atomic file writes (fsync, rename, directory flush) |
 | `ThemeManager` | CSS theme loading and switching |
+| `ContrastRatio` | WCAG 2.1 contrast maths, JavaFX-free so the real theme CSS can be audited headlessly |
 | `FontSizeManager` | Editor font size state (10-48px) |
 | `TextColorManager` | Text color cycling state |
 | `SessionStats` | Real-time writing statistics (WPM, word/char/line count) |
