@@ -192,6 +192,13 @@ public class FileService {
                     currentBom = onDisk.bom();
                 }
                 currentFilePath = file;
+            } catch (TextCodec.MalformedDocumentException malformed) {
+                // The draft is what matters here; a damaged original must not
+                // abort the restore, but it must not be silent either.
+                LOG.log(Level.WARNING, "recovered file " + file
+                        + " has malformed " + malformed.declaredCharset().name()
+                        + " content under its byte-order mark; keeping the default encoding", malformed);
+                currentFilePath = file;
             } catch (IOException e) {
                 LOG.log(Level.WARNING, "could not detect encoding of recovered file " + file, e);
             }
@@ -264,7 +271,21 @@ public class FileService {
 
     /** @return the decoded document, or {@code null} when the user cancelled the encoding prompt */
     private TextCodec.Result decode(byte[] bytes, javafx.stage.Stage stage, Path path) {
-        var decoded = TextCodec.decode(bytes);
+        TextCodec.Result decoded;
+        try {
+            decoded = TextCodec.decode(bytes);
+        } catch (TextCodec.MalformedDocumentException malformed) {
+            // The BOM promised an encoding the bytes do not honour: never show
+            // replacement characters without the user's explicit consent.
+            LOG.log(Level.WARNING, "malformed " + malformed.declaredCharset().name()
+                    + " content under the byte-order mark of " + path, malformed);
+            if (!dialogService.showMalformedEncodingDialog(stage, path, malformed.declaredCharset())) {
+                return null; // open aborted: the current document stays untouched
+            }
+            LOG.log(Level.WARNING, "opening " + path + " as " + malformed.declaredCharset().name()
+                    + " with replacement characters, confirmed by the user");
+            return TextCodec.decodeBomWithReplacement(bytes, malformed.declaredCharset());
+        }
         if (decoded != null) {
             return decoded;
         }

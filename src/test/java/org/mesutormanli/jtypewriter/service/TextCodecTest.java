@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Regression tests for the encoding contract: detection must recognize BOMs
@@ -20,7 +21,7 @@ class TextCodecTest {
     private static final String TURKISH = "çöğüÇĞÜİıŞş";
 
     @Test
-    void detectsPlainUtf8() {
+    void detectsPlainUtf8() throws Exception {
         var bytes = "Merhaba dünya".getBytes(StandardCharsets.UTF_8);
 
         var result = TextCodec.decode(bytes);
@@ -53,7 +54,7 @@ class TextCodecTest {
     }
 
     @Test
-    void refusesToGuessLegacyEncodings() {
+    void refusesToGuessLegacyEncodings() throws Exception {
         // Windows-1254 Turkish letters are not valid UTF-8: detection must ask
         var ansi = TURKISH.getBytes(TextCodec.WINDOWS_1254);
 
@@ -87,10 +88,74 @@ class TextCodecTest {
     }
 
     @Test
-    void emptyDocumentDecodes() {
+    void emptyDocumentDecodes() throws Exception {
         var result = TextCodec.decode(new byte[0]);
 
         assertEquals("", result.text());
+    }
+
+    // --- damaged byte-order marks: strict, never silent U+FFFD -------------
+
+    @Test
+    void malformedUtf8BomIsRejectedInsteadOfReplaced() {
+        var bytes = new byte[]{
+                (byte) 0xEF, (byte) 0xBB, (byte) 0xBF, // UTF-8 BOM
+                (byte) 0xC3, 0x28                       // invalid continuation byte
+        };
+
+        var failure = assertThrows(TextCodec.MalformedDocumentException.class,
+                () -> TextCodec.decode(bytes));
+
+        assertEquals(StandardCharsets.UTF_8, failure.declaredCharset());
+        assertTrue(failure.declaredByBom());
+    }
+
+    @Test
+    void truncatedUtf16LeBomIsRejected() {
+        // "A" plus a dangling low byte: an odd-length UTF-16LE payload
+        var bytes = new byte[]{(byte) 0xFF, (byte) 0xFE, 0x41, 0x00, 0x42};
+
+        var failure = assertThrows(TextCodec.MalformedDocumentException.class,
+                () -> TextCodec.decode(bytes));
+
+        assertEquals(StandardCharsets.UTF_16LE, failure.declaredCharset());
+        assertTrue(failure.declaredByBom());
+    }
+
+    @Test
+    void truncatedUtf16BeBomIsRejected() {
+        var bytes = new byte[]{(byte) 0xFE, (byte) 0xFF, 0x00, 0x41, 0x00};
+
+        var failure = assertThrows(TextCodec.MalformedDocumentException.class,
+                () -> TextCodec.decode(bytes));
+
+        assertEquals(StandardCharsets.UTF_16BE, failure.declaredCharset());
+        assertTrue(failure.declaredByBom());
+    }
+
+    @Test
+    void loneSurrogateInUtf16BomIsRejected() {
+        // U+D800 high surrogate with no low surrogate after it
+        var bytes = new byte[]{(byte) 0xFF, (byte) 0xFE, 0x00, (byte) 0xD8};
+
+        var failure = assertThrows(TextCodec.MalformedDocumentException.class,
+                () -> TextCodec.decode(bytes));
+
+        assertEquals(StandardCharsets.UTF_16LE, failure.declaredCharset());
+    }
+
+    @Test
+    void replacementCharactersOnlyAppearWhenExplicitlyRequested() {
+        var bytes = new byte[]{
+                (byte) 0xEF, (byte) 0xBB, (byte) 0xBF,
+                (byte) 0xC3, 0x28
+        };
+
+        var lossy = TextCodec.decodeBomWithReplacement(bytes, StandardCharsets.UTF_8);
+
+        assertTrue(lossy.text().contains("\uFFFD"));
+        assertEquals(StandardCharsets.UTF_8, lossy.charset());
+        assertTrue(lossy.bom());
     }
 
     // --- strict encoding: never silently drop characters -------------------

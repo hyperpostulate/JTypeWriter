@@ -18,11 +18,14 @@ import org.mesutormanli.jtypewriter.ui.WelcomeDialog;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 import org.mesutormanli.jtypewriter.ui.component.EditorKeyHandler;
 import org.mesutormanli.jtypewriter.ui.component.StatsBar;
+import org.mesutormanli.jtypewriter.ui.component.StatsBarState;
 import org.mesutormanli.jtypewriter.ui.component.ToolbarState;
 import org.mesutormanli.jtypewriter.ui.component.ToolbarView;
 import org.mesutormanli.jtypewriter.ui.theme.FontSizeManager;
 import org.mesutormanli.jtypewriter.ui.theme.TextColorManager;
 import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
+
+import java.time.LocalTime;
 
 /**
  * Composition root of the application: builds the whole object graph in one
@@ -53,6 +56,7 @@ public final class AppGraph {
     public final TextColorManager textColorManager = new TextColorManager(settings);
     public final FontSizeManager fontSizeManager = new FontSizeManager(settings);
     public final ToolbarState toolbarState = new ToolbarState(typewriterSound, settings);
+    public final StatsBarState statsBarState = new StatsBarState(settings);
 
     // --- editor and its handlers -----------------------------------------
     public final EditorArea editorArea = new EditorArea(messages);
@@ -65,13 +69,14 @@ public final class AppGraph {
     public final ToolbarView toolbarView = new ToolbarView(
             fileService, themeManager, textColorManager, fontSizeManager,
             toolbarState, messages, localeManager, aboutDialog);
-    public final StatsBar statsBar = new StatsBar(sessionStats, messages);
+    public final StatsBar statsBar = new StatsBar(sessionStats, messages, statsBarState);
     public final CrashHandler crashHandler = new CrashHandler(messages, () -> this.stage);
 
     // --- top level assembly ------------------------------------------------
     public final MainController mainController = new MainController(
             editorArea, toolbarView, statsBar,
-            fileService, messages, localeManager, shortcutHandler, editorKeyHandler);
+            fileService, messages, localeManager, shortcutHandler, editorKeyHandler,
+            settings, LocalTime::now);
     public final MainStage mainStage = new MainStage(fileService, settings);
 
     private volatile Stage stage;

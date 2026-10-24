@@ -66,6 +66,7 @@ Live stats bar showing:
 - Session duration (HH:MM:SS)
 - Words per minute (WPM) - sustained speed based on active typing time, so breaks do not drag it down
 - The status bar text is 13 px by default and cycles between small, medium and large when you double-click it; its colour meets WCAG AA contrast (at least 4.5:1) in all three themes
+- A successful save stamps the status bar with its time, e.g. `Saved 12:04`; it clears on the next edit, and it marks a real save rather than the 30-second autosave draft snapshot
 
 ### Fullscreen & Toolbar
 
@@ -82,12 +83,18 @@ toolbar control is reachable with `Tab` in left-to-right visual order (buttons f
 the dropdowns), shows a visible focus ring, and has a tooltip from the UI language that
 includes the shortcut where one exists, such as "Save (Ctrl+S)".
 
+The toolbar's shown or hidden state, fullscreen and the status bar's size are all
+remembered across restarts. A window left in fullscreen comes back in fullscreen, and
+that choice is saved the moment you toggle it rather than only on exit. Restoring
+fullscreen never fights the remembered window position and size: fullscreen wins at
+startup, and leaving it later lands on the remembered position.
+
 ### Data Safety & Crash Recovery
 
 - **Atomic, durable saves with backups:** every save is written to a temp file, fsynced and then renamed into place, so a crash mid-save or a power cut cannot leave a truncated document; when the file system does not support an atomic move, the rename degrades to a plain move with the bytes already on disk. Overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`) and preserve the document's existing file permissions
 - **Document awareness:** the window title shows the open document name and a `*` while there are unsaved changes (alongside the `[YOLO]` badge). `Ctrl+N` starts a fresh untitled document (it also works while YOLO mode is on) after the same save/discard/cancel prompt as opening a file; loading or creating a document clears the undo history, so `Ctrl+Z` can never bring back the previous document's text
 - **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`; after a crash the draft is offered for restoration on the next startup. The prompt offers restore, discard and later - closing it never deletes the draft, a postponed draft is offered again on the next start, and autosave keeps running for the document you are editing
-- **Encoding safety:** a BOM-marked file is decoded with the encoding of its BOM; a file without a BOM must be valid UTF-8, otherwise you are asked whether it is Windows-1254 or UTF-8 instead of getting silent corruption. Documents are written back in the same encoding unless you accept the offered switch to UTF-8 when the text no longer fits (e.g. a pasted emoji in a Windows-1254 file) - unmappable characters are never silently replaced with `?`
+- **Encoding safety:** a BOM-marked file is decoded with the encoding of its BOM; a file without a BOM must be valid UTF-8, otherwise you are asked whether it is Windows-1254 or UTF-8 instead of getting silent corruption. Documents are written back in the same encoding unless you accept the offered switch to UTF-8 when the text no longer fits (e.g. a pasted emoji in a Windows-1254 file) - unmappable characters are never silently replaced with `?`. A byte-order mark that declares UTF-8 or UTF-16 while some bytes are invalid for that encoding is no longer decoded silently: the app says the byte-order mark does not match the content, names the declared encoding and the file, and asks before opening. Opening anyway shows the broken bytes as replacement characters and logs it; cancelling leaves the current document untouched
 - **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently. Thrown exceptions are written with their full stack trace (including the cause chain), and a corrupt settings file is moved aside as `settings.properties.corrupt` instead of being silently overwritten
 
 ### Settings & Session Restore
@@ -365,7 +372,8 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S), Ctrl+N for a new document and numpad equivalents |
 | `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge) |
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
-| `AppSettingsTest` | Preference persistence across restarts, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it |
+| `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it |
+| `StatsBarStateTest` | Persisted status-bar size: starts from the setting, a fresh install starts at medium, cycling persists each step, a corrupt value degrades to medium, the mapping covers both enums both ways |
 | `FontSizeManagerTest` | The font-size ladder, off-ladder sizes inserted without changing the setting, ladder stepping for Ctrl+±, clamping to the supported range and the persisted reset to the default size |
 | `ToolbarOptionListsTest` | The six toolbar dropdowns: option order, no duplicates, and every dropdown able to display its own current value |
 | `AtomicFilesTest` | Durable atomic writes: content integrity, no temp leftovers, cleanup after failures |

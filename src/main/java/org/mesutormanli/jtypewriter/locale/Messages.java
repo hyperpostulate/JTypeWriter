@@ -384,6 +384,26 @@ public class Messages {
         return bundle.getString("encodingUpgradeCancel");
     }
 
+    public String encodingMalformedTitle() {
+        return bundle.getString("encodingMalformedTitle");
+    }
+
+    public String encodingMalformedHeader() {
+        return bundle.getString("encodingMalformedHeader");
+    }
+
+    public String encodingMalformedContent(String charsetName) {
+        return MessageFormat.format(bundle.getString("encodingMalformedContent"), charsetName);
+    }
+
+    public String encodingMalformedOpen() {
+        return bundle.getString("encodingMalformedOpen");
+    }
+
+    public String encodingMalformedCancel() {
+        return bundle.getString("encodingMalformedCancel");
+    }
+
     public String errorLogged(String logDir) {
         return MessageFormat.format(bundle.getString("errorLogged"), logDir);
     }
@@ -398,5 +418,15 @@ public class Messages {
 
     public String singleInstanceContent() {
         return bundle.getString("singleInstanceContent");
+    }
+
+    /**
+     * RW-19: raw {@code MessageFormat} pattern for the save status in the
+     * stats bar, {@code {0}} being the localised save time. Returned as the
+     * pattern (not formatted here) so composition stays in the pure, headless
+     * {@code MainController.savedStatusFor}.
+     */
+    public String savedStatusTemplate() {
+        return bundle.getString("savedStatus");
     }
 }

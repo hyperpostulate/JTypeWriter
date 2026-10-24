@@ -3,6 +3,7 @@ package org.mesutormanli.jtypewriter.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mesutormanli.jtypewriter.AppLogging;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.io.IOException;
@@ -12,6 +13,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -315,6 +319,107 @@ class FileServiceTest {
     }
 
     // --- new document (Ctrl+N) ----------------------------------------------
+
+    // --- damaged BOMs: strict decode behind an explicit user prompt --------
+
+    /** UTF-8 BOM followed by an invalid continuation byte. */
+    private static final byte[] MALFORMED_UTF8_BOM = {
+            (byte) 0xEF, (byte) 0xBB, (byte) 0xBF, (byte) 0xC3, 0x28
+    };
+
+    @Test
+    void damagedBomIsNeverDecodedWithoutAsking(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("damaged.txt");
+        Files.write(target, MALFORMED_UTF8_BOM);
+        when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(target.toFile()));
+        when(dialogService.showMalformedEncodingDialog(any(), any(), eq(StandardCharsets.UTF_8)))
+                .thenReturn(true);
+
+        assertTrue(fileService.openFile(null).isPresent());
+
+        assertTrue(fileService.getCurrentContent().contains("\uFFFD"));
+        verify(dialogService).showMalformedEncodingDialog(any(), any(), eq(StandardCharsets.UTF_8));
+        verify(dialogService, never()).showEncodingDialog(any(), any());
+    }
+
+    @Test
+    void acceptingADamagedBomLogsWarningsForDetectionAndReplacement(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("damaged.txt");
+        Files.write(target, MALFORMED_UTF8_BOM);
+        when(dialogService.showMalformedEncodingDialog(any(), any(), any())).thenReturn(true);
+
+        var records = new ArrayList<LogRecord>();
+        var logger = AppLogging.logger(FileService.class).getParent();
+        var collector = collectInto(records);
+        logger.addHandler(collector);
+        try {
+            assertTrue(fileService.loadFile(null, target).isPresent());
+        } finally {
+            logger.removeHandler(collector);
+        }
+
+        assertTrue(records.stream().anyMatch(r -> r.getLevel() == Level.WARNING
+                        && r.getMessage().contains("byte-order mark")),
+                "detection of the damaged BOM must be logged");
+        assertTrue(records.stream().anyMatch(r -> r.getLevel() == Level.WARNING
+                        && r.getMessage().contains("replacement characters")),
+                "the lossy open the user accepted must be logged");
+    }
+
+    @Test
+    void cancellingADamagedBomLeavesTheCurrentDocumentUntouched(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("damaged.txt");
+        Files.write(target, MALFORMED_UTF8_BOM);
+        fileService.setCurrentContent("my draft");
+        when(dialogService.showMalformedEncodingDialog(any(), any(), any())).thenReturn(false);
+
+        assertTrue(fileService.loadFile(null, target).isEmpty());
+
+        assertEquals("my draft", fileService.getCurrentContent());
+        assertEquals(null, fileService.getCurrentFilePath());
+        assertTrue(fileService.hasUnsavedChanges());
+        assertArrayEquals(MALFORMED_UTF8_BOM, Files.readAllBytes(target));
+    }
+
+    @Test
+    void legacyFilesStillUseTheLegacyEncodingPrompt(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("ansi.txt");
+        Files.write(target, TURKISH.getBytes(TextCodec.WINDOWS_1254));
+        when(dialogService.showOpenDialog(any())).thenReturn(Optional.of(target.toFile()));
+        when(dialogService.showEncodingDialog(any(), any()))
+                .thenReturn(DialogService.EncodingChoice.WINDOWS1254);
+
+        assertTrue(fileService.openFile(null).isPresent());
+
+        assertEquals(TURKISH, fileService.getCurrentContent());
+        verify(dialogService, never()).showMalformedEncodingDialog(any(), any(), any());
+    }
+
+    /** Marker handler so the test can remove exactly the one it installed. */
+    private static final class Collector extends Handler {
+        private final List<LogRecord> records;
+
+        private Collector(List<LogRecord> records) {
+            this.records = records;
+        }
+
+        @Override
+        public void publish(LogRecord record) {
+            records.add(record);
+        }
+
+        @Override
+        public void flush() {
+        }
+
+        @Override
+        public void close() {
+        }
+    }
+
+    private static Handler collectInto(List<LogRecord> records) {
+        return new Collector(records);
+    }
 
     @Test
     void newDocumentOnACleanDocumentNeedsNoDialogs() {

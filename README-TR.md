@@ -66,6 +66,7 @@ Canlı istatistik çubuğu:
 - Oturum süresi (SS:DD:SS)
 - Dakikada kelime (WPM) - aktif yazım süresine dayalı kalıcı hız; molalar değeri düşürmez
 - Durum çubuğu metni varsayılan olarak 13 px'tir ve çift tıklandığında küçük, orta ve büyük arasında döner; rengi üç temada da WCAG AA kontrastını (en az 4.5:1) karşılar
+- Başarılı bir kayıt, saatini durum çubuğuna yazar (ör. `Kaydedildi 12:04`); sonraki düzenlemede temizlenir ve 30 saniyelik otomatik kayıt taslağı anlık görüntüsünü değil gerçek bir kaydı gösterir
 
 ### Tam Ekran ve Araç Çubuğu
 
@@ -82,12 +83,18 @@ görsel sırayla ulaşılır (önce düğmeler, sonra açılır listeler), odakl
 halka gösterir ve arayüz dilinden gelen, varsa kısayolu da içeren bir tooltip'i vardır; örneğin
 "Kaydet (Ctrl+S)".
 
+Araç çubuğunun görünür veya gizli durumu, tam ekran ve durum çubuğunun boyutu yeniden
+başlatmalarda korunur. Tam ekranda bırakılan bir pencere yeniden tam ekran açılır; bu
+tercih yalnızca çıkışta değil, her değiştirdiğinizde kaydedilir. Tam ekranın geri
+yüklenmesi hatırlanan pencere konumu ve boyutuyla çakışmaz: açılışta tam ekran kazanır,
+sonradan çıkıldığında hatırlanan konuma dönülür.
+
 ### Veri Güvenliği ve Kurtarma
 
 - **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya yazılır, fsync edilir ve yeniden adlandırılarak yerine konur; kayıt ortasında çökme ya da elektrik kesintisi belgeyi yarım bırakamaz. Dosya sistemi atomik taşımayı desteklemiyorsa yeniden adlandırma düz taşımaya düşer; baytlar o anda zaten diskte olur. Üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`) ve belgenin mevcut dosya izinleri korunur
 - **Belge farkındalığı:** pencere başlığı açık belgenin adını ve kaydedilmemiş değişiklik varken bir `*` işaretini gösterir (`[YOLO]` rozetinin yanında). `Ctrl+N` boş, adlandırılmamış bir belge açar (YOLO modu açıkken de çalışır); dosya açarken sorulan kaydet / kaydetme / iptal sorusu burada da sorulur. Belge açmak veya yeni belge oluşturmak geri alma geçmişini sıfırlar, böylece `Ctrl+Z` önceki belgenin metnini asla geri getiremez
 - **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökme sonrası taslak bir sonraki açılışta geri yükleme için teklif edilir. İstem geri yükle / sil / sonra sor seçeneklerini sunar — kapatmak taslağı asla silmez, ertelenen taslak sonraki açılışta yeniden sorulur ve üzerinde çalıştığınız belge için otomatik kayıt devam eder
-- **Kodlama güvenliği:** BOM'lu bir dosya, BOM'unun belirttiği kodlamayla çözülür; BOM'suz bir dosya geçerli UTF-8 olmalıdır, aksi halde sessiz bozulma yerine Windows-1254 mü UTF-8 mi olduğu sorulur. Belgeler aynı kodlamayla geri yazılır; yalnızca metin o kodlamaya sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) sunulan UTF-8'e geçişi kabul ederseniz kodlama değişir — temsil edilemeyen karakterler asla sessizce `?` yapılmaz
+- **Kodlama güvenliği:** BOM'lu bir dosya, BOM'unun belirttiği kodlamayla çözülür; BOM'suz bir dosya geçerli UTF-8 olmalıdır, aksi halde sessiz bozulma yerine Windows-1254 mü UTF-8 mi olduğu sorulur. Belgeler aynı kodlamayla geri yazılır; yalnızca metin o kodlamaya sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) sunulan UTF-8'e geçişi kabul ederseniz kodlama değişir — temsil edilemeyen karakterler asla sessizce `?` yapılmaz. UTF-8 veya UTF-16 bildiren ancak bazı baytları o kodlama için geçersiz olan bir bayt sıra işareti artık sessizce çözülmez: uygulama bayt sıra işaretinin içerikle eşleşmediğini söyler, bildirilen kodlamayı ve dosyayı adlandırır ve açmadan önce sorar. Yine de açmak bozuk baytları değiştirme karakterleri olarak gösterir ve bunu loglar; iptal etmek mevcut belgeye dokunmaz
 - **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir. Fırlatılan istisnalar tam yığın iziyle (neden zinciri dahil) yazılır. Bozuk ayar dosyası sessizce üzerine yazılmaz: `settings.properties.corrupt` olarak kenara alınır ve içeriği tanılama için korunur
 
 ### Ayarlar ve Oturum Geri Yükleme
@@ -366,7 +373,8 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S), yeni belge için Ctrl+N ve numpad eşdeğerleri |
 | `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti) |
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
-| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması |
+| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması |
+| `StatsBarStateTest` | Kalıcı durum çubuğu boyutu: ayardan başlar, yeni kurulum orta boyutta başlar, her döngü adımı kalıcıdır, bozuk değer orta boyuta düşer, eşleme her iki enum'u iki yönde kapsar |
 | `FontSizeManagerTest` | Yazı boyutu kademeleri, kademede olmayan boyutun ayarı değiştirmeden listeye eklenmesi, Ctrl+± için kademe adımlama, desteklenen aralığa kısıtlama ve varsayılan boyuta kalıcı sıfırlama |
 | `ToolbarOptionListsTest` | Altı araç çubuğu açılır listesi: seçenek sırası, yinelenen seçenek olmaması ve her listenin kendi güncel değerini gösterebilmesi |
 | `AtomicFilesTest` | Dayanıklı atomik yazım: içerik bütünlüğü, artık temp dosyası yok, hata sonrası temizlik |

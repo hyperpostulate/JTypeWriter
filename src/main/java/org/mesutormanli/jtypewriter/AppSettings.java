@@ -35,9 +35,10 @@ import java.util.logging.Logger;
  *       constant from an older version) fall back to the default instead of
  *       breaking startup.</li>
  * </ul>
- * Persisted: language, theme, text colour, font size, sound on/off, the last
- * document (for session restore) and its directory (for file choosers), and
- * the window geometry. YOLO mode is deliberately <em>not</em> persisted: a
+ * Persisted: language, theme, text colour, font size, sound on/off, toolbar
+ * visibility, the stats bar size, the last document (for session restore) and
+ * its directory (for file choosers), and the window geometry including
+ * fullscreen. YOLO mode is deliberately <em>not</em> persisted: a
  * user who left it on would come back to an editor that refuses to delete.
  */
 public final class AppSettings {
@@ -46,6 +47,16 @@ public final class AppSettings {
     public record WindowState(boolean maximized, double x, double y, double width, double height) {
     }
 
+    /**
+     * Persisted stats bar text size (RW-18). A neutral mirror of
+     * {@code StatsBar.Size}: this class must never reference a class that
+     * extends a JavaFX control (it is constructed before the toolkit exists
+     * and used from headless tests), so the two enums are mapped by name in
+     * {@code StatsBarState}. An unknown stored value falls back to
+     * {@code MEDIUM} like every other corrupt setting.
+     */
+    public enum StatsBarSize { SMALL, MEDIUM, LARGE }
+
     private static final Logger LOG = AppLogging.logger(AppSettings.class);
 
     private static final String KEY_LANGUAGE = "language";
@@ -53,9 +64,12 @@ public final class AppSettings {
     private static final String KEY_TEXT_COLOR = "text.color";
     private static final String KEY_FONT_SIZE = "font.size";
     private static final String KEY_SOUND = "sound.enabled";
+    private static final String KEY_TOOLBAR_VISIBLE = "toolbar.visible";
+    private static final String KEY_STATS_SIZE = "stats.size";
     private static final String KEY_LAST_FILE = "last.file";
     private static final String KEY_LAST_DIR = "last.directory";
     private static final String KEY_WINDOW_MAXIMIZED = "window.maximized";
+    private static final String KEY_WINDOW_FULLSCREEN = "window.fullscreen";
     private static final String KEY_WINDOW_X = "window.x";
     private static final String KEY_WINDOW_Y = "window.y";
     private static final String KEY_WINDOW_WIDTH = "window.width";
@@ -121,6 +135,24 @@ public final class AppSettings {
         set(KEY_SOUND, String.valueOf(enabled));
     }
 
+    /** Whether the toolbar was showing at the last exit (RW-18, default: showing). */
+    public boolean isToolbarVisible() {
+        return getBool(KEY_TOOLBAR_VISIBLE, true);
+    }
+
+    public void setToolbarVisible(boolean visible) {
+        set(KEY_TOOLBAR_VISIBLE, String.valueOf(visible));
+    }
+
+    /** The stats bar text size from the last session (RW-18, default: {@code MEDIUM}). */
+    public StatsBarSize getStatsBarSize() {
+        return optionalEnum(KEY_STATS_SIZE, StatsBarSize.class).orElse(StatsBarSize.MEDIUM);
+    }
+
+    public void setStatsBarSize(StatsBarSize size) {
+        set(KEY_STATS_SIZE, size.name());
+    }
+
     // --- session restore --------------------------------------------------
 
     /** The document that was open when the application last exited. */
@@ -177,6 +209,21 @@ public final class AppSettings {
         props.setProperty(KEY_WINDOW_WIDTH, String.valueOf(state.width()));
         props.setProperty(KEY_WINDOW_HEIGHT, String.valueOf(state.height()));
         save();
+    }
+
+    /**
+     * Whether the window was in fullscreen at the last exit (RW-18, default:
+     * windowed). A separate key from the geometry because it is persisted the
+     * moment fullscreen is toggled, not only when the window hides: a kill
+     * after the toggle must not lose it, and while a fullscreen window is
+     * showing, {@code setOnHidden} geometry is not the user's intent anyway.
+     */
+    public boolean isFullScreen() {
+        return getBool(KEY_WINDOW_FULLSCREEN, false);
+    }
+
+    public void setFullScreen(boolean fullScreen) {
+        set(KEY_WINDOW_FULLSCREEN, String.valueOf(fullScreen));
     }
 
     // --- storage ----------------------------------------------------------

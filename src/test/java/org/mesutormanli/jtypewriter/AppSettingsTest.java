@@ -39,6 +39,9 @@ class AppSettingsTest {
         assertEquals(TextColor.DEFAULT, settings.getTextColor());
         assertEquals(FontSizeManager.DEFAULT_SIZE, settings.getFontSize());
         assertTrue(settings.isSoundEnabled());
+        assertTrue(settings.isToolbarVisible());
+        assertEquals(AppSettings.StatsBarSize.MEDIUM, settings.getStatsBarSize());
+        assertFalse(settings.isFullScreen());
         assertEquals(Optional.empty(), settings.getLastFile());
         assertEquals(Optional.empty(), settings.getLastDirectory());
         assertEquals(Optional.empty(), settings.getWindowState());
@@ -86,6 +89,36 @@ class AppSettingsTest {
         settings.setWindowState(state);
 
         assertEquals(state, new AppSettings(file).getWindowState().orElseThrow());
+    }
+
+    /** RW-18: toolbar visibility, fullscreen and the stats bar size survive a restart. */
+    @Test
+    void appearanceStateSurvivesARestart(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        var settings = new AppSettings(file);
+
+        settings.setToolbarVisible(false);
+        settings.setFullScreen(true);
+        settings.setStatsBarSize(AppSettings.StatsBarSize.LARGE);
+
+        var reloaded = new AppSettings(file);
+        assertFalse(reloaded.isToolbarVisible());
+        assertTrue(reloaded.isFullScreen());
+        assertEquals(AppSettings.StatsBarSize.LARGE, reloaded.getStatsBarSize());
+    }
+
+    /** RW-18: a corrupt stats size must degrade to MEDIUM, never break startup. */
+    @Test
+    void corruptAppearanceValuesFallBackToDefaults(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file,
+                "toolbar.visible=perhaps\nwindow.fullscreen=maybe\nstats.size=HUGE\n");
+
+        var settings = new AppSettings(file);
+
+        assertTrue(settings.isToolbarVisible());
+        assertFalse(settings.isFullScreen());
+        assertEquals(AppSettings.StatsBarSize.MEDIUM, settings.getStatsBarSize());
     }
 
     @Test

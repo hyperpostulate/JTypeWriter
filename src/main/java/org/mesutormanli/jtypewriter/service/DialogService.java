@@ -169,6 +169,29 @@ public class DialogService {
         return result.isPresent() && result.get() == utf8Button;
     }
 
+    /**
+     * Asks whether to open a file whose byte-order mark declares an encoding
+     * its bytes do not satisfy. Accepting opens it with replacement characters
+     * (lossy); cancelling aborts the open so the current document is untouched.
+     *
+     * @return {@code true} when the user accepts the lossy decode
+     */
+    public boolean showMalformedEncodingDialog(Stage stage, java.nio.file.Path file,
+            java.nio.charset.Charset declared) {
+        var alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(messages.encodingMalformedTitle());
+        alert.setHeaderText(messages.encodingMalformedHeader() + " - " + file.getFileName());
+        alert.setContentText(messages.encodingMalformedContent(declared.displayName()));
+        initOwner(alert, stage);
+
+        var openButton = new ButtonType(messages.encodingMalformedOpen());
+        var cancelButton = new ButtonType(messages.encodingMalformedCancel());
+        alert.getButtonTypes().setAll(openButton, cancelButton);
+
+        var result = alert.showAndWait();
+        return result.isPresent() && result.get() == openButton;
+    }
+
     public EncodingChoice showEncodingDialog(Stage stage, java.nio.file.Path file) {
         var alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle(messages.encodingTitle());

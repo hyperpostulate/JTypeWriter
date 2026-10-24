@@ -19,16 +19,20 @@ public class StatsBar extends BorderPane {
 
     private final SessionStats sessionStats;
     private final Messages messages;
+    private final StatsBarState state;
     private final Label clockLabel;
     private final Label statsLabel;
+    private final Label saveStatus;
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
-    private Size currentSize = defaultSize();
 
     /**
      * RW-17: the status bar must start at >= 13 px without the user cycling
-     * sizes, so the default is MEDIUM (13 px), never SMALL. Double-click
-     * cycling through all three sizes is untouched.
+     * sizes, so the default is MEDIUM (13 px), never SMALL. At runtime the
+     * actual startup size is whatever {@link StatsBarState} restored from the
+     * last session (RW-18); this method pins the factory default that that
+     * restore falls back to. Double-click cycling through all three sizes is
+     * untouched.
      */
     static Size defaultSize() {
         return Size.MEDIUM;
@@ -39,9 +43,10 @@ public class StatsBar extends BorderPane {
         return defaultSize().fontSize;
     }
 
-    public StatsBar(SessionStats sessionStats, Messages messages) {
+    public StatsBar(SessionStats sessionStats, Messages messages, StatsBarState state) {
         this.sessionStats = sessionStats;
         this.messages = messages;
+        this.state = state;
 
         getStyleClass().add("stats-bar");
 
@@ -51,8 +56,15 @@ public class StatsBar extends BorderPane {
         statsLabel = new Label();
         statsLabel.getStyleClass().add("stats-label");
 
-        var leftBox = new HBox(clockLabel);
+        // RW-19: "Saved 12:04" appears next to the clock on a successful save
+        // and is cleared by the next edit; unlike the stats text it only
+        // changes when MainController says so, never on the one-second tick.
+        saveStatus = new Label();
+        saveStatus.getStyleClass().add("stats-save");
+
+        var leftBox = new HBox(clockLabel, saveStatus);
         leftBox.getStyleClass().add("stats-left");
+        leftBox.setSpacing(12);
 
         var rightBox = new HBox(statsLabel);
         rightBox.getStyleClass().add("stats-right");
@@ -64,7 +76,7 @@ public class StatsBar extends BorderPane {
 
         setOnMouseClicked(e -> {
             if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
-                currentSize = currentSize.next();
+                state.nextSize(); // persists, so the next session starts at this size
                 applySize();
             }
         });
@@ -77,10 +89,28 @@ public class StatsBar extends BorderPane {
     }
 
     private void applySize() {
-        setPadding(new Insets(currentSize.padding, 16, currentSize.padding, 16));
-        var fontSize = currentSize.fontSize;
-        clockLabel.setStyle("-fx-font-size: " + fontSize + "px;");
-        statsLabel.setStyle("-fx-font-size: " + fontSize + "px;");
+        var size = state.getSize();
+        setPadding(new Insets(size.padding, 16, size.padding, 16));
+        var fontSize = size.fontSize;
+        var style = "-fx-font-size: " + fontSize + "px;";
+        clockLabel.setStyle(style);
+        statsLabel.setStyle(style);
+        saveStatus.setStyle(style);
+    }
+
+    /**
+     * RW-19: shows the localised save status (e.g. {@code "Saved 12:04"}) in
+     * the stats bar. {@code null} or blank clears it. MainController owns the
+     * lifecycle: set on the dirty→clean transition of a real save, cleared on
+     * the next edit and on open/new, so a stale "saved" claim never sits under
+     * a dirty document. The autosave draft snapshot does not pass through here
+     * - it does not clean the document.
+     */
+    public void setSaveStatus(String text) {
+        var value = text == null ? "" : text;
+        if (!value.equals(saveStatus.getText())) { // runs on every keystroke; stay quiet when unchanged
+            saveStatus.setText(value);
+        }
     }
 
     private void update() {

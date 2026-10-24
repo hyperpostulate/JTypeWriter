@@ -21,6 +21,13 @@ public class MainStage {
     }
 
     public void configure(Stage stage, Scene scene) {
+        // RW-18: a session that ended in fullscreen comes back in fullscreen.
+        // Fullscreen and maximized are mutually exclusive states, so only one
+        // of them is ever restored (fullscreen wins); the normal geometry is
+        // still applied, so leaving fullscreen lands on the remembered
+        // position and size instead of a jarring contradictory restore.
+        var restoreFullScreen = settings.isFullScreen();
+
         // Restore the geometry of the last session; a maximized window keeps
         // its unmaximized bounds so leaving maximized lands where it used to.
         var saved = settings.getWindowState();
@@ -38,13 +45,25 @@ public class MainStage {
                 stage.setWidth(state.width());
                 stage.setHeight(state.height());
             }
-            stage.setMaximized(state.maximized());
+            stage.setMaximized(maximizeOnRestore(state.maximized(), restoreFullScreen));
         } else {
-            stage.setMaximized(true);
+            stage.setMaximized(maximizeOnRestore(true, restoreFullScreen));
         }
-        stage.setFullScreen(false);
         stage.setFullScreenExitKeyCombination(KeyCombination.valueOf("Escape"));
         stage.setFullScreenExitHint("");
+        stage.setFullScreen(restoreFullScreen);
+
+        // Persist fullscreen the moment it is toggled (F11 or Escape), not only
+        // in setOnHidden: a kill right after the toggle must not lose it.
+        // Hiding a fullscreen window resets the flag as a side effect, which is
+        // not a user decision - only changes while the window is showing are
+        // taken for intent. Registered after the restore above so startup does
+        // not rewrite the value it just read.
+        stage.fullScreenProperty().addListener((obs, was, is) -> {
+            if (stage.isShowing()) {
+                settings.setFullScreen(is);
+            }
+        });
 
         stage.setOnCloseRequest(event -> {
             if (fileService.hasUnsavedChanges()) {
@@ -58,6 +77,15 @@ public class MainStage {
         stage.setOnHidden(event -> settings.setWindowState(new AppSettings.WindowState(
                 stage.isMaximized(), stage.getX(), stage.getY(),
                 stage.getWidth(), stage.getHeight())));
+    }
+
+    /**
+     * Pure restore decision kept out of the stage so it can be unit tested:
+     * fullscreen and maximized must never both be applied at startup, and
+     * fullscreen (the more specific, explicitly re-entered state) wins.
+     */
+    static boolean maximizeOnRestore(boolean savedMaximized, boolean restoreFullScreen) {
+        return savedMaximized && !restoreFullScreen;
     }
 
     /**
