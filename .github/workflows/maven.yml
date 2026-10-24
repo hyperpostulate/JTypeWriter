@@ -13,6 +13,10 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# The badge publisher pushes badges/tests.json to the gh-pages branch.
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build & package (${{ matrix.os }})
@@ -43,6 +47,16 @@ jobs:
         run: |
           mvn -B test --file pom.xml -DargLine="-Duser.language=tr -Duser.country=TR"
           mvn -B test --file pom.xml -DargLine="-Duser.language=de -Duser.country=DE"
+
+      # Only one matrix leg publishes the badge, so the three OS runs do not
+      # race on the gh-pages branch; fork PRs have no token and must not try.
+      # A failed publish only warns, so it can never turn a green build red.
+      - name: Publish test count badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && runner.os == 'Linux'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish-test-badge.sh
 
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
