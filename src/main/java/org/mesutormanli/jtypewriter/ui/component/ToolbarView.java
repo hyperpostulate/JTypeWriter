@@ -187,7 +187,13 @@ public class ToolbarView extends HBox {
         updateSoundLabel();
     }
 
-    private void cycleTheme() {
+    /**
+     * Cycles the theme and refreshes the label next to the button. Public and
+     * used by both the toolbar button and the Ctrl+Shift+T shortcut, so the
+     * label can never disagree with the applied theme: the two paths used to
+     * be separate and the shortcut left the label stale.
+     */
+    public void cycleTheme() {
         var scene = getScene();
         if (scene != null) {
             var theme = themeManager.cycleTheme(scene);

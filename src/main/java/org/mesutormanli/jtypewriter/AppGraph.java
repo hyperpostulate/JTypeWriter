@@ -70,8 +70,8 @@ public final class AppGraph {
 
     // --- top level assembly ------------------------------------------------
     public final MainController mainController = new MainController(
-            editorArea, toolbarView, statsBar, themeManager,
-            fileService, messages, shortcutHandler, editorKeyHandler);
+            editorArea, toolbarView, statsBar,
+            fileService, messages, localeManager, shortcutHandler, editorKeyHandler);
     public final MainStage mainStage = new MainStage(fileService, settings);
 
     private volatile Stage stage;

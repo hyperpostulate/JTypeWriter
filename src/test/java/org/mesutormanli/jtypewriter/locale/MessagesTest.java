@@ -14,6 +14,8 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * i18n contract: the language bundles must stay key-complete, and display
@@ -97,6 +99,51 @@ class MessagesTest {
         localeManager.setLanguage(Language.TR);
 
         assertEquals("Açık", messages.labelThemeLight());
+    }
+
+    /**
+     * Regression: these bundles shipped mistranslations that a key-equality
+     * test cannot see. German "Redo" was "Wiederherstellen" ("restore") while
+     * the shortcut list said "Wiederholen", and the recovery dialog offered
+     * "Delete"/"Remove" as the way to <em>keep</em> a draft for later in
+     * Turkish, French and Italian - a wording that invites data loss.
+     */
+    @Test
+    void translationsThatCouldCostDataArePinned() {
+        assertEquals("Wiederholen", messagesFor(Language.DE).toolbarRedo());
+        assertEquals("Vazgeç", messagesFor(Language.TR).recoveryNo());
+        assertEquals("Ignorer", messagesFor(Language.FR).recoveryNo());
+        assertEquals("Ignora", messagesFor(Language.IT).recoveryNo());
+    }
+
+    @Test
+    void theTurkishWelcomeTextNoLongerMixesInEnglish() {
+        var shortcuts = messagesFor(Language.TR).welcomeShortcuts();
+
+        assertTrue(shortcuts.contains("Araç çubuğu aç/kapa"), shortcuts);
+        assertTrue(shortcuts.contains("Yazı tipi büyüt"), shortcuts);
+        assertFalse(shortcuts.contains("Toolbar"), shortcuts);
+        assertFalse(shortcuts.contains("Font"), shortcuts);
+        assertFalse(shortcuts.contains("Dark"), shortcuts);
+    }
+
+    /** The list must follow {@link Theme#next()} (LIGHT, DARK, SEPIA), not a per-bundle guess. */
+    @Test
+    void theWelcomeTextListsTheThemesInCycleOrder() {
+        assertEquals("Light/Dark/Sepia", themeOrderIn(messagesFor(Language.EN)));
+        assertEquals("Açık/Koyu/Sepya", themeOrderIn(messagesFor(Language.TR)));
+        assertEquals("Hell/Dunkel/Sepia", themeOrderIn(messagesFor(Language.DE)));
+        assertEquals("Clair/Sombre/Sépia", themeOrderIn(messagesFor(Language.FR)));
+        assertEquals("Chiaro/Scuro/Seppia", themeOrderIn(messagesFor(Language.IT)));
+        assertEquals("Claro/Oscuro/Sepia", themeOrderIn(messagesFor(Language.ES)));
+    }
+
+    private String themeOrderIn(Messages messages) {
+        var shortcuts = messages.welcomeShortcuts();
+        var open = shortcuts.indexOf('(');
+        var close = shortcuts.indexOf(')', open);
+        assertTrue(open > 0 && close > open, "no theme list in: " + shortcuts);
+        return shortcuts.substring(open + 1, close);
     }
 
     private Messages messagesFor(Language language) {

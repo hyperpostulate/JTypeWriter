@@ -4,13 +4,13 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 import org.mesutormanli.jtypewriter.ui.component.EditorKeyHandler;
 import org.mesutormanli.jtypewriter.ui.component.StatsBar;
 import org.mesutormanli.jtypewriter.ui.component.ToolbarView;
-import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -20,9 +20,9 @@ public class MainController implements Initializable {
     private final EditorArea editorArea;
     private final ToolbarView toolbarView;
     private final StatsBar statsBar;
-    private final ThemeManager themeManager;
     private final FileService fileService;
     private final Messages messages;
+    private final LocaleManager localeManager;
     private final KeyboardShortcutHandler shortcutHandler;
     private final EditorKeyHandler editorKeyHandler;
 
@@ -33,15 +33,15 @@ public class MainController implements Initializable {
     private BorderPane rootPane;
 
     public MainController(EditorArea editorArea, ToolbarView toolbarView, StatsBar statsBar,
-                          ThemeManager themeManager, FileService fileService, Messages messages,
+                          FileService fileService, Messages messages, LocaleManager localeManager,
                           KeyboardShortcutHandler shortcutHandler,
                           EditorKeyHandler editorKeyHandler) {
         this.editorArea = editorArea;
         this.toolbarView = toolbarView;
         this.statsBar = statsBar;
-        this.themeManager = themeManager;
         this.fileService = fileService;
         this.messages = messages;
+        this.localeManager = localeManager;
         this.shortcutHandler = shortcutHandler;
         this.editorKeyHandler = editorKeyHandler;
     }
@@ -50,7 +50,7 @@ public class MainController implements Initializable {
         this.stage = stage;
         toolbarView.setStage(stage);
         toolbarView.setOnYoloChange(this::refreshTitle);
-        shortcutHandler.bind(editorArea, toolbarView, stage, this::toggleToolbar, this::cycleTheme);
+        shortcutHandler.bind(editorArea, toolbarView, stage, this::toggleToolbar, toolbarView::cycleTheme);
         editorKeyHandler.bind(editorArea);
         fileService.addListener(new FileService.Listener() {
             @Override
@@ -68,6 +68,9 @@ public class MainController implements Initializable {
                 refreshTitle();
             }
         });
+        // The title is composed from bundle texts, so a language switch has to
+        // rebuild it; the toolbar updates its own labels through the same event.
+        localeManager.addListener(language -> refreshTitle());
         refreshTitle();
     }
 
@@ -123,12 +126,5 @@ public class MainController implements Initializable {
             style += " -fx-text-fill: " + cssColor + ";";
         }
         editorArea.setStyle(style);
-    }
-
-    private void cycleTheme() {
-        var scene = editorArea.getScene();
-        if (scene != null) {
-            themeManager.cycleTheme(scene);
-        }
     }
 }
