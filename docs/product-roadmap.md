@@ -57,8 +57,8 @@ Tek tek ele alındığında 1-2 saatlik, toplamda ürün algısını değiştire
 
 | ID | İş | Efor | Kabul kriteri |
 |---|---|---|---|
-| RW-15 | Araç çubuğu taşma/sarma stratejisi; literal `Label("\|")` ayırıcıları kaldır | M | 1280 px'te DE/FR metinleri kırpılmıyor; 900 px'te taşmıyor |
-| RW-16 | Tüm araç çubuğu düğmelerine **tooltip**; araç çubuğu **Tab ile gezilebilir** | M | Klavye ile aç/kaydet/tema erişilebilir; tooltip'ler bundle'dan |
+| RW-15 | Araç çubuğu taşma/sarma stratejisi; literal `Label("\|")` ayırıcıları kaldır | M | 1280 px'te DE/FR metinleri kırpılmıyor; 900 px'te taşmıyor — **kısmen tamamlandı:** literal ayırıcılar kaldırıldı, döngüsel düğme+etiket çiftleri altı açılır listeye dönüştü, düğmeler 12→11 px ve hücre dolguları sıkılaştırıldı. DE arayüzde 900 px'te tercih edilen genişlik 896 px; hiçbir kontrol kırpılmıyor. **FR ölçümü ve çok uzun çeviri/sistem fontu senaryosu henüz doğrulanmadı** |
+| RW-16 | Tüm araç çubuğu düğmelerine **tooltip**; araç çubuğu **Tab ile gezilebilir** | M | Klavye ile aç/kaydet/tema erişilebilir; tooltip'ler bundle'dan. **Not:** açılır listeler şu an `setFocusTraversable(false)` ve yazı boyutu listesi başlıksız (yalnız sayı); RW-16 tooltip + Tab sırası ile birlikte bu ikisini de çözmeli |
 | RW-17 | **Odak halkalarını** geri getir; durum metni ≥13 px ve WCAG AA kontrast | M | `base.css`'te `-fx-focus-color: transparent` kaldırıldı; 3 temada kontrast ölçüldü |
 | RW-18 | Kalıcı görünüm durumu: araç çubuğu görünürlüğü, fullscreen, istatistik boyutu | S | Yeniden başlatmada korunuyor |
 | RW-19 | Otomatik kayıt için görünür durum ("kaydedildi 12:04") | S | Kirli temiz geçişinde UI'da görünür |
@@ -114,7 +114,7 @@ Amaç: rakiplerle aynı masaya oturabilmek ve bakım maliyetini düşürmek.
 |---|---|---|---|
 | RW-31 | **Son dosyalar** menüsü (son 10) + eksik dosya temizliği | M | `AppSettings`'e liste; TR/DE/FR/IT/ES metinleri |
 | RW-32 | **Sürükle-bırak** ile dosya açma | S | `setOnDragOver`/`setOnDragDropped`; aynı `FileService` akışı |
-| RW-33 | **Tercihler penceresi** (dil, tema, renk, yazı boyutu, ses, otomatik kayıt aralığı, toolbar) | L | Döngüsel düğmeler kalkar; erişilebilir form |
+| RW-33 | **Tercihler penceresi** (dil, tema, renk, yazı boyutu, ses, otomatik kayıt aralığı, toolbar) | L | Döngüsel düğmeler kalkar; erişilebilir form — **kısmen ilerledi:** döngüsel düğmeler kaldırıldı, altı ayar artık araç çubuğunda açılır liste (tek `refresh()` senkron noktası, kısayollar dahil); tercihler penceresi hâlâ açık |
 | RW-34 | **Dışa aktarma**: düz metin, Markdown, PDF/HTML (yazdırma dahil) | L | JavaFX `PrinterJob` + basit HTML/MD üretimi |
 | RW-35 | **Kodlama matrisini genişlet**: Windows-1252, ISO-8859-9, UTF-32, Shift-JIS | M | `TextCodec` + kodlama diyaloğu; her biri round-trip testli |
 | RW-36 | **Belge başına otomatik kayıt slotu** + "kurtarılabilir taslaklar" görünümü | M | RW-04'ün üzerine |

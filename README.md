@@ -144,7 +144,7 @@ org.mesutormanli.jtypewriter
 │   │   ├── YoloPolicy.java               # YOLO mode edit policy (pure logic)
 │   │   ├── EditorKeyHandler.java         # Keystroke sound + stats tracking
 │   │   ├── StatsBar.java                 # Bottom status bar (clock + stats)
-│   │   ├── ToolbarView.java              # Top toolbar (buttons + labels)
+│   │   ├── ToolbarView.java              # Top toolbar (file/edit buttons + settings dropdowns)
 │   │   └── ToolbarState.java             # YOLO mode + sound on/off state
 │   └── theme/
 │       ├── Theme.java                    # Theme enum (Light/Dark/Sepia)
@@ -211,11 +211,11 @@ JavaFX Graphics and Base come in transitively with Controls. Dependency injectio
 
 ### Typewriter Sound Effects
 
-Authentic typewriter keystroke sound on every non-modifier key press. Can be toggled on/off via the toolbar.
+Authentic typewriter keystroke sound on every non-modifier key press. Can be toggled on/off from the toolbar's Sound dropdown.
 
 ### YOLO Mode
 
-"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, Cut and Undo/Redo are disabled (the right-click menu shows Cut greyed out, with only Copy/Paste/Select All usable), so no edit can remove characters that are already in the document. Perfect for first-draft writing where you push forward without looking back. The mode stays visible through the `[YOLO]` title badge and the toolbar status label; theme colours stay untouched in both states.
+"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, Cut and Undo/Redo are disabled (the right-click menu shows Cut greyed out, with only Copy/Paste/Select All usable), so no edit can remove characters that are already in the document. Perfect for first-draft writing where you push forward without looking back. The mode stays visible through the `[YOLO]` title badge and the toolbar's YOLO dropdown; theme colours stay untouched in both states.
 
 ### Real-Time Statistics
 
@@ -259,7 +259,7 @@ running instance crashes, so a crash never locks you out.
 
 ### Multiple Themes
 
-Three built-in themes, cycled in this order by `Ctrl+Shift+T`:
+Three built-in themes, cycled in this order by `Ctrl+Shift+T` (or picked directly from the toolbar's Theme dropdown):
 - **Light** - Clean and bright
 - **Dark** - Default, easy on the eyes
 - **Sepia** - Warm, paper-like feel
@@ -355,13 +355,16 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge) |
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
 | `AppSettingsTest` | Preference persistence across restarts, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it |
-| `FontSizeManagerTest` | Font size clamping to the supported range, persisted reset to the default size |
+| `FontSizeManagerTest` | The font-size ladder, off-ladder sizes inserted without changing the setting, ladder stepping for Ctrl+±, clamping to the supported range and the persisted reset to the default size |
+| `ToolbarOptionListsTest` | The six toolbar dropdowns: option order, no duplicates, and every dropdown able to display its own current value |
 | `AtomicFilesTest` | Durable atomic writes: content integrity, no temp leftovers, cleanup after failures |
 | `MessagesTest` | i18n bundle parity across all 6 languages, localised theme/colour names, locale-independent bundle resolution |
 | `DialogServiceTest` | Save-as file naming rules (default extension handling) |
 | `JTypeWriterAppTests` | Main method presence |
 | `AppLoggingTest` | Log formatter builds its header without throwing (regression) and appends an indented stack trace with the cause chain for thrown exceptions |
 | `InstanceLockTest` | Instance-lock acquisition, rejection of a second acquire in the same JVM, release and idempotent close, fail-open behaviour for an unusable lock file |
+| `LanguageTest` | Native language names are stable code constants under every system locale (no `getDisplayLanguage` trap) |
+| `ToolbarStateTest` | The sound dropdown's single setter: persistence across a restart, the audio engine follows, repeats are no-ops |
 
 ---
 
@@ -536,7 +539,7 @@ org.mesutormanli.jtypewriter
 │   │   ├── YoloPolicy.java               # YOLO modu düzenleme politikası (saf mantık)
 │   │   ├── EditorKeyHandler.java         # Tuş vuruşu sesi + istatistik takibi
 │   │   ├── StatsBar.java                 # Alt durum çubuğu (saat + istatistikler)
-│   │   ├── ToolbarView.java              # Üst araç çubuğu (düğmeler + etiketler)
+│   │   ├── ToolbarView.java              # Üst araç çubuğu (dosya/düzenleme düğmeleri + ayar açılır listeleri)
 │   │   └── ToolbarState.java             # YOLO modu + ses aç/kapa durumu
 │   └── theme/
 │       ├── Theme.java                    # Tema enum'u (Açık/Koyu/Sepya)
@@ -603,11 +606,11 @@ JavaFX Graphics ve Base, Controls ile dolaylı olarak gelir. Bağımlılık enje
 
 ### Daktilo Ses Efektleri
 
-Değiştirici olmayan her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki düğmeyle açılıp kapatılabilir.
+Değiştirici olmayan her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki Ses açılır listesinden açılıp kapatılabilir.
 
 ### YOLO Modu
 
-"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde Backspace, Delete, Cut ve Geri Al/İleri Al devre dışı kalır (sağ-tık menüsünde Kes soluk/devre dışı gösterilir; yalnızca Kopyala/Yapıştır/Tümünü Seç kullanılabilir); böylece hiçbir düzenleme belgedeki mevcut karakterleri silemez. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod, `[YOLO]` başlık rozeti ve araç çubuğu durum etiketi ile görünür tutulur; tema renkleri her iki durumda da değişmez.
+"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde Backspace, Delete, Cut ve Geri Al/İleri Al devre dışı kalır (sağ-tık menüsünde Kes soluk/devre dışı gösterilir; yalnızca Kopyala/Yapıştır/Tümünü Seç kullanılabilir); böylece hiçbir düzenleme belgedeki mevcut karakterleri silemez. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod, `[YOLO]` başlık rozeti ve araç çubuğundaki YOLO açılır listesi ile görünür tutulur; tema renkleri her iki durumda da değişmez.
 
 ### Gerçek Zamanlı İstatistikler
 
@@ -652,7 +655,7 @@ bırakmaz.
 
 ### Çoklu Tema
 
-Üç yerleşik tema (`Ctrl+Shift+T` bu sırayla geçer):
+Üç yerleşik tema (`Ctrl+Shift+T` bu sırayla geçer; araç çubuğundaki Tema açılır listesinden doğrudan da seçilebilir):
 - **Açık** - Temiz ve parlak
 - **Koyu** - Varsayılan, göz yormaz
 - **Sepya** - Sıcak, kağıt hissi
@@ -748,13 +751,16 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti) |
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
 | `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması |
-| `FontSizeManagerTest` | Yazı boyutunun desteklenen aralığa kısıtlanması, varsayılan boyuta kalıcı sıfırlama |
+| `FontSizeManagerTest` | Yazı boyutu kademeleri, kademede olmayan boyutun ayarı değiştirmeden listeye eklenmesi, Ctrl+± için kademe adımlama, desteklenen aralığa kısıtlama ve varsayılan boyuta kalıcı sıfırlama |
+| `ToolbarOptionListsTest` | Altı araç çubuğu açılır listesi: seçenek sırası, yinelenen seçenek olmaması ve her listenin kendi güncel değerini gösterebilmesi |
 | `AtomicFilesTest` | Dayanıklı atomik yazım: içerik bütünlüğü, artık temp dosyası yok, hata sonrası temizlik |
 | `MessagesTest` | 6 dilin tamamında i18n anahtar eşitliği, yerelleştirilmiş tema/renk adları, sistem dilinden bağımsız bundle çözümlemesi |
 | `DialogServiceTest` | "Farklı Kaydet" dosya adlandırma kuralları (uzantı işleme) |
 | `JTypeWriterAppTests` | Ana metod varlığı |
 | `AppLoggingTest` | Log biçimlendiricisinin başlık satırını hata vermeden üretmesi (regresyon) ve fırlatılan istisnalar için neden zinciriyle birlikte girintili yığın izi eklemesi |
 | `InstanceLockTest` | Örnek kilidinin alınması, aynı JVM'de ikinci alımın reddedilmesi, bırakma ve yinelenebilir kapatma, kullanılamayan kilit dosyasında fail-open davranışı |
+| `LanguageTest` | Yerel dil adlarının her sistem dilinde sabit kod sabitleri olması (`getDisplayLanguage` tuzağı yok) |
+| `ToolbarStateTest` | Ses açılır listesinin tek ayarlayıcısı: yeniden başlatmada kalıcılık, ses motorunun takip etmesi, tekrarların etkisiz olması |
 
 ---
 
