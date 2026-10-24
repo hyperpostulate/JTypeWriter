@@ -312,7 +312,7 @@ org.mesutormanli.jtypewriter
 | `UndoHistoryReset` | Clears the TextArea undo/redo history on every document load (reflective, JavaFX has no API) |
 | `YoloPolicy` | YOLO mode edit policy (blocks deletions, allows insertions) |
 | `EditorKeyHandler` | Handles keystroke sound effects and session stats tracking |
-| `StatsBar` | Renders the clock and live session statistics in the bottom bar |
+| `StatsBar` | Renders the clock, the *saved HH:mm* confirmation and live session statistics in the bottom bar; its text size cycles on double-click |
 | `KeyboardShortcutHandler` | Centralized keyboard shortcut routing |
 | `ToolbarView` | Top toolbar with all editor controls |
 | `ToolbarFit` | Toolbar overflow policy: pure, JavaFX-free measurement that collapses the dropdown captions when the captioned row would not fit |
@@ -321,7 +321,7 @@ org.mesutormanli.jtypewriter
 | `AppIcons` | Window, taskbar and dock icon set loaded from `/icons/`; a missing asset never breaks startup |
 | `FileService` | Atomic file I/O (temp write + fsync + move) with encoding stability |
 | `DialogService` | UI dialog management (FileChooser, Alert) |
-| `TextCodec` | Encoding detection (BOM/UTF-8) and lossless round trips |
+| `TextCodec` | Encoding detection (BOM/UTF-8), strict decoding that refuses to replace bytes with `U+FFFD`, and lossless round trips |
 | `BackupKeeper` | Rotating `.bak` backups taken before overwrites |
 | `RecoveryStore` | Crash-recovery draft storage: one atomic `draft-<uuid>.jtw` file per session under `~/.jtypewriter/recovery/`, plus `pending-<uuid>.jtw` for a draft the user postponed |
 | `RecoveryChoice` | Answer to the recovery prompt: restore, discard or later; `LATER` is the safe default that neither deletes nor restores |
@@ -383,6 +383,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S), Ctrl+N for a new document and numpad equivalents |
 | `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge) |
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
+| `AppIconsTest` | The icon set on the classpath: every PNG decodes to the declared size, and the `.ico`/`.icns` files start with their expected magic bytes (pure byte checks, no toolkit) |
 | `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it |
 | `StatsBarStateTest` | Persisted status-bar size: starts from the setting, a fresh install starts at medium, cycling persists each step, a corrupt value degrades to medium, the mapping covers both enums both ways |
 | `FontSizeManagerTest` | The font-size ladder, off-ladder sizes inserted without changing the setting, ladder stepping for Ctrl+±, clamping to the supported range and the persisted reset to the default size |

@@ -313,7 +313,7 @@ org.mesutormanli.jtypewriter
 | `UndoHistoryReset` | Her belge yüklemesinde TextArea'nın geri al/ileri al geçmişini temizler (yansıma ile; JavaFX'te API yok) |
 | `YoloPolicy` | YOLO modu düzenleme politikası (silmeyi engeller, eklemeye izin verir) |
 | `EditorKeyHandler` | Tuş vuruşu ses efektleri ve oturum istatistiklerini yönetir |
-| `StatsBar` | Saati ve canlı oturum istatistiklerini alt çubukta gösterir |
+| `StatsBar` | Saati, *kaydedildi SS:dd* onayını ve canlı oturum istatistiklerini alt çubukta gösterir; yazı boyutu çift tıklamayla döner |
 | `KeyboardShortcutHandler` | Merkezi klavye kısayolu yönlendirmesi |
 | `ToolbarView` | Tüm editör kontrollerini içeren üst araç çubuğu |
 | `ToolbarFit` | Araç çubuğu taşma politikası: başlıklı satır sığmadığında açılır liste başlıklarını değere indiren saf, JavaFX'siz ölçüm |
@@ -322,7 +322,7 @@ org.mesutormanli.jtypewriter
 | `AppIcons` | `/icons/` altından yüklenen pencere, görev çubuğu ve dock ikon seti; eksik varlık açılışı bozmaz |
 | `FileService` | Atomik dosya G/Ç (geçici dosya + fsync + taşıma), kodlama korumalı |
 | `DialogService` | UI dialog yönetimi (FileChooser, Alert) |
-| `TextCodec` | Kodlama tespiti (BOM/UTF-8) ve kayıpsız gidiş-dönüşler |
+| `TextCodec` | Kodlama tespiti (BOM/UTF-8), baytları `U+FFFD` ile değiştirmeyi reddeden sıkı çözme ve kayıpsız gidiş-dönüşler |
 | `BackupKeeper` | Yazımdan önce alınan dönen `.bak` yedekleri |
 | `RecoveryStore` | Çökme kurtarma taslakları: `~/.jtypewriter/recovery/` altında oturum başına tek atomik `draft-<uuid>.jtw` dosyası; ayrıca "sonra sor" denen taslak için `pending-<uuid>.jtw` |
 | `RecoveryChoice` | Kurtarma istemine yanıt: geri yükle, sil veya sonra sor; `LATER` hiçbir şeyi silmeyen ve geri yüklemeyen güvenli varsayılan |
@@ -384,6 +384,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S), yeni belge için Ctrl+N ve numpad eşdeğerleri |
 | `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti) |
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
+| `AppIconsTest` | Classpath'teki ikon seti: her PNG bildirilen boyutta çözülüyor, `.ico`/`.icns` dosyaları beklenen sihirli baytlarla başlıyor (saf bayt kontrolü, toolkit yok) |
 | `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması |
 | `StatsBarStateTest` | Kalıcı durum çubuğu boyutu: ayardan başlar, yeni kurulum orta boyutta başlar, her döngü adımı kalıcıdır, bozuk değer orta boyuta düşer, eşleme her iki enum'u iki yönde kapsar |
 | `FontSizeManagerTest` | Yazı boyutu kademeleri, kademede olmayan boyutun ayarı değiştirmeden listeye eklenmesi, Ctrl+± için kademe adımlama, desteklenen aralığa kısıtlama ve varsayılan boyuta kalıcı sıfırlama |
