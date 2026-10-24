@@ -48,10 +48,10 @@ Tek tek ele alındığında 1-2 saatlik, toplamda ürün algısını değiştire
 | RW-10 | DE `toolbarRedo` → **Wiederholen**; TR hoş geldin metnini tamamla; `recoveryNo` → **Vazgeç** (TR/FR/IT) | S | Yanlış çeviri veri kaybı riskini artırıyor | `messages_de.properties:57`, `messages_tr.properties:28,67` — **tamamlandı:** DE `toolbarRedo=Wiederholen` (kısayol listesiyle aynı), `recoveryNo` TR=**Vazgeç**, FR=**Ignorer**, IT=**Ignora** (artık "sil" demiyor; EN `Discard` ve ES `Descartar` zaten doğruydu). TR `welcomeShortcuts` tamamen Türkçeleştirildi ("Araç çubuğu", "Yazı tipi", "Yeni belge / Belge aç" — README TR terimleriyle uyumlu). Ayrıca altı dilin tamamında hoş geldin metnindeki tema listesi gerçek döngü sırasına göre düzeltildi (LIGHT→DARK→SEPIA). `MessagesTest` bu üç sınıfı kalıcı olarak sabitliyor: çeviri kaybı riski taşıyan metinler, TR metninde İngilizce artık kalmaması, tema sırası |
 | RW-11 | Dil değişiminde **pencere başlığını** yenile | S | Başlık eski dilde kalıyor | `MainController.java:35-67` — **tamamlandı:** `MainController` artık `LocaleManager` alıyor ve `addListener(language -> refreshTitle())` ile başlığı yeniden kuruyor; başlık `messages.appName()`/`windowUntitled()` üzerinden üretildiği için yeni dil doğru yansıyor. `AppGraph` bağlantısı güncellendi |
 | RW-12 | `Ctrl+Shift+T` sonrası **tema etiketini** güncelle | S | Etiket ile gerçek tema ayrışıyor | `MainController.java:123-128` vs `ToolbarView.java:189-196` — **tamamlandı:** kök neden iki ayrı tema değiştirme yolu (düğme → `ToolbarView`, kısayol → `MainController`) ve kısayol yolunun etiketi atlamasıydı. `ToolbarView.cycleTheme()` public yapıldı; kısayol `toolbarView::cycleTheme` ile aynı yola bağlandı, `MainController`'daki kopya ve artık gereksiz `ThemeManager` bağımlılığı kaldırıldı |
-| RW-13 | README dürüstlüğü: fat JAR platforma özgü; WAV kaynağı; macOS `⌘` | S | Yanlış vaat güven kaybı | `README.md` — **tamamlandı (17b72cf):** EN + TR eşlendi; ince/fat JAR ayrımı, fat JAR'ın platforma özgülüğü, atomik move fallback'i, BOM tabanlı kodlama tespiti, tema döngüsü, çoklu dil kapsamı, tek örnek kilidi, tam ekran/araç çubuğu, durum çubuğu boyut döngüsü, mimari ve test tabloları gerçek davranışa göre düzeltildi |
+| RW-13 | README dürüstlüğü: fat JAR platforma özgü; WAV kaynağı; macOS `⌘` | S | Yanlış vaat güven kaybı | `README.md` — **tamamlandı (17b72cf):** EN + TR eşlendi; ince/fat JAR ayrımı, fat JAR'ın platforma özgülüğü, atomik move fallback'i, BOM tabanlı kodlama tespiti, tema döngüsü, çoklu dil kapsamı, tek örnek kilidi, tam ekran/araç çubuğu, durum çubuğu boyut döngüsü, mimari ve test tabloları gerçek davranışa göre düzeltildi. O tarihte iki dil tek dosyadaydı; doküman sonradan `README.md` (EN) + `README-TR.md` (TR) olarak bölündü |
 | RW-14 | `--license-file` ile kuruluma **lisans dosyası** ekle | S | GPLv3 dağıtım uyumu | `package.sh` |
 
-**P0 ilk gün sırası:** RW-01 → RW-02 → RW-03 → RW-04 (tek oturum, kurtarma alt sistemi) → RW-05 → RW-06/07 (bağımsız, paralel) → RW-10/11/12 (i18n/UI tek oturum) → RW-08/09/14. RW-01 (kurtarma iptali), RW-02..04 (kurtarma deposu), RW-05 (yeni belge + undo sıfırlama), RW-06 (log yığın izi), RW-07 (ayar karantinası), RW-08 (uygulama ikonu), RW-09 (diyalog başlıkları), RW-10/11/12 (i18n düzeltmeleri + dil değişiminde başlık + tema etiketi) ve RW-13 (README hizalaması) **tamamlandı**; kalan P0 işleri (RW-14..20) uygulandıkça EN + TR README'ye işlenir.
+**P0 ilk gün sırası:** RW-01 → RW-02 → RW-03 → RW-04 (tek oturum, kurtarma alt sistemi) → RW-05 → RW-06/07 (bağımsız, paralel) → RW-10/11/12 (i18n/UI tek oturum) → RW-08/09/14. RW-01 (kurtarma iptali), RW-02..04 (kurtarma deposu), RW-05 (yeni belge + undo sıfırlama), RW-06 (log yığın izi), RW-07 (ayar karantinası), RW-08 (uygulama ikonu), RW-09 (diyalog başlıkları), RW-10/11/12 (i18n düzeltmeleri + dil değişiminde başlık + tema etiketi) ve RW-13 (README hizalaması) **tamamlandı**; kalan P0 işleri (RW-14..20) uygulandıkça `README.md` ve `README-TR.md`'ye birlikte işlenir.
 
 ### P0 kalan işler (gün 2-5) — "profesyonel görünüm"
 
@@ -71,7 +71,7 @@ Tek tek ele alındığında 1-2 saatlik, toplamda ürün algısını değiştire
 3. Uygulama ikonu, pencere başlıkları, tooltip'ler, odak halkaları mevcut; toolbar DE/FR'de taşmıyor.
 4. 6 bundle'da çeviri hatası yok; dil değişimi tüm görünür metni yeniliyor. *(çeviri düzeltmeleri ve dil değişiminde pencere başlığının yenilenmesi tamamlandı — RW-10/11; "tüm görünür metin" kriterinin tooltip/erişilebilirlik ayağı RW-16'ya bağlı)*
 5. `mvn clean test` yeşil; TR/DE locale koşuları yeşil; `package.sh --installer` çalışıyor.
-6. README (EN + TR) ürünün gerçekten yaptığını anlatıyor — temel hizalama **tamamlandı**; kalan P0 işleri (RW-14..20) uygulandıkça iki dilde güncellenir.
+6. `README.md` (EN) ve `README-TR.md` (TR) ürünün gerçekten yaptığını anlatıyor — temel hizalama **tamamlandı**; kalan P0 işleri (RW-14..20) uygulandıkça iki dosyada birlikte güncellenir.
 
 ---
 
@@ -140,7 +140,7 @@ Amaç: rakiplerle aynı masaya oturabilmek ve bakım maliyetini düşürmek.
 3. Runtime imajı ≤ %50 küçüldü; başlangıç medyanı regresyona uğramadı.
 4. `.txt` dosyası çift tıklamayla JTypeWriter'da açılıyor (3 OS).
 5. Tek örnek kilidi ve platforma doğru veri dizini doğrulandı.
-6. README + Türkçe kopyası yeni özelliklerle güncel (AGENTS.md kuralı).
+6. `README.md` + `README-TR.md` yeni özelliklerle güncel (AGENTS.md kuralı: iki dosya aynı bölümleri aynı sırada taşır).
 
 ---
 

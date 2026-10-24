@@ -175,7 +175,7 @@ Sıra bağımlılığa göre; her faz kendi başına test edilebilir ve geri al�
 |---|---|---|
 | F5.1 | §6 test matrisinin tamamı | Tüm satırlar yeşil |
 | F5.2 | İz denetimi: temiz VM/USB, `find ~ /tmp -newer marker` boş | Sıfır iz |
-| F5.3 | README (EN + TR kopyası, AGENTS.md kuralı) portable'a göre yeniden yazılır; "fat JAR portable" iddiası kaldırılır | Doküman gerçeği anlatıyor |
+| F5.3 | `README.md` (EN) ve `README-TR.md` (TR) portable'a göre yeniden yazılır; "fat JAR portable" iddiası kaldırılır (AGENTS.md kuralı: iki dosya aynı bölümleri aynı sırada taşır) | Doküman gerçeği anlatıyor |
 | F5.4 | Bilinen sınırlar sayfası: dosya ilişkilendirmesi yok, imza durumu, FAT32 uyarısı | Kullanıcı sürpriz yaşamıyor |
 | F5.5 | Sürüm etiketi + checksum + yayın notu | Yayına hazır |
 
@@ -276,7 +276,7 @@ F0 (ölçüm + jlink spike)
 - [ ] macOS ad-hoc imza + ilk açılış talimatı hazır
 - [ ] Linux AppImage ve tar.gz doğrulandı
 - [ ] `mvn clean test` + TR/DE locale koşuları yeşil
-- [ ] README (EN + TR) ve `PORTABLE-README.txt` güncel
+- [ ] `README.md` + `README-TR.md` ve `PORTABLE-README.txt` güncel
 - [ ] Bilinen sınırlar yayınlandı
 - [ ] `data/` korunarak güncelleme adımı dokümante edildi
 
