@@ -27,24 +27,142 @@ JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap 
 - **Ekranda yalnızca metin.** `F11` tam ekran, `Ctrl+T` araç çubuğunu gizler; pencere başlığı hangi belgenin açık olduğunu ve kaydedilip kaydedilmediğini söyler.
 - **Kaldığın yerden devam eden oturum.** Dil, tema, metin rengi, yazı boyutu, son belge ve pencere geometrisi bir sonraki açılışta geri yüklenir.
 
-
 ---
 
 ## İçindekiler
 
+- [Özellikler](#özellikler)
+- [Klavye Kısayolları](#klavye-kısayolları)
+- [Temalar](#temalar)
+- [Desteklenen Diller](#desteklenen-diller)
 - [Gereksinimler](#gereksinimler)
 - [Kurulum](#kurulum)
 - [Derleme ve Çalıştırma](#derleme-ve-çalıştırma)
 - [CI/CD](#cicd)
 - [Mimari](#mimari)
-- [Özellikler](#özellikler)
-- [Klavye Kısayolları](#klavye-kısayolları)
-- [Temalar](#temalar)
-- [Desteklenen Diller](#desteklenen-diller)
 - [Testler](#testler)
 - [Lisans](#lisans)
 - [Geliştirici](#geliştirici)
 - [Katkıda Bulunma](#katkıda-bulunma)
+
+---
+
+## Özellikler
+
+### Daktilo Ses Efektleri
+
+Değiştirici olmayan her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki Ses açılır listesinden açılıp kapatılabilir.
+
+### YOLO Modu
+
+"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde Backspace, Delete, Cut ve Geri Al/İleri Al devre dışı kalır (sağ-tık menüsünde Kes soluk/devre dışı gösterilir; yalnızca Kopyala/Yapıştır/Tümünü Seç kullanılabilir); böylece hiçbir düzenleme belgedeki mevcut karakterleri silemez. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod, `[YOLO]` başlık rozeti ve araç çubuğundaki YOLO açılır listesi ile görünür tutulur; tema renkleri her iki durumda da değişmez.
+
+### Gerçek Zamanlı İstatistikler
+
+Canlı istatistik çubuğu:
+- Kelime sayısı, karakter sayısı (boşluklu/boşluksuz), satır sayısı
+- Toplam tuş vuruşu
+- Oturum süresi (SS:DD:SS)
+- Dakikada kelime (WPM) - aktif yazım süresine dayalı kalıcı hız; molalar değeri düşürmez
+- Durum çubuğuna çift tıklandığında boyutu küçük, orta ve büyük arasında döner
+
+### Tam Ekran ve Araç Çubuğu
+
+`F11` tam ekranı açar/kapatır, `Escape` tam ekrandan çıkar (platformun varsayılan çıkış
+ipucu gizlenir). Ekranda yalnızca metin kalsın istiyorsanız araç çubuğunu `Ctrl+T` ile
+gizleyebilirsiniz.
+
+### Veri Güvenliği ve Kurtarma
+
+- **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya yazılır, fsync edilir ve yeniden adlandırılarak yerine konur; kayıt ortasında çökme ya da elektrik kesintisi belgeyi yarım bırakamaz. Dosya sistemi atomik taşımayı desteklemiyorsa yeniden adlandırma düz taşımaya düşer; baytlar o anda zaten diskte olur. Üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`) ve belgenin mevcut dosya izinleri korunur
+- **Belge farkındalığı:** pencere başlığı açık belgenin adını ve kaydedilmemiş değişiklik varken bir `*` işaretini gösterir (`[YOLO]` rozetinin yanında). `Ctrl+N` boş, adlandırılmamış bir belge açar (YOLO modu açıkken de çalışır); dosya açarken sorulan kaydet / kaydetme / iptal sorusu burada da sorulur. Belge açmak veya yeni belge oluşturmak geri alma geçmişini sıfırlar, böylece `Ctrl+Z` önceki belgenin metnini asla geri getiremez
+- **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökme sonrası taslak bir sonraki açılışta geri yükleme için teklif edilir. İstem geri yükle / sil / sonra sor seçeneklerini sunar — kapatmak taslağı asla silmez, ertelenen taslak sonraki açılışta yeniden sorulur ve üzerinde çalıştığınız belge için otomatik kayıt devam eder
+- **Kodlama güvenliği:** BOM'lu bir dosya, BOM'unun belirttiği kodlamayla çözülür; BOM'suz bir dosya geçerli UTF-8 olmalıdır, aksi halde sessiz bozulma yerine Windows-1254 mü UTF-8 mi olduğu sorulur. Belgeler aynı kodlamayla geri yazılır; yalnızca metin o kodlamaya sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) sunulan UTF-8'e geçişi kabul ederseniz kodlama değişir — temsil edilemeyen karakterler asla sessizce `?` yapılmaz
+- **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir. Fırlatılan istisnalar tam yığın iziyle (neden zinciri dahil) yazılır. Bozuk ayar dosyası sessizce üzerine yazılmaz: `settings.properties.corrupt` olarak kenara alınır ve içeriği tanılama için korunur
+
+### Ayarlar ve Oturum Geri Yükleme
+
+Dil, tema, metin rengi, font boyutu, ses, son belge ve klasörü ile pencere geometrisi
+`~/.jtypewriter/settings.properties` dosyasına kaydedilir. Bir sonraki oturum,
+öncekinin bittiği yerden başlar: aynı görünüm, aynı belge, aynı pencere. Aradan
+geçen sürede silinmiş bir belge sessizce atlanır; bozuk bir ayar dosyası ise
+başlangıcı engellemek yerine varsayılanlara döner. YOLO modu bilinçli olarak
+*kaydedilmez*: silmeyi engelleyen bir modun bir sonraki açılışta hâlâ etkin olması
+istenmez.
+
+### Tek Örnek
+
+Kullanıcı hesabı başına yalnızca bir JTypeWriter örneği çalışır: `~/.jtypewriter/`
+altındaki bir kilit dosyası ikinci başlatmayı durdurur; ikinci bir pencere açılmaz,
+yerelleştirilmiş bir uyarı penceresi gösterilir ve uygulama kapanır. Çalışan örnek
+çökerse kilit işletim sistemi tarafından otomatik bırakılır; çökme sizi dışarıda
+bırakmaz.
+
+### Çoklu Tema
+
+Üç yerleşik tema (`Ctrl+Shift+T` bu sırayla geçer; araç çubuğundaki Tema açılır listesinden doğrudan da seçilebilir):
+- **Açık** - Temiz ve parlak
+- **Koyu** - Varsayılan, göz yormaz
+- **Sepya** - Sıcak, kağıt hissi
+
+### Metin Renkleri
+
+Altı metin rengi (bir varsayılan + beş vurgu rengi): Varsayılan, Adaçayı, Lavanta, Kum, Çelik, Gül
+
+### Çoklu Dil Desteği
+
+6 dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Dil değiştirildiğinde araç çubuğu, diyaloglar, pencere başlığı ve durum çubuğu anında güncellenir.
+
+---
+
+## Klavye Kısayolları
+
+Kısayollar Windows/Linux'ta `Ctrl`, macOS'ta `⌘` (Cmd) ile çalışır — macOS'ta düz `Ctrl` de kabul edilir. Numpad `+`, `-` ve `0` tuşları ana klavye karşılıklarının eşdeğeri olarak çalışır.
+
+| Kısayol | İşlem |
+|---------|-------|
+| `Ctrl+T` | Araç çubuğunu aç/kapat |
+| `Ctrl+Shift+T` | Üç tema arasında geçiş yap (Açık, Koyu, Sepya) |
+| `Ctrl+Shift+Y` | YOLO modunu aç/kapat |
+| `Ctrl+Shift+C` | Metin rengini değiştir |
+| `Ctrl++` | Font boyutunu artır |
+| `Ctrl+-` | Font boyutunu azalt |
+| `Ctrl+0` | Font boyutunu 16px'e sıfırla |
+| `Ctrl+Z` | Geri al |
+| `Ctrl+Shift+Z` | İleri al |
+| `Ctrl+Y` | İleri al |
+| `Ctrl+N` | Yeni belge |
+| `Ctrl+O` | Dosya aç |
+| `Ctrl+S` | Dosyayı kaydet |
+| `Ctrl+Shift+S` | Farklı kaydet |
+| `F11` | Tam ekranı aç/kapat |
+| `Escape` | Tam ekrandan çık |
+
+---
+
+## Temalar
+
+CSS dosyaları `src/main/resources/css/` konumundadır:
+
+| Tema | Dosya | Açıklama |
+|------|-------|----------|
+| Temel | `base.css` | Tüm temalarda paylaşılan stiller |
+| Koyu | `dark.css` | Koyu arka plan, açık metin |
+| Açık | `light.css` | Açık arka plan, koyu metin |
+| Sepya | `sepia.css` | Sıcak sepya tonlu arka plan |
+
+---
+
+## Desteklenen Diller
+
+| Dil | Dosya | Kod |
+|-----|-------|-----|
+| İngilizce | `messages.properties` | `EN` |
+| Türkçe | `messages_tr.properties` | `TR` |
+| Almanca | `messages_de.properties` | `DE` |
+| Fransızca | `messages_fr.properties` | `FR` |
+| İtalyanca | `messages_it.properties` | `IT` |
+| İspanyolca | `messages_es.properties` | `ES` |
 
 ---
 
@@ -206,125 +324,6 @@ org.mesutormanli.jtypewriter
 | Mockito | 5.23.0 | Test mock'lama |
 
 JavaFX Graphics ve Base, Controls ile dolaylı olarak gelir. Bağımlılık enjeksiyonu framework'süzdür: nesne grafiğini `AppGraph` elle kurar.
-
----
-
-## Özellikler
-
-### Daktilo Ses Efektleri
-
-Değiştirici olmayan her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki Ses açılır listesinden açılıp kapatılabilir.
-
-### YOLO Modu
-
-"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde Backspace, Delete, Cut ve Geri Al/İleri Al devre dışı kalır (sağ-tık menüsünde Kes soluk/devre dışı gösterilir; yalnızca Kopyala/Yapıştır/Tümünü Seç kullanılabilir); böylece hiçbir düzenleme belgedeki mevcut karakterleri silemez. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod, `[YOLO]` başlık rozeti ve araç çubuğundaki YOLO açılır listesi ile görünür tutulur; tema renkleri her iki durumda da değişmez.
-
-### Gerçek Zamanlı İstatistikler
-
-Canlı istatistik çubuğu:
-- Kelime sayısı, karakter sayısı (boşluklu/boşluksuz), satır sayısı
-- Toplam tuş vuruşu
-- Oturum süresi (SS:DD:SS)
-- Dakikada kelime (WPM) - aktif yazım süresine dayalı kalıcı hız; molalar değeri düşürmez
-- Durum çubuğuna çift tıklandığında boyutu küçük, orta ve büyük arasında döner
-
-### Tam Ekran ve Araç Çubuğu
-
-`F11` tam ekranı açar/kapatır, `Escape` tam ekrandan çıkar (platformun varsayılan çıkış
-ipucu gizlenir). Ekranda yalnızca metin kalsın istiyorsanız araç çubuğunu `Ctrl+T` ile
-gizleyebilirsiniz.
-
-### Veri Güvenliği ve Kurtarma
-
-- **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya yazılır, fsync edilir ve yeniden adlandırılarak yerine konur; kayıt ortasında çökme ya da elektrik kesintisi belgeyi yarım bırakamaz. Dosya sistemi atomik taşımayı desteklemiyorsa yeniden adlandırma düz taşımaya düşer; baytlar o anda zaten diskte olur. Üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`) ve belgenin mevcut dosya izinleri korunur
-- **Belge farkındalığı:** pencere başlığı açık belgenin adını ve kaydedilmemiş değişiklik varken bir `*` işaretini gösterir (`[YOLO]` rozetinin yanında). `Ctrl+N` boş, adlandırılmamış bir belge açar (YOLO modu açıkken de çalışır); dosya açarken sorulan kaydet / kaydetme / iptal sorusu burada da sorulur. Belge açmak veya yeni belge oluşturmak geri alma geçmişini sıfırlar, böylece `Ctrl+Z` önceki belgenin metnini asla geri getiremez
-- **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökme sonrası taslak bir sonraki açılışta geri yükleme için teklif edilir. İstem geri yükle / sil / sonra sor seçeneklerini sunar — kapatmak taslağı asla silmez, ertelenen taslak sonraki açılışta yeniden sorulur ve üzerinde çalıştığınız belge için otomatik kayıt devam eder
-- **Kodlama güvenliği:** BOM'lu bir dosya, BOM'unun belirttiği kodlamayla çözülür; BOM'suz bir dosya geçerli UTF-8 olmalıdır, aksi halde sessiz bozulma yerine Windows-1254 mü UTF-8 mi olduğu sorulur. Belgeler aynı kodlamayla geri yazılır; yalnızca metin o kodlamaya sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) sunulan UTF-8'e geçişi kabul ederseniz kodlama değişir — temsil edilemeyen karakterler asla sessizce `?` yapılmaz
-- **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir. Fırlatılan istisnalar tam yığın iziyle (neden zinciri dahil) yazılır. Bozuk ayar dosyası sessizce üzerine yazılmaz: `settings.properties.corrupt` olarak kenara alınır ve içeriği tanılama için korunur
-
-### Ayarlar ve Oturum Geri Yükleme
-
-Dil, tema, metin rengi, font boyutu, ses, son belge ve klasörü ile pencere geometrisi
-`~/.jtypewriter/settings.properties` dosyasına kaydedilir. Bir sonraki oturum,
-öncekinin bittiği yerden başlar: aynı görünüm, aynı belge, aynı pencere. Aradan
-geçen sürede silinmiş bir belge sessizce atlanır; bozuk bir ayar dosyası ise
-başlangıcı engellemek yerine varsayılanlara döner. YOLO modu bilinçli olarak
-*kaydedilmez*: silmeyi engelleyen bir modun bir sonraki açılışta hâlâ etkin olması
-istenmez.
-
-### Tek Örnek
-
-Kullanıcı hesabı başına yalnızca bir JTypeWriter örneği çalışır: `~/.jtypewriter/`
-altındaki bir kilit dosyası ikinci başlatmayı durdurur; ikinci bir pencere açılmaz,
-yerelleştirilmiş bir uyarı penceresi gösterilir ve uygulama kapanır. Çalışan örnek
-çökerse kilit işletim sistemi tarafından otomatik bırakılır; çökme sizi dışarıda
-bırakmaz.
-
-### Çoklu Tema
-
-Üç yerleşik tema (`Ctrl+Shift+T` bu sırayla geçer; araç çubuğundaki Tema açılır listesinden doğrudan da seçilebilir):
-- **Açık** - Temiz ve parlak
-- **Koyu** - Varsayılan, göz yormaz
-- **Sepya** - Sıcak, kağıt hissi
-
-### Metin Renkleri
-
-Altı metin rengi (bir varsayılan + beş vurgu rengi): Varsayılan, Adaçayı, Lavanta, Kum, Çelik, Gül
-
-### Çoklu Dil Desteği
-
-6 dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Dil değiştirildiğinde araç çubuğu, diyaloglar, pencere başlığı ve durum çubuğu anında güncellenir.
-
----
-
-## Klavye Kısayolları
-
-Kısayollar Windows/Linux'ta `Ctrl`, macOS'ta `⌘` (Cmd) ile çalışır — macOS'ta düz `Ctrl` de kabul edilir. Numpad `+`, `-` ve `0` tuşları ana klavye karşılıklarının eşdeğeri olarak çalışır.
-
-| Kısayol | İşlem |
-|---------|-------|
-| `Ctrl+T` | Araç çubuğunu aç/kapat |
-| `Ctrl+Shift+T` | Üç tema arasında geçiş yap (Açık, Koyu, Sepya) |
-| `Ctrl+Shift+Y` | YOLO modunu aç/kapat |
-| `Ctrl+Shift+C` | Metin rengini değiştir |
-| `Ctrl++` | Font boyutunu artır |
-| `Ctrl+-` | Font boyutunu azalt |
-| `Ctrl+0` | Font boyutunu 16px'e sıfırla |
-| `Ctrl+Z` | Geri al |
-| `Ctrl+Shift+Z` | İleri al |
-| `Ctrl+Y` | İleri al |
-| `Ctrl+N` | Yeni belge |
-| `Ctrl+O` | Dosya aç |
-| `Ctrl+S` | Dosyayı kaydet |
-| `Ctrl+Shift+S` | Farklı kaydet |
-| `F11` | Tam ekranı aç/kapat |
-| `Escape` | Tam ekrandan çık |
-
----
-
-## Temalar
-
-CSS dosyaları `src/main/resources/css/` konumundadır:
-
-| Tema | Dosya | Açıklama |
-|------|-------|----------|
-| Temel | `base.css` | Tüm temalarda paylaşılan stiller |
-| Koyu | `dark.css` | Koyu arka plan, açık metin |
-| Açık | `light.css` | Açık arka plan, koyu metin |
-| Sepya | `sepia.css` | Sıcak sepya tonlu arka plan |
-
----
-
-## Desteklenen Diller
-
-| Dil | Dosya | Kod |
-|-----|-------|-----|
-| İngilizce | `messages.properties` | `EN` |
-| Türkçe | `messages_tr.properties` | `TR` |
-| Almanca | `messages_de.properties` | `DE` |
-| Fransızca | `messages_fr.properties` | `FR` |
-| İtalyanca | `messages_it.properties` | `IT` |
-| İspanyolca | `messages_es.properties` | `ES` |
 
 ---
 

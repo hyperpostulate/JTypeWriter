@@ -27,24 +27,141 @@ JTypeWriter opens a single plain-text document and then stays out of the way: no
 - **Only text on screen.** `F11` goes fullscreen, `Ctrl+T` hides the toolbar, and the window title tells you which document is open and whether it is saved.
 - **A session that comes back.** Language, theme, text colour, font size, last document and window geometry are restored on the next start.
 
-
 ---
 
 ## Table of Contents
 
+- [Features](#features)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Themes](#themes)
+- [Supported Languages](#supported-languages)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Build & Run](#build--run)
 - [CI/CD](#cicd)
 - [Architecture](#architecture)
-- [Features](#features)
-- [Keyboard Shortcuts](#keyboard-shortcuts)
-- [Themes](#themes)
-- [Supported Languages](#supported-languages)
 - [Testing](#testing)
 - [License](#license)
 - [Developer](#developer)
 - [Contributing](#contributing)
+
+---
+
+## Features
+
+### Typewriter Sound Effects
+
+Authentic typewriter keystroke sound on every non-modifier key press. Can be toggled on/off from the toolbar's Sound dropdown.
+
+### YOLO Mode
+
+"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, Cut and Undo/Redo are disabled (the right-click menu shows Cut greyed out, with only Copy/Paste/Select All usable), so no edit can remove characters that are already in the document. Perfect for first-draft writing where you push forward without looking back. The mode stays visible through the `[YOLO]` title badge and the toolbar's YOLO dropdown; theme colours stay untouched in both states.
+
+### Real-Time Statistics
+
+Live stats bar showing:
+- Word count, character count (with/without spaces), line count
+- Total keystrokes
+- Session duration (HH:MM:SS)
+- Words per minute (WPM) - sustained speed based on active typing time, so breaks do not drag it down
+- The status bar size cycles between small, medium and large when you double-click it
+
+### Fullscreen & Toolbar
+
+`F11` toggles fullscreen and `Escape` leaves it (the platform's default exit hint is
+suppressed). The toolbar can be hidden with `Ctrl+T` when you want nothing but text
+on screen.
+
+### Data Safety & Crash Recovery
+
+- **Atomic, durable saves with backups:** every save is written to a temp file, fsynced and then renamed into place, so a crash mid-save or a power cut cannot leave a truncated document; when the file system does not support an atomic move, the rename degrades to a plain move with the bytes already on disk. Overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`) and preserve the document's existing file permissions
+- **Document awareness:** the window title shows the open document name and a `*` while there are unsaved changes (alongside the `[YOLO]` badge). `Ctrl+N` starts a fresh untitled document (it also works while YOLO mode is on) after the same save/discard/cancel prompt as opening a file; loading or creating a document clears the undo history, so `Ctrl+Z` can never bring back the previous document's text
+- **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`; after a crash the draft is offered for restoration on the next startup. The prompt offers restore, discard and later - closing it never deletes the draft, a postponed draft is offered again on the next start, and autosave keeps running for the document you are editing
+- **Encoding safety:** a BOM-marked file is decoded with the encoding of its BOM; a file without a BOM must be valid UTF-8, otherwise you are asked whether it is Windows-1254 or UTF-8 instead of getting silent corruption. Documents are written back in the same encoding unless you accept the offered switch to UTF-8 when the text no longer fits (e.g. a pasted emoji in a Windows-1254 file) - unmappable characters are never silently replaced with `?`
+- **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently. Thrown exceptions are written with their full stack trace (including the cause chain), and a corrupt settings file is moved aside as `settings.properties.corrupt` instead of being silently overwritten
+
+### Settings & Session Restore
+
+Language, theme, text colour, font size, sound, the last document and its folder,
+and the window geometry are persisted to `~/.jtypewriter/settings.properties`. The
+next session starts where the last one ended: same look, same document, same window.
+A document that has disappeared in the meantime is skipped silently, and a broken
+settings file falls back to the defaults instead of blocking startup. YOLO mode is
+deliberately *not* persisted: a mode that blocks deletions should not still be armed
+at the next start.
+
+### Single Instance
+
+Only one JTypeWriter instance runs per user account: a lock file in `~/.jtypewriter/`
+stops a second start, which then shows a localized warning popup and exits instead of
+opening another window. The operating system releases the lock automatically if the
+running instance crashes, so a crash never locks you out.
+
+### Multiple Themes
+
+Three built-in themes, cycled in this order by `Ctrl+Shift+T` (or picked directly from the toolbar's Theme dropdown):
+- **Light** - Clean and bright
+- **Dark** - Default, easy on the eyes
+- **Sepia** - Warm, paper-like feel
+
+### Text Colors
+
+Six text colors (one default plus five accents): Default, Sage, Lavender, Sand, Steel, Rose.
+
+### Multi-Language Support
+
+6 languages: English, Turkish, German, French, Italian, Spanish. Toolbar, dialogs, the window title and the status bar update immediately when the language is switched.
+
+---
+
+## Keyboard Shortcuts
+
+Shortcuts use `Ctrl` on Windows/Linux and `⌘` (Cmd) on macOS — plain `Ctrl` works on macOS too. Numpad `+`, `-` and `0` are accepted as equivalents of their main-keyboard neighbours.
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+T` | Toggle toolbar |
+| `Ctrl+Shift+T` | Cycle through the three themes (Light, Dark, Sepia) |
+| `Ctrl+Shift+Y` | Toggle YOLO mode |
+| `Ctrl+Shift+C` | Cycle text color |
+| `Ctrl++` | Increase font size |
+| `Ctrl+-` | Decrease font size |
+| `Ctrl+0` | Reset font size to 16px |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Shift+Z` | Redo |
+| `Ctrl+Y` | Redo |
+| `Ctrl+N` | New document |
+| `Ctrl+O` | Open file |
+| `Ctrl+S` | Save file |
+| `Ctrl+Shift+S` | Save file as |
+| `F11` | Toggle fullscreen |
+| `Escape` | Exit fullscreen |
+
+---
+
+## Themes
+
+CSS files are located in `src/main/resources/css/`:
+
+| Theme | File | Description |
+|-------|------|-------------|
+| Base | `base.css` | Shared styles across all themes |
+| Dark | `dark.css` | Dark background, light text |
+| Light | `light.css` | Light background, dark text |
+| Sepia | `sepia.css` | Warm sepia-toned background |
+
+---
+
+## Supported Languages
+
+| Language | File | Code |
+|----------|------|------|
+| English | `messages.properties` | `EN` |
+| Turkish | `messages_tr.properties` | `TR` |
+| German | `messages_de.properties` | `DE` |
+| French | `messages_fr.properties` | `FR` |
+| Italian | `messages_it.properties` | `IT` |
+| Spanish | `messages_es.properties` | `ES` |
 
 ---
 
@@ -206,124 +323,6 @@ org.mesutormanli.jtypewriter
 | Mockito | 5.23.0 | Test mocking |
 
 JavaFX Graphics and Base come in transitively with Controls. Dependency injection is framework-free: `AppGraph` wires the object graph manually.
-
----
-
-## Features
-
-### Typewriter Sound Effects
-
-Authentic typewriter keystroke sound on every non-modifier key press. Can be toggled on/off from the toolbar's Sound dropdown.
-
-### YOLO Mode
-
-"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, Cut and Undo/Redo are disabled (the right-click menu shows Cut greyed out, with only Copy/Paste/Select All usable), so no edit can remove characters that are already in the document. Perfect for first-draft writing where you push forward without looking back. The mode stays visible through the `[YOLO]` title badge and the toolbar's YOLO dropdown; theme colours stay untouched in both states.
-
-### Real-Time Statistics
-
-Live stats bar showing:
-- Word count, character count (with/without spaces), line count
-- Total keystrokes
-- Session duration (HH:MM:SS)
-- Words per minute (WPM) - sustained speed based on active typing time, so breaks do not drag it down
-- The status bar size cycles between small, medium and large when you double-click it
-
-### Fullscreen & Toolbar
-
-`F11` toggles fullscreen and `Escape` leaves it (the platform's default exit hint is
-suppressed). The toolbar can be hidden with `Ctrl+T` when you want nothing but text
-on screen.
-
-### Data Safety & Crash Recovery
-
-- **Atomic, durable saves with backups:** every save is written to a temp file, fsynced and then renamed into place, so a crash mid-save or a power cut cannot leave a truncated document; when the file system does not support an atomic move, the rename degrades to a plain move with the bytes already on disk. Overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`) and preserve the document's existing file permissions
-- **Document awareness:** the window title shows the open document name and a `*` while there are unsaved changes (alongside the `[YOLO]` badge). `Ctrl+N` starts a fresh untitled document (it also works while YOLO mode is on) after the same save/discard/cancel prompt as opening a file; loading or creating a document clears the undo history, so `Ctrl+Z` can never bring back the previous document's text
-- **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`; after a crash the draft is offered for restoration on the next startup. The prompt offers restore, discard and later - closing it never deletes the draft, a postponed draft is offered again on the next start, and autosave keeps running for the document you are editing
-- **Encoding safety:** a BOM-marked file is decoded with the encoding of its BOM; a file without a BOM must be valid UTF-8, otherwise you are asked whether it is Windows-1254 or UTF-8 instead of getting silent corruption. Documents are written back in the same encoding unless you accept the offered switch to UTF-8 when the text no longer fits (e.g. a pasted emoji in a Windows-1254 file) - unmappable characters are never silently replaced with `?`
-- **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently. Thrown exceptions are written with their full stack trace (including the cause chain), and a corrupt settings file is moved aside as `settings.properties.corrupt` instead of being silently overwritten
-
-### Settings & Session Restore
-
-Language, theme, text colour, font size, sound, the last document and its folder,
-and the window geometry are persisted to `~/.jtypewriter/settings.properties`. The
-next session starts where the last one ended: same look, same document, same window.
-A document that has disappeared in the meantime is skipped silently, and a broken
-settings file falls back to the defaults instead of blocking startup. YOLO mode is
-deliberately *not* persisted: a mode that blocks deletions should not still be armed
-at the next start.
-
-### Single Instance
-
-Only one JTypeWriter instance runs per user account: a lock file in `~/.jtypewriter/`
-stops a second start, which then shows a localized warning popup and exits instead of
-opening another window. The operating system releases the lock automatically if the
-running instance crashes, so a crash never locks you out.
-
-### Multiple Themes
-
-Three built-in themes, cycled in this order by `Ctrl+Shift+T` (or picked directly from the toolbar's Theme dropdown):
-- **Light** - Clean and bright
-- **Dark** - Default, easy on the eyes
-- **Sepia** - Warm, paper-like feel
-
-### Text Colors
-
-Six text colors (one default plus five accents): Default, Sage, Lavender, Sand, Steel, Rose.
-
-### Multi-Language Support
-
-6 languages: English, Turkish, German, French, Italian, Spanish. Toolbar, dialogs, the window title and the status bar update immediately when the language is switched.
-
----
-
-## Keyboard Shortcuts
-
-Shortcuts use `Ctrl` on Windows/Linux and `⌘` (Cmd) on macOS — plain `Ctrl` works on macOS too. Numpad `+`, `-` and `0` are accepted as equivalents of their main-keyboard neighbours.
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+T` | Toggle toolbar |
-| `Ctrl+Shift+T` | Cycle through the three themes (Light, Dark, Sepia) |
-| `Ctrl+Shift+Y` | Toggle YOLO mode |
-| `Ctrl+Shift+C` | Cycle text color |
-| `Ctrl++` | Increase font size |
-| `Ctrl+-` | Decrease font size |
-| `Ctrl+0` | Reset font size to 16px |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Shift+Z` | Redo |
-| `Ctrl+Y` | Redo |
-| `Ctrl+N` | New document |
-| `Ctrl+O` | Open file |
-| `Ctrl+S` | Save file |
-| `Ctrl+Shift+S` | Save file as |
-| `F11` | Toggle fullscreen |
-| `Escape` | Exit fullscreen |
-
----
-
-## Themes
-
-CSS files are located in `src/main/resources/css/`:
-
-| Theme | File | Description |
-|-------|------|-------------|
-| Base | `base.css` | Shared styles across all themes |
-| Dark | `dark.css` | Dark background, light text |
-| Light | `light.css` | Light background, dark text |
-| Sepia | `sepia.css` | Warm sepia-toned background |
-
----
-
-## Supported Languages
-
-| Language | File | Code |
-|----------|------|------|
-| English | `messages.properties` | `EN` |
-| Turkish | `messages_tr.properties` | `TR` |
-| German | `messages_de.properties` | `DE` |
-| French | `messages_fr.properties` | `FR` |
-| Italian | `messages_it.properties` | `IT` |
-| Spanish | `messages_es.properties` | `ES` |
 
 ---
 
