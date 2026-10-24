@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  JTypeWriter application icon - canonical 512x512 artwork.
+
+  Design intent: an aged film photograph of a CRT monitor and a vintage
+  typewriter on a wooden plinth. The monitor shows olive-green phosphor
+  (scanlines and abstract text lines); the typewriter is muted
+  walnut/sepia brown. A sheet of aged cream paper rises straight out of the
+  roller toward the screen, tying "typing" to "screen". No text/letters
+  anywhere - language neutral. The whole frame carries a low-key retro-film
+  patina: warm desaturation, flat glass without sheen, and hand-placed dust
+  specks and emulsion scratches (#film-grain). Dustier, never murkier: the
+  brown typewriter must still read clearly against the green screen at 16x16,
+  so the grain lives mostly in the outer margins and the contrast
+  relationships (paper vs screen, keys vs deck) are preserved. No vignette
+  and no halo/glow layers by design: the frame is evenly lit and every glow
+  is drawn as a flat shape, not a gradient falloff.
+
+  Palette:
+    greens  #355235 #496a45 #577a51 #2d5030   (olive-grey monitor / CRT)
+            #a9c98b #b7c98a                   (aged phosphor, dimmed LED)
+    browns  #3a2418 #5e4029 #a67a4d #cfa06e   (typewriter / plinth, muted)
+    paper   #e8dbba -> #d4d2a6, faint green   (aged cream sheet)
+    film    #241a0e/#e9dcb2 grain (warm dark / cream dust)
+
+  Technique notes (IMPORTANT - renders through ImageMagick's internal MSVG):
+    This rasterizer paints every url(#gradient) fill as solid black, so this
+    file deliberately contains NO linearGradient/radialGradient elements.
+    Gradients are simulated with clipped bands of interpolated solid colors
+    (see #bezel-bands, #deck-bands, #roller-bands) and the contact shadow is
+    a stack of low-opacity ellipses instead of a blur filter. Highlights are
+    CLOSED filled slivers, never stroked open paths, and stroked shapes use
+    fill="transparent" not fill="none" - MSVG floods open stroked shapes
+    with black.
+    #film-grain is hand-placed primitives (jittered positions and opacities,
+    denser at the frame edges, clear of the text lines and keys) because
+    MSVG ignores <filter>/feTurbulence and a <pattern> grid would read as a
+    rendering bug at small sizes.
+    To restyle: shift the band colors within each group's color range and
+    keep light-on-top order; groups carry ids. Primitives + opacity +
+    clipPath only, so the PNG pipeline (`magick -background none
+    -density 384 jtypewriter.svg -resize NxN PNG32:...`) stays faithful.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <clipPath id="bezelClip">
+      <rect x="78" y="44" width="356" height="386" rx="36"/>
+    </clipPath>
+    <clipPath id="screenClip">
+      <rect x="104" y="70" width="304" height="246" rx="26"/>
+    </clipPath>
+    <clipPath id="frameClip">
+      <rect x="140" y="308" width="232" height="48" rx="15"/>
+    </clipPath>
+    <clipPath id="rollerClip">
+      <rect x="162" y="294" width="188" height="36" rx="18"/>
+    </clipPath>
+    <clipPath id="deckClip">
+      <path d="M166 344 H346 Q368 344 374 364 L388 416 Q391 430 377 430 H135 Q121 430 124 416 L138 364 Q144 344 166 344 Z"/>
+    </clipPath>
+    <clipPath id="paperClip">
+      <rect x="198" y="168" width="116" height="176"/>
+    </clipPath>
+  </defs>
+
+  <!-- soft contact shadow under everything, warmed to sepia -->
+  <g id="ground-shadow" fill="#130d06">
+    <ellipse cx="256" cy="462" rx="202" ry="20" opacity="0.06"/>
+    <ellipse cx="256" cy="462" rx="178" ry="17.5" opacity="0.07"/>
+    <ellipse cx="256" cy="462" rx="154" ry="15" opacity="0.08"/>
+    <ellipse cx="256" cy="462" rx="130" ry="12.5" opacity="0.09"/>
+    <ellipse cx="256" cy="462" rx="106" ry="10" opacity="0.11"/>
+    <ellipse cx="256" cy="462" rx="82" ry="7.5" opacity="0.13"/>
+  </g>
+
+  <g id="monitor">
+    <!-- bezel: dusty olive-grey bands, lit from above, deeper tube shade below -->
+    <g id="bezel-bands" clip-path="url(#bezelClip)">
+      <rect x="78" y="44" width="356" height="48" fill="#577a51"/>
+      <rect x="78" y="92" width="356" height="49" fill="#53754d"/>
+      <rect x="78" y="141" width="356" height="48" fill="#4e6f49"/>
+      <rect x="78" y="189" width="356" height="48" fill="#496a45"/>
+      <rect x="78" y="237" width="356" height="48" fill="#446441"/>
+      <rect x="78" y="285" width="356" height="49" fill="#3f5e3d"/>
+      <rect x="78" y="334" width="356" height="48" fill="#3a5839"/>
+      <rect x="78" y="382" width="356" height="48" fill="#355235"/>
+    </g>
+    <!-- tube falloff: the chin sits deeper in shadow than the crown -->
+    <g id="bezel-bottom-shade" clip-path="url(#bezelClip)" fill="#171106">
+      <rect x="78" y="366" width="356" height="28" opacity="0.06"/>
+      <rect x="78" y="394" width="356" height="36" opacity="0.09"/>
+    </g>
+    <rect id="bezel-edge" x="78" y="44" width="356" height="386" rx="36"
+          fill="transparent" stroke="#6d8a60" stroke-width="3" stroke-opacity="0.5"/>
+    <rect id="screen" x="104" y="70" width="304" height="246" rx="26" fill="#2d5030"/>
+    <g id="screen-content" clip-path="url(#screenClip)">
+      <g id="scanlines" fill="#11150c" opacity="0.2">
+        <rect x="104" y="82" width="304" height="4"/>
+        <rect x="104" y="94" width="304" height="4"/>
+        <rect x="104" y="106" width="304" height="4"/>
+        <rect x="104" y="118" width="304" height="4"/>
+        <rect x="104" y="130" width="304" height="4"/>
+        <rect x="104" y="142" width="304" height="4"/>
+        <rect x="104" y="154" width="304" height="4"/>
+        <rect x="104" y="166" width="304" height="4"/>
+        <rect x="104" y="178" width="304" height="4"/>
+        <rect x="104" y="190" width="304" height="4"/>
+        <rect x="104" y="202" width="304" height="4"/>
+        <rect x="104" y="214" width="304" height="4"/>
+        <rect x="104" y="226" width="304" height="4"/>
+        <rect x="104" y="238" width="304" height="4"/>
+        <rect x="104" y="250" width="304" height="4"/>
+        <rect x="104" y="262" width="304" height="4"/>
+        <rect x="104" y="274" width="304" height="4"/>
+        <rect x="104" y="286" width="304" height="4"/>
+        <rect x="104" y="298" width="304" height="4"/>
+      </g>
+      <g id="text-lines" fill="#a9c98b">
+        <rect x="128" y="96" width="96" height="9" rx="4.5" opacity="0.72"/>
+        <rect x="128" y="116" width="152" height="9" rx="4.5" opacity="0.68"/>
+        <rect x="128" y="136" width="64" height="9" rx="4.5" opacity="0.64"/>
+        <rect x="200" y="133" width="11" height="15" rx="2" opacity="0.78"/>
+        <rect x="336" y="190" width="52" height="8" rx="4" opacity="0.45"/>
+        <rect x="336" y="208" width="38" height="8" rx="4" opacity="0.36"/>
+      </g>
+      <!-- inner shadow under the top bezel -->
+      <g id="screen-top-shade" fill="#0e130a">
+        <rect x="104" y="70" width="304" height="20" opacity="0.35"/>
+        <rect x="104" y="90" width="304" height="20" opacity="0.18"/>
+        <rect x="104" y="110" width="304" height="16" opacity="0.09"/>
+      </g>
+      <!-- tube falloff darkening the bottom of the glass -->
+      <g id="screen-bottom-shade" fill="#161006">
+        <rect x="104" y="258" width="304" height="20" opacity="0.05"/>
+        <rect x="104" y="278" width="304" height="20" opacity="0.08"/>
+        <rect x="104" y="298" width="304" height="18" opacity="0.11"/>
+      </g>
+    </g>
+    <g id="chin-vents" fill="#1d2517" opacity="0.5">
+      <rect x="92" y="340" width="28" height="6" rx="3"/>
+      <rect x="92" y="354" width="28" height="6" rx="3"/>
+      <rect x="92" y="368" width="28" height="6" rx="3"/>
+    </g>
+    <g id="power-led">
+      <circle cx="408" cy="352" r="11" fill="#b7c98a" opacity="0.1"/>
+      <circle cx="408" cy="352" r="5" fill="#a3be7d"/>
+    </g>
+  </g>
+
+  <g id="paper">
+    <rect id="sheet" x="198" y="168" width="116" height="176" rx="2" fill="#e8dbba"/>
+    <g id="paper-content" clip-path="url(#paperClip)">
+      <!-- straight left-edge shadow and right-edge highlight, green cast near the screen -->
+      <rect x="198" y="168" width="38" height="176" fill="#97a07c" opacity="0.16"/>
+      <rect x="289" y="168" width="25" height="176" fill="#b3a67b" opacity="0.18"/>
+      <rect x="198" y="272" width="116" height="72" fill="#8f9871" opacity="0.16"/>
+      <g id="written-lines" fill="#7f8a66" opacity="0.62">
+        <rect x="216" y="184" width="70" height="6" rx="3"/>
+        <rect x="216" y="200" width="82" height="6" rx="3"/>
+        <rect x="216" y="216" width="54" height="6" rx="3"/>
+      </g>
+    </g>
+    <!-- top edge highlight: closed sliver, not a stroked path
+         (MSVG floods multi-segment open stroked paths with black) -->
+    <rect id="sheet-highlight" x="198" y="168" width="116" height="7" rx="2"
+          fill="#e6d6ac" opacity="0.5"/>
+  </g>
+
+  <g id="typewriter">
+    <g id="carriage-lever">
+      <path d="M160.9 305.3 L126.9 269.3 L121.1 274.7 L155.1 310.7 Z" fill="#3a2418"/>
+      <circle cx="121" cy="269" r="8.5" fill="#cfa06e"/>
+    </g>
+    <g id="carriage-frame">
+      <rect x="140" y="308" width="232" height="48" rx="15" fill="#3a2418"/>
+      <g clip-path="url(#frameClip)">
+        <rect x="140" y="308" width="232" height="14" fill="#63452c"/>
+        <rect x="140" y="322" width="232" height="10" fill="#4c3322"/>
+      </g>
+    </g>
+    <g id="platen-roller">
+      <rect x="162" y="294" width="188" height="36" rx="18" fill="#2c1b10"/>
+      <g clip-path="url(#rollerClip)">
+        <rect x="162" y="294" width="188" height="12" fill="#583f28"/>
+        <rect x="162" y="306" width="188" height="12" fill="#3b281a"/>
+      </g>
+      <!-- rim light as a closed sliver, not a stroked path -->
+      <path id="roller-rim-light" d="M180 304 Q256 297 332 304 L332 300 Q256 293 180 300 Z"
+            fill="#9a7148" opacity="0.55"/>
+    </g>
+    <g id="roller-knobs">
+      <circle cx="150" cy="312" r="13.5" fill="#3a2418"/>
+      <circle cx="150" cy="312" r="6" fill="#9c7148"/>
+      <circle cx="362" cy="312" r="13.5" fill="#3a2418"/>
+      <circle cx="362" cy="312" r="6" fill="#9c7148"/>
+    </g>
+    <g id="body-deck">
+      <path d="M166 344 H346 Q368 344 374 364 L388 416 Q391 430 377 430 H135 Q121 430 124 416 L138 364 Q144 344 166 344 Z"
+            fill="#5e4029"/>
+      <g id="deck-bands" clip-path="url(#deckClip)">
+        <rect x="118" y="344" width="276" height="14" fill="#a67a4d"/>
+        <rect x="118" y="358" width="276" height="15" fill="#976f46"/>
+        <rect x="118" y="373" width="276" height="14" fill="#896440"/>
+        <rect x="118" y="387" width="276" height="14" fill="#7c5a3b"/>
+        <rect x="118" y="401" width="276" height="15" fill="#6d5033"/>
+      </g>
+      <!-- rim light as a closed sliver, not a stroked path -->
+      <path id="deck-rim-light" d="M170 351 Q256 344 342 351 L342 347 Q256 340 170 347 Z"
+            fill="#dbb183" opacity="0.5"/>
+    </g>
+    <g id="keys">
+      <!-- key caps: three rows centred on the deck axis (x=256) - 7, 8, 7 caps -
+           sized down and spread out so each cap keeps an air gap from its
+           neighbours and from the deck's left/right edges. The last row sits
+           clearly above the spacebar, which is a single centred bar, not part
+           of the cap grid. -->
+      <g fill="#35200f">
+        <circle cx="169" cy="354.8" r="7.2"/><circle cx="198" cy="354.8" r="7.2"/><circle cx="227" cy="354.8" r="7.2"/>
+        <circle cx="256" cy="354.8" r="7.2"/><circle cx="285" cy="354.8" r="7.2"/><circle cx="314" cy="354.8" r="7.2"/>
+        <circle cx="343" cy="354.8" r="7.2"/>
+        <circle cx="165" cy="373.8" r="7.2"/><circle cx="191" cy="373.8" r="7.2"/><circle cx="217" cy="373.8" r="7.2"/>
+        <circle cx="243" cy="373.8" r="7.2"/><circle cx="269" cy="373.8" r="7.2"/><circle cx="295" cy="373.8" r="7.2"/>
+        <circle cx="321" cy="373.8" r="7.2"/><circle cx="347" cy="373.8" r="7.2"/>
+        <circle cx="169" cy="392.8" r="7.2"/><circle cx="198" cy="392.8" r="7.2"/><circle cx="227" cy="392.8" r="7.2"/>
+        <circle cx="256" cy="392.8" r="7.2"/><circle cx="285" cy="392.8" r="7.2"/><circle cx="314" cy="392.8" r="7.2"/>
+        <circle cx="343" cy="392.8" r="7.2"/>
+      </g>
+      <g fill="#cfa06e">
+        <circle cx="169" cy="357" r="6"/><circle cx="198" cy="357" r="6"/><circle cx="227" cy="357" r="6"/>
+        <circle cx="256" cy="357" r="6"/><circle cx="285" cy="357" r="6"/><circle cx="314" cy="357" r="6"/>
+        <circle cx="343" cy="357" r="6"/>
+        <circle cx="165" cy="376" r="6"/><circle cx="191" cy="376" r="6"/><circle cx="217" cy="376" r="6"/>
+        <circle cx="243" cy="376" r="6"/><circle cx="269" cy="376" r="6"/><circle cx="295" cy="376" r="6"/>
+        <circle cx="321" cy="376" r="6"/><circle cx="347" cy="376" r="6"/>
+        <circle cx="169" cy="395" r="6"/><circle cx="198" cy="395" r="6"/><circle cx="227" cy="395" r="6"/>
+        <circle cx="256" cy="395" r="6"/><circle cx="285" cy="395" r="6"/><circle cx="314" cy="395" r="6"/>
+        <circle cx="343" cy="395" r="6"/>
+      </g>
+      <rect id="spacebar-shadow" x="206" y="412" width="100" height="14" rx="7" fill="#35200f"/>
+      <rect id="spacebar" x="206" y="409" width="100" height="14" rx="7" fill="#cfa06e"/>
+    </g>
+  </g>
+
+  <g id="plinth">
+    <rect x="76" y="424" width="360" height="30" rx="11" fill="#4e3320"/>
+    <rect x="76" y="424" width="360" height="10" rx="5" fill="#7f5535"/>
+    <rect x="84" y="426" width="344" height="5" rx="2.5" fill="#bd8852" opacity="0.42"/>
+  </g>
+
+  <!-- film grain: hand-placed dust on the negative, denser near the frame
+       edges, clear of the screen text lines, the paper's written lines and
+       the keys so nothing reads as a rendering bug at 32x32 -->
+  <g id="film-grain">
+    <circle cx="45.5" cy="263.3" r="1.33" fill="#e9dcb2" opacity="0.095"/>
+    <rect x="201" y="209" width="1.6" height="1.6" fill="#2e2516" opacity="0.151"/>
+    <circle cx="354" cy="305.8" r="1.12" fill="#261c0f" opacity="0.092"/>
+    <circle cx="447.4" cy="62.3" r="1.6" fill="#b7ab84" opacity="0.12"/>
+    <circle cx="234.9" cy="264.2" r="0.82" fill="#1d160b" opacity="0.103"/>
+    <circle cx="343.9" cy="233" r="1.11" fill="#e9dcb2" opacity="0.105"/>
+    <circle cx="183.9" cy="156.8" r="0.98" fill="#2e2516" opacity="0.11"/>
+    <rect x="481.4" y="199" width="3.1" height="1.3" fill="#261c0f" opacity="0.095"/>
+    <circle cx="174.8" cy="307.6" r="1.4" fill="#261c0f" opacity="0.092"/>
+    <circle cx="311.5" cy="341.3" r="1.97" fill="#cbbf9c" opacity="0.15"/>
+    <circle cx="210.2" cy="253.4" r="1.27" fill="#e9dcb2" opacity="0.132"/>
+    <circle cx="133.5" cy="493.9" r="1.38" fill="#1d160b" opacity="0.21"/>
+    <rect x="227" y="72.8" width="2.2" height="1.9" fill="#2e2516" opacity="0.1"/>
+    <circle cx="96.1" cy="440.3" r="1.02" fill="#2e2516" opacity="0.107"/>
+    <circle cx="348.4" cy="161.1" r="1.28" fill="#2e2516" opacity="0.125"/>
+    <rect x="34.5" y="429.9" width="3" height="1.6" fill="#e9dcb2" opacity="0.07"/>
+    <circle cx="435.5" cy="156.9" r="1.52" fill="#b7ab84" opacity="0.135"/>
+    <circle cx="386.1" cy="437.4" r="0.71" fill="#e9dcb2" opacity="0.121"/>
+    <circle cx="315" cy="124.1" r="0.69" fill="#261c0f" opacity="0.131"/>
+    <rect x="439.2" y="495.6" width="2.2" height="1.8" fill="#1d160b" opacity="0.162"/>
+    <circle cx="190.6" cy="299.1" r="1.19" fill="#e9dcb2" opacity="0.116"/>
+    <circle cx="229.5" cy="160.7" r="1.14" fill="#e9dcb2" opacity="0.078"/>
+    <circle cx="180.3" cy="180" r="1.18" fill="#261c0f" opacity="0.081"/>
+    <circle cx="463.8" cy="100.1" r="1.24" fill="#261c0f" opacity="0.134"/>
+    <circle cx="491.5" cy="465.2" r="1.32" fill="#b7ab84" opacity="0.079"/>
+    <circle cx="446.3" cy="285.9" r="0.8" fill="#2e2516" opacity="0.11"/>
+    <circle cx="165.5" cy="494.3" r="0.75" fill="#b7ab84" opacity="0.148"/>
+    <circle cx="9.5" cy="211.4" r="0.93" fill="#e9dcb2" opacity="0.111"/>
+    <circle cx="429.2" cy="189.8" r="1.95" fill="#261c0f" opacity="0.148"/>
+    <rect x="427" y="438.6" width="2" height="2" fill="#2e2516" opacity="0.17"/>
+    <circle cx="164.7" cy="83.9" r="1.18" fill="#b7ab84" opacity="0.075"/>
+    <circle cx="488.3" cy="176.6" r="1.86" fill="#1d160b" opacity="0.126"/>
+    <rect x="473.9" y="468.7" width="2.5" height="1.6" fill="#1d160b" opacity="0.18"/>
+    <circle cx="354.5" cy="279.4" r="1.11" fill="#1d160b" opacity="0.097"/>
+    <rect x="280.1" y="285.6" width="1.8" height="1.9" fill="#e9dcb2" opacity="0.087"/>
+    <rect x="109" y="14.1" width="1.5" height="1.5" fill="#e9dcb2" opacity="0.175"/>
+    <circle cx="168.5" cy="475.3" r="1.53" fill="#e9dcb2" opacity="0.125"/>
+    <circle cx="224.2" cy="308" r="0.71" fill="#2e2516" opacity="0.116"/>
+    <circle cx="372.4" cy="445.7" r="1.52" fill="#e9dcb2" opacity="0.142"/>
+    <rect x="246.2" y="284.7" width="2.1" height="2" fill="#1d160b" opacity="0.146"/>
+    <circle cx="67.5" cy="113.3" r="1.7" fill="#261c0f" opacity="0.117"/>
+    <rect x="203.3" y="208.8" width="2.4" height="1.6" fill="#e9dcb2" opacity="0.11"/>
+    <rect x="6.8" y="77.2" width="1.3" height="1.1" fill="#261c0f" opacity="0.126"/>
+    <circle cx="397.1" cy="480.8" r="1.18" fill="#261c0f" opacity="0.1"/>
+    <rect x="332.1" y="476.3" width="3" height="1.7" fill="#e9dcb2" opacity="0.077"/>
+    <circle cx="230.8" cy="272.1" r="1.1" fill="#261c0f" opacity="0.1"/>
+    <circle cx="416.7" cy="395.5" r="0.75" fill="#e9dcb2" opacity="0.108"/>
+    <circle cx="341.6" cy="147.4" r="1.49" fill="#cbbf9c" opacity="0.142"/>
+    <rect x="333.1" y="459.9" width="1.8" height="1.1" fill="#261c0f" opacity="0.124"/>
+    <circle cx="385.8" cy="280.1" r="1.8" fill="#b7ab84" opacity="0.132"/>
+    <circle cx="470.6" cy="70.5" r="1.34" fill="#b7ab84" opacity="0.105"/>
+    <circle cx="430.7" cy="253.1" r="1.69" fill="#261c0f" opacity="0.142"/>
+    <circle cx="215.6" cy="473.3" r="1.05" fill="#b7ab84" opacity="0.08"/>
+    <rect x="314.5" y="256" width="2.6" height="2" fill="#1d160b" opacity="0.171"/>
+    <circle cx="269.7" cy="74.2" r="1.4" fill="#cbbf9c" opacity="0.15"/>
+    <circle cx="478.7" cy="409.1" r="1.84" fill="#261c0f" opacity="0.134"/>
+    <circle cx="435.7" cy="328.3" r="1.03" fill="#cbbf9c" opacity="0.149"/>
+    <circle cx="450.7" cy="122.4" r="1.88" fill="#2e2516" opacity="0.092"/>
+    <circle cx="343.2" cy="110.9" r="1.85" fill="#2e2516" opacity="0.081"/>
+    <rect x="72.4" y="292.1" width="1.4" height="1.1" fill="#1d160b" opacity="0.082"/>
+    <circle cx="228.8" cy="284.2" r="0.93" fill="#2e2516" opacity="0.119"/>
+    <circle cx="435.4" cy="73.8" r="1.55" fill="#1d160b" opacity="0.177"/>
+    <!-- faint emulsion scratches: closed slanted slivers, never strokes -->
+    <path d="M87 126 L90 123 L109 52 L106 55 Z" fill="#e3d5ac" opacity="0.06"/>
+    <path d="M418 62 L421 64 L464 132 L461 134 Z" fill="#241a0e" opacity="0.05"/>
+    <path d="M398 452 L454 468 L453 471 L397 455 Z" fill="#e3d5ac" opacity="0.05"/>
+    <path d="M60 380 L63 378 L78 312 L75 314 Z" fill="#241a0e" opacity="0.05"/>
+  </g>
+</svg>

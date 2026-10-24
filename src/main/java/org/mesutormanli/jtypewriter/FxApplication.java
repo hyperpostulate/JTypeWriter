@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import org.mesutormanli.jtypewriter.ui.AppIcons;
 import org.mesutormanli.jtypewriter.ui.MainController;
 
 /**
@@ -49,6 +50,7 @@ public class FxApplication extends Application {
             app.mainController.setStage(primaryStage);
             app.mainStage.configure(primaryStage, scene);
 
+            AppIcons.applyTo(primaryStage);
             primaryStage.show();
 
             // The recovery offer must be resolved before autosave starts: the

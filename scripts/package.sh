@@ -13,6 +13,10 @@
 # back from the artifact that was built, so nothing else can drift, and it is
 # validated against jpackage's rules before it is used.
 #
+# The launcher icon is per platform (PNG on Linux, .ico on Windows, .icns on
+# macOS), generated from src/main/resources/icons/jtypewriter.svg by
+# scripts/generate-icons.py and passed to jpackage for images and installers.
+#
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -73,6 +77,22 @@ case "$(uname -s)" in
     *)                    echo "unsupported platform: $(uname -s)" >&2; exit 1 ;;
 esac
 
+# jpackage takes a different icon container per platform, all rendered from the
+# canonical artwork. A missing file is a build error - never guess or omit the
+# icon silently.
+case "$PLATFORM" in
+    linux)   ICON="src/main/resources/icons/jtypewriter-512.png" ;;
+    windows) ICON="src/main/resources/icons/jtypewriter.ico" ;;
+    mac)     ICON="src/main/resources/icons/jtypewriter.icns" ;;
+esac
+if [[ ! -f "$ICON" ]]; then
+    echo "no $PLATFORM icon at '$ICON'" >&2
+    echo "the canonical artwork is src/main/resources/icons/jtypewriter.svg - regenerate the" >&2
+    echo "PNG set, the Windows .ico and the macOS .icns with:" >&2
+    echo "    ./scripts/generate-icons.py" >&2
+    exit 1
+fi
+
 DEST="releases/$PLATFORM"
 STAGING="target/jpackage-input"
 
@@ -96,6 +116,7 @@ jpackage \
     --input "$STAGING" \
     --main-jar "$(basename "$FAT_JAR")" \
     --main-class "$MAIN_CLASS" \
+    --icon "$ICON" \
     --dest "$DEST" \
     --java-options "-Dfile.encoding=UTF-8" \
     --java-options "--enable-native-access=ALL-UNNAMED"
@@ -118,6 +139,7 @@ wrap_installer() {
         --app-version "$APP_VERSION" \
         --description "$DESCRIPTION" \
         --vendor "$VENDOR" \
+        --icon "$ICON" \
         --dest "$DEST" \
         "$@"
     echo "installer written to $DEST/ ($type)"
