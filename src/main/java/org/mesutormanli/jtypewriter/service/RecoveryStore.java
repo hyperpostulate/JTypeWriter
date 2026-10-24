@@ -9,8 +9,10 @@ import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -60,6 +62,15 @@ import java.util.logging.Logger;
  * deletes the old one. Later {@link #clear()} calls and snapshots then target
  * this session's file only, without any change in {@code AutoSaveService}.</p>
  *
+ * <p>Parking: a draft the user postponed ("ask later") is moved out of the
+ * active slot into {@code pending-<UUID>.jtw} by {@link #park()}. Parked files
+ * are ordinary drafts for reading - {@link #loadDraft()} considers them - but
+ * nothing ever writes them, so the session can keep snapping the document the
+ * user is actually editing instead of going silent. Without parking the single
+ * slot forced a choice between overwriting the postponed text and not writing
+ * a recovery copy at all; parking removes that choice. {@link #clear()} is
+ * scoped to this session's slot, so a parked draft survives a clean exit.</p>
+ *
  * <p>Lifecycle: the draft is refreshed periodically while a document is dirty,
  * cleared on every successful save and on clean exit. If the application dies
  * in between, the draft survives and is offered for recovery on next startup.
@@ -76,6 +87,7 @@ public class RecoveryStore {
     private static final String MAGIC = "JTypeWriter-Draft/2";
     private static final byte[] MAGIC_BYTES = MAGIC.getBytes(StandardCharsets.UTF_8);
     private static final String FILE_PREFIX = "draft-";
+    private static final String PARKED_PREFIX = "pending-";
     private static final String FILE_SUFFIX = ".jtw";
     private static final String KEY_SAVED_AT = "saved.at";
     private static final String KEY_ORIGINAL_PATH = "original.path.b64";
@@ -96,9 +108,10 @@ public class RecoveryStore {
     }
 
     /**
-     * @return the newest surviving draft, if any. When it comes from another
-     *         session's file, it is adopted into this session's slot first, so
-     *         later {@link #clear()} calls only affect this session.
+     * @return the newest surviving draft, if any, including drafts a previous
+     *         session parked. When it comes from another file, it is adopted
+     *         into this session's slot first, so later {@link #clear()} calls
+     *         only affect this session.
      */
     public synchronized Optional<Draft> loadDraft() {
         if (!Files.isDirectory(dir)) {
@@ -127,6 +140,41 @@ public class RecoveryStore {
         }
         adoptIfForeign(winner);
         return Optional.of(winner.draft());
+    }
+
+    /**
+     * Moves this session's draft out of the active slot so that later snapshots
+     * cannot overwrite it. Used for a draft the user postponed: the text stays
+     * readable by {@link #loadDraft()} (in this session and the next one) while
+     * the slot is free for the document the user is editing now.
+     *
+     * @return {@code true} when the slot holds no draft afterwards (there was
+     *         nothing to park, or the move succeeded); {@code false} only when
+     *         the move failed, in which case the caller must keep the slot
+     *         frozen - overwriting the only copy of the text is worse than not
+     *         snapping
+     */
+    public synchronized boolean park() {
+        if (!Files.isRegularFile(ownFile)) {
+            return true;
+        }
+        var parked = dir.resolve(PARKED_PREFIX + UUID.randomUUID() + FILE_SUFFIX);
+        try {
+            move(ownFile, parked);
+            return true;
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "could not park recovery draft " + ownFile, e);
+            return false;
+        }
+    }
+
+    /** Rename inside the store directory; the source must survive a failed move. */
+    private static void move(Path from, Path to) throws IOException {
+        try {
+            Files.move(from, to, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
     /** Drops this session's draft (successful save or clean exit). */
@@ -159,7 +207,8 @@ public class RecoveryStore {
 
     private static boolean isDraftFile(Path file) {
         var name = file.getFileName().toString();
-        return name.startsWith(FILE_PREFIX) && name.endsWith(FILE_SUFFIX);
+        return (name.startsWith(FILE_PREFIX) || name.startsWith(PARKED_PREFIX))
+                && name.endsWith(FILE_SUFFIX);
     }
 
     /** A parsed candidate; {@code draft.savedAt()} and {@code modified} drive ordering. */

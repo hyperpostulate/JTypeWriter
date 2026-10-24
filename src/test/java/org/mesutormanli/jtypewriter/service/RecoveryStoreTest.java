@@ -128,6 +128,75 @@ class RecoveryStoreTest {
     }
 
     @Test
+    void parkingFreesTheSlotWithoutLosingTheDraft(@TempDir Path dir) throws IOException {
+        var store = new RecoveryStore(dir);
+        store.saveDraft("ertelenen metin", null);
+
+        assertTrue(store.park());
+
+        assertTrue(draftFiles(dir).isEmpty()); // the active slot is free again
+        assertEquals(1, parkedFiles(dir).size());
+        assertEquals("ertelenen metin", store.loadDraft().orElseThrow().content());
+    }
+
+    @Test
+    void snapshotsAfterParkingDoNotOverwriteTheParkedDraft(@TempDir Path dir) throws IOException {
+        var store = new RecoveryStore(dir);
+        store.saveDraft("ertelenen metin", null);
+        assertTrue(store.park());
+
+        store.saveDraft("yeni belgede yazılanlar", null);
+
+        // Two independent drafts: the postponed one and the live one. The old
+        // single-slot design could only keep one of them.
+        assertEquals(1, parkedFiles(dir).size());
+        assertEquals(1, draftFiles(dir).size());
+        var parked = Files.readString(parkedFiles(dir).get(0));
+        var active = Files.readString(draftFiles(dir).get(0));
+        assertTrue(parked.contains("ertelenen metin"));
+        assertTrue(active.contains("yeni belgede yazılanlar"));
+    }
+
+    @Test
+    void clearKeepsParkedDrafts(@TempDir Path dir) throws IOException {
+        var store = new RecoveryStore(dir);
+        store.saveDraft("ertelenen metin", null);
+        assertTrue(store.park());
+        store.saveDraft("canlı taslak", null);
+
+        store.clear(); // a successful save or a clean exit
+
+        assertEquals(1, parkedFiles(dir).size());
+        assertTrue(draftFiles(dir).isEmpty());
+        assertEquals("ertelenen metin", store.loadDraft().orElseThrow().content());
+    }
+
+    @Test
+    void parkingWithoutADraftIsANoOp(@TempDir Path dir) throws IOException {
+        var store = new RecoveryStore(dir);
+
+        assertTrue(store.park()); // nothing to move, slot already free
+
+        assertEquals(0, jtwFiles(dir, "draft-").size());
+        assertEquals(0, jtwFiles(dir, "pending-").size());
+    }
+
+    @Test
+    void aParkedDraftIsAdoptedByTheNextSession(@TempDir Path dir) throws IOException {
+        var first = new RecoveryStore(dir);
+        first.saveDraft("önceki oturumun ertelenen metni", null);
+        assertTrue(first.park());
+
+        var second = new RecoveryStore(dir);
+        assertEquals("önceki oturumun ertelenen metni", second.loadDraft().orElseThrow().content());
+        assertEquals(1, draftFiles(dir).size()); // adopted into the new session's slot
+        assertTrue(parkedFiles(dir).isEmpty());
+
+        assertTrue(second.park()); // answering "later" again parks it again
+        assertEquals(1, parkedFiles(dir).size());
+    }
+
+    @Test
     void badTimestampKeepsTheTextAndFallsBackToTheFileMtime(@TempDir Path dir) throws IOException {
         var store = new RecoveryStore(dir);
         var original = dir.resolve("roman.txt");
@@ -207,9 +276,18 @@ class RecoveryStoreTest {
 
     /** Files that make up the on-disk draft set. */
     private static List<Path> draftFiles(Path dir) throws IOException {
+        return jtwFiles(dir, "draft-");
+    }
+
+    /** Drafts a session parked for a later decision. */
+    private static List<Path> parkedFiles(Path dir) throws IOException {
+        return jtwFiles(dir, "pending-");
+    }
+
+    private static List<Path> jtwFiles(Path dir, String prefix) throws IOException {
         try (var files = Files.list(dir)) {
             return files.filter(Files::isRegularFile)
-                    .filter(file -> file.getFileName().toString().startsWith("draft-"))
+                    .filter(file -> file.getFileName().toString().startsWith(prefix))
                     .filter(file -> file.getFileName().toString().endsWith(".jtw"))
                     .sorted()
                     .toList();

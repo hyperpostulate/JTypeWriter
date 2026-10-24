@@ -18,8 +18,12 @@ import java.util.logging.Logger;
  * seconds and whenever the window loses focus. Snapshots are dropped on every
  * successful save (content is safe on disk) and on clean exit; anything that
  * survives that is a crash and is offered for recovery on next startup.
- * A draft the user answered with "later" is never dropped implicitly: it stays
- * queued (and frozen against new snapshots) until it is restored or discarded.
+ *
+ * <p>A draft the user answered with "later" is never dropped implicitly: it is
+ * parked out of the active slot ({@link RecoveryStore#park()}), so it survives
+ * this session and the next one while the document the user is actually
+ * editing keeps being snapshotted. Parking, not freezing, is what makes both
+ * true at once.</p>
  */
 public class AutoSaveService {
 
@@ -34,11 +38,12 @@ public class AutoSaveService {
     private Timeline timeline;
 
     /**
-     * True while an unanswered ("later") draft must be preserved. In that state
-     * the single draft slot belongs to the deferred text, so neither clean exit
-     * nor a new snapshot may overwrite it.
+     * Fallback latch, set only when a postponed draft could not be parked. In
+     * that state the slot still belongs to the deferred text, so snapshots stay
+     * suppressed rather than overwriting its only copy. It is not part of the
+     * normal "later" path: that one parks the draft and keeps snapping.
      */
-    private boolean draftPending;
+    private boolean draftFrozen;
 
     public AutoSaveService(RecoveryStore store, FileService fileService, DialogService dialogService) {
         this.store = store;
@@ -54,14 +59,14 @@ public class AutoSaveService {
              */
             @Override
             public void onLoaded(java.nio.file.Path file) {
-                if (!draftPending) {
+                if (!draftFrozen) {
                     store.clear();
                 }
             }
 
             @Override
             public void onSaved(java.nio.file.Path file) {
-                if (!draftPending) {
+                if (!draftFrozen) {
                     store.clear(); // content is on disk now, nothing left to recover
                 }
             }
@@ -72,7 +77,7 @@ public class AutoSaveService {
              */
             @Override
             public void onNewDocument() {
-                if (!draftPending) {
+                if (!draftFrozen) {
                     store.clear();
                 }
             }
@@ -81,13 +86,13 @@ public class AutoSaveService {
 
     /** Starts periodic snapshots and ties cleanup to the window lifecycle. */
     public void attach(Stage stage, EditorArea editorArea) {
-        timeline = new Timeline(new KeyFrame(Duration.seconds(AUTOSAVE_SECONDS), e -> snapshot(editorArea)));
+        timeline = new Timeline(new KeyFrame(Duration.seconds(AUTOSAVE_SECONDS), e -> snapshot(editorArea.getText())));
         timeline.setCycleCount(Animation.INDEFINITE);
         timeline.play();
 
         stage.focusedProperty().addListener((obs, wasFocused, focused) -> {
             if (!focused) {
-                snapshot(editorArea);
+                snapshot(editorArea.getText());
             }
         });
         stage.addEventHandler(WindowEvent.WINDOW_HIDDEN, e -> shutdown());
@@ -110,13 +115,13 @@ public class AutoSaveService {
         }
         var choice = dialogService.showRecoveryDialog(stage, draft.get().savedAt());
         if (choice == RecoveryChoice.RESTORE) {
-            draftPending = false;
+            draftFrozen = false;
             fileService.restoreRecovered(draft.get().originalFile(), draft.get().content());
             editorArea.setDocument(fileService.getCurrentContent());
             return true;
         }
         if (choice == RecoveryChoice.DISCARD) {
-            draftPending = false;
+            draftFrozen = false;
             store.clear();
         } else {
             // LATER (or the prompt was closed): the draft is the only copy, so
@@ -127,12 +132,12 @@ public class AutoSaveService {
     }
 
     /**
-     * Freezes the current draft until it is explicitly restored or discarded.
-     * Clean exit, new snapshots and document loads must not overwrite it: the
-     * store has a single slot and it belongs to the unanswered draft.
+     * Parks the postponed draft beside the session's slot. Afterwards the slot
+     * is free and snapshots continue as usual; if parking fails the slot is
+     * frozen instead, so the text is never overwritten.
      */
     void keepDraftForNextStart() {
-        draftPending = true;
+        draftFrozen = !store.park();
     }
 
     /** Clean exit: stop snapping and drop the draft unless one was postponed. */
@@ -140,18 +145,22 @@ public class AutoSaveService {
         if (timeline != null) {
             timeline.stop();
         }
-        if (!draftPending) {
+        if (!draftFrozen) {
             store.clear();
         }
     }
 
-    private void snapshot(EditorArea editorArea) {
-        if (draftPending) {
-            return; // never overwrite the deferred draft with the new document
+    /**
+     * One autosave tick. Takes the text as an argument (rather than the control
+     * that holds it) so the whole decision stays testable without a toolkit.
+     */
+    void snapshot(String text) {
+        if (draftFrozen) {
+            return; // the slot could not be freed; never overwrite its only copy
         }
         try {
             if (fileService.hasUnsavedChanges()) {
-                store.saveDraft(editorArea.getText(), fileService.getCurrentFilePath());
+                store.saveDraft(text, fileService.getCurrentFilePath());
             } else {
                 store.clear();
             }
