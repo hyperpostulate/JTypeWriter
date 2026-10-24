@@ -13,7 +13,17 @@
   <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fhyperpostulate%2FJTypeWriter%2Fgh-pages%2Fbadges%2Ftests.json" alt="Tests"></a>
 </p>
 
-A distraction-free text editor built with JavaFX. Uses plain-Java dependency injection (manual composition root, no DI framework) for focused writing with typewriter sound effects, real-time statistics, multiple themes, and multi-language support.
+<p align="center">A quiet, offline desktop editor for creative writers. It sounds like a typewriter, counts what you write, and makes losing that writing very hard.</p>
+JTypeWriter opens a single plain-text document and then stays out of the way: no accounts, no cloud, no project format. Your text lives in the file you picked, in the encoding that file already had. It runs on Linux, Windows and macOS with Java 25, and the interface speaks English, Turkish, German, French, Spanish and Italian.
+
+**What you get?**
+
+- **A draft you cannot wreck by accident.** YOLO mode turns off Backspace, Delete, Cut and Undo/Redo so you can only move forward. Every save is atomic and keeps rotating backups, and unsaved work is snapshotted every 30 seconds - after a crash the draft is offered back, and closing that prompt never deletes it.
+- **The feel of typing.** A typewriter keystroke for every key you press, three themes (dark, light, sepia) and six text colours, all switchable while you write.
+- **Numbers as you go.** Words, characters with and without spaces, lines, keystrokes, session time and a sustained words-per-minute figure that ignores your breaks.
+- **Only text on screen.** `F11` goes fullscreen, `Ctrl+T` hides the toolbar, and the window title tells you which document is open and whether it is saved.
+- **A session that comes back.** Language, theme, text colour, font size, last document and window geometry are restored on the next start.
+
 
 ---
 
@@ -394,7 +404,18 @@ This project is licensed under the GNU General Public License v3.0. See [LICENSE
   <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fhyperpostulate%2FJTypeWriter%2Fgh-pages%2Fbadges%2Ftests.json" alt="Tests"></a>
 </p>
 
-JavaFX ile oluşturulmuş, dikkat dağıtmayan bir metin editörü. Bağımlılık enjeksiyonu framework'süz, saf Java ile (manuel kompozisyon kökü) yapılır. Daktilo ses efektleri, gerçek zamanlı istatistikler, çoklu tema ve çoklu dil desteği ile odaklanarak yazma deneyimi sunar.
+<p align="center">Yaratıcı yazarlar için sessiz, çevrimdışı bir masaüstü editör. Daktilo gibi ses çıkarır, yazdığını sayar ve o yazıyı kaybetmeyi olabildiğince zorlaştırır.</p>
+
+JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap yok, bulut yok, proje biçimi yok. Metnin, seçtiğin dosyada ve o dosyanın zaten sahip olduğu kodlamada kalır. Java 25 ile Linux, Windows ve macOS'ta çalışır; arayüzü İngilizce, Türkçe, Almanca, Fransızca, İspanyolca ve İtalyanca konuşur.
+
+**Neler var?**
+
+- **Kazara mahvedemeyeceğin bir taslak.** YOLO modu Backspace, Delete, Kes ve Geri Al/İleri Al'ı kapatır; yalnızca ileri yazabilirsin. Her kayıt atomiktir ve dönen yedekler tutar; kaydedilmemiş iş 30 saniyede bir anlık görüntülenir - çökmeden sonra taslak geri teklif edilir ve o iletiyi kapatmak taslağı asla silmez.
+- **Yazma hissi.** Bastığın her tuşta daktilo sesi, üç tema (koyu, açık, sepya) ve altı metin rengi; hepsi yazarken değiştirilebilir.
+- **Yazdıkça sayılar.** Kelime, boşluklu ve boşluksuz karakter, satır, tuş vuruşu, oturum süresi ve molaları saymayan sürdürülebilir kelime/dakika.
+- **Ekranda yalnızca metin.** `F11` tam ekran, `Ctrl+T` araç çubuğunu gizler; pencere başlığı hangi belgenin açık olduğunu ve kaydedilip kaydedilmediğini söyler.
+- **Kaldığın yerden devam eden oturum.** Dil, tema, metin rengi, yazı boyutu, son belge ve pencere geometrisi bir sonraki açılışta geri yüklenir.
+
 
 ---
 
