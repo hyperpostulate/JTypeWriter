@@ -1,14 +1,14 @@
 # JTypeWriter — Kapsamlı Analiz ve Ürünleştirme Değerlendirmesi
 
 > Tarih: 24 Ekim 2026 · Sürüm: `1.0.0` (`pom.xml`) · Kapsam: tüm `src/main`, `src/test`, `pom.xml`, `scripts/`, `.github/workflows/maven.yml`, `README.md`, `README-TR.md`, `docs/`
-> Yöntem: üç bağımsız alan denetimi (veri güvenliği · arayüz/erişilebilirlik/i18n · yapı/paketleme/doküman) + kritik bulguların `file:line` düzeyinde elden doğrulanması; `mvn -B test` (çıkış kodu 0, **169 test / 22 test sınıfı**).
+> Yöntem: üç bağımsız alan denetimi (veri güvenliği · arayüz/erişilebilirlik/i18n · yapı/paketleme/doküman) + kritik bulguların `file:line` düzeyinde elden doğrulanması; `mvn -B test` (çıkış kodu 0, **176 test / 22 test sınıfı**).
 > **Bu sürüm bir yeniden yazımdır.** 23 Ekim tarihli önceki analiz, o günden bu yana kapanan işleri hâlâ açık gösteriyordu; aşağıdaki her bulgu bugünkü koda karşı yeniden doğrulandı. Faz planı için tek doğruluk kaynağı `product-roadmap.md`'dir; bu doküman onun **gerekçesini ve kanıtını** tutar.
 
 ---
 
 ## 1. Yönetici Özeti
 
-JTypeWriter, mühendislik disiplini ürün olgunluğunun **önünde giden** bir JavaFX metin editörü. 40 üretim sınıfı / ~4.960 satır kod, 22 test sınıfı / 2.542 satır test, 169 yeşil test — üstelik üç locale'de (varsayılan, `tr_TR`, `de_DE`). Atomik yazma + `fsync` + 3 nesil yedek rotasyonu, oturum başına atomik kurtarma dosyası, kodlama koruma akışı ve elle kurulan temiz composition root gerçekten iyi tasarlanmış.
+JTypeWriter, mühendislik disiplini ürün olgunluğunun **önünde giden** bir JavaFX metin editörü. 40 üretim sınıfı / ~5.000 satır kod, 22 test sınıfı / ~2.700 satır test, 176 yeşil test — üstelik üç locale'de (varsayılan, `tr_TR`, `de_DE`). Atomik yazma + `fsync` + 3 nesil yedek rotasyonu, oturum başına atomik kurtarma dosyası, kodlama koruma akışı ve elle kurulan temiz composition root gerçekten iyi tasarlanmış.
 
 Son bir haftada ürünün **en kritik vaadi onarıldı**: 23 Ekim'deki analizin işaret ettiği üç veri kaybı yolu (kapatınca taslağın silinmesi, bozuk metadata'nın taslağı düşürmesi, iki ayrı atomik yazma) kapandı; tek örnek kilidi, uygulama ikonu, diyalog başlıkları, log yığın izleri, ayar karantinası ve `Ctrl+N` geldi. Yani "taslağımı asla kaybetmez" iddiası artık **kodda büyük ölçüde doğru** — ki bu, ürünün tek gerçek farklılaştırıcısı olduğu için en değerli ilerleme.
 
@@ -66,7 +66,7 @@ Hedef kitle: **yerel-öncelikli, hesapsız, çevrimdışı yazma yüzeyi isteyen
 
 ### 3.2 Yapısal borç
 
-1. **Tek pencere / tek belge varsayımı her yere işlemiş.** `FileService` tek `currentFilePath` + tek `savedContent` tutuyor; `AutoSaveService` tek `Timeline` ve tek draft slotuna bağlı (`draftPending` bayrağı bunun doğrudan sonucu — bkz. §4.2/B); UI tek `EditorArea`. Sekme/çoklu belge **yama değil yeniden tasarım**.
+1. **Tek pencere / tek belge varsayımı her yere işlemiş.** `FileService` tek `currentFilePath` + tek `savedContent` tutuyor; `AutoSaveService` tek `Timeline`'a ve oturum başına tek aktif slota bağlı; UI tek `EditorArea`. Sekme/çoklu belge **yama değil yeniden tasarım**. (Ertelenen taslağın park edilmesi bu varsayımın tek somut sonucunu kapattı — §4.1/H — ama model aynı kaldı.)
 2. **Depolama soyutlaması yok.** `FileService` doğrudan `Files`/`AtomicFiles` kullanıyor, `BackupKeeper` içeride `new`'leniyor, `RecoveryStore` `AppDirs.recoveryDir()` ile sabit. Bulut/şifreli/alternatif depolama eklemek bu sınıfları değiştirmek demek.
 3. **Yaşam döngüsü sözleşmesi yok.** `StatsBar` `Timeline`'ı, `AppGraph.stage`, `AudioClip`, `LocaleManager` dinleyicileri bırakılmıyor. Tek pencere için zararsız; çoklu pencere/test izolasyonu için tuzak.
 4. **`AppDirs` hâlâ her işletim sisteminde `~/.jtypewriter`** (`AppDirs.java:14-16`). Portable hedefin merkezî engeli; `AppSettings`/`RecoveryStore` artık yol enjekte edilebilir olsa da **`AppLogging` enjekte edilemez** — yalnız `init()` var ve `AppDirs.logsDir()`'a sabit (`AppLogging.java:121-144`). Bu, portable F1.2'nin ilk somut işi.
@@ -89,44 +89,42 @@ Kayıt yolu gerçekten iyi: temp dosya → `FileChannel.force(true)` → izin/AC
 
 | # | Eski bulgu | Bugünkü durum |
 |---|---|---|
-| A | Kurtarma diyaloğu kapatılınca taslak siliniyordu | **Kapandı.** Üç seçenek: geri yükle / sil / sonra sor (`DialogService.java:198-211`). Kapatma (X/Escape) `LATER` sayılıyor ve taslak korunuyor (`DialogService.java:218-224`). Temiz çıkışta, yeni snapshot'ta ve belge yüklemede ertelenen taslak korunuyor (`AutoSaveService.java:113-146`). `DialogServiceTest` + `AutoSaveServiceTest` regresyon altında |
+| A | Kurtarma diyaloğu kapatılınca taslak siliniyordu | **Kapandı.** Üç seçenek: geri yükle / sil / sonra sor (`DialogService.java:198-211`). Kapatma (X/Escape) `LATER` sayılıyor ve taslak korunuyor (`DialogService.java:218-224`). Ertelenen taslak ayrı bir dosyaya park edildiği için temiz çıkıştan da etkilenmiyor (`RecoveryStore.park`, `AutoSaveService.keepDraftForNextStart`). `DialogServiceTest` + `AutoSaveServiceTest` regresyon altında |
 | B | Bozuk metadata tüm taslağı düşürüyordu | **Kapandı.** Magic/bölücü eksikse tüm içerik metin olarak sunuluyor; bozuk `saved.at` → dosya mtime; bozuk/eksik yol → `null`; geçersiz UTF-8 → değiştirme karakterleriyle (`RecoveryStore.java:198-274, 300-315`) |
 | C | Taslak + metadata iki ayrı atomik yazmaydı | **Kapandı.** Tek `draft-<uuid>.jtw` dosyası, tek `AtomicFiles.writeMoving` (`RecoveryStore.java:76-96`) |
 | D | Sabit `draft.txt`, iki örnek birbirini eziyordu | **Kapandı.** Oturum başına UUID'li dosya; `loadDraft` en yenisini seçer, başka oturumun taslağını kendi slotuna devralır (adoption), `clear()` yalnız kendi dosyasını siler (`RecoveryStore.java:103-158`) |
-| E | Tek örnek kilidi yoktu | **Kapandı (kısmen — §4.2/C).** `InstanceLock` advisory `FileLock` ile `~/.jtypewriter/instance.lock` üzerinde; başlangıçta graph kurulmadan alınıyor (`JTypeWriterApp.java:20-34`), ikinci örnek yerelleştirilmiş uyarıyla çıkıyor |
+| E | Tek örnek kilidi yoktu | **Kapandı (kısmen — §4.2/B).** `InstanceLock` advisory `FileLock` ile `~/.jtypewriter/instance.lock` üzerinde; başlangıçta graph kurulmadan alınıyor (`JTypeWriterApp.java:20-34`), ikinci örnek yerelleştirilmiş uyarıyla çıkıyor |
 | F | Bozuk ayarlar sessizce eziliyordu | **Kapandı.** `settings.properties.corrupt` (+ çakışmada `.corrupt.<millis>`) karantinası (`AppSettings.java:184-193`) |
 | G | Log'da stack trace yoktu | **Kapandı.** Girintili tam yığın izi + `Caused by:` zinciri, formatter asla fırlatmıyor (`AppLogging.java:52-66, 88-110`) |
+| H | "Sonra sor" yanıtı yeni belgenin otomatik kaydını tamamen susturuyordu | **Kapandı.** Ertelenen taslak `pending-<uuid>.jtw` olarak park ediliyor; aktif slot serbest kalıyor ve snapshot'lar devam ediyor. Park başarısız olursa (rename hatası) slot yeniden donduruluyor — yalnız o durumda erken dönüş var (`RecoveryStore.park`, `AutoSaveService.snapshot`). `RecoveryStoreTest` + `AutoSaveServiceTest` regresyon altında; roadmap'te RW-54 |
 
 ### 4.2 Kalan açıklar — önem sırasıyla
 
-**A. Ertelenen taslak, yeni belgenin otomatik kaydını susturuyor.** *(Yeni bulgu, yüksek)*
-`draftPending` doğruyken her snapshot erken dönüyor (`AutoSaveService.java:148-151`) ve temiz çıkışta depo temizlenmiyor (`:139-146`). Tek yuvalı depo yüzünden bu tasarım savunulabilir — ama sonuç şu: kullanıcı "sonra sor" dediği oturumda **yeni yazdığı metin için hiç kurtarma kopyası üretilmiyor**. Depo slotu artırılmadan (veya ertelenen taslak ayrı bir "karantina" dosyasına taşınmadan) bu açık kapanmaz.
-
-**B. Dış değişiklik algılama yok.** *(Açık, yüksek)*
+**A. Dış değişiklik algılama yok.** *(Açık, yüksek)*
 `writeFile` diskteki dosyanın mtime/boyut/hash'ini okumuyor (`FileService.java:225-263`); `loadFile` da parmak izi kaydetmiyor (`:162-179`). Bulut senkronizasyonu veya başka bir editör aynı dosyayı değiştirdiyse **sessizce üzerine yazılıyor**. "Güvenli editör" iddiası için kritik; roadmap'te RW-23.
 
-**C. Kilit "fail-open" ve adoption birleşince taslak kaybı üretebilir.** *(Yeni bulgu, orta-yüksek)*
+**B. Kilit "fail-open" ve adoption birleşince taslak kaybı üretebilir.** *(Açık, orta-yüksek)*
 `InstanceLock.acquire` herhangi bir `IOException`/`SecurityException` durumunda **kilidi vermeden uygulamayı başlatıyor** (`InstanceLock.java:47-68`). Salt-okunur veya kilitleme desteklemeyen bir medyada iki örnek birlikte çalışır; ikisi de aynı `draft-*.jtw` havuzunu görür ve adoption **diğer canlı oturumun taslağını siliyor** (`RecoveryStore.java:148-158`). Portable hedefte (USB, ağ paylaşımı) bu senaryo tam olarak beklenen senaryo.
 
-**D. Kurtarılan belge, okunamayan orijinali UTF-8 olarak yazabilir.** *(Yeni bulgu, orta)*
+**C. Kurtarılan belge, okunamayan orijinali UTF-8 olarak yazabilir.** *(Açık, orta)*
 `restoreRecovered` orijinali çözemediğinde `currentFilePath` yine atanıyor (`onDisk == null` dalı `if` dışında, `FileService.java:186-203`), `currentCharset` ise önceki/varsayılan UTF-8 olarak kalıyor. Windows-1254 bir dosyanın taslağı geri yüklendiğinde, sonraki kaydetme onu UTF-8'e çevirebilir — "kodlamayı sessizce değiştirme" kuralının ihlali.
 
-**E. BOM'lu yolda lenient decode.** *(Açık, orta)*
+**D. BOM'lu yolda lenient decode.** *(Açık, orta)*
 UTF-8/UTF-16 BOM'lu baytlar `decodeLenient` ile çözülüyor (`TextCodec.java:48-58, 116-126`); bozuk baytlar `U+FFFD` oluyor ve kullanıcı uyarılmıyor. BOM'suz yolda strict decode + legacy istemi doğru; BOM yolunda aynı titizlik yok. Roadmap RW-20.
 
-**F. `ATOMIC_MOVE` desteklenmeyen dosya sistemlerinde atomik olmayan rename'e düşülüyor.** *(Açık, orta)*
+**E. `ATOMIC_MOVE` desteklenmeyen dosya sistemlerinde atomik olmayan rename'e düşülüyor.** *(Açık, orta)*
 `AtomicMoveNotSupportedException` → düz `Files.move(REPLACE_EXISTING)` (`AtomicFiles.java:65-69`). FAT32/exFAT USB'de "yarım dosya yok" garantisi zayıflıyor. Portable hedefte bu, kenar durum değil **ana yol**. Roadmap F3.1-F3.2.
 
-**G. Açılışta `jtw-*.tmp` temizliği yok.** *(Açık, düşük)*
+**F. Açılışta `jtw-*.tmp` temizliği yok.** *(Açık, düşük)*
 Temizlik yalnız çağrının `finally` bloğunda (`AtomicFiles.java:72-75`); çökmede tam belge metni `jtw-<ad>-*.tmp` olarak kalıyor. `TypewriterSound`'un `deleteOnExit` ile `/tmp`'e çıkardığı WAV için de aynı sınıf sorun.
 
-**H. Yalnız en yeni taslak sunuluyor; eski `draft-*` dosyaları ne sunuluyor ne temizleniyor** (`RecoveryStore.java:124-129`). Toleranslı yükleme sayesinde veri kaybı yok ama disk sessizce büyüyor ve "kurtarılabilir taslaklar" görünümü (RW-36) olmadan kullanıcı erişemiyor.
+**G. Yalnız en yeni taslak sunuluyor; eski `draft-*` dosyaları ne sunuluyor ne temizleniyor** (`RecoveryStore.java:124-129`). Toleranslı yükleme sayesinde veri kaybı yok ama disk sessizce büyüyor ve "kurtarılabilir taslaklar" görünümü (RW-36) olmadan kullanıcı erişemiyor.
 
-**I. Yedek dosyası atomik değil.** `BackupKeeper` düz `Files.copy` kullanıyor; çökmede yarım `.bak` kalabilir. Ana yazma yedek hatasında iptal edildiği için belge güvende, ama **yedek kendisi** dayanıklı değil.
+**H. Yedek dosyası atomik değil.** `BackupKeeper` düz `Files.copy` kullanıyor; çökmede yarım `.bak` kalabilir. Ana yazma yedek hatasında iptal edildiği için belge güvende, ama **yedek kendisi** dayanıklı değil.
 
-**J. Geometri ayıklaması eksik.** `Double.parseDouble` `NaN`/`Infinity` kabul ediyor (`AppSettings.java:276-286`); `MainStage`'in `> 0` kontrolü `Infinity`'yi geçiriyor.
+**I. Geometri ayıklaması eksik.** `Double.parseDouble` `NaN`/`Infinity` kabul ediyor (`AppSettings.java:276-286`); `MainStage`'in `> 0` kontrolü `Infinity`'yi geçiriyor.
 
-**K. Symlink semantiği.** `Files.move(REPLACE_EXISTING)` sembolik bağlantıyı hedefin yerine koyar; bağlantı üzerinden kaydetme beklenmedik sonuç üretir.
+**J. Symlink semantiği.** `Files.move(REPLACE_EXISTING)` sembolik bağlantıyı hedefin yerine koyar; bağlantı üzerinden kaydetme beklenmedik sonuç üretir.
 
 ---
 
@@ -247,13 +245,13 @@ Dosya aç/kaydet/farklı kaydet, **Yeni Belge (`Ctrl+N`)** + belge yüklerken un
 
 ## 9. Test ve Kalite Güvencesi
 
-**Çalıştırma sonucu:** `mvn -B test` → **başarılı (exit 0)**, **169 test / 22 test sınıfı**, varsayılan + `tr_TR` + `de_DE` locale'lerinde yeşil. Uyarılar beklenen türde (Mockito self-attach, `sun.misc.Unsafe`).
+**Çalıştırma sonucu:** `mvn -B test` → **başarılı (exit 0)**, **176 test / 22 test sınıfı**, varsayılan + `tr_TR` + `de_DE` locale'lerinde yeşil. Uyarılar beklenen türde (Mockito self-attach, `sun.misc.Unsafe`).
 
-**İyi kapsanan (davranış odaklı, headless):** `FileService` (26 test — kirli akış, atomik yazma, yedek rotasyonu, 1254 round-trip, UTF-8 yükseltme, yaşam döngüsü), `RecoveryStore` (13 — tolerans, adoption, oturum izolasyonu), `FontSizeManager` (13 — merdiven, off-ladder değer, sınırlama), `AppSettings` (13), `SessionStats` (12), `TextCodec` (11), `KeyboardShortcutHandler` (11), `Messages` (8), `AppLogging` (7), `ToolbarOptionLists` (7), `AtomicFiles` (6), `DialogService` (6), `AppIcons` (6), `MainStage` (5), `YoloPolicy` (5), `InstanceLock` (4).
+**İyi kapsanan (davranış odaklı, headless):** `FileService` (26 test — kirli akış, atomik yazma, yedek rotasyonu, 1254 round-trip, UTF-8 yükseltme, yaşam döngüsü), `RecoveryStore` (18 — tolerans, adoption, oturum izolasyonu, park etme), `AutoSaveService` (5 — bayat taslak temizliği, temiz çıkış, park sonrası devam), `FontSizeManager` (13 — merdiven, off-ladder değer, sınırlama), `AppSettings` (13), `SessionStats` (12), `TextCodec` (11), `KeyboardShortcutHandler` (11), `Messages` (8), `AppLogging` (7), `ToolbarOptionLists` (7), `AtomicFiles` (6), `DialogService` (6), `AppIcons` (6), `MainStage` (5), `YoloPolicy` (5), `InstanceLock` (4).
 
 **Kritik boşluklar:**
 - **Uçtan uca çökme/kurtarma senaryosu yok** (taslak yaz → süreç öldür → açılış → geri yükle → kaydet). Kurtarma deposunun birim testleri iyi, ama gerçek `kill -9` yolunu kanıtlayan test yok. Roadmap RW-24.
-- **`draftPending` sırasında otomatik kaydın sustuğu** senaryo test edilmiyor (§4.2/A) — yani bu açık regresyon koruması altında değil.
+- **Park etme yolu (`RecoveryStore.park`)** artık test ediliyor; yalnız "park başarısız olursa slot donar" dalı yalnız kodla, testle kanıtlanmıyor (rename arızası yapay olarak üretilemiyor).
 - **Hata enjeksiyonu yok:** disk dolu, salt-okunur dizin, yedek hatası, `fsync` hatası.
 - **Dış değişiklik / symlink / hard-link** senaryoları yok.
 - **JavaFX toolkit/TestFX testi hiç yok:** `ToolbarView`, `EditorArea`, `StatsBar`, tema yöneticileri, diyaloglar, gerçek kısayol dağıtımı doğrulanmıyor. Araç çubuğu genişliği gibi iddiaların ölçülebildiği tek yer burası olurdu.
@@ -269,7 +267,7 @@ Dosya aç/kaydet/farklı kaydet, **Yeni Belge (`Ctrl+N`)** + belge yüklerken un
 | Boyut | Puan | Δ | Gerekçe |
 |---|---|---|---|
 | Mühendislik temelleri | **4 / 5** | — | Atomik kayıt, elle DI, tek `refresh()` noktası, headless test disiplini, locale CI. FX thread'inde senkron G/Ç ve eksik `module-info` puanı tutuyor |
-| Veri güvenliği | **3,5 / 5** | +1,5 | Üç veri kaybı yolu ve kilit kapandı; kalan: dış değişiklik algılama yok, `draftPending` otomatik kaydı susturuyor, kilit fail-open |
+| Veri güvenliği | **4 / 5** | +2 | Üç veri kaybı yolu, kilit ve park etme kapandı; kalan: dış değişiklik algılama yok, kilit fail-open |
 | Özellik bütünlüğü | **2,5 / 5** | +0,5 | Yeni Belge geldi; ara/değiştir, sekmeler, son dosyalar, dışa aktarma yok |
 | UX | **2,5 / 5** | +0,5 | Açılır listeler, ikon, başlıklı diyaloglar; tooltip yok, taşma stratejisi yok, görünüm durumu kalıcı değil |
 | Erişilebilirlik | **1,5 / 5** | +0,5 | Odak halkaları bastırılmış, Tab erişimi yok, kontrast AA altı |
@@ -288,12 +286,12 @@ Faz planı, sıralama ve kabul kriterleri **`product-roadmap.md`** içinde; bura
 | Faz | Bu analizdeki karşılığı |
 |---|---|
 | **P0** — Güven + ilk izlenim | §4.1'deki tüm maddeler kapandı. Açık kalan P0 işleri: RW-15 (araç çubuğu taşması; DE ölçüldü, FR açık), RW-16 (tooltip + Tab + yazı boyutu başlığı), RW-17 (odak halkaları + kontrast), RW-18 (görünüm durumu), RW-19 (otomatik kayıt göstergesi), RW-20 (BOM'da strict decode) |
-| **P1** — Portable (kurulumsuz) | §4.2/F (atomik olmayan fallback), §4.2/G (temp temizliği), §4.2/C (kilit fail-open), §3.2/4-5 (`AppLogging` yolu, `module-info`, `javafx-media`, `main.fxml`), §8.2 (tek kanal, checksum, imza, `LICENSE`) |
-| **P2** — Editör olma | §5.2: ara/değiştir, dış değişiklik algılama (§4.2/B), asenkron G/Ç (§3.3), çökme E2E testi (§9) |
+| **P1** — Portable (kurulumsuz) | §4.2/E (atomik olmayan fallback), §4.2/F (temp temizliği), §4.2/B (kilit fail-open), §3.2/4-5 (`AppLogging` yolu, `module-info`, `javafx-media`, `main.fxml`), §8.2 (tek kanal, checksum, imza, `LICENSE`) |
+| **P2** — Editör olma | §5.2: ara/değiştir, dış değişiklik algılama (§4.2/A), kurtarılan belgenin kodlaması (§4.2/C), asenkron G/Ç (§3.3), çökme E2E testi (§9) |
 | **P3** — Ürünleşme | §5.2: son dosyalar, sürükle-bırak, dışa aktarma, tercihler, kodlama matrisi; §7/1 placeholder testi; §9 hata enjeksiyonu |
 | **P4** — Platform | Sekmeler, depolama soyutlaması, erişilebilirlik denetimi, TestFX/JaCoCo |
 
-**Bu analizde yol haritasında olmayan tek iş: `draftPending` açığı (§4.2/A).** Tek yuvalı depo tasarımının doğrudan sonucu olduğu için P0 kalemi sayılmalı — kurtarma düzeltmesinin yan etkisi, yani güven vaadinin tam ortasında.
+**Yol haritasına bu analizle eklenen tek iş kapandı:** ertelenen taslağın otomatik kaydı susturması (§4.1/H), `RecoveryStore.park()` ile çözüldü ve roadmap'te RW-54 olarak kayıtlı. Geriye kalan bulguların tamamı zaten bir faza bağlı.
 
 ---
 
@@ -303,7 +301,7 @@ Faz planı, sıralama ve kabul kriterleri **`product-roadmap.md`** içinde; bura
 
 `1.0` için "her şeyi bitir" gerekmiyor; dar bir kapı yeterli:
 
-1. **Kurtarma yeni delik açmıyor** — `draftPending` sırasında da otomatik kayıt çalışıyor (veya ertelenen taslak ayrı slotta), gerçek `kill -9` senaryosu otomatik testle kanıtlı.
+1. **Kurtarma yeni delik açmıyor** — ertelenen taslak park edildiği için otomatik kayıt hiç susmuyor (RW-54), gerçek `kill -9` senaryosu otomatik testle kanıtlı (RW-24).
 2. **Yeni Belge + Ara/Değiştir + dış değişiklik uyarısı** — bir yazarın günlük akışı.
 3. **Klavye ve okunabilirlik tabanı** — odak halkaları geri, araç çubuğu Tab ile gezilebilir + tooltip, durum çubuğu AA kontrast.
 4. **Araç çubuğu DE ve FR'de taşmıyor** (ölçümle kanıtlı, yalnız DE değil).
@@ -317,7 +315,7 @@ Bunlar yaklaşık **4-6 kişi-hafta** (önceki tahmin 3-5'ti; portable geçişi 
 
 ### 1) "Taslağını asla kaybetmeyen editör" — güveni ürün yapın
 
-Kod artık bu iddiaya çok yakın: üç seçenekli kurtarma, tek atomik taslak dosyası, toleranslı metadata, oturum başına slot, tek örnek kilidi. Kalan iş **altyapı değil, kapatma**: `draftPending` açığını kapatmak, dış değişiklik algılama eklemek, gerçek `kill -9` testini yazmak ve bunu pazarlamak. Bu nişte **hiçbir rakip dayanıklılık satmıyor**, hepsi sadelik satıyor. Mühendislik yatırımınız zaten bu eksende; burada **birinci** olabilirsiniz.
+Kod artık bu iddiaya çok yakın: üç seçenekli kurtarma, tek atomik taslak dosyası, toleranslı metadata, oturum başına slot, tek örnek kilidi. Ertelenen taslağın otomatik kaydı susturması da kapandı (park etme). Kalan iş **altyapı değil, kapatma**: dış değişiklik algılama eklemek, gerçek `kill -9` testini yazmak ve bunu pazarlamak. Bu nişte **hiçbir rakip dayanıklılık satmıyor**, hepsi sadelik satıyor. Mühendislik yatırımınız zaten bu eksende; burada **birinci** olabilirsiniz.
 
 ### 2) Türkçe-öncelikli yerelleştirme — kutulanacak bir madde değil, ürün özelliği
 
@@ -354,7 +352,6 @@ Ana dil kalitesinde TR arayüz, iki dilli dokümantasyon, locale tuzaklarında k
 
 | Bulgu | Kanıt |
 |---|---|
-| `draftPending` otomatik kaydı tamamen susturuyor | `AutoSaveService.java:148-151` |
 | Dış değişiklik algılama yok | `FileService.java:162-179, 225-263` |
 | Kilit fail-open + adoption = canlı taslak silinebilir | `InstanceLock.java:47-68`, `RecoveryStore.java:148-158` |
 | Kurtarılan belge okunamayan orijinali UTF-8 yazabilir | `FileService.java:186-203` |
