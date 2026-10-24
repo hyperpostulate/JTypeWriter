@@ -74,6 +74,22 @@ class DialogServiceTest {
         }
     }
 
+    /**
+     * The tagline is drawn as text inside both helper windows (welcome and
+     * about), so it must resolve non-blank in every bundled locale. This
+     * covers the resource lookup only; wrapping it needs a live {@code Label},
+     * so this headless suite deliberately does not test the layout.
+     */
+    @Test
+    void appTaglineResolvesInEveryBundledLocale() {
+        for (var language : Language.values()) {
+            var tagline = messagesFor(language).appTagline();
+
+            assertFalse(tagline.isBlank(), "blank app tagline in " + language);
+            assertTrue(tagline.length() > 40, "tagline should be a sentence in " + language);
+        }
+    }
+
     private Messages messagesFor(Language language) {
         var localeManager = new LocaleManager(
                 new AppSettings(dir.resolve("settings-" + language.code() + ".properties")));

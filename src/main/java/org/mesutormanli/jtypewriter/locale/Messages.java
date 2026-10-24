@@ -155,12 +155,13 @@ public class Messages {
         return bundle.getString("welcomeTitle");
     }
 
-    public String welcomeWindowTitle() {
-        return bundle.getString("welcomeWindowTitle");
+    /** The one-line description of the app shown under the title in both helper windows. */
+    public String appTagline() {
+        return bundle.getString("appTagline");
     }
 
-    public String welcomeSubtitle() {
-        return bundle.getString("welcomeSubtitle");
+    public String welcomeWindowTitle() {
+        return bundle.getString("welcomeWindowTitle");
     }
 
     public String welcomeButton() {
@@ -290,10 +291,6 @@ public class Messages {
 
     public String aboutWindowTitle() {
         return bundle.getString("aboutWindowTitle");
-    }
-
-    public String aboutDescription() {
-        return bundle.getString("aboutDescription");
     }
 
     public String aboutAuthor() {

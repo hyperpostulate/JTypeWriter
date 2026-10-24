@@ -61,6 +61,22 @@ class AppIconsTest {
         }
     }
 
+    /**
+     * The welcome and about windows draw {@link AppIcons#dialogIconResource()}
+     * as an {@code ImageView} inside the scene, so the dialog artwork must be
+     * the single high-resolution PNG the code advertises.
+     */
+    @Test
+    void dialogIconIsTheBundled512Png() throws IOException {
+        var name = AppIcons.dialogIconResource();
+        var bytes = read(name);
+
+        assertArrayEquals(PNG_SIGNATURE, Arrays.copyOf(bytes, PNG_SIGNATURE.length),
+                "not a PNG: " + name);
+        assertEquals(512, readInt(bytes, 16), "width in " + name);
+        assertEquals(512, readInt(bytes, 20), "height in " + name);
+    }
+
     @Test
     void packagingAssetsArePresentWithTheirMagicBytes() throws IOException {
         assertArrayEquals(new byte[]{0, 0, 1, 0}, Arrays.copyOf(read("/icons/jtypewriter.ico"), 4),

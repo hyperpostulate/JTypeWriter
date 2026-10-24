@@ -180,6 +180,12 @@
     -fx-padding: 0;
 }
 
+/* Application mark drawn inside the helper dialogs. The pixel size is set in
+   code (fitWidth); this class carries only spacing so themes can tune it. */
+.dialog-icon {
+    -fx-padding: 0 0 2px 0;
+}
+
 .welcome-title {
     -fx-font-size: 28px;
     -fx-font-weight: 800;
@@ -188,10 +194,12 @@
     -fx-letter-spacing: 0.5px;
 }
 
-.welcome-subtitle {
+.welcome-tagline {
     -fx-font-size: 13px;
     -fx-text-fill: -welcome-muted;
-    -fx-padding: 0 0 10px 0;
+    -fx-line-spacing: 4px;
+    -fx-text-alignment: center;
+    -fx-padding: 0 4px 10px 4px;
 }
 
 .welcome-shortcuts {
@@ -254,15 +262,6 @@
 .about-scroll .scroll-bar:vertical .track {
     -fx-background-color: transparent;
     -fx-border-width: 0;
-}
-
-.about-description {
-    -fx-font-size: 13px;
-    -fx-text-fill: -welcome-muted;
-    -fx-padding: 0 4px;
-    -fx-line-spacing: 4px;
-    -fx-max-width: 380px;
-    -fx-text-alignment: center;
 }
 
 .about-author {

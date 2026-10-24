@@ -5,9 +5,11 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -18,6 +20,12 @@ public class WelcomeDialog {
 
     /** Margin keeping the card's border and drop shadow clear of the window edge. */
     private static final int SHELL_MARGIN = 14;
+
+    /** Width of the drawn application mark; square artwork, so height matches. */
+    private static final int ICON_SIZE = 80;
+
+    /** Content width of the card (scene width minus the horizontal padding). */
+    private static final int CONTENT_WIDTH = 460 - 2 * 32;
 
     private final Messages messages;
     private final ThemeManager themeManager;
@@ -31,8 +39,12 @@ public class WelcomeDialog {
         var titleLabel = new Label(messages.welcomeTitle());
         titleLabel.getStyleClass().add("welcome-title");
 
-        var subtitleLabel = new Label(messages.welcomeSubtitle());
-        subtitleLabel.getStyleClass().add("welcome-subtitle");
+        var taglineLabel = new Label(messages.appTagline());
+        taglineLabel.getStyleClass().add("welcome-tagline");
+        taglineLabel.setWrapText(true);
+        taglineLabel.setMaxWidth(CONTENT_WIDTH);
+        taglineLabel.setTextAlignment(TextAlignment.CENTER);
+        taglineLabel.setAlignment(Pos.CENTER);
 
         var shortcutsLabel = new Label(messages.welcomeShortcuts());
         shortcutsLabel.getStyleClass().add("welcome-shortcuts");
@@ -41,10 +53,23 @@ public class WelcomeDialog {
         startBtn.getStyleClass().add("welcome-button");
         startBtn.setDefaultButton(true);
 
-        var root = new VBox(14, titleLabel, subtitleLabel, shortcutsLabel, startBtn);
+        var root = new VBox(14, titleLabel, taglineLabel, shortcutsLabel, startBtn);
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(36, 32, 32, 32));
         root.getStyleClass().addAll("root", "welcome-root");
+
+        // Application mark above the title, README-header style; skipped
+        // entirely when the asset is missing so no blank gap appears.
+        var iconImage = AppIcons.dialogIcon();
+        if (iconImage != null) {
+            var icon = new ImageView(iconImage);
+            icon.getStyleClass().add("dialog-icon");
+            icon.setPreserveRatio(true);
+            icon.setSmooth(true);
+            icon.setCache(true);
+            icon.setFitWidth(ICON_SIZE);
+            root.getChildren().add(0, icon);
+        }
 
         // Opaque borderless window whose scene fill equals the card surface
         // colour: the anti-aliased rounded corners blend into that identical
@@ -56,7 +81,9 @@ public class WelcomeDialog {
         shell.setStyle("-fx-background-color: transparent;");
 
         var surface = themeManager.getCurrentTheme().getDialogFill();
-        var scene = new Scene(shell, 460 + 2 * SHELL_MARGIN, 400 + 2 * SHELL_MARGIN);
+        // The card fits the tallest locale the static font-metric model found
+        // (German: the shortcuts block wraps twice, the tagline once more).
+        var scene = new Scene(shell, 460 + 2 * SHELL_MARGIN, 750 + 2 * SHELL_MARGIN);
         scene.setFill(Color.web(surface));
         scene.getStylesheets().addAll(owner.getScene().getStylesheets());
 
