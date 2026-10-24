@@ -14,6 +14,7 @@
 </p>
 
 <p align="center">A quiet, offline desktop editor for creative writers. It sounds like a typewriter, counts what you write, and makes losing that writing very hard.</p>
+
 JTypeWriter opens a single plain-text document and then stays out of the way: no accounts, no cloud, no project format. Your text lives in the file you picked, in the encoding that file already had. It runs on Linux, Windows and macOS with Java 25, and the interface speaks English, Turkish, German, French, Spanish and Italian.
 
 **What you get?**
