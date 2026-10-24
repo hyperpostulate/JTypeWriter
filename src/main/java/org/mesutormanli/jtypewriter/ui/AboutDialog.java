@@ -97,6 +97,9 @@ public class AboutDialog {
         dialog.initOwner(owner);
         dialog.initModality(Modality.WINDOW_MODAL);
         dialog.initStyle(StageStyle.UNDECORATED);
+        // Undecorated: no visible title bar, but the OS task switcher / window
+        // list still shows this title - do not remove it as "dead code".
+        dialog.setTitle(messages.aboutWindowTitle());
         dialog.setScene(scene);
         dialog.setResizable(false);
 

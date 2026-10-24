@@ -155,6 +155,10 @@ public class Messages {
         return bundle.getString("welcomeTitle");
     }
 
+    public String welcomeWindowTitle() {
+        return bundle.getString("welcomeWindowTitle");
+    }
+
     public String welcomeSubtitle() {
         return bundle.getString("welcomeSubtitle");
     }
@@ -282,6 +286,10 @@ public class Messages {
 
     public String toolbarAbout() {
         return bundle.getString("toolbarAbout");
+    }
+
+    public String aboutWindowTitle() {
+        return bundle.getString("aboutWindowTitle");
     }
 
     public String aboutDescription() {

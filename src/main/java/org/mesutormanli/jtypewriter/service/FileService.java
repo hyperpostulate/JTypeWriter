@@ -173,7 +173,7 @@ public class FileService {
             listeners.forEach(l -> l.onLoaded(path));
             return Optional.of(path);
         } catch (IOException e) {
-            dialogService.showError(messages.errorOpen(), e.getMessage());
+            dialogService.showError(stage, messages.errorOpen(), e.getMessage());
             return Optional.empty();
         }
     }
@@ -235,7 +235,7 @@ public class FileService {
                 bytes = TextCodec.encode(content, currentCharset, currentBom);
             } catch (CharacterCodingException impossible) {
                 // UTF-8 represents every character: unreachable in practice
-                dialogService.showError(messages.errorSave(), impossible.getMessage());
+                dialogService.showError(stage, messages.errorSave(), impossible.getMessage());
                 return Optional.empty();
             }
         }
@@ -257,7 +257,7 @@ public class FileService {
             // An unexpected runtime failure must not take the app down mid-save:
             // log it and let the user retry from a dialog.
             LOG.log(Level.WARNING, "save failed for " + path, e);
-            dialogService.showError(messages.errorSave(), e.getMessage());
+            dialogService.showError(stage, messages.errorSave(), e.getMessage());
             return Optional.empty();
         }
     }

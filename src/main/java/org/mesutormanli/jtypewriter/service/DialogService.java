@@ -223,11 +223,12 @@ public class DialogService {
         };
     }
 
-    public void showError(String header, String content) {
+    public void showError(Stage owner, String header, String content) {
         var alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(messages.errorTitle());
         alert.setHeaderText(header);
         alert.setContentText(content);
+        initOwner(alert, owner);
         alert.showAndWait();
     }
 
