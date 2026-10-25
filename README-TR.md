@@ -117,7 +117,7 @@ bırakmaz.
 
 ### Çoklu Tema
 
-Üç yerleşik tema (`Ctrl+Shift+T` bu sırayla geçer; araç çubuğundaki Tema açılır listesinden doğrudan da seçilebilir):
+Üç yerleşik tema. Varsayılan Koyu; `Ctrl+Shift+T` bu sırayla geçer: Koyu → Sepya → Açık (araç çubuğundaki Tema açılır listesinden doğrudan da seçilebilir):
 - **Açık** - Temiz ve parlak
 - **Koyu** - Varsayılan, göz yormaz
 - **Sepya** - Sıcak, kağıt hissi
@@ -139,7 +139,7 @@ Kısayollar Windows/Linux'ta `Ctrl`, macOS'ta `⌘` (Cmd) ile çalışır — ma
 | Kısayol | İşlem |
 |---------|-------|
 | `Ctrl+T` | Araç çubuğunu aç/kapat |
-| `Ctrl+Shift+T` | Üç tema arasında geçiş yap (Açık, Koyu, Sepya) |
+| `Ctrl+Shift+T` | Üç tema arasında geçiş yap (Koyu → Sepya → Açık) |
 | `Ctrl+Shift+Y` | YOLO modunu aç/kapat |
 | `Ctrl+Shift+C` | Metin rengini değiştir |
 | `Ctrl++` | Font boyutunu artır |

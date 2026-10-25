@@ -129,15 +129,18 @@ class MessagesTest {
         assertFalse(shortcuts.contains("Dark"), shortcuts);
     }
 
-    /** The list must follow {@link Theme#next()} (LIGHT, DARK, SEPIA), not a per-bundle guess. */
+    /**
+     * The list must follow {@link Theme#next()} from the persisted default
+     * (DARK -> SEPIA -> LIGHT), not the declaration order of the enum.
+     */
     @Test
     void theWelcomeTextListsTheThemesInCycleOrder() {
-        assertEquals("Light/Dark/Sepia", themeOrderIn(messagesFor(Language.EN)));
-        assertEquals("Açık/Koyu/Sepya", themeOrderIn(messagesFor(Language.TR)));
-        assertEquals("Hell/Dunkel/Sepia", themeOrderIn(messagesFor(Language.DE)));
-        assertEquals("Clair/Sombre/Sépia", themeOrderIn(messagesFor(Language.FR)));
-        assertEquals("Chiaro/Scuro/Seppia", themeOrderIn(messagesFor(Language.IT)));
-        assertEquals("Claro/Oscuro/Sepia", themeOrderIn(messagesFor(Language.ES)));
+        assertEquals("Dark/Sepia/Light", themeOrderIn(messagesFor(Language.EN)));
+        assertEquals("Koyu/Sepya/Açık", themeOrderIn(messagesFor(Language.TR)));
+        assertEquals("Dunkel/Sepia/Hell", themeOrderIn(messagesFor(Language.DE)));
+        assertEquals("Sombre/Sépia/Clair", themeOrderIn(messagesFor(Language.FR)));
+        assertEquals("Scuro/Seppia/Chiaro", themeOrderIn(messagesFor(Language.IT)));
+        assertEquals("Oscuro/Sepia/Claro", themeOrderIn(messagesFor(Language.ES)));
     }
 
     /**

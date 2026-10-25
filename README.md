@@ -116,7 +116,7 @@ running instance crashes, so a crash never locks you out.
 
 ### Multiple Themes
 
-Three built-in themes, cycled in this order by `Ctrl+Shift+T` (or picked directly from the toolbar's Theme dropdown):
+Three built-in themes. Dark is the default, and `Ctrl+Shift+T` cycles Dark → Sepia → Light (the toolbar's Theme dropdown picks any of them directly):
 - **Light** - Clean and bright
 - **Dark** - Default, easy on the eyes
 - **Sepia** - Warm, paper-like feel
@@ -138,7 +138,7 @@ Shortcuts use `Ctrl` on Windows/Linux and `⌘` (Cmd) on macOS — plain `Ctrl` 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+T` | Toggle toolbar |
-| `Ctrl+Shift+T` | Cycle through the three themes (Light, Dark, Sepia) |
+| `Ctrl+Shift+T` | Cycle through the three themes (Dark → Sepia → Light) |
 | `Ctrl+Shift+Y` | Toggle YOLO mode |
 | `Ctrl+Shift+C` | Cycle text color |
 | `Ctrl++` | Increase font size |
