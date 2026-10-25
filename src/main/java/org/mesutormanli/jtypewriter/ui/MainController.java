@@ -17,6 +17,7 @@ import java.net.URL;
 import java.text.MessageFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.function.Supplier;
 
@@ -119,7 +120,7 @@ public class MainController implements Initializable {
     private void refreshSaveStatus() {
         statsBar.setSaveStatus(lastSavedAt == null
                 ? null
-                : savedStatusFor(messages.savedStatusTemplate(), lastSavedAt));
+                : savedStatusFor(messages.savedStatusTemplate(), lastSavedAt, messages.locale()));
     }
 
     /**
@@ -149,10 +150,13 @@ public class MainController implements Initializable {
      * and {@code savedAt} the already-resolved save time - the clock is
      * injected, mirroring {@code SessionStats}, so no test needs a toolkit or
      * the wall clock. The time is {@code HH:mm}, matching the app's other
-     * readouts; only the wording lives in the bundles.
+     * readouts; only the wording lives in the bundles. {@code locale} is the
+     * UI language's locale ({@code messages.locale()}), passed explicitly so
+     * {@code MessageFormat} does not fall back to the system locale.
      */
-    static String savedStatusFor(String template, LocalTime savedAt) {
-        return MessageFormat.format(template, savedAt.format(SAVE_STATUS_TIME));
+    static String savedStatusFor(String template, LocalTime savedAt, Locale locale) {
+        return new MessageFormat(template, locale)
+                .format(new Object[]{savedAt.format(SAVE_STATUS_TIME)});
     }
 
     @Override

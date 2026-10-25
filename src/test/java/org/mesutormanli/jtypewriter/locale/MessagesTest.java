@@ -7,10 +7,12 @@ import org.mesutormanli.jtypewriter.ui.theme.TextColor;
 import org.mesutormanli.jtypewriter.ui.theme.Theme;
 
 import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -136,6 +138,94 @@ class MessagesTest {
         assertEquals("Clair/Sombre/Sépia", themeOrderIn(messagesFor(Language.FR)));
         assertEquals("Chiaro/Scuro/Seppia", themeOrderIn(messagesFor(Language.IT)));
         assertEquals("Claro/Oscuro/Sepia", themeOrderIn(messagesFor(Language.ES)));
+    }
+
+    /**
+     * Regression (PW-04): {@code MessageFormat} treats a lone apostrophe as
+     * its quote character, so an unescaped apostrophe in a bundle pattern
+     * ("This file's ...") swallowed the rest of the sentence and printed
+     * {@code {0}} literally - the charset argument never reached the user in
+     * English, French and Italian. The argument-bearing keys are derived from
+     * the bundles themselves (every pattern containing {@code {0}}), so a new
+     * text with arguments is covered without touching this test. The default
+     * locale is Turkish so the dotted/dotless i trap cannot hide a failure.
+     */
+    @Test
+    void everyArgumentPatternFormatsWithoutLeftoverPlaceholdersInEveryLanguage() {
+        var previous = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+            var keys = argumentKeys();
+            assertFalse(keys.isEmpty(), "no argument-bearing key found in the bundles");
+            assertTrue(keys.contains("encodingMalformedContent"),
+                    "the derivation missed the malformed-content text: " + keys);
+
+            var leftover = Pattern.compile("\\{[0-9]+\\}");
+            for (var language : Language.values()) {
+                var bundle = Messages.bundleFor(language);
+                var messages = messagesFor(language);
+                for (var key : keys) {
+                    var formatted = new MessageFormat(bundle.getString(key), messages.locale())
+                            .format(new Object[]{"a", "b", "c", "d", "e", "f", "g"});
+                    assertFalse(leftover.matcher(formatted).find(),
+                            language + " " + key + " left a placeholder: " + formatted);
+                    assertFalse(formatted.isBlank(),
+                            language + " " + key + " formatted blank");
+                }
+
+                var malformed = messages.encodingMalformedContent("UTF-8");
+                assertTrue(malformed.contains("UTF-8"),
+                        language + " lost the charset argument: " + malformed);
+            }
+        } finally {
+            Locale.setDefault(previous);
+        }
+    }
+
+    /**
+     * Regression (PW-05): {@code MessageFormat.format} used to follow the JVM
+     * default locale, so a Turkish UI on an English machine grouped numbers as
+     * "1,234". The UI language decides the separators, not the system locale.
+     */
+    @Test
+    void statsFormatUsesTheUiLanguageNumberFormatNotTheSystemLocale() {
+        var previous = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.US);
+
+            assertTrue(statsLine(messagesFor(Language.TR)).contains("1.234"),
+                    "Turkish groups with a dot: " + statsLine(messagesFor(Language.TR)));
+            assertTrue(statsLine(messagesFor(Language.EN)).contains("1,234"),
+                    "English groups with a comma: " + statsLine(messagesFor(Language.EN)));
+            assertTrue(statsLine(messagesFor(Language.DE)).contains("1.234"),
+                    "German groups with a dot: " + statsLine(messagesFor(Language.DE)));
+
+            // French uses a (narrow) no-break space, whose code point varies by
+            // JDK; assert only that it is not comma-grouped like the system locale.
+            var french = statsLine(messagesFor(Language.FR));
+            assertFalse(french.contains("1,234"), "French followed the system locale: " + french);
+        } finally {
+            Locale.setDefault(previous);
+        }
+    }
+
+    private static String statsLine(Messages messages) {
+        return messages.statsFormat(1234, 5678, 4321, 90, 12345L, "2m 5s", 210);
+    }
+
+    /** Every bundle key whose raw value is a {@code MessageFormat} pattern with an argument. */
+    private static Set<String> argumentKeys() {
+        var keys = new TreeSet<String>();
+        for (var language : Language.values()) {
+            var bundle = Messages.bundleFor(language);
+            for (var key : bundle.keySet()) {
+                if (bundle.getString(key).contains("{0}")) {
+                    keys.add(key);
+                }
+            }
+        }
+        return keys;
     }
 
     private String themeOrderIn(Messages messages) {

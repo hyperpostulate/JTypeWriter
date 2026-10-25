@@ -9,6 +9,7 @@ import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.nio.file.Path;
 import java.time.LocalTime;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -48,9 +49,9 @@ class MainControllerTest {
     @Test
     void savedStatusUsesTheInjectedTime() {
         assertEquals("Saved 12:04",
-                MainController.savedStatusFor("Saved {0}", LocalTime.of(12, 4)));
+                MainController.savedStatusFor("Saved {0}", LocalTime.of(12, 4), Locale.ENGLISH));
         assertEquals("Saved 09:07",
-                MainController.savedStatusFor("Saved {0}", LocalTime.of(9, 7)),
+                MainController.savedStatusFor("Saved {0}", LocalTime.of(9, 7), Locale.ENGLISH),
                 "single-digit hours and minutes keep their leading zero");
     }
 
@@ -65,6 +66,7 @@ class MainControllerTest {
         var localeManager = new LocaleManager(
                 new AppSettings(dir.resolve("settings-" + language.code() + ".properties")));
         localeManager.setLanguage(language);
-        return MainController.savedStatusFor(new Messages(localeManager).savedStatusTemplate(), savedAt);
+        var messages = new Messages(localeManager);
+        return MainController.savedStatusFor(messages.savedStatusTemplate(), savedAt, messages.locale());
     }
 }

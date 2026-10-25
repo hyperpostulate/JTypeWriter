@@ -59,6 +59,24 @@ public class Messages {
         return l().code();
     }
 
+    /**
+     * The locale of the selected UI language, deliberately not
+     * {@link Locale#getDefault()}. {@code MessageFormat} picks its number,
+     * date and quote rules from the locale it is given, so formatting through
+     * the system locale showed "1,234" to a Turkish user on an English
+     * machine. Uses {@link Locale#of} (not {@code forLanguageTag}) to avoid
+     * the language-tag casing pitfalls; {@code Locale.ROOT} guards the
+     * Turkish dotted/dotless i in the language code.
+     */
+    public Locale locale() {
+        return Locale.of(l().code().toLowerCase(Locale.ROOT));
+    }
+
+    /** Formats a bundle pattern with the UI locale (see {@link #locale()}). */
+    private String format(String key, Object... arguments) {
+        return new MessageFormat(bundle.getString(key), locale()).format(arguments);
+    }
+
     public String toolbarOpen() {
         return bundle.getString("toolbarOpen");
     }
@@ -235,7 +253,7 @@ public class Messages {
     }
 
     public String overwriteContent(String fileName) {
-        return MessageFormat.format(bundle.getString("overwriteContent"), fileName);
+        return format("overwriteContent", fileName);
     }
 
     public String overwriteConfirm() {
@@ -311,9 +329,12 @@ public class Messages {
         return bundle.getString("aboutClose");
     }
 
+    /**
+     * The stats line. Numbers follow the UI language's conventions, not the
+     * system locale's: a Turkish UI on an English machine shows "1.234".
+     */
     public String statsFormat(int words, int chars, int charsNoSpace, int lines, long keystrokes, String duration, int wpm) {
-        return MessageFormat.format(bundle.getString("statsFormat"),
-                words, chars, charsNoSpace, lines, keystrokes, duration, wpm);
+        return format("statsFormat", words, chars, charsNoSpace, lines, keystrokes, duration, wpm);
     }
 
     public String recoveryTitle() {
@@ -325,7 +346,7 @@ public class Messages {
     }
 
     public String recoveryContent(String savedAt) {
-        return MessageFormat.format(bundle.getString("recoveryContent"), savedAt);
+        return format("recoveryContent", savedAt);
     }
 
     public String recoveryYes() {
@@ -373,7 +394,7 @@ public class Messages {
     }
 
     public String encodingUpgradeContent(String charsetName) {
-        return MessageFormat.format(bundle.getString("encodingUpgradeContent"), charsetName);
+        return format("encodingUpgradeContent", charsetName);
     }
 
     public String encodingUpgradeSave() {
@@ -393,7 +414,7 @@ public class Messages {
     }
 
     public String encodingMalformedContent(String charsetName) {
-        return MessageFormat.format(bundle.getString("encodingMalformedContent"), charsetName);
+        return format("encodingMalformedContent", charsetName);
     }
 
     public String encodingMalformedOpen() {
@@ -405,7 +426,7 @@ public class Messages {
     }
 
     public String errorLogged(String logDir) {
-        return MessageFormat.format(bundle.getString("errorLogged"), logDir);
+        return format("errorLogged", logDir);
     }
 
     public String singleInstanceTitle() {
