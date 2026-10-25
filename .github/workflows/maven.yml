@@ -32,14 +32,14 @@ jobs:
       # Every action is pinned to a full commit SHA instead of a mutable major
       # tag: a tag can be re-pointed at any commit, so a compromised or hijacked
       # release would run with this repository's token. A SHA cannot move.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # The build never pushes with the checkout credential; not leaving it
           # in .git/config keeps the token out of every later step.
           persist-credentials: false
 
       - name: Set up JDK 25
-        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3  # v4.9.1
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad  # v6.1.0
         with:
           java-version: '25'
           distribution: 'temurin'
@@ -60,7 +60,7 @@ jobs:
       # reports are identical on all three legs, so only Linux uploads them.
       - name: Upload test reports
         if: runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: surefire-reports
           path: target/surefire-reports/TEST-*.xml
@@ -78,7 +78,7 @@ jobs:
       # The packaged installers are rebuildable from source, so keeping every
       # main push for 90 days is pure storage cost (analysis B26).
       - name: Upload release artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: JTypeWriter-${{ matrix.os }}
           path: releases/
@@ -99,14 +99,14 @@ jobs:
       contents: write   # only this job pushes to gh-pages
 
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # The badge publisher authenticates with the token it is handed
           # explicitly, so no credential needs to sit in .git/config.
           persist-credentials: false
 
       - name: Download test reports
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: surefire-reports
           path: target/surefire-reports
