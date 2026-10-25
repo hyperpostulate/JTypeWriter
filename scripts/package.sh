@@ -25,7 +25,15 @@ APP_NAME="JTypeWriter"
 DESCRIPTION="A distraction-free text editor"
 VENDOR="Mesut ORMANLI"
 COPYRIGHT="Copyright (c) 2026 Mesut ORMANLI"
+LICENSE_FILE="LICENSE"
 MAIN_CLASS="org.mesutormanli.jtypewriter.JTypeWriterApp"
+
+# Every artifact must ship the license. Missing source text is a hard error here
+# rather than a silently license-less release.
+if [[ ! -f "$LICENSE_FILE" ]]; then
+    echo "no license at '$LICENSE_FILE' - refusing to package without it" >&2
+    exit 1
+fi
 
 BUILD=1
 INSTALLER=0
@@ -124,6 +132,26 @@ jpackage \
 echo
 echo "application image written to $DEST/ (version $APP_VERSION)"
 
+# jpackage's app-image bundler has no license support at all (--license-file is
+# fatal with --type app-image), so the license is added to the image by hand and
+# then asserted below. On macOS the image is a bundle, so its Contents/Resources
+# is the equivalent of the Linux/Windows image root.
+case "$PLATFORM" in
+    mac) LICENSE_TARGET="$DEST/$APP_NAME.app/Contents/Resources/LICENSE" ;;
+    *)   LICENSE_TARGET="$DEST/$APP_NAME/LICENSE" ;;
+esac
+cp "$LICENSE_FILE" "$LICENSE_TARGET"
+
+# A release without the license is invalid, in the image and in the jar alike.
+if [[ ! -f "$LICENSE_TARGET" ]]; then
+    echo "license missing from the application image at $LICENSE_TARGET" >&2
+    exit 1
+fi
+if ! jar tf "$FAT_JAR" | grep -x 'META-INF/LICENSE' >/dev/null; then
+    echo "license missing from $FAT_JAR (expected META-INF/LICENSE)" >&2
+    exit 1
+fi
+
 # --- platform installer -------------------------------------------------
 # Installer types and their options are platform specific, so they live here
 # next to the version they are built from.
@@ -145,6 +173,94 @@ wrap_installer() {
     echo "installer written to $DEST/ ($type)"
 }
 
+# The one supported way to put our own text into the deb's copyright document:
+# --resource-dir overrides the template jpackage fills in. Two options are not
+# open to us - --license-file would dump the text into the DEP-5 "License:"
+# field without the leading-space continuations the format requires, and
+# --app-content is rejected for type deb (it is app-image only), so the file
+# cannot simply be copied into the payload.
+#
+# The document is therefore generated from LICENSE itself: one source of truth,
+# the whole GPL text inside the artifact, and "License: GPL-3.0-only" instead of
+# the "Unknown" jpackage writes when no license is supplied.
+build_deb_resource_dir() {
+    local resource_dir="target/jpackage-resource-dir"
+    rm -rf "$resource_dir"
+    mkdir -p "$resource_dir"
+    {
+        printf '%s\n' 'Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/'
+        printf '%s\n' 'Upstream-Name: JTypeWriter'
+        printf '%s\n' 'Source: https://github.com/hyperpostulate/JTypeWriter'
+        printf '\n'
+        printf '%s\n' 'Files: *'
+        printf '%s\n' 'Copyright: APPLICATION_COPYRIGHT'
+        printf '%s\n' 'License: GPL-3.0-only'
+        # DEP-5 continuation lines carry exactly one leading space and a blank
+        # line inside the stanza is written as " .".
+        sed -e 's/[[:space:]]*$//' -e 's/^$/./' -e 's/^/ /' "$LICENSE_FILE"
+    } > "$resource_dir/copyright"
+    printf '%s' "$resource_dir"
+}
+
+# The deb's copyright document must carry the real license - not "Unknown" - and
+# actually contain the GPL text, since the app image's LICENSE file is not part
+# of the deb payload. Only checkable on machines with dpkg-deb.
+verify_deb_license() {
+    local deb=""
+    shopt -s nullglob
+    local candidates=("$DEST"/*.deb)
+    shopt -u nullglob
+    for candidate in "${candidates[@]}"; do
+        deb="$candidate" # jpackage lower-cases the package name: jtypewriter_1.0.0_amd64.deb
+    done
+    if [[ -z "$deb" ]]; then
+        echo "installer reported success but no .deb was found under $DEST/" >&2
+        exit 1
+    fi
+    if ! command -v dpkg-deb >/dev/null 2>&1; then
+        echo "note: dpkg-deb not available - skipping deb license verification"
+        return
+    fi
+
+    local root
+    root=$(mktemp -d)
+    if ! dpkg-deb -x "$deb" "$root" 2>/dev/null; then
+        rm -rf "$root"
+        echo "could not extract $deb to verify its license metadata" >&2
+        exit 1
+    fi
+    # jpackage puts the document under the install dir; a /usr install dir is the
+    # only case where Debian's conventional path is used.
+    local copyright=""
+    for candidate in \
+        "$root/usr/share/doc/jtypewriter/copyright" \
+        "$root/opt/jtypewriter/share/doc/copyright"; do
+        if [[ -f "$candidate" ]]; then
+            copyright="$candidate"
+            break
+        fi
+    done
+    if [[ -z "$copyright" ]]; then
+        rm -rf "$root"
+        echo "no copyright document inside $deb" >&2
+        exit 1
+    fi
+    local body
+    body=$(cat "$copyright")
+    rm -rf "$root"
+
+    if [[ "$body" == *Unknown* || "$body" != *"License: GPL-3.0-only"* ]]; then
+        echo "license metadata in $deb is missing or still 'Unknown'" >&2
+        echo "check --copyright and build_deb_resource_dir in this script" >&2
+        exit 1
+    fi
+    if [[ "$body" != *"GNU GENERAL PUBLIC LICENSE"* ]]; then
+        echo "the GPL text is missing from the copyright document in $deb" >&2
+        exit 1
+    fi
+    echo "deb license document verified ($deb)"
+}
+
 if [[ "$INSTALLER" == "1" ]]; then
     echo
     case "$PLATFORM" in
@@ -152,15 +268,22 @@ if [[ "$INSTALLER" == "1" ]]; then
             wrap_installer deb "$DEST/$APP_NAME" \
                 --linux-shortcut \
                 --linux-app-category "Office" \
-                --linux-deb-maintainer "mesutormanli@gmail.com"
+                --linux-deb-maintainer "mesutormanli@gmail.com" \
+                --copyright "$COPYRIGHT" \
+                --resource-dir "$(build_deb_resource_dir)"
+            verify_deb_license
             ;;
         windows)
+            # A real EULA page in the installer; deb uses the template instead.
             wrap_installer msi "$DEST/$APP_NAME" \
-                --win-menu --win-shortcut --win-dir-chooser
+                --win-menu --win-shortcut --win-dir-chooser \
+                --license-file "$LICENSE_FILE"
             ;;
         mac)
+            # dmg embeds the text as its EULA.
             wrap_installer dmg "$DEST/$APP_NAME.app" \
-                --mac-package-identifier "org.mesutormanli.jtypewriter"
+                --mac-package-identifier "org.mesutormanli.jtypewriter" \
+                --license-file "$LICENSE_FILE"
             ;;
     esac
 fi

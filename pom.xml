@@ -79,6 +79,37 @@
                 </configuration>
             </plugin>
             <!--
+                A plain JAR can only carry its license as a resource, so LICENSE is
+                copied into target/classes/META-INF/LICENSE during process-resources.
+                The maven-assembly-plugin packs that same class directory into the
+                fat jar, so this single copy covers both artifacts.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.4.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-license</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}</directory>
+                                    <includes>
+                                        <include>LICENSE</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--
                 Single runnable JAR with JavaFX on the classpath (the entry point
                 is deliberately not an Application subclass, see JTypeWriterApp).
                 This is the artifact jpackage wraps into native app images; it is
