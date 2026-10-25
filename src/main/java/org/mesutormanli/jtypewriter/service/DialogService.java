@@ -1,11 +1,11 @@
 package org.mesutormanli.jtypewriter.service;
 
 import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.ui.DialogButtons;
 import org.mesutormanli.jtypewriter.ui.DialogStyling;
 
 import java.io.File;
@@ -94,8 +94,8 @@ public class DialogService {
         alert.setContentText(messages.overwriteContent(target.getName()));
         initOwner(alert, stage);
 
-        var overwriteButton = new ButtonType(messages.overwriteConfirm());
-        var cancelButton = new ButtonType(messages.overwriteCancel());
+        var overwriteButton = DialogButtons.primary(messages.overwriteConfirm());
+        var cancelButton = DialogButtons.cancel(messages.overwriteCancel());
         alert.getButtonTypes().setAll(overwriteButton, cancelButton);
 
         var result = alert.showAndWait();
@@ -131,9 +131,9 @@ public class DialogService {
         alert.setContentText(messages.unsavedContent());
         initOwner(alert, stage);
 
-        var saveButton = new ButtonType(messages.unsavedSave());
-        var discardButton = new ButtonType(messages.unsavedDiscard());
-        var cancelButton = new ButtonType(messages.unsavedCancel());
+        var saveButton = DialogButtons.primary(messages.unsavedSave());
+        var discardButton = DialogButtons.alternative(messages.unsavedDiscard());
+        var cancelButton = DialogButtons.cancel(messages.unsavedCancel());
 
         alert.getButtonTypes().setAll(saveButton, discardButton, cancelButton);
 
@@ -162,8 +162,8 @@ public class DialogService {
         alert.setContentText(messages.encodingUpgradeContent(charset.displayName()));
         initOwner(alert, stage);
 
-        var utf8Button = new ButtonType(messages.encodingUpgradeSave());
-        var cancelButton = new ButtonType(messages.encodingUpgradeCancel());
+        var utf8Button = DialogButtons.primary(messages.encodingUpgradeSave());
+        var cancelButton = DialogButtons.cancel(messages.encodingUpgradeCancel());
         alert.getButtonTypes().setAll(utf8Button, cancelButton);
 
         var result = alert.showAndWait();
@@ -185,8 +185,8 @@ public class DialogService {
         alert.setContentText(messages.encodingMalformedContent(declared.displayName()));
         initOwner(alert, stage);
 
-        var openButton = new ButtonType(messages.encodingMalformedOpen());
-        var cancelButton = new ButtonType(messages.encodingMalformedCancel());
+        var openButton = DialogButtons.primary(messages.encodingMalformedOpen());
+        var cancelButton = DialogButtons.cancel(messages.encodingMalformedCancel());
         alert.getButtonTypes().setAll(openButton, cancelButton);
 
         var result = alert.showAndWait();
@@ -200,9 +200,12 @@ public class DialogService {
         alert.setContentText(messages.encodingContent());
         initOwner(alert, stage);
 
-        var turkishButton = new ButtonType(messages.encodingTurkish());
-        var utf8Button = new ButtonType(messages.encodingUtf8());
-        var cancelButton = new ButtonType(messages.encodingCancel());
+        // UTF-8 is the default because it is the lossless choice: it round-trips
+        // every character already in the buffer, while Windows-1254 can only
+        // represent a subset (and that is why it is merely an alternative).
+        var turkishButton = DialogButtons.alternative(messages.encodingTurkish());
+        var utf8Button = DialogButtons.primary(messages.encodingUtf8());
+        var cancelButton = DialogButtons.cancel(messages.encodingCancel());
         alert.getButtonTypes().setAll(turkishButton, utf8Button, cancelButton);
 
         var result = alert.showAndWait();
@@ -225,9 +228,13 @@ public class DialogService {
         alert.setContentText(messages.recoveryContent(format(savedAt)));
         initOwner(alert, stage);
 
-        var restoreButton = new ButtonType(messages.recoveryYes());
-        var discardButton = new ButtonType(messages.recoveryNo());
-        var laterButton = new ButtonType(messages.recoveryLater());
+        var restoreButton = DialogButtons.primary(messages.recoveryYes());
+        var discardButton = DialogButtons.alternative(messages.recoveryNo());
+        // "Later" deliberately gets the cancel semantics: Escape and the window X
+        // already mean "keep the draft, decide later" (see the Javadoc above and
+        // choiceFor), so cancel must land on Later - never on the destructive
+        // Discard button, which would turn a stray Escape into data loss.
+        var laterButton = DialogButtons.cancel(messages.recoveryLater());
         alert.getButtonTypes().setAll(restoreButton, discardButton, laterButton);
 
         var result = alert.showAndWait();
