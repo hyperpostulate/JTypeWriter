@@ -26,14 +26,17 @@ DESCRIPTION="A distraction-free text editor"
 VENDOR="Mesut ORMANLI"
 COPYRIGHT="Copyright (c) 2026 Mesut ORMANLI"
 LICENSE_FILE="LICENSE"
+NOTICE_FILE="NOTICE"
 MAIN_CLASS="org.mesutormanli.jtypewriter.JTypeWriterApp"
 
 # Every artifact must ship the license. Missing source text is a hard error here
 # rather than a silently license-less release.
-if [[ ! -f "$LICENSE_FILE" ]]; then
-    echo "no license at '$LICENSE_FILE' - refusing to package without it" >&2
-    exit 1
-fi
+for required in "$LICENSE_FILE" "$NOTICE_FILE"; do
+    if [[ ! -f "$required" ]]; then
+        echo "no $required - refusing to package without it" >&2
+        exit 1
+    fi
+done
 
 BUILD=1
 INSTALLER=0
@@ -133,24 +136,30 @@ echo
 echo "application image written to $DEST/ (version $APP_VERSION)"
 
 # jpackage's app-image bundler has no license support at all (--license-file is
-# fatal with --type app-image), so the license is added to the image by hand and
-# then asserted below. On macOS the image is a bundle, so its Contents/Resources
-# is the equivalent of the Linux/Windows image root.
+# fatal with --type app-image), so the license and the attribution notice are
+# added to the image by hand and then asserted below. On macOS the image is a
+# bundle, so its Contents/Resources is the equivalent of the Linux/Windows
+# image root.
 case "$PLATFORM" in
     mac) LICENSE_TARGET="$DEST/$APP_NAME.app/Contents/Resources/LICENSE" ;;
     *)   LICENSE_TARGET="$DEST/$APP_NAME/LICENSE" ;;
 esac
 cp "$LICENSE_FILE" "$LICENSE_TARGET"
+cp "$NOTICE_FILE" "$(dirname "$LICENSE_TARGET")/$NOTICE_FILE"
 
 # A release without the license is invalid, in the image and in the jar alike.
-if [[ ! -f "$LICENSE_TARGET" ]]; then
-    echo "license missing from the application image at $LICENSE_TARGET" >&2
-    exit 1
-fi
-if ! jar tf "$FAT_JAR" | grep -x 'META-INF/LICENSE' >/dev/null; then
-    echo "license missing from $FAT_JAR (expected META-INF/LICENSE)" >&2
-    exit 1
-fi
+for artifact in "$LICENSE_TARGET" "$(dirname "$LICENSE_TARGET")/$NOTICE_FILE"; do
+    if [[ ! -f "$artifact" ]]; then
+        echo "missing from the application image: $artifact" >&2
+        exit 1
+    fi
+done
+for entry in 'META-INF/LICENSE' 'META-INF/NOTICE'; do
+    if ! jar tf "$FAT_JAR" | grep -x "$entry" >/dev/null; then
+        echo "license missing from $FAT_JAR (expected $entry)" >&2
+        exit 1
+    fi
+done
 
 # --- platform installer -------------------------------------------------
 # Installer types and their options are platform specific, so they live here
@@ -181,8 +190,12 @@ wrap_installer() {
 # cannot simply be copied into the payload.
 #
 # The document is therefore generated from LICENSE itself: one source of truth,
-# the whole GPL text inside the artifact, and "License: GPL-3.0-only" instead of
-# the "Unknown" jpackage writes when no license is supplied.
+# the whole Apache-2.0 text inside the artifact, and "License: Apache-2.0"
+# instead of the "Unknown" jpackage writes when no license is supplied.
+#
+# The deb also carries the bundled runtime (OpenJDK and JavaFX, GPLv2 with the
+# Classpath Exception) plus ICU/CLDR/Unicode data. DEP-5 takes the last matching
+# stanza, so the runtime gets its own stanza first and our own files follow.
 build_deb_resource_dir() {
     local resource_dir="target/jpackage-resource-dir"
     rm -rf "$resource_dir"
@@ -192,19 +205,29 @@ build_deb_resource_dir() {
         printf '%s\n' 'Upstream-Name: JTypeWriter'
         printf '%s\n' 'Source: https://github.com/hyperpostulate/JTypeWriter'
         printf '\n'
+        printf '%s\n' 'Files: opt/jtypewriter/lib/runtime/*'
+        printf '%s\n' 'Copyright: 2026 Oracle and/or its affiliates, contributors'
+        printf '%s\n' 'License: GPL-2.0-with-classpath-exception'
+        printf '%s\n' ' The bundled OpenJDK runtime and the JavaFX libraries ship under'
+        printf '%s\n' ' GPLv2 with the Classpath Exception. Their notices, including the'
+        printf '%s\n' ' licenses of the data libraries they contain, are reproduced'
+        printf '%s\n' ' unchanged in opt/jtypewriter/lib/runtime/legal/.'
+        printf '\n'
         printf '%s\n' 'Files: *'
         printf '%s\n' 'Copyright: APPLICATION_COPYRIGHT'
-        printf '%s\n' 'License: GPL-3.0-only'
+        printf '%s\n' 'License: Apache-2.0'
         # DEP-5 continuation lines carry exactly one leading space and a blank
-        # line inside the stanza is written as " .".
-        sed -e 's/[[:space:]]*$//' -e 's/^$/./' -e 's/^/ /' "$LICENSE_FILE"
+        # line inside the stanza is written as " .". The canonical Apache text
+        # opens with a blank line, which would otherwise become a stray " ."
+        # before the first line of the license.
+        sed -e 's/[[:space:]]*$//' -e '/./,$!d' -e 's/^$/./' -e 's/^/ /' "$LICENSE_FILE"
     } > "$resource_dir/copyright"
     printf '%s' "$resource_dir"
 }
 
 # The deb's copyright document must carry the real license - not "Unknown" - and
-# actually contain the GPL text, since the app image's LICENSE file is not part
-# of the deb payload. Only checkable on machines with dpkg-deb.
+# actually contain the Apache text, since the app image's LICENSE file is not
+# part of the deb payload. Only checkable on machines with dpkg-deb.
 verify_deb_license() {
     local deb=""
     shopt -s nullglob
@@ -249,13 +272,18 @@ verify_deb_license() {
     body=$(cat "$copyright")
     rm -rf "$root"
 
-    if [[ "$body" == *Unknown* || "$body" != *"License: GPL-3.0-only"* ]]; then
+    if [[ "$body" == *Unknown* || "$body" != *"License: Apache-2.0"* ]]; then
         echo "license metadata in $deb is missing or still 'Unknown'" >&2
         echo "check --copyright and build_deb_resource_dir in this script" >&2
         exit 1
     fi
-    if [[ "$body" != *"GNU GENERAL PUBLIC LICENSE"* ]]; then
-        echo "the GPL text is missing from the copyright document in $deb" >&2
+    if [[ "$body" != *"Apache License"* || "$body" != *"Version 2.0, January 2004"* ]]; then
+        echo "the Apache-2.0 text is missing from the copyright document in $deb" >&2
+        exit 1
+    fi
+    # The bundled runtime is not ours to relicense, so its stanza must survive.
+    if [[ "$body" != *"License: GPL-2.0-with-classpath-exception"* ]]; then
+        echo "the bundled-runtime stanza is missing from the copyright document in $deb" >&2
         exit 1
     fi
     echo "deb license document verified ($deb)"

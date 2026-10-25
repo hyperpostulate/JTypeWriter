@@ -1,0 +1,10 @@
+JTypeWriter
+Copyright (c) 2026 Mesut ORMANLI
+
+This product is licensed under the Apache License, Version 2.0. The full text
+is in the LICENSE file next to this notice.
+
+This product bundles the OpenJDK runtime and the JavaFX libraries, which are
+distributed under the GNU General Public License, version 2, with the
+Classpath Exception. Their notices and license texts ship unchanged inside
+the application image under lib/runtime/legal/.

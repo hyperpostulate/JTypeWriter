@@ -11,6 +11,19 @@
     <name>JTypeWriter</name>
     <description>A distraction-free text editor</description>
 
+    <!--
+        Declared here as well as in the artifacts so `mvn help:effective-pom`
+        answers "what is this under" without opening the jar. The bundled
+        OpenJDK runtime and JavaFX stay GPLv2 + Classpath Exception; see NOTICE.
+    -->
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <properties>
         <java.version>25</java.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
@@ -79,10 +92,10 @@
                 </configuration>
             </plugin>
             <!--
-                A plain JAR can only carry its license as a resource, so LICENSE is
-                copied into target/classes/META-INF/LICENSE during process-resources.
-                The maven-assembly-plugin packs that same class directory into the
-                fat jar, so this single copy covers both artifacts.
+                A plain JAR can only carry its license as a resource, so LICENSE and
+                NOTICE are copied into target/classes/META-INF during
+                process-resources. The maven-assembly-plugin packs that same class
+                directory into the fat jar, so this single copy covers both artifacts.
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -102,6 +115,7 @@
                                     <directory>${project.basedir}</directory>
                                     <includes>
                                         <include>LICENSE</include>
+                                        <include>NOTICE</include>
                                     </includes>
                                 </resource>
                             </resources>
