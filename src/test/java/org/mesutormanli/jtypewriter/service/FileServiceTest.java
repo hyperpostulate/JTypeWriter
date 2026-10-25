@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,11 +36,12 @@ class FileServiceTest {
     private static final String TURKISH = "çöğü";
 
     private DialogService dialogService;
+    private Messages messages;
     private FileService fileService;
 
     @BeforeEach
     void setUp() {
-        var messages = mock(Messages.class);
+        messages = mock(Messages.class);
         dialogService = mock(DialogService.class);
         fileService = new FileService(dialogService, messages);
     }
@@ -290,6 +292,61 @@ class FileServiceTest {
 
         assertEquals("v1", Files.readString(BackupKeeper.backupPath(target, 0)));
         assertFalse(Files.exists(BackupKeeper.backupPath(target, 1)));
+    }
+
+    // --- backup failures must never cancel or reverse a document write ------
+
+    @Test
+    void backupStagingFailureStillSavesTheDocument(@TempDir Path dir) throws IOException {
+        var keeper = mock(BackupKeeper.class);
+        var service = new FileService(dialogService, messages, keeper);
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "v1");
+        var newest = BackupKeeper.backupPath(target, 0);
+        var older = BackupKeeper.backupPath(target, 1);
+        Files.writeString(newest, "v0");
+        Files.writeString(older, "v-1");
+        when(keeper.prepare(target)).thenThrow(new IOException("disk full"));
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(target.toFile()));
+
+        var saved = service.saveFile(null, "v2");
+
+        assertTrue(saved.isPresent());
+        assertEquals("v2", Files.readString(target));
+        assertFalse(service.hasUnsavedChanges());
+        // a failed copy must not rotate or drop any generation
+        assertEquals("v0", Files.readString(newest));
+        assertEquals("v-1", Files.readString(older));
+        assertFalse(Files.exists(BackupKeeper.backupPath(target, 2)));
+        verify(dialogService, never()).showError(any(), any(), any());
+    }
+
+    @Test
+    void backupInstallFailureStillSavesTheDocument(@TempDir Path dir) throws IOException {
+        var keeper = mock(BackupKeeper.class);
+        var service = new FileService(dialogService, messages, keeper);
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "v1");
+        var newest = BackupKeeper.backupPath(target, 0);
+        var older = BackupKeeper.backupPath(target, 1);
+        Files.writeString(newest, "v0");
+        Files.writeString(older, "v-1");
+        var staged = dir.resolve("doc.txt.bak.new");
+        Files.writeString(staged, "v1");
+        when(keeper.prepare(target))
+                .thenReturn(Optional.of(new BackupKeeper.PreparedBackup(target, staged)));
+        doThrow(new IOException("install failed")).when(keeper).install(any());
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(target.toFile()));
+
+        var saved = service.saveFile(null, "v2");
+
+        assertTrue(saved.isPresent());
+        assertEquals("v2", Files.readString(target));
+        assertFalse(service.hasUnsavedChanges());
+        assertEquals("v0", Files.readString(newest));
+        assertEquals("v-1", Files.readString(older));
+        assertFalse(Files.exists(BackupKeeper.backupPath(target, 2)));
+        verify(dialogService, never()).showError(any(), any(), any());
     }
 
     // --- encoding upgrade: never silently turn characters into '?' ---------

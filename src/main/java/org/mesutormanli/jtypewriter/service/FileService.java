@@ -23,7 +23,9 @@ import java.util.logging.Logger;
  *       renamed into place (see {@link AtomicFiles}), so neither a crash
  *       mid-save nor a power cut can leave a truncated document;</li>
  *   <li><b>Rotating backups:</b> every overwrite keeps the previous version as
- *       {@code <file>.bak} (plus {@code .bak.1/.bak.2} generations);</li>
+ *       {@code <file>.bak} (plus {@code .bak.1/.bak.2} generations). The backup
+ *       is staged before the write and promoted afterwards, and a failing
+ *       backup is logged without ever cancelling the document write;</li>
  *   <li><b>Encoding stability:</b> a document is read with encoding detection
  *       (BOM / strict UTF-8, otherwise the user is asked - see
  *       {@link TextCodec}) and always written back in that same encoding.
@@ -56,7 +58,7 @@ public class FileService {
 
     private final DialogService dialogService;
     private final Messages messages;
-    private final BackupKeeper backupKeeper = new BackupKeeper();
+    private final BackupKeeper backupKeeper;
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
 
     private Path currentFilePath;
@@ -66,8 +68,14 @@ public class FileService {
     private boolean currentBom;
 
     public FileService(DialogService dialogService, Messages messages) {
+        this(dialogService, messages, new BackupKeeper());
+    }
+
+    /** Visible for tests: lets a test inject a BackupKeeper whose phases fail. */
+    FileService(DialogService dialogService, Messages messages, BackupKeeper backupKeeper) {
         this.dialogService = dialogService;
         this.messages = messages;
+        this.backupKeeper = backupKeeper;
     }
 
     public String getCurrentContent() {
@@ -265,10 +273,37 @@ public class FileService {
             // copies of the same text; the encoding-upgrade flow always has
             // content != savedContent, so it is unaffected by this guard.
             var unchangedSave = path.equals(currentFilePath) && content.equals(savedContent);
+            // The document write is the primary operation; the backup protects
+            // the previous version but must never be able to cancel the save.
+            // The copy is therefore staged first, but failures only warn.
+            BackupKeeper.PreparedBackup prepared = null;
             if (!unchangedSave) {
-                backupKeeper.backup(path);
+                try {
+                    prepared = backupKeeper.prepare(path).orElse(null);
+                } catch (IOException | RuntimeException backupFailure) {
+                    LOG.log(Level.WARNING, "could not stage a backup of " + path
+                            + "; saving without it", backupFailure);
+                }
             }
-            AtomicFiles.writeMoving(path, bytes);
+            try {
+                AtomicFiles.writeMoving(path, bytes);
+            } catch (IOException | RuntimeException writeFailure) {
+                if (prepared != null) {
+                    backupKeeper.discard(prepared);
+                }
+                throw writeFailure; // the outer catch reports the failed save
+            }
+            if (prepared != null) {
+                // The new content is already on disk: a failing install must
+                // not turn a successful save into an error.
+                try {
+                    backupKeeper.install(prepared);
+                } catch (IOException | RuntimeException backupFailure) {
+                    LOG.log(Level.WARNING, "could not install the backup of " + path
+                            + "; the document itself was saved", backupFailure);
+                    backupKeeper.discard(prepared);
+                }
+            }
             currentFilePath = path;
             savedContent = content;
             currentContent = content;
