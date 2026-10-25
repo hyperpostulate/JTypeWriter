@@ -13,9 +13,10 @@ on:
   pull_request:
     branches: [ "main" ]
 
-# The badge publisher pushes badges/tests.json to the gh-pages branch.
+# Checkout and the build need nothing beyond reading the repository. The badge
+# publisher is the only writer and gets its own job-level grant below.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -28,10 +29,17 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      # Every action is pinned to a full commit SHA instead of a mutable major
+      # tag: a tag can be re-pointed at any commit, so a compromised or hijacked
+      # release would run with this repository's token. A SHA cannot move.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          # The build never pushes with the checkout credential; not leaving it
+          # in .git/config keeps the token out of every later step.
+          persist-credentials: false
 
       - name: Set up JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3  # v4.9.1
         with:
           java-version: '25'
           distribution: 'temurin'
@@ -48,15 +56,16 @@ jobs:
           mvn -B test --file pom.xml -DargLine="-Duser.language=tr -Duser.country=TR"
           mvn -B test --file pom.xml -DargLine="-Duser.language=de -Duser.country=DE"
 
-      # Only one matrix leg publishes the badge, so the three OS runs do not
-      # race on the gh-pages branch; fork PRs have no token and must not try.
-      # A failed publish only warns, so it can never turn a green build red.
-      - name: Publish test count badge
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && runner.os == 'Linux'
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash scripts/publish-test-badge.sh
+      # The badge job reads the counts instead of running the suite again. The
+      # reports are identical on all three legs, so only Linux uploads them.
+      - name: Upload test reports
+        if: runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/TEST-*.xml
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
@@ -66,9 +75,44 @@ jobs:
         shell: bash
         run: bash scripts/package.sh --skip-build --installer
 
+      # The packaged installers are rebuildable from source, so keeping every
+      # main push for 90 days is pure storage cost (analysis B26).
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: JTypeWriter-${{ matrix.os }}
           path: releases/
           if-no-files-found: error
+          retention-days: 7
+
+  # GitHub has no step-level permissions, so the badge push to gh-pages lives in
+  # its own job: only this job needs contents: write. It runs only one leg of
+  # the build, so the three OS runs do not race on the gh-pages branch, and fork
+  # PRs have no token and must not try. A failed publish only warns, so it can
+  # never turn a green build red.
+  badge:
+    name: Publish test count badge
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write   # only this job pushes to gh-pages
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          # The badge publisher authenticates with the token it is handed
+          # explicitly, so no credential needs to sit in .git/config.
+          persist-credentials: false
+
+      - name: Download test reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+
+      - name: Publish test count badge
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish-test-badge.sh
