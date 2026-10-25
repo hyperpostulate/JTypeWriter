@@ -26,11 +26,6 @@ public enum Language {
         };
     }
 
-    public Language toggle() {
-        Language[] values = values();
-        return values[(ordinal() + 1) % values.length];
-    }
-
     public String code() {
         return name();
     }

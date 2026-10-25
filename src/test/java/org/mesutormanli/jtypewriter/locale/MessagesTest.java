@@ -6,6 +6,10 @@ import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.ui.theme.TextColor;
 import org.mesutormanli.jtypewriter.ui.theme.Theme;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.Locale;
@@ -211,6 +215,61 @@ class MessagesTest {
         } finally {
             Locale.setDefault(previous);
         }
+    }
+
+    /**
+     * Guard against dead bundle keys (M12/I5).
+     *
+     * <p>The parity test above only compares the six bundles with each other:
+     * a key that no getter ever reads survives in six files forever, and it
+     * cannot see the opposite mistake either - a getter added without a bundle
+     * key compiles fine and only fails at runtime with a
+     * {@link java.util.MissingResourceException}. Comparing the keys
+     * {@code Messages} actually references against the English base bundle
+     * makes both directions fail the build.</p>
+     */
+    @Test
+    void everyKeyMessagesReferencesExistsInTheBundlesAndNoBundleKeyIsUnreferenced() {
+        var referenced = referencedKeys();
+        var bundled = keysOf(Messages.bundleFor(Language.EN));
+
+        var missingFromBundle = new TreeSet<>(referenced);
+        missingFromBundle.removeAll(bundled);
+        var unreferencedInCode = new TreeSet<>(bundled);
+        unreferencedInCode.removeAll(referenced);
+
+        assertEquals(referenced, bundled,
+                "Messages.java and messages.properties disagree;"
+                        + " referenced but missing from the bundle: " + missingFromBundle
+                        + "; present in the bundle but referenced nowhere (dead key): " + unreferencedInCode);
+    }
+
+    /**
+     * Every bundle key {@code Messages.java} references, via the two call
+     * shapes the class uses: {@code bundle.getString("<key>")} and
+     * {@code format("<key>", ...)}. The source is read the same way
+     * {@code DialogSizingTest} reads its dialog sources, relative to the
+     * project directory.
+     */
+    private static Set<String> referencedKeys() {
+        var path = Path.of("src", "main", "java", "org", "mesutormanli", "jtypewriter", "locale", "Messages.java");
+        String source;
+        try {
+            source = Files.readString(path, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot read " + path.toAbsolutePath(), e);
+        }
+
+        var keys = new TreeSet<String>();
+        for (var pattern : new Pattern[]{
+                Pattern.compile("bundle\\.getString\\(\\s*\"([^\"]+)\""),
+                Pattern.compile("\\bformat\\(\\s*\"([^\"]+)\"")}) {
+            var matcher = pattern.matcher(source);
+            while (matcher.find()) {
+                keys.add(matcher.group(1));
+            }
+        }
+        return keys;
     }
 
     private static String statsLine(Messages messages) {

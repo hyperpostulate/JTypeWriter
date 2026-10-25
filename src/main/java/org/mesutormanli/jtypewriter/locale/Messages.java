@@ -55,10 +55,6 @@ public class Messages {
         return localeManager.getCurrent();
     }
 
-    public String langCode() {
-        return l().code();
-    }
-
     /**
      * The locale of the selected UI language, deliberately not
      * {@link Locale#getDefault()}. {@code MessageFormat} picks its number,
@@ -99,14 +95,6 @@ public class Messages {
 
     public String toolbarColor() {
         return bundle.getString("toolbarColor");
-    }
-
-    public String toolbarFontUp() {
-        return bundle.getString("toolbarFontUp");
-    }
-
-    public String toolbarFontDown() {
-        return bundle.getString("toolbarFontDown");
     }
 
     /** Caption of the font-size dropdown: {@code "Size: 13"}, tooltip {@code "Size (Ctrl++ / ...)"}. */
@@ -161,22 +149,6 @@ public class Messages {
 
     public String colorRose() {
         return bundle.getString("colorRose");
-    }
-
-    public String yoloModeOn() {
-        return bundle.getString("yoloModeOn");
-    }
-
-    public String yoloModeOff() {
-        return bundle.getString("yoloModeOff");
-    }
-
-    public String soundOn() {
-        return bundle.getString("soundOn");
-    }
-
-    public String soundOff() {
-        return bundle.getString("soundOff");
     }
 
     public String welcomeTitle() {
@@ -307,10 +279,6 @@ public class Messages {
 
     public String toolbarRedo() {
         return bundle.getString("toolbarRedo");
-    }
-
-    public String emptyFile() {
-        return bundle.getString("emptyFile");
     }
 
     public String toolbarAbout() {

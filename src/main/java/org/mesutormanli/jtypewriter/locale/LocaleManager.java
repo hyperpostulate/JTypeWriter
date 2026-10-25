@@ -42,10 +42,6 @@ public class LocaleManager {
         listeners.forEach(l -> l.accept(language));
     }
 
-    public void toggle() {
-        setLanguage(currentLanguage.toggle());
-    }
-
     public void addListener(Consumer<Language> listener) {
         listeners.add(listener);
     }
