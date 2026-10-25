@@ -18,6 +18,7 @@ import java.text.MessageFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.function.Supplier;
 
@@ -44,6 +45,11 @@ public class MainController implements Initializable {
      * in the new language instead of leaving the old one on screen.
      */
     private LocalTime lastSavedAt;
+    /**
+     * The title last handed to the native window, so a keystroke that only
+     * changes the text is not turned into a {@code stage.setTitle} call.
+     */
+    private String lastTitle;
 
     @FXML
     private BorderPane rootPane;
@@ -134,8 +140,17 @@ public class MainController implements Initializable {
         }
         var path = fileService.getCurrentFilePath();
         var documentName = path != null ? path.getFileName().toString() : messages.windowUntitled();
-        stage.setTitle(titleFor(messages.appName(), documentName,
-                fileService.hasUnsavedChanges(), editorArea.isYoloMode()));
+        var title = titleFor(messages.appName(), documentName,
+                fileService.hasUnsavedChanges(), editorArea.isYoloMode());
+        if (titleChanged(lastTitle, title)) {
+            lastTitle = title;
+            stage.setTitle(title);
+        }
+    }
+
+    /** Only a real dirty↔clean, name, locale or YOLO change reaches the native window. */
+    static boolean titleChanged(String previousTitle, String nextTitle) {
+        return !Objects.equals(previousTitle, nextTitle);
     }
 
     /** Pure title composition, kept out of the stage so it can be unit tested. */

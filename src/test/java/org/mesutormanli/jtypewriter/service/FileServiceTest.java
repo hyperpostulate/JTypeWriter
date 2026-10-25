@@ -58,6 +58,33 @@ class FileServiceTest {
     }
 
     @Test
+    void revertingToTheSavedTextClearsTheDirtyFlag(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "saved text");
+        assertTrue(fileService.loadFile(null, target).isPresent());
+
+        fileService.setCurrentContent("edited text");
+        assertTrue(fileService.hasUnsavedChanges());
+
+        // undo back to the loaded text: the dirty marker must clear again
+        fileService.setCurrentContent("saved text");
+        assertFalse(fileService.hasUnsavedChanges());
+    }
+
+    @Test
+    void sameLengthEditMarksTheDocumentDirty(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "abc");
+        assertTrue(fileService.loadFile(null, target).isPresent());
+
+        // Same length: only the comparison can tell, so this is the path that
+        // has to fall through the length guard (analysis M4).
+        fileService.setCurrentContent("abd");
+
+        assertTrue(fileService.hasUnsavedChanges());
+    }
+
+    @Test
     void openIsAbortedWhenUnsavedChangesAreCancelled() {
         fileService.setCurrentContent("draft");
         when(dialogService.showUnsavedChangesDialog(any())).thenReturn(DialogService.SaveChoice.CANCEL);
@@ -220,6 +247,34 @@ class FileServiceTest {
         fileService.saveFile(null, "changed");
 
         assertEquals(List.of("loaded:doc.txt", "saved:doc.txt"), events);
+    }
+
+    @Test
+    void listenerFailureDoesNotFailTheSave(@TempDir Path dir) throws IOException {
+        var secondNotified = new ArrayList<String>();
+        fileService.addListener(new FileService.Listener() {
+            @Override
+            public void onSaved(Path file) {
+                throw new IllegalStateException("broken listener");
+            }
+        });
+        fileService.addListener(new FileService.Listener() {
+            @Override
+            public void onSaved(Path file) {
+                secondNotified.add("saved:" + file.getFileName());
+            }
+        });
+        var target = dir.resolve("doc.txt");
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(target.toFile()));
+
+        var saved = fileService.saveFile(null, "durable text");
+
+        // The bytes are on disk, so a listener bug must not report a failure:
+        // the caller would otherwise refuse to close, open or start a document.
+        assertEquals(Optional.of(target), saved);
+        assertEquals("durable text", Files.readString(target));
+        assertEquals(List.of("saved:doc.txt"), secondNotified);
+        verify(dialogService, never()).showError(any(), any(), any());
     }
 
     @Test

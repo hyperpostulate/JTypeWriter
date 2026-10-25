@@ -66,6 +66,7 @@ public class FileService {
     private String currentContent = "";
     private Charset currentCharset = StandardCharsets.UTF_8;
     private boolean currentBom;
+    private boolean dirty;
 
     public FileService(DialogService dialogService, Messages messages) {
         this(dialogService, messages, new BackupKeeper());
@@ -84,12 +85,24 @@ public class FileService {
 
     public void setCurrentContent(String content) {
         this.currentContent = content;
+        this.dirty = differsFromSaved(content);
     }
 
     public boolean hasUnsavedChanges() {
-        // savedContent is null when the draft was never on disk (restoreRecovered):
-        // equals(null) is false, so even an empty draft stays dirty
-        return !currentContent.equals(savedContent);
+        return dirty;
+    }
+
+    /**
+     * Decides the dirty marker in O(1) for the common case: a keystroke changes
+     * the length, so the per-key path never walks the document (analysis M4).
+     * Only a same-length replacement pays for the comparison, and that is also
+     * what lets "undone back to the saved text" clear the marker again.
+     */
+    private boolean differsFromSaved(String content) {
+        if (savedContent == null) return true;          // recovered draft: never on disk
+        if (content == savedContent) return false;      // same instance
+        if (content.length() != savedContent.length()) return true;  // a keystroke: length decided it
+        return !content.equals(savedContent);           // same length: paste/undo, compare once
     }
 
     public void addListener(Listener listener) {
@@ -133,6 +146,7 @@ public class FileService {
         currentBom = false;
         savedContent = "";
         currentContent = "";
+        dirty = false;
         listeners.forEach(Listener::onNewDocument);
         return true;
     }
@@ -178,6 +192,7 @@ public class FileService {
             currentBom = decoded.bom();
             savedContent = decoded.text();
             currentContent = decoded.text();
+            dirty = false;
             listeners.forEach(l -> l.onLoaded(path));
             return Optional.of(path);
         } catch (IOException e) {
@@ -229,6 +244,7 @@ public class FileService {
         // is empty, so autosave never clears a recovered empty draft.
         savedContent = null;
         currentContent = content;
+        dirty = true;
     }
 
     public Optional<Path> saveFile(javafx.stage.Stage stage, String content) {
@@ -307,8 +323,7 @@ public class FileService {
             currentFilePath = path;
             savedContent = content;
             currentContent = content;
-            listeners.forEach(l -> l.onSaved(path));
-            return Optional.of(path);
+            dirty = false;
         } catch (IOException | RuntimeException e) {
             // An unexpected runtime failure must not take the app down mid-save:
             // log it and let the user retry from a dialog.
@@ -316,6 +331,18 @@ public class FileService {
             dialogService.showError(stage, messages.errorSave(), e.getMessage());
             return Optional.empty();
         }
+        // The file is written and fsynced at this point, so a failing listener
+        // must never turn a successful save into a reported failure (analysis
+        // V8): each one is isolated and only warns, and the rest still run.
+        for (var listener : listeners) {
+            try {
+                listener.onSaved(path);
+            } catch (RuntimeException failure) {
+                LOG.log(Level.WARNING, "a save listener failed for " + path
+                        + "; the document itself was saved", failure);
+            }
+        }
+        return Optional.of(path);
     }
 
     /** @return the decoded document, or {@code null} when the user cancelled the encoding prompt */

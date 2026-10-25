@@ -44,6 +44,20 @@ class MainControllerTest {
     }
 
     /**
+     * Analysis M4: the text listener refreshes the title on every keystroke, so
+     * an unchanged composition must never reach the native window again.
+     */
+    @Test
+    void titleIsOnlyRewrittenWhenTheDirtyStateChanges() {
+        var clean = MainController.titleFor("JTypeWriter", "novel.txt", false, false);
+        var dirty = MainController.titleFor("JTypeWriter", "novel.txt", true, false);
+
+        assertFalse(MainController.titleChanged(clean, clean));
+        assertTrue(MainController.titleChanged(clean, dirty));
+        assertTrue(MainController.titleChanged(null, clean), "the first paint has no previous title");
+    }
+
+    /**
      * RW-19: the save status is composed from the bundle pattern and an
      * injected time (SessionStats' clock idiom), so it tests headlessly with
      * a fixed time - and the acceptance example "Saved 12:04" is pinned.
