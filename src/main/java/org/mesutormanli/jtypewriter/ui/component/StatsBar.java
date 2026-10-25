@@ -62,12 +62,14 @@ public class StatsBar extends BorderPane {
         saveStatus = new Label();
         saveStatus.getStyleClass().add("stats-save");
 
-        var leftBox = new HBox(clockLabel, saveStatus);
+        // Statistics sit on the left, date and time (with the save confirmation
+        // that belongs to them) on the right.
+        var leftBox = new HBox(statsLabel);
         leftBox.getStyleClass().add("stats-left");
-        leftBox.setSpacing(12);
 
-        var rightBox = new HBox(statsLabel);
+        var rightBox = new HBox(clockLabel, saveStatus);
         rightBox.getStyleClass().add("stats-right");
+        rightBox.setSpacing(12);
 
         setLeft(leftBox);
         setRight(rightBox);
