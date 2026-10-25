@@ -50,20 +50,34 @@ jobs:
 
       # Localization regressions hide behind the system locale: the i18n tests
       # must pass on a Turkish and a German machine too (see MessagesTest).
+      #
+      # Every run keeps its own reports, because the badge publishes the sum of
+      # all of them: a later run must never erase an earlier one. Surefire 3.5.6
+      # (the version pinned in pom.xml) has no user property for
+      # reportsDirectory - -Dsurefire.reportsDirectory is accepted by Maven and
+      # silently ignored - so each run is moved aside before the next one writes
+      # into the default directory again. The three directories are then
+      # target/surefire-reports-main, -tr and -de; the last run leaves no
+      # default one behind.
       - name: Re-run tests under non-English system locales
         shell: bash
         run: |
+          mv target/surefire-reports target/surefire-reports-main
           mvn -B test --file pom.xml -DargLine="-Duser.language=tr -Duser.country=TR"
+          mv target/surefire-reports target/surefire-reports-tr
           mvn -B test --file pom.xml -DargLine="-Duser.language=de -Duser.country=DE"
+          mv target/surefire-reports target/surefire-reports-de
 
-      # The badge job reads the counts instead of running the suite again. The
-      # reports are identical on all three legs, so only Linux uploads them.
+      # The badge job reads the counts instead of running the suite again. All
+      # three report directories are uploaded - not just the last locale - so
+      # the publisher can sum them. The reports are identical on all three OS
+      # legs, so only Linux uploads them.
       - name: Upload test reports
         if: runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: surefire-reports
-          path: target/surefire-reports/TEST-*.xml
+          path: target/surefire-reports*
           if-no-files-found: error
           retention-days: 1
 
@@ -88,8 +102,8 @@ jobs:
   # GitHub has no step-level permissions, so the badge push to gh-pages lives in
   # its own job: only this job needs contents: write. It runs only one leg of
   # the build, so the three OS runs do not race on the gh-pages branch, and fork
-  # PRs have no token and must not try. A failed publish only warns, so it can
-  # never turn a green build red.
+  # PRs have no token and must not try. A failed publish fails this job: a badge
+  # that silently goes stale is the bug this job exists to prevent.
   badge:
     name: Publish test count badge
     needs: build
@@ -105,11 +119,14 @@ jobs:
           # explicitly, so no credential needs to sit in .git/config.
           persist-credentials: false
 
+      # The artifact keeps one directory per locale run under its root, so it is
+      # unpacked one level up: the publisher must see target/surefire-reports*
+      # (main, -tr, -de), not a single flattened directory.
       - name: Download test reports
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: surefire-reports
-          path: target/surefire-reports
+          path: target
 
       - name: Publish test count badge
         shell: bash
