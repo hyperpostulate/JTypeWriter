@@ -9,6 +9,9 @@
     -toolbar-separator-color: #cccccc;
     /* #6e6e6e on #f5f5f5 = 4.68:1 (was #888888, 3.25:1 - below AA). */
     -stats-text: #6e6e6e;
+    /* "Saved hh:mm" confirmation (RW-19): #2f6b34 on #f5f5f5 = 5.88:1. A deep
+       green rather than the dark theme's lightened one, to keep the same read. */
+    -stats-save-text: #2f6b34;
     /* Focus ring (RW-17): a hair deeper than the brand brown #8b7355 (whose
        white on-accent text would land at 4.49:1). 4.41:1 against the toolbar,
        4.80:1 against the editor, 3.64:1 against the hover wash (>=3:1 for

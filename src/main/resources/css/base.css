@@ -320,6 +320,16 @@
     -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
 }
 
+/* "Saved hh:mm" confirmation (RW-19). Without a rule of its own the label fell
+   back to Modena's default #333333, which against the dark bar #1e1e1e is
+   only 1.32:1 (analysis U1) - effectively unreadable. Each theme supplies a
+   -stats-save-text that clears AA (>=4.5:1) on its own -toolbar-bg. */
+.stats-save {
+    -fx-font-size: 13px;
+    -fx-text-fill: -stats-save-text;
+    -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+}
+
 .welcome-root {
     -fx-background-color: -welcome-bg;
     -fx-border-color: -welcome-border;

@@ -9,6 +9,9 @@
     -toolbar-separator-color: #444444;
     /* #8f8f8f on #1e1e1e = 5.15:1 (was #777777, 3.72:1 - below AA). */
     -stats-text: #8f8f8f;
+    /* "Saved hh:mm" confirmation (RW-19): #6fbf73 on #1e1e1e = 7.44:1. A
+       muted green, so the state reads as confirmation, not as an alarm. */
+    -stats-save-text: #6fbf73;
     /* Focus ring (RW-17): the theme's amber, 5.42:1 against the toolbar,
        5.66:1 against the editor and 4.11:1 against the hover wash. */
     -focus-ring: #c0883c;

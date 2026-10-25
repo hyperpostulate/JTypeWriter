@@ -83,6 +83,21 @@ class ContrastRatioTest {
         }
     }
 
+    /** The "Saved hh:mm" confirmation (RW-19). It used to render in Modena's
+        default #333333 on the dark bar: 1.32:1, invisible (analysis U1). */
+    @Test
+    void saveStatusTextClearsFourPointFiveInEveryTheme() {
+        for (var theme : THEMES) {
+            var css = readCss("/css/" + theme + ".css");
+            var save = color(css, "-stats-save-text");
+            var bar = color(css, "-toolbar-bg");
+            var ratio = ContrastRatio.ratio(save, bar);
+            assertTrue(ContrastRatio.meetsAa(ratio, false),
+                    "%s -stats-save-text %s on %s is %.2f:1, below AA %s:1"
+                            .formatted(theme, save, bar, ratio, TEXT_MIN));
+        }
+    }
+
     /** A focus ring is a non-text UI component: >= 3:1 against every surface
         it can sit on (bar, editor, hover wash) in every theme. */
     @Test
@@ -132,6 +147,7 @@ class ContrastRatioTest {
         var base = readCss("/css/base.css");
         assertTrue(cssFontSize(base, "\\.stats-clock\\s*\\{") >= 13);
         assertTrue(cssFontSize(base, "\\.stats-label\\s*\\{") >= 13);
+        assertTrue(cssFontSize(base, "\\.stats-save\\s*\\{") >= 13);
     }
 
     /** Open dropdown list and closed control share one type scale (11 px). */

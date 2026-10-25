@@ -10,6 +10,9 @@
     /* #6f5a3f on #e8dcc8 = 4.83:1 (was #8b7355, 3.31:1 - below AA); still a
        warm coffee brown, not black, so the sepia identity survives. */
     -stats-text: #6f5a3f;
+    /* "Saved hh:mm" confirmation (RW-19): #4a5d2f on #e8dcc8 = 5.35:1; an
+       olive green, so the sepia identity survives the added state colour. */
+    -stats-save-text: #4a5d2f;
     /* Focus ring (RW-17): a deepened brand brown - the lighter #8b7355 only
        reaches 2.65:1 against the hover wash. 5.42:1 against the toolbar,
        6.24:1 against the editor, 4.34:1 against the hover wash. */
