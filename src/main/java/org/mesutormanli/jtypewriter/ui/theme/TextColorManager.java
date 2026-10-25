@@ -39,8 +39,9 @@ public class TextColorManager {
         return current;
     }
 
-    public String getCurrentCssColor() {
-        return current.getCssColor();
+    /** The current colour's hex value for {@code theme}, or {@code null} for {@link TextColor#DEFAULT}. */
+    public String getCurrentCssColor(Theme theme) {
+        return current.getCssColor(theme);
     }
 
     public String getCurrentDisplayName(Messages messages) {

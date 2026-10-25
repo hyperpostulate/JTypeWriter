@@ -135,6 +135,8 @@ public class ToolbarView extends HBox {
         themeCombo = createCombo(ThemeManager.options(), themeName(), value -> {
             themeManager.setTheme(getScene(), value);
             refresh();
+            // The text colour's hex depends on the theme, so re-apply it last.
+            notifyStyleChange();
         });
         showAsCaptionedCombo(themeCombo, messages::toolbarTheme);
 
@@ -421,6 +423,8 @@ public class ToolbarView extends HBox {
         if (scene != null) {
             themeManager.cycleTheme(scene);
             refresh();
+            // The text colour's hex depends on the theme, so re-apply it last.
+            notifyStyleChange();
         }
     }
 
@@ -490,8 +494,9 @@ public class ToolbarView extends HBox {
         return fontSizeManager.getCurrentSize();
     }
 
+    /** The current text colour's hex for the theme in force, or {@code null} for Default. */
     public String getCurrentTextCssColor() {
-        return textColorManager.getCurrentCssColor();
+        return textColorManager.getCurrentCssColor(themeManager.getCurrentTheme());
     }
 
     // --- plumbing -------------------------------------------------------------

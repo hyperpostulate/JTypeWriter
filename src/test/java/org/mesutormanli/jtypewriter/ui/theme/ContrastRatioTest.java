@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -157,6 +158,40 @@ class ContrastRatioTest {
         var closed = cssFontSize(base, "\\.toolbar-combo \\.list-cell\\s*\\{");
         var open = cssFontSize(base, "\\.combo-box-popup \\.list-view \\.list-cell\\s*\\{");
         assertEquals(closed, open, "popup cell size drifted from the closed control");
+    }
+
+    /** PW-07: each {@link TextColor} carries a dark-canvas and a light-canvas
+        hex, because a single value cannot clear 4.5:1 on both #1a1a1a and
+        #ffffff / #f4ecd8. This recomputes every colour/theme pair, so a
+        regression to the old inline constants goes red. */
+    @Test
+    void textColoursClearFourPointFiveOnEveryEditorBackground() {
+        for (var color : TextColor.values()) {
+            if (color == TextColor.DEFAULT) {
+                continue; // the theme's own editor text colour, no inline hex
+            }
+            for (var theme : Theme.values()) {
+                var hex = color.getCssColor(theme);
+                var background = theme.getEditorFill();
+                var ratio = ContrastRatio.ratio(hex, background);
+                assertTrue(ContrastRatio.meetsAa(ratio, false),
+                        "%s %s on %s %s is %.2f:1, below AA %s:1"
+                                .formatted(color, hex, theme, background, ratio, TEXT_MIN));
+            }
+        }
+    }
+
+    /** PW-07 acceptance: "koyu tema değişmez" - the dark palette keeps the
+        historical hexes, pinned so a future lightening/darkening cannot slip in. */
+    @Test
+    void darkThemeTextColoursAreUnchanged() {
+        assertEquals("#7A9E7E", TextColor.SAGE.getCssColor(Theme.DARK));
+        assertEquals("#8B7DAB", TextColor.LAVENDER.getCssColor(Theme.DARK));
+        assertEquals("#B8976A", TextColor.SAND.getCssColor(Theme.DARK));
+        assertEquals("#6B8FA8", TextColor.STEEL.getCssColor(Theme.DARK));
+        assertEquals("#B07A7A", TextColor.ROSE.getCssColor(Theme.DARK));
+        assertNull(TextColor.DEFAULT.getCssColor(Theme.DARK));
+        assertNull(TextColor.DEFAULT.getCssColor(Theme.LIGHT));
     }
 
     // --- Tiny CSS readers ------------------------------------------------------

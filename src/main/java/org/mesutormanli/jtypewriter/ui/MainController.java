@@ -190,7 +190,11 @@ public class MainController implements Initializable {
     }
 
     private void applyEditorStyle() {
+        if (editorArea == null) {
+            return;
+        }
         var style = "-fx-font-size: " + toolbarView.getCurrentFontSize() + "px;";
+        // Theme-dependent: each TextColor has a dark-canvas and a light-canvas hex.
         var cssColor = toolbarView.getCurrentTextCssColor();
         if (cssColor != null) {
             style += " -fx-text-fill: " + cssColor + ";";
