@@ -8,7 +8,7 @@
   <a href="https://github.com/hyperpostulate/JTypeWriter/blob/main/pom.xml"><img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25"></a>
   <img src="https://img.shields.io/badge/Platforms-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg" alt="Platforms">
   <img src="https://img.shields.io/badge/Languages-6-blue.svg" alt="6 languages">
-  <a href="https://www.gnu.org/licenses/gpl-3.0"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
+  <a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
   <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml/badge.svg" alt="Java CI"></a>
   <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fhyperpostulate%2FJTypeWriter%2Fgh-pages%2Fbadges%2Ftests.json" alt="Tests"></a>
 </p>
@@ -404,7 +404,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 
 ## Lisans
 
-Bu proje GNU General Public License v3.0 altında lisanslanmıştır. Detaylı bilgi için [LICENSE](LICENSE) dosyasına bakın.
+JTypeWriter, Apache Lisansı 2.0 ile lisanslanmıştır. Tam metin için [LICENSE](LICENSE), atıf bildirimleri için [NOTICE](NOTICE) dosyasına bakın. Native imaja gömülen OpenJDK çalışma zamanı ve JavaFX kütüphaneleri GPLv2 + Classpath Exception altında kalır; bildirimleri `lib/runtime/legal/` altında gelir.
 
 ---
 

@@ -123,10 +123,10 @@ kapsam yanlış kesilmiştir.
 | ✅ PW-10 | S | **12** | **Kirli durumu O(1) yap.** `FileService`'te `dirty` bayrağı; `hasUnsavedChanges()` tam `String.equals` yapmaz; başlık yalnız dirty↔clean geçişinde ve `Objects.equals` korumasıyla yazılır. | M4 | 50 MB belgede tuş başına tam tarama **yok**; `FileServiceTest` + `MainControllerTest` davranışı korur |
 | ✅ PW-11 | S | **12** | **Dinleyici bildirimi `try` dışına.** `savedContent` güncellendikten sonra dinleyici hatası "kayıt başarısız"a dönüşmesin. | V8 | İstisna atan bir `Listener` ile dosya yazılır, çağıran `Optional.of(path)` alır, hata loglanır |
 | ✅ PW-12 | S | **12** | **CI tedarik zinciri sertleştirmesi:** action'ları commit SHA'sı ile pinle, `permissions`'ı `contents: read`'e indir, `persist-credentials: false`, `upload-artifact`'a `retention-days`. | B22, B23, B26 | Workflow yeşil; `contents: write` yalnız rozet işinde ve yalnız o adımda |
-| ✅ PW-13 | S | **12** | **`LICENSE` ikiliye girsin.** `package.sh`'a jpackage `--license-file`; JAR'a `META-INF/LICENSE`; app-image köküne `LICENSE` kopyası. | B28 | Üretilen her artefaktta GPLv3 metni **var**; `.deb` telifi `License: Unknown` demiyor |
+| ✅ PW-13 | S | **12** | **`LICENSE` ikiliye girsin.** `package.sh`'a jpackage `--license-file`; JAR'a `META-INF/LICENSE`; app-image köküne `LICENSE` kopyası. | B28 | Üretilen her artefaktta lisans metni (Apache-2.0) **var**; `.deb` telifi `License: Unknown` demiyor |
 | ✅ PW-14 | S | **9** | **Kısayol bloğu sarsın + diyaloglar ekrana sığsın.** `setWrapText(true)`; karşılama/hakkında yüksekliği ekran görsel sınırına kelepçelenir ve `setResizable(true)`. | U4, U5 | DE/FR/IT/ES metinleri kırpılmıyor; 768 px ekranda hiçbir pencere taşmıyor |
 | ✅ PW-15 | S | **9** | **CTA/hover/e-posta/tagline kontrastı.** Tek token değişikliği + 3 tema. | U6 | Karşılama CTA ≥ 4,5 (3 temada), hover ≥ 4,5, About e-postası ≥ 4,5; `ContrastRatioTest` kapsar |
-| PW-16 | S | **9** | **`About` diyaloğuna sürüm + telif + garanti reddi**; sürüm `pom.properties`'ten okunur. | F11, B30 | About'ta `1.0.0` görünür; GPLv3 bildirimi ve "no warranty" satırı var — hata bildirimi yapılabilir hale gelir |
+| PW-16 | S | **9** | **`About` diyaloğuna sürüm + telif + garanti reddi**; sürüm `pom.properties`'ten okunur. | F11, B30 | About'ta `1.0.0` görünür; Apache-2.0 bildirimi ve "no warranty" satırı var — hata bildirimi yapılabilir hale gelir |
 | PW-17 | S | **9** | **`Alert` düğmelerine `ButtonData`** (OK → `OK_DONE`, İptal → `CANCEL_CLOSE`). | U11 | Enter = varsayılan, Escape = iptal; 7 diyalogda tek tek doğrulanır |
 | PW-18 | S | **9** | **Tema döngüsü tutarlılığı.** Karşılama metinleri gerçek sırayı anlatsın **veya** varsayılan `LIGHT` olsun — biri seçilir, ikisi birlikte kalmaz. | U14 | README + 6 bundle + `Theme.next` aynı şeyi söyler |
 | PW-19 | S | **9** | **Rozet betiğini güvenli hale getir:** repo adı tek yerden, token URL'de değil, hata `exit 1`; rozet **tüm locale koşularının toplamını** yayınlar. | B24 | Publish hatası sessizce yutulmaz; rozet tek locale sonucu değil toplamı gösterir |
@@ -138,7 +138,9 @@ kapsam yanlış kesilmiştir.
 | PW-25 | S | **6** | **`NaN`/`Infinity` geometri reddedilsin.** `optionalDouble` sonlu olmayan değeri varsayılana düşürür. | V15 | Bozuk `window.width=Infinity` açılışı bozmaz |
 
 > ✅ = tamamlandı (kod + test). İşaretlenen satırların kabul kriterleri `mvn clean test` ve
-> TR/DE locale koşularında doğrulanmıştır.
+> TR/DE locale koşularında doğrulanmıştır. Proje lisansı GPLv3'ten Apache-2.0'a taşındı
+> (README, LICENSE, NOTICE, jar/deb üst verisi); bu nedenle PW-35 kapsam dışıdır ve PW-37
+> Apache-2.0 SPDX tanımlayıcısını kullanmalıdır.
 
 **Dalga bittiğinde ne değişir (ölçülebilir):**
 
@@ -188,9 +190,9 @@ her madde aynı şekilde gereklidir.
 |---|---|---:|---|---|---|
 | PW-33 | M | 7,5 | **Tag → GitHub Release.** `v*` tag'inde workflow, üç OS artefaktını **Release**'e yükler (Actions artefaktı değil) ve `SHA256SUMS` üretir. | B9, B11 | `v1.0.0` tag'i Release üretir; indirilen her dosya checksum ile doğrulanır; 90 günlük silinme sorunu biter |
 | PW-34 | S | 9 | **`THIRD-PARTY-NOTICES`** dosyası: JavaFX (GPLv2+CE), GStreamer-lite/FFmpeg plugin'leri, JUnit/Mockito. Artefakta girer. | B31 | JAR'da `META-INF/THIRD-PARTY-NOTICES`; app-image kökünde de var |
-| PW-35 | S | 9 | **GPLv3 §6 kaynak teklifi.** Artefakta `SOURCE-OFFER.txt` (tag + repo URL + yazılı teklif metni) veya kaynak arşivi. | B29 | Release sayfasında kaynak arşivi **veya** teklif dosyası; `LICENSE` ile birlikte |
+| PW-35 | S | 9 | **~~GPLv3 §6 kaynak teklifi~~** — Apache-2.0'a geçişle **kapsam dışı**; kaynak arşivini yayınlamak artık yasal zorunluluk değil (isteğe bağlı, PW-33 kapsamında düşünülebilir). | B29 | Kapsam dışı (Apache-2.0) |
 | PW-36 | M | 7,5 | **`keystroke.wav` kaynağını çöz.** Ya kendi üretimin olduğu belgelenir (üretici script + `NOTICE`), ya CC0/benzeri bir dosyayla değiştirilir. | B32 | Dosyanın lisansı repoda **yazılı**; belirsizlik sıfır — bu, yayın öncesi hukuki kapı |
-| PW-37 | S | 9 | **SPDX başlıkları** (43 dosya, tek geçiş) + ikon/artwork lisans notu. | B34, B35 | Her `.java` dosyasında `SPDX-License-Identifier: GPL-3.0-or-later`; `NOTICE` ikonu kapsar |
+| PW-37 | S | 9 | **SPDX başlıkları** (43 dosya, tek geçiş) + ikon/artwork lisans notu. | B34, B35 | Her `.java` dosyasında `SPDX-License-Identifier: Apache-2.0`; `NOTICE` ikonu kapsar |
 | PW-38 | S | 9 | **Belgeler gerçeği söylesin.** README/README-TR: `--installer` **var olan** bir yol olarak dürüstçe anlatılır (kaldırılmaz), "Java 25 gerekir" yanlışı düzeltilir, taşınabilir/installer farkı netleşir, kanal kararının **açık** olduğu yazılır. | B20, §5.3 | README'deki 9 yanlış iddia (`analysis.md` §5.3) tek tek düzeltilir; iki dil birebir |
 | PW-39 | S | 9 | **Gizlilik notu:** verinin nerede durduğu, yerel olduğu, nasıl silineceği (loglar, taslaklar, ayarlar). | B36 | README'de "Verileriniz" bölümü; iki dilde |
 | PW-40 | S | 6 | **`maven-enforcer`:** JDK 25 + Maven sürüm kontrolü. | B4 | Yanlış JDK ile build **anında** ve anlaşılır hata verir |
