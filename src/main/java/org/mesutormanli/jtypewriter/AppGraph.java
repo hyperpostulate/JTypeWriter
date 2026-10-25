@@ -69,7 +69,7 @@ public final class AppGraph {
     public final ToolbarView toolbarView = new ToolbarView(
             fileService, themeManager, textColorManager, fontSizeManager,
             toolbarState, messages, localeManager, aboutDialog);
-    public final StatsBar statsBar = new StatsBar(sessionStats, messages, statsBarState);
+    public final StatsBar statsBar = new StatsBar(sessionStats, messages, statsBarState, localeManager);
     public final CrashHandler crashHandler = new CrashHandler(messages, () -> this.stage);
 
     // --- top level assembly ------------------------------------------------

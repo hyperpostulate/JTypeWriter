@@ -9,22 +9,19 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.util.Duration;
+import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 public class StatsBar extends BorderPane {
 
-    private final SessionStats sessionStats;
-    private final Messages messages;
+    private final StatsBarModel model;
     private final StatsBarState state;
     private final Label clockLabel;
     private final Label statsLabel;
     private final Label saveStatus;
-    private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     /**
      * RW-17: the status bar must start at >= 13 px without the user cycling
@@ -43,10 +40,10 @@ public class StatsBar extends BorderPane {
         return defaultSize().fontSize;
     }
 
-    public StatsBar(SessionStats sessionStats, Messages messages, StatsBarState state) {
-        this.sessionStats = sessionStats;
-        this.messages = messages;
+    public StatsBar(SessionStats sessionStats, Messages messages, StatsBarState state,
+                    LocaleManager localeManager) {
         this.state = state;
+        this.model = new StatsBarModel(sessionStats, messages, localeManager);
 
         getStyleClass().add("stats-bar");
 
@@ -74,6 +71,12 @@ public class StatsBar extends BorderPane {
         setLeft(leftBox);
         setRight(rightBox);
 
+        // U9: paint the first frame from the model's constructor-time text
+        // instead of leaving the labels blank until the first tick.
+        applyTexts();
+        // U10: repaint synchronously inside the locale-change event.
+        model.addListener(this::applyTexts);
+
         applySize();
 
         setOnMouseClicked(e -> {
@@ -84,7 +87,10 @@ public class StatsBar extends BorderPane {
         });
 
         var timeline = new Timeline(
-                new KeyFrame(Duration.seconds(1), e -> update())
+                new KeyFrame(Duration.seconds(1), e -> {
+                    model.refresh(LocalDateTime.now());
+                    applyTexts();
+                })
         );
         timeline.setCycleCount(Animation.INDEFINITE);
         timeline.play();
@@ -115,18 +121,10 @@ public class StatsBar extends BorderPane {
         }
     }
 
-    private void update() {
-        var now = LocalDateTime.now();
-        clockLabel.setText(now.format(dateFormatter) + "  " + now.format(timeFormatter));
-
-        var wordCount = sessionStats.getWordCount();
-        var charCount = sessionStats.getCharCount();
-        var charNoSpace = sessionStats.getCharCountNoSpaces();
-        var lineCount = sessionStats.getLineCount();
-        var keystrokes = sessionStats.getTotalKeystrokes();
-        var duration = sessionStats.getFormattedDuration();
-        var wpm = sessionStats.getWpm();
-        statsLabel.setText(messages.statsFormat(wordCount, charCount, charNoSpace, lineCount, keystrokes, duration, wpm));
+    /** Copies the model's current texts onto the labels - the only rendering step. */
+    private void applyTexts() {
+        clockLabel.setText(model.clockText());
+        statsLabel.setText(model.statsText());
     }
 
     public enum Size {
