@@ -235,6 +235,24 @@ class FileServiceTest {
     }
 
     @Test
+    void restoredLegacyDraftWithNonAsciiTextIsSavedByteIdentically(@TempDir Path dir) throws IOException {
+        // A BOM-less windows-1254 original does not decode as UTF-8 (decode()
+        // returns null), so this genuinely exercises the legacy fallback branch.
+        var target = dir.resolve("novel.txt");
+        Files.write(target, "Eski çöğü".getBytes(TextCodec.WINDOWS_1254));
+
+        fileService.restoreRecovered(target, "Yeni çöğü");
+        var saved = fileService.saveFile(null, "Yeni çöğü");
+
+        assertTrue(saved.isPresent());
+        // byte-identical windows-1254 round trip: the draft must not turn the
+        // document into UTF-8 behind the user's back
+        assertArrayEquals("Yeni çöğü".getBytes(TextCodec.WINDOWS_1254), Files.readAllBytes(target));
+        assertFalse(fileService.hasUnsavedChanges());
+        verify(dialogService, never()).showEncodingUpgradeDialog(any(), any());
+    }
+
+    @Test
     void restoredDraftWithoutAFileIsDirty(@TempDir Path dir) {
         fileService.restoreRecovered(null, "scratch text");
 

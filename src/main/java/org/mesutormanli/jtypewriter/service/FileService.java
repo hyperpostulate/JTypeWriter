@@ -182,6 +182,12 @@ public class FileService {
      * Re-attaches a recovered draft as a dirty document. The encoding of the
      * on-disk original (when still present) is reused so a subsequent save
      * preserves it.
+     *
+     * <p>When the original does not decode on its own it is a legacy,
+     * BOM-less, non-UTF-8 document. The only legacy encoding this application
+     * offers is windows-1254, so that is assumed here as well: a windows-1254
+     * document restored from a draft must stay byte-identical when it is
+     * saved, instead of being silently rewritten as UTF-8.</p>
      */
     public void restoreRecovered(Path file, String content) {
         if (file != null && Files.isRegularFile(file)) {
@@ -190,6 +196,12 @@ public class FileService {
                 if (onDisk != null) {
                     currentCharset = onDisk.charset();
                     currentBom = onDisk.bom();
+                } else {
+                    // Legacy, BOM-less content that is not valid UTF-8: keep the
+                    // app's fallback encoding so the next save does not convert
+                    // the file to UTF-8 behind the user's back.
+                    currentCharset = TextCodec.WINDOWS_1254;
+                    currentBom = false;
                 }
                 currentFilePath = file;
             } catch (TextCodec.MalformedDocumentException malformed) {
@@ -200,6 +212,8 @@ public class FileService {
                         + " content under its byte-order mark; keeping the default encoding", malformed);
                 currentFilePath = file;
             } catch (IOException e) {
+                // The encoding is unknown, so the next save must ask for a path
+                // instead of silently rewriting an unreadable original as UTF-8.
                 LOG.log(Level.WARNING, "could not detect encoding of recovered file " + file, e);
             }
         }
