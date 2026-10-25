@@ -15,22 +15,26 @@
     /* "Saved hh:mm" confirmation (RW-19): #2f6b34 on #f5f5f5 = 5.88:1. A deep
        green rather than the dark theme's lightened one, to keep the same read. */
     -stats-save-text: #2f6b34;
-    /* Focus ring (RW-17): a hair deeper than the brand brown #8b7355 (whose
-       white on-accent text would land at 4.49:1). 4.41:1 against the toolbar,
-       4.80:1 against the editor, 3.64:1 against the hover wash (>=3:1 for
-       non-text UI). -focus-ring-text is the on-accent colour for popup rows. */
+    /* Focus ring (RW-17): 4.41:1 against the toolbar, 4.80:1 against the
+       editor, 3.64:1 against the hover wash (>=3:1 for non-text UI).
+       -focus-ring-text is the on-accent colour for popup rows. */
     -focus-ring: #876e4e;
     -focus-ring-text: #ffffff;
     -welcome-bg: #f8f6f2;
     -welcome-border: #e4dfd6;
     -welcome-shadow: #000000;
     -welcome-text: #2c2c2c;
-    -welcome-muted: #777777;
+    /* #6b6b6b on #f8f6f2 = 4.94:1 (was #777777, 4.15:1 - below AA). */
+    -welcome-muted: #6b6b6b;
     -welcome-card-bg: #eeebe5;
     -welcome-card-border: #e4dfd6;
-    -welcome-button-bg: #8b7355;
+    /* CTA surface and the About e-mail link's text colour share this token:
+       white on #7a6244 = 5.74:1, and #7a6244 on the card #f8f6f2 = 5.32:1.
+       Hover stays lighter than the base, as before: white on #876e4e =
+       4.80:1. */
+    -welcome-button-bg: #7a6244;
     -welcome-button-text: #ffffff;
-    -welcome-button-hover: #a08a6a;
+    -welcome-button-hover: #876e4e;
 }
 
 .editor-area {

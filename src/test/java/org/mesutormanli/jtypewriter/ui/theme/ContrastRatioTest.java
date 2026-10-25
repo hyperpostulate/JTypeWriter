@@ -131,6 +131,53 @@ class ContrastRatioTest {
         }
     }
 
+    /** PW-15 (analysis U6): the welcome call-to-action label on both its
+        resting and hover surfaces. In the dark theme the fix is the label
+        colour (dark-on-amber), in the others the surface itself. */
+    @Test
+    void welcomeCallToActionClearsFourPointFiveInEveryTheme() {
+        for (var theme : THEMES) {
+            var css = readCss("/css/" + theme + ".css");
+            var label = color(css, "-welcome-button-text");
+            for (var surface : new String[]{"-welcome-button-bg", "-welcome-button-hover"}) {
+                var background = color(css, surface);
+                var ratio = ContrastRatio.ratio(label, background);
+                assertTrue(ContrastRatio.meetsAa(ratio, false),
+                        "%s -welcome-button-text %s on %s (%s) is %.2f:1, below AA %s:1"
+                                .formatted(theme, label, surface, background, ratio, TEXT_MIN));
+            }
+        }
+    }
+
+    /** The About e-mail Hyperlink takes its text fill from -welcome-button-bg,
+        which must therefore read as body text on the dialog surface (U6). */
+    @Test
+    void aboutEmailLinkClearsFourPointFiveInEveryTheme() {
+        for (var theme : THEMES) {
+            var css = readCss("/css/" + theme + ".css");
+            var link = color(css, "-welcome-button-bg");
+            var surface = color(css, "-welcome-bg");
+            var ratio = ContrastRatio.ratio(link, surface);
+            assertTrue(ContrastRatio.meetsAa(ratio, false),
+                    "%s -welcome-button-bg %s as e-mail link on -welcome-bg %s is %.2f:1, below AA %s:1"
+                            .formatted(theme, link, surface, ratio, TEXT_MIN));
+        }
+    }
+
+    /** The welcome tagline uses -welcome-muted on the dialog surface (U6). */
+    @Test
+    void welcomeTaglineClearsFourPointFiveInEveryTheme() {
+        for (var theme : THEMES) {
+            var css = readCss("/css/" + theme + ".css");
+            var tagline = color(css, "-welcome-muted");
+            var surface = color(css, "-welcome-bg");
+            var ratio = ContrastRatio.ratio(tagline, surface);
+            assertTrue(ContrastRatio.meetsAa(ratio, false),
+                    "%s -welcome-muted %s on -welcome-bg %s is %.2f:1, below AA %s:1"
+                            .formatted(theme, tagline, surface, ratio, TEXT_MIN));
+        }
+    }
+
     /** The roadmap acceptance criterion verbatim: base.css must not smuggle
         `-fx-focus-color: transparent` back in. */
     @Test

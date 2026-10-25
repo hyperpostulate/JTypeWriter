@@ -26,8 +26,13 @@
     -welcome-muted: #a0a0a0;
     -welcome-card-bg: #1e1e1e;
     -welcome-card-border: #3a3a3a;
+    /* The amber stays as the CTA surface; the label flips to dark-on-amber
+       (#1e1e1e on #c0883c = 5.42:1, on hover #d4984c = 6.66:1) because white
+       text only reached 3.08:1. This token is also the About e-mail link's
+       text colour, and #c0883c on #252526 = 4.98:1 - darkening the amber for
+       that role would have pushed the link below AA, so only the label moved. */
     -welcome-button-bg: #c0883c;
-    -welcome-button-text: #ffffff;
+    -welcome-button-text: #1e1e1e;
     -welcome-button-hover: #d4984c;
 }
 
