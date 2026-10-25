@@ -187,6 +187,20 @@ public class MainController implements Initializable {
         toolbarView.setManaged(toolbarVisible);
         // RW-18: write through immediately, like every other setting
         settings.setToolbarVisible(toolbarVisible);
+        if (handOffFocusToEditor(toolbarVisible)) {
+            // The focused control just vanished; without this the caret is lost
+            // and the next keystroke goes nowhere until the user clicks.
+            editorArea.requestFocus();
+        }
+    }
+
+    /**
+     * Pure focus policy for the toolbar toggle: hiding the toolbar must hand
+     * focus to the editor, showing it leaves the focus where the user put it.
+     * Extracted so the rule is testable without a toolkit.
+     */
+    static boolean handOffFocusToEditor(boolean toolbarVisible) {
+        return !toolbarVisible;
     }
 
     private void applyEditorStyle() {

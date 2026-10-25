@@ -12,6 +12,8 @@ import java.time.LocalTime;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The window title is the only place a user can see which document is open and
@@ -53,6 +55,17 @@ class MainControllerTest {
         assertEquals("Saved 09:07",
                 MainController.savedStatusFor("Saved {0}", LocalTime.of(9, 7), Locale.ENGLISH),
                 "single-digit hours and minutes keep their leading zero");
+    }
+
+    /**
+     * The toolbar toggle is a focus boundary too (analysis U8): the control
+     * that had focus may be gone after it, so hiding the toolbar has to hand
+     * the caret back to the editor.
+     */
+    @Test
+    void hidingTheToolbarHandsFocusBackToTheEditor() {
+        assertTrue(MainController.handOffFocusToEditor(false));
+        assertFalse(MainController.handOffFocusToEditor(true));
     }
 
     /** The shipped English and Turkish texts, through the real bundle lookup. */

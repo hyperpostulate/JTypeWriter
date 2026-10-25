@@ -63,6 +63,12 @@ public class FxApplication extends Application {
             }
             app.autoSaveService.attach(primaryStage, app.editorArea);
             app.welcomeDialog.show(primaryStage);
+
+            // The welcome card is modal and closes without returning focus to
+            // the window behind it. Without this hand-back the first character
+            // typed after startup goes nowhere until the user clicks the text
+            // (analysis U7).
+            app.editorArea.requestFocus();
         } catch (Throwable error) {
             app.crashHandler.report("Startup failed", error);
             throw error;
