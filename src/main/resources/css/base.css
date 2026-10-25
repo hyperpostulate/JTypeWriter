@@ -373,7 +373,9 @@
     -fx-border-color: -welcome-card-border;
     -fx-border-width: 1px;
     -fx-border-radius: 8px;
-    -fx-max-width: 380px;
+    /* No -fx-max-width here (U5): the dialogs own the width so the text can be
+       given the content box minus this padding; a CSS maximum silently clipped
+       the longer German/French/Italian/Spanish lines. */
 }
 
 .welcome-button {
@@ -399,27 +401,29 @@
     -fx-effect: dropshadow(gaussian, -welcome-shadow, 4, 0.1, 0, 1);
 }
 
-.about-scroll {
+/* Shared scroll host for the welcome and About cards (U4): both dialogs now
+   clamp their height to the screen, so either one may need to scroll. */
+.dialog-scroll {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-border-width: 0;
     -fx-padding: 0;
 }
 
-.about-scroll .viewport {
+.dialog-scroll .viewport {
     -fx-background-color: transparent;
 }
 
-.about-scroll .scroll-bar:vertical {
+.dialog-scroll .scroll-bar:vertical {
     -fx-pref-width: 8px;
     -fx-background-color: transparent;
 }
 
-.about-scroll .scroll-bar:vertical .thumb {
+.dialog-scroll .scroll-bar:vertical .thumb {
     -fx-background-radius: 4px;
 }
 
-.about-scroll .scroll-bar:vertical .track {
+.dialog-scroll .scroll-bar:vertical .track {
     -fx-background-color: transparent;
     -fx-border-width: 0;
 }

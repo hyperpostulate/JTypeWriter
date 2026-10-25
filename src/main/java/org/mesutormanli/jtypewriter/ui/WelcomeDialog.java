@@ -5,12 +5,14 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Modality;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.mesutormanli.jtypewriter.locale.Messages;
@@ -26,6 +28,12 @@ public class WelcomeDialog {
 
     /** Content width of the card (scene width minus the horizontal padding). */
     private static final int CONTENT_WIDTH = 460 - 2 * 32;
+
+    /**
+     * Horizontal padding of the shortcuts card, mirroring {@code -fx-padding:
+     * 16px 20px} on {@code .welcome-shortcuts} in base.css.
+     */
+    private static final int SHORTCUTS_PADDING = 20;
 
     private final Messages messages;
     private final ThemeManager themeManager;
@@ -48,6 +56,12 @@ public class WelcomeDialog {
 
         var shortcutsLabel = new Label(messages.welcomeShortcuts());
         shortcutsLabel.getStyleClass().add("welcome-shortcuts");
+        // The longest German/French/Italian/Spanish lines are wider than the
+        // card, so they must wrap (U5). Code owns this width - base.css no
+        // longer pins -fx-max-width here. The label's max width includes the
+        // card padding, so subtract it to give the text the full content box.
+        shortcutsLabel.setWrapText(true);
+        shortcutsLabel.setMaxWidth(CONTENT_WIDTH - 2 * SHORTCUTS_PADDING);
 
         var startBtn = new Button(messages.welcomeButton());
         startBtn.getStyleClass().add("welcome-button");
@@ -71,19 +85,30 @@ public class WelcomeDialog {
             root.getChildren().add(0, icon);
         }
 
+        // Scrollable like About, so a window clamped to a short screen (U4)
+        // can still reach every shortcut and the button.
+        var scrollPane = new ScrollPane(root);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setFitToHeight(true);
+        scrollPane.getStyleClass().add("dialog-scroll");
+
         // Opaque borderless window whose scene fill equals the card surface
         // colour: the anti-aliased rounded corners blend into that identical
         // colour, and the margin keeps the border and drop shadow inside the
         // window - no alpha compositing anywhere, so no white fringe or flash
         // can form at the edges.
-        var shell = new StackPane(root);
+        var shell = new StackPane(scrollPane);
         shell.setPadding(new Insets(SHELL_MARGIN));
         shell.setStyle("-fx-background-color: transparent;");
 
         var surface = themeManager.getCurrentTheme().getDialogFill();
-        // The card fits the tallest locale the static font-metric model found
-        // (German: the shortcuts block wraps twice, the tagline once more).
-        var scene = new Scene(shell, 460 + 2 * SHELL_MARGIN, 750 + 2 * SHELL_MARGIN);
+        // Preferred size stays the historical card size, so the tallest locales
+        // still fit without scrolling; clamping then keeps the window inside
+        // the visual bounds on a 768 px-tall display (U4).
+        var visual = Screen.getPrimary().getVisualBounds();
+        var scene = new Scene(shell,
+                DialogSizing.clampWidth(460 + 2 * SHELL_MARGIN, visual.getWidth()),
+                DialogSizing.clampHeight(750 + 2 * SHELL_MARGIN, visual.getHeight()));
         scene.setFill(Color.web(surface));
         scene.getStylesheets().addAll(owner.getScene().getStylesheets());
 
@@ -95,7 +120,7 @@ public class WelcomeDialog {
         // list still shows this title - do not remove it as "dead code".
         dialog.setTitle(messages.welcomeWindowTitle());
         dialog.setScene(scene);
-        dialog.setResizable(false);
+        dialog.setResizable(true);
 
         startBtn.setOnAction(e -> dialog.close());
 
