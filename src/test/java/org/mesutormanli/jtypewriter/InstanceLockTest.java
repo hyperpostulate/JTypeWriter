@@ -6,6 +6,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -21,49 +22,57 @@ class InstanceLockTest {
     void acquireSucceedsInFreshDirectoryAndCreatesLockFile() throws Exception {
         Path dataDir = dir.resolve("data");
 
-        var lock = InstanceLock.acquire(dataDir);
+        var result = InstanceLock.acquire(dataDir);
         try {
-            assertTrue(lock.isPresent(), "a fresh directory must be lockable");
+            assertEquals(InstanceLock.Status.ACQUIRED, result.status(),
+                    "a fresh directory must be lockable");
+            assertTrue(result.held().isPresent(), "the acquired lock must be returned");
             assertTrue(Files.isDirectory(dataDir), "the data directory must be created");
             assertTrue(Files.isRegularFile(dataDir.resolve("instance.lock")),
                     "the lock file must live exactly in the passed directory");
         } finally {
-            lock.ifPresent(InstanceLock::close);
+            result.held().ifPresent(InstanceLock::close);
         }
     }
 
     @Test
-    void secondAcquireInSameJvmReturnsEmpty() throws Exception {
+    void secondAcquireInSameJvmIsAlreadyRunning() {
         var first = InstanceLock.acquire(dir);
         try {
-            assertTrue(first.isPresent());
-            assertTrue(InstanceLock.acquire(dir).isEmpty(),
-                    "a second acquire in the same JVM must be rejected");
+            assertEquals(InstanceLock.Status.ACQUIRED, first.status());
+            var second = InstanceLock.acquire(dir);
+            assertEquals(InstanceLock.Status.ALREADY_RUNNING, second.status(),
+                    "a second acquire in the same JVM must be reported as already running");
+            assertTrue(second.held().isEmpty(), "already-running must not return a lock");
         } finally {
-            first.ifPresent(InstanceLock::close);
+            first.held().ifPresent(InstanceLock::close);
         }
     }
 
     @Test
-    void closeReleasesTheLockAndIsIdempotent() throws Exception {
+    void closeReleasesTheLockAndIsIdempotent() {
         var first = InstanceLock.acquire(dir);
-        assertTrue(first.isPresent());
-        first.get().close();
-        first.get().close();
+        assertEquals(InstanceLock.Status.ACQUIRED, first.status());
+        var lock = first.held().orElseThrow();
+        lock.close();
+        lock.close();
 
         var second = InstanceLock.acquire(dir);
         try {
-            assertTrue(second.isPresent(), "the lock must be acquirable again after close");
+            assertEquals(InstanceLock.Status.ACQUIRED, second.status(),
+                    "the lock must be acquirable again after close");
         } finally {
-            second.ifPresent(InstanceLock::close);
+            second.held().ifPresent(InstanceLock::close);
         }
     }
 
     @Test
-    void directoryInPlaceOfLockFileFailsWithoutThrowing() throws Exception {
+    void directoryInPlaceOfLockFileIsUnavailableWithoutThrowing() throws Exception {
         Files.createDirectories(dir.resolve("instance.lock"));
 
-        assertTrue(InstanceLock.acquire(dir).isEmpty(),
-                "an unusable lock file must fail open instead of throwing");
+        var result = InstanceLock.acquire(dir);
+        assertEquals(InstanceLock.Status.UNAVAILABLE, result.status(),
+                "an unusable lock file must report unavailable instead of throwing");
+        assertTrue(result.held().isEmpty(), "unavailable must not return a lock");
     }
 }

@@ -17,11 +17,12 @@ public final class JTypeWriterApp {
         // The lock is taken before the object graph is built, so a rejected
         // second start never touches settings, drafts or recovery data (the
         // warning dialog only reads the settings file to pick the UI language).
-        var lock = InstanceLock.acquire(AppDirs.dataDir());
-        if (lock.isEmpty()) {
+        var result = InstanceLock.acquire(AppDirs.dataDir());
+        if (result.status() == InstanceLock.Status.ALREADY_RUNNING) {
             showAlreadyRunning();
             return;
         }
+        // UNAVAILABLE already logged a warning inside acquire(); start without the lock.
         try {
             Application.launch(FxApplication.class, args);
         } catch (Throwable error) {
@@ -30,7 +31,7 @@ public final class JTypeWriterApp {
             error.printStackTrace();
             System.exit(1);
         } finally {
-            lock.get().close();
+            result.held().ifPresent(InstanceLock::close);
         }
     }
 
