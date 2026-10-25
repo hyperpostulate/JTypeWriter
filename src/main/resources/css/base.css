@@ -428,11 +428,21 @@
     -fx-border-width: 0;
 }
 
-.about-author {
+/* PW-16: version and legal lines. Both reuse the contrast-checked muted token
+   of .welcome-tagline instead of a new colour, so light, dark and sepia keep
+   their contrast guarantees without touching this rule set again. */
+.about-version {
     -fx-font-size: 13px;
-    -fx-text-fill: -welcome-text;
-    -fx-font-weight: 600;
-    -fx-padding: 4px 0 0 0;
+    -fx-text-fill: -welcome-muted;
+    -fx-padding: 0 0 2px 0;
+}
+
+.about-legal {
+    -fx-font-size: 11px;
+    -fx-text-fill: -welcome-muted;
+    -fx-line-spacing: 2px;
+    -fx-text-alignment: center;
+    -fx-padding: 0 4px;
 }
 
 .about-email {

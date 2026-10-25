@@ -299,6 +299,7 @@ org.mesutormanli.jtypewriter
 ├── AppGraph.java                         # Composition root (manual dependency injection)
 ├── AppLogging.java                       # Rotating log setup (java.util.logging)
 ├── AppSettings.java                      # Persisted preferences (settings.properties)
+├── AppVersion.java                       # App version read from META-INF/maven pom.properties
 ├── AtomicFiles.java                      # Durable atomic writes (fsync + rename)
 ├── InstanceLock.java                     # Per-user instance lock (single instance)
 └── FxApplication.java                    # JavaFX application lifecycle bridge
@@ -330,6 +331,7 @@ org.mesutormanli.jtypewriter
 | `InstanceLock` | Advisory file lock that rejects a second instance per user |
 | `SingleInstanceWarning` | Minimal window that shows the "already running" warning and exits |
 | `AppSettings` | Persisted preferences under `~/.jtypewriter/settings.properties` |
+| `AppVersion` | Reads the application version from `META-INF/maven/org.mesutormanli/jtypewriter/pom.properties` for the About dialog |
 | `AtomicFiles` | Durable atomic file writes (fsync, rename, directory flush) |
 | `ThemeManager` | CSS theme loading and switching |
 | `ContrastRatio` | WCAG 2.1 contrast maths, JavaFX-free so the real theme CSS can be audited headlessly |

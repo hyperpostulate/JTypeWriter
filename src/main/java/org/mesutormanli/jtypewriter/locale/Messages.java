@@ -321,12 +321,25 @@ public class Messages {
         return bundle.getString("aboutWindowTitle");
     }
 
-    public String aboutAuthor() {
-        return bundle.getString("aboutAuthor");
-    }
-
     public String aboutClose() {
         return bundle.getString("aboutClose");
+    }
+
+    /** The About line naming the running version, e.g. {@code "Version 1.0.0"}. */
+    public String aboutVersion(String version) {
+        return format("aboutVersion", version);
+    }
+
+    public String aboutCopyright() {
+        return bundle.getString("aboutCopyright");
+    }
+
+    public String aboutLicense() {
+        return bundle.getString("aboutLicense");
+    }
+
+    public String aboutWarranty() {
+        return bundle.getString("aboutWarranty");
     }
 
     /**

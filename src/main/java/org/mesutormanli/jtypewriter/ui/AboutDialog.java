@@ -17,6 +17,7 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.mesutormanli.jtypewriter.AppLogging;
+import org.mesutormanli.jtypewriter.AppVersion;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
 
@@ -54,6 +55,11 @@ public class AboutDialog {
         var titleLabel = new Label("JTypeWriter");
         titleLabel.getStyleClass().add("welcome-title");
 
+        // PW-16: field reports need a version to name, so the running version
+        // (from the Maven metadata, never hard-coded) sits right under the title.
+        var versionLabel = new Label(messages.aboutVersion(AppVersion.get()));
+        versionLabel.getStyleClass().add("about-version");
+
         var taglineLabel = new Label(messages.appTagline());
         taglineLabel.getStyleClass().add("welcome-tagline");
         taglineLabel.setWrapText(true);
@@ -70,9 +76,6 @@ public class AboutDialog {
         shortcutsLabel.setWrapText(true);
         shortcutsLabel.setMaxWidth(CONTENT_WIDTH - 2 * SHORTCUTS_PADDING);
 
-        var authorLabel = new Label(messages.aboutAuthor());
-        authorLabel.getStyleClass().add("about-author");
-
         var emailLink = new Hyperlink("mesutormanli@gmail.com");
         emailLink.getStyleClass().add("about-email");
         emailLink.setOnAction(e -> {
@@ -86,11 +89,18 @@ public class AboutDialog {
             }
         });
 
+        // Licensing and the warranty disclaimer: the translated sentences are
+        // longer than the card, so they wrap and centre like the tagline.
+        var copyrightLabel = legalLabel(messages.aboutCopyright());
+        var licenseLabel = legalLabel(messages.aboutLicense());
+        var warrantyLabel = legalLabel(messages.aboutWarranty());
+
         var closeBtn = new Button(messages.aboutClose());
         closeBtn.getStyleClass().add("welcome-button");
         closeBtn.setDefaultButton(true);
 
-        var contentBox = new VBox(12, titleLabel, taglineLabel, shortcutsLabel, authorLabel, emailLink, closeBtn);
+        var contentBox = new VBox(12, titleLabel, versionLabel, taglineLabel, shortcutsLabel,
+                copyrightLabel, emailLink, licenseLabel, warrantyLabel, closeBtn);
         contentBox.setAlignment(Pos.CENTER);
         contentBox.setPadding(new Insets(36, 32, 32, 32));
         contentBox.getStyleClass().addAll("root", "welcome-root");
@@ -153,5 +163,16 @@ public class AboutDialog {
         });
 
         dialog.showAndWait();
+    }
+
+    /** A small, wrapped, centred legal line of the About card. */
+    private static Label legalLabel(String text) {
+        var label = new Label(text);
+        label.getStyleClass().add("about-legal");
+        label.setWrapText(true);
+        label.setMaxWidth(CONTENT_WIDTH);
+        label.setTextAlignment(TextAlignment.CENTER);
+        label.setAlignment(Pos.CENTER);
+        return label;
     }
 }

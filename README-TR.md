@@ -300,6 +300,7 @@ org.mesutormanli.jtypewriter
 ├── AppGraph.java                         # Kompozisyon kökü (manuel bağımlılık enjeksiyonu)
 ├── AppLogging.java                       # Dönen log kurulumu (java.util.logging)
 ├── AppSettings.java                      # Kalıcı tercihler (settings.properties)
+├── AppVersion.java                       # META-INF/maven pom.properties'ten okunan uygulama sürümü
 ├── AtomicFiles.java                      # Dayanıklı atomik dosya yazımı (fsync + rename)
 ├── InstanceLock.java                     # Kullanıcı başına örnek kilidi (tek örnek)
 └── FxApplication.java                    # JavaFX yaşam döngüsü köprüsü
@@ -331,6 +332,7 @@ org.mesutormanli.jtypewriter
 | `InstanceLock` | İkinci örneği kullanıcı başına reddeden danışma amaçlı dosya kilidi |
 | `SingleInstanceWarning` | "Zaten çalışıyor" uyarısını gösterip kapanan minimal pencere |
 | `AppSettings` | `~/.jtypewriter/settings.properties` altında kalıcı tercihler |
+| `AppVersion` | About diyaloğu için uygulama sürümünü `META-INF/maven/org.mesutormanli/jtypewriter/pom.properties` dosyasından okur |
 | `AtomicFiles` | Dayanıklı atomik dosya yazımı (fsync, rename, dizin flush) |
 | `ThemeManager` | CSS tema yükleme ve değiştirme |
 | `ContrastRatio` | WCAG 2.1 kontrast matematiği; gerçek tema CSS'i başsız denetlenebilsin diye JavaFX'siz |
