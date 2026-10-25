@@ -111,9 +111,9 @@ kapsam yanlış kesilmiştir.
 
 | ID | Efor | Skor | İş | Kaynak | Kabul kriteri |
 |---|---|---:|---|---|---|
-| PW-01 | S | **15** | **`InstanceLock`'u üç durumlu yap.** `acquired` / `already-running` / `unavailable`. Yalnız `already-running` engeller; `unavailable` uyarı loglayıp devam eder. | V1 | Salt-okunur ev dizininde uygulama **açılır**; ikinci örnek hâlâ engellenir; `InstanceLockTest` üç durumu da doğrular |
-| PW-02 | S | **15** | **`restoreRecovered` kodlamayı korusun.** `decode == null` (legacy) dalında dosyanın gerçek kodlaması korunur; sessiz UTF-8'e düşmez. Testi **ASCII olmayan** legacy içerikle yazılır. | V6 | windows-1254 bir belge taslaktan geri yüklenip kaydedildiğinde bayt-özdeş kalır; test legacy dalı **gerçekten** çalıştırır (`analysis.md` §4.2/V6'nın "test bu hatayı göremez" notu kapanır) |
-| PW-03 | S | **15** | **Yedek hatası kaydı iptal etmesin.** Sıra `AtomicFiles.writeMoving` → **sonra** `backupKeeper.backup`; yedek hatası loglanır, kayıt başarılı sayılır. Rotasyon, yeni yedek başarılı olduktan sonra yapılır. | V7, V14 | Disk dolu benzeri hata enjekte edildiğinde dosya **yazılır**; en eski yedek nesli boşuna silinmez |
+| ✅ PW-01 | S | **15** | **`InstanceLock`'u üç durumlu yap.** `acquired` / `already-running` / `unavailable`. Yalnız `already-running` engeller; `unavailable` uyarı loglayıp devam eder. | V1 | Salt-okunur ev dizininde uygulama **açılır**; ikinci örnek hâlâ engellenir; `InstanceLockTest` üç durumu da doğrular |
+| ✅ PW-02 | S | **15** | **`restoreRecovered` kodlamayı korusun.** `decode == null` (legacy) dalında dosyanın gerçek kodlaması korunur; sessiz UTF-8'e düşmez. Testi **ASCII olmayan** legacy içerikle yazılır. | V6 | windows-1254 bir belge taslaktan geri yüklenip kaydedildiğinde bayt-özdeş kalır; test legacy dalı **gerçekten** çalıştırır (`analysis.md` §4.2/V6'nın "test bu hatayı göremez" notu kapanır) |
+| ✅ PW-03 | S | **15** | **Yedek hatası kaydı iptal etmesin.** Sıra `AtomicFiles.writeMoving` → **sonra** `backupKeeper.backup`; yedek hatası loglanır, kayıt başarılı sayılır. Rotasyon, yeni yedek başarılı olduktan sonra yapılır. | V7, V14 | Disk dolu benzeri hata enjekte edildiğinde dosya **yazılır**; en eski yedek nesli boşuna silinmez |
 | PW-04 | S | **12** | **`MessageFormat` apostrof düzeltmesi** (EN/FR/IT) + **6 dilde biçimlendirme testi**: her argümanlı anahtar, her dilde, gerçek argümanlarla biçimlendirilir; sonuçta `{n}` kalıntısı aranmaz. | I1, I3 | `encodingMalformedContent` EN/FR/IT'de `{0}` yerine charset adını **yazar**; test bu sınıfı kalıcı olarak kapatır |
 | PW-05 | S | **12** | **`statsFormat` arayüz dilini kullansın** (JVM varsayılanı değil). Aynı geçiş `overwriteContent`, `recoveryContent`, `encodingUpgradeContent`, `errorLogged`, `savedStatus` için de yapılır. | I2, I4 | TR arayüzde sayılar `1.234` (virgül değil nokta); 6 dilde sayı biçimi UI diliyle uyumlu |
 | PW-06 | S | **12** | **`.stats-save` için gerçek CSS kuralı** (3 temada) + `ContrastRatioTest`'e ekleme. | U1 | Koyu temada kontrast **≥ 4,5:1**; test eşiğin altına düşüşte **kırılır** |
@@ -136,6 +136,9 @@ kapsam yanlış kesilmiştir.
 | PW-23 | S | **6** | **POM metadata + `.gitattributes` + `outputTimestamp`.** | B33, B6, B5 | `mvn help:effective-pom` lisans/developer/scm gösterir; Windows'ta CRLF script kırmaz |
 | PW-24 | S | **6** | **`ContrastRatio` test kapsamına taşınsın**; `-fx-letter-spacing` / `-fx-transition` gibi geçersiz özellikler silinsin. | M13, U17 | Üretim JAR'ında test yardımcısı yok; CSS'te yok sayılan özellik kalmaz |
 | PW-25 | S | **6** | **`NaN`/`Infinity` geometri reddedilsin.** `optionalDouble` sonlu olmayan değeri varsayılana düşürür. | V15 | Bozuk `window.width=Infinity` açılışı bozmaz |
+
+> ✅ = tamamlandı (kod + test). İşaretlenen satırların kabul kriterleri `mvn clean test` ve
+> TR/DE locale koşularında doğrulanmıştır.
 
 **Dalga bittiğinde ne değişir (ölçülebilir):**
 
