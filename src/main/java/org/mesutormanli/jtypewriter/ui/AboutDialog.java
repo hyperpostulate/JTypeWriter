@@ -35,12 +35,6 @@ public class AboutDialog {
     /** Content width of the card (scene width minus the horizontal padding). */
     private static final int CONTENT_WIDTH = 540 - 2 * 32;
 
-    /**
-     * Horizontal padding of the shortcuts card, mirroring {@code -fx-padding:
-     * 16px 20px} on {@code .welcome-shortcuts} in base.css.
-     */
-    private static final int SHORTCUTS_PADDING = 20;
-
     private static final Logger LOG = AppLogging.logger(AboutDialog.class);
 
     private final Messages messages;
@@ -67,14 +61,12 @@ public class AboutDialog {
         taglineLabel.setTextAlignment(TextAlignment.CENTER);
         taglineLabel.setAlignment(Pos.CENTER);
 
-        var shortcutsLabel = new Label(messages.welcomeShortcuts());
-        shortcutsLabel.getStyleClass().add("welcome-shortcuts");
-        // The longest German/French/Italian/Spanish lines are wider than the
-        // card, so they must wrap (U5). Code owns this width - base.css no
-        // longer pins -fx-max-width here. The label's max width includes the
-        // card padding, so subtract it to give the text the full content box.
-        shortcutsLabel.setWrapText(true);
-        shortcutsLabel.setMaxWidth(CONTENT_WIDTH - 2 * SHORTCUTS_PADDING);
+        // Same two-column grid as the welcome dialog (see ShortcutTable):
+        // real columns instead of the space-padded single Label, with the
+        // wrapping the long German/French/Italian/Spanish descriptions need
+        // (U5) handled inside the grid.
+        var shortcuts = ShortcutTable.build(
+                ShortcutRows.parse(messages.welcomeShortcuts()), CONTENT_WIDTH);
 
         var emailLink = new Hyperlink("mesutormanli@gmail.com");
         emailLink.getStyleClass().add("about-email");
@@ -99,7 +91,7 @@ public class AboutDialog {
         closeBtn.getStyleClass().add("welcome-button");
         closeBtn.setDefaultButton(true);
 
-        var contentBox = new VBox(12, titleLabel, versionLabel, taglineLabel, shortcutsLabel,
+        var contentBox = new VBox(12, titleLabel, versionLabel, taglineLabel, shortcuts,
                 copyrightLabel, emailLink, licenseLabel, warrantyLabel, closeBtn);
         contentBox.setAlignment(Pos.CENTER);
         contentBox.setPadding(new Insets(36, 32, 32, 32));

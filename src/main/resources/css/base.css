@@ -362,20 +362,38 @@
     -fx-padding: 0 4px 10px 4px;
 }
 
+/* Surface of the two-column shortcut card built by ShortcutTable (a GridPane).
+   The typography used to live here while the card was one wide Label; with
+   per-column child labels it moved to .shortcut-key / .shortcut-description,
+   leaving this class as the card background, border, padding and radius.
+   No -fx-max-width (U5): the dialogs pass their content box to ShortcutTable,
+   and the card must size to it, not fight it. */
 .welcome-shortcuts {
-    -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
-    -fx-font-size: 12px;
-    -fx-text-fill: -welcome-text;
-    -fx-line-spacing: 7px;
     -fx-padding: 16px 20px;
     -fx-background-color: -welcome-card-bg;
     -fx-background-radius: 8px;
     -fx-border-color: -welcome-card-border;
     -fx-border-width: 1px;
     -fx-border-radius: 8px;
-    /* No -fx-max-width here (U5): the dialogs own the width so the text can be
-       given the content box minus this padding; a CSS maximum silently clipped
-       the longer German/French/Italian/Spanish lines. */
+}
+
+/* Monospace is what makes a shortcut list scannable: the keys stack in one
+   clean column and the right-aligned descriptions end on a predictable edge
+   in every locale. -welcome-text is what the single-label card used, so the
+   existing ContrastRatioTest pins still cover it; the hierarchy comes from
+   the bold keys, not from a new colour (a muted fill on -welcome-card-bg is
+   nowhere pinned and sits below AA in Sepia). */
+.shortcut-key {
+    -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -welcome-text;
+}
+
+.shortcut-description {
+    -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+    -fx-font-size: 12px;
+    -fx-text-fill: -welcome-text;
 }
 
 .welcome-button {

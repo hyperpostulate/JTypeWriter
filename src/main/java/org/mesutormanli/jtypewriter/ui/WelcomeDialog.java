@@ -29,12 +29,6 @@ public class WelcomeDialog {
     /** Content width of the card (scene width minus the horizontal padding). */
     private static final int CONTENT_WIDTH = 460 - 2 * 32;
 
-    /**
-     * Horizontal padding of the shortcuts card, mirroring {@code -fx-padding:
-     * 16px 20px} on {@code .welcome-shortcuts} in base.css.
-     */
-    private static final int SHORTCUTS_PADDING = 20;
-
     private final Messages messages;
     private final ThemeManager themeManager;
 
@@ -54,20 +48,19 @@ public class WelcomeDialog {
         taglineLabel.setTextAlignment(TextAlignment.CENTER);
         taglineLabel.setAlignment(Pos.CENTER);
 
-        var shortcutsLabel = new Label(messages.welcomeShortcuts());
-        shortcutsLabel.getStyleClass().add("welcome-shortcuts");
-        // The longest German/French/Italian/Spanish lines are wider than the
-        // card, so they must wrap (U5). Code owns this width - base.css no
-        // longer pins -fx-max-width here. The label's max width includes the
-        // card padding, so subtract it to give the text the full content box.
-        shortcutsLabel.setWrapText(true);
-        shortcutsLabel.setMaxWidth(CONTENT_WIDTH - 2 * SHORTCUTS_PADDING);
+        // A real two-column grid (keys left, descriptions right-aligned on
+        // the card edge) replaces the old single Label whose columns were
+        // faked with space runs and rendered ragged. ShortcutTable sizes the
+        // card to the full content box and keeps the wrapping the long
+        // German/French/Italian/Spanish descriptions need (U5).
+        var shortcuts = ShortcutTable.build(
+                ShortcutRows.parse(messages.welcomeShortcuts()), CONTENT_WIDTH);
 
         var startBtn = new Button(messages.welcomeButton());
         startBtn.getStyleClass().add("welcome-button");
         startBtn.setDefaultButton(true);
 
-        var root = new VBox(14, titleLabel, taglineLabel, shortcutsLabel, startBtn);
+        var root = new VBox(14, titleLabel, taglineLabel, shortcuts, startBtn);
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(36, 32, 32, 32));
         root.getStyleClass().addAll("root", "welcome-root");
