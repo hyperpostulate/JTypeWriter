@@ -443,3 +443,32 @@
 .about-email:hover {
     -fx-text-fill: -welcome-button-hover;
 }
+
+/* --- Alert / Dialog chrome (U3) -------------------------------------------
+   Every Alert used to fall back to Modena's white box with black text: no one
+   ever put the scene stylesheets on the dialog pane. The themes now define
+   their tokens on .dialog-pane too (see the .root, .dialog-pane selectors in
+   light/dark/sepia), and these rules paint the pane, header and buttons from
+   the same -welcome-* / -toolbar-* colours as the welcome dialogs, so an
+   error or confirmation matches the window it belongs to. */
+.dialog-pane {
+    -fx-background-color: -welcome-bg;
+    /* Re-point Modena's own lookups instead of restyling each control: the
+       header, the buttons and their focus rings keep their native rendering
+       but take the theme's colours. Overriding -fx-background-color on the
+       buttons directly would also erase Modena's focus-ring layers. */
+    -fx-base: -welcome-card-bg;
+    -fx-background: -welcome-bg;
+    -fx-control-inner-background: -welcome-card-bg;
+    -fx-text-background-color: -welcome-text;
+    -fx-accent: -focus-ring;
+}
+
+.dialog-pane > .header-panel {
+    -fx-background-color: -welcome-bg;
+}
+
+.dialog-pane > .header-panel .label,
+.dialog-pane > .content.label {
+    -fx-text-fill: -welcome-text;
+}

@@ -6,6 +6,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.ui.DialogStyling;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -260,6 +261,10 @@ public class DialogService {
         if (stage != null) {
             alert.initOwner(stage);
         }
+        // One call covers every alert above: the pane only gets themed when the
+        // scene stylesheets reach it, never on its own (analysis U3).
+        DialogStyling.applyFromScene(
+                alert.getDialogPane(), stage == null ? null : stage.getScene());
     }
 
     private static String format(Instant instant) {

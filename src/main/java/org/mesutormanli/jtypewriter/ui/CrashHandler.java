@@ -68,6 +68,10 @@ public class CrashHandler {
             if (stage != null) {
                 alert.initOwner(stage);
             }
+            // The owner supplier can hand back a stage before its scene exists
+            // early in startup; applyFromScene tolerates the null scene.
+            DialogStyling.applyFromScene(
+                    alert.getDialogPane(), stage == null ? null : stage.getScene());
             alert.showAndWait();
         } finally {
             dialogShowing.set(false);

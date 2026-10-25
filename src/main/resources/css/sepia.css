@@ -1,5 +1,8 @@
 /* Sepia theme */
-.root {
+
+/* The .dialog-pane selector carries the tokens onto Alert panes, which have no
+   .root ancestor (U3): dialogs are themed even where .root never matches. */
+.root, .dialog-pane {
     -editor-bg: #f4ecd8;
     -toolbar-bg: #e8dcc8;
     -toolbar-border: #c4b69c;

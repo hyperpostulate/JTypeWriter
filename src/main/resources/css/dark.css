@@ -1,5 +1,8 @@
 /* Dark theme */
-.root {
+
+/* The .dialog-pane selector carries the tokens onto Alert panes, which have no
+   .root ancestor (U3): dialogs are themed even where .root never matches. */
+.root, .dialog-pane {
     -editor-bg: #1a1a1a;
     -toolbar-bg: #1e1e1e;
     -toolbar-border: #333333;

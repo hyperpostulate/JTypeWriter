@@ -18,11 +18,15 @@ public final class SingleInstanceWarning extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        var messages = new Messages(new LocaleManager(AppSettings.load()));
+        var settings = AppSettings.load();
+        var messages = new Messages(new LocaleManager(settings));
         var alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle(messages.singleInstanceTitle());
         alert.setHeaderText(messages.singleInstanceHeader());
         alert.setContentText(messages.singleInstanceContent());
+        // No main scene exists to copy from, so paint the pane from the
+        // classpath with the user's persisted theme (analysis U3).
+        DialogStyling.applyTheme(alert.getDialogPane(), settings.getTheme());
         alert.showAndWait();
         Platform.exit();
     }
