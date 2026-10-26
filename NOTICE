@@ -4,7 +4,10 @@ Copyright (c) 2026 Mesut ORMANLI
 This product is licensed under the Apache License, Version 2.0. The full text
 is in the LICENSE file next to this notice.
 
-This product bundles the OpenJDK runtime and the JavaFX libraries, which are
-distributed under the GNU General Public License, version 2, with the
-Classpath Exception. Their notices and license texts ship unchanged inside
-the application image under lib/runtime/legal/.
+This product bundles the JavaFX libraries, which are distributed under the GNU
+General Public License, version 2, with the Classpath Exception, and GStreamer
+Lite, which is distributed under the GNU Lesser General Public License,
+version 2.1 or later. THIRD-PARTY-NOTICES and the legal/ directory next to it
+list those components with their copyrights, license texts and source offers.
+The OpenJDK runtime bundled with the application image carries its own notices
+and license texts, which ship unchanged in the image under lib/runtime/legal/.

@@ -403,13 +403,14 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `LanguageTest` | Native language names are stable code constants under every system locale (no `getDisplayLanguage` trap) |
 | `ToolbarStateTest` | The sound dropdown's single setter: persistence across a restart, the audio engine follows, repeats are no-ops |
 | `ToolbarFitTest` | Toolbar overflow policy: how the captioned row is measured (buttons, dropdowns, spacer, chrome) with injected metrics, the FULL→COMPACT switch and its 40 px hysteresis, plus acceptance tests proving German and French are not clipped at 1280 px and that the collapsed row fits 900 px in all six languages |
+| `PackagingNoticesTest` | The PW-34 packaging contract: `META-INF/THIRD-PARTY-NOTICES` and both license texts are on the classpath, the notice names every bundled component with its real SPDX id, states that FFmpeg is not distributed, stays LF-only within 100 columns, and is byte-identical to the checked-in file so a stale build output cannot pass |
 | `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text, the `-stats-warning-text` autosave warning, focus-ring or popup-cell rules drift below AA / below 13 px / make the focus colour transparent again, or if a non-existent JavaFX CSS property (`-fx-letter-spacing`, `-fx-transition`) returns |
 
 ---
 
 ## License
 
-JTypeWriter is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the full text and [NOTICE](NOTICE) for attribution notices. The native image bundles an OpenJDK runtime and JavaFX libraries, which stay under GPLv2 with the Classpath Exception; their notices ship in `lib/runtime/legal/`.
+JTypeWriter is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the full text and [NOTICE](NOTICE) for attribution notices. [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) lists every bundled component with its license id, copyright line and source, and the full texts sit in [legal/](legal); both ship inside the fat JAR as `META-INF/THIRD-PARTY-NOTICES` and `META-INF/licenses/`, and at the root of the native image. The bundled JavaFX libraries stay under GPLv2 with the Classpath Exception and GStreamer Lite under LGPL-2.1-or-later; the OpenJDK runtime carries its own notices under `lib/runtime/legal/`.
 
 ---
 

@@ -1,0 +1,158 @@
+JTypeWriter - Third-Party Notices
+=================================
+
+This file lists the third-party components that ship inside a JTypeWriter
+artifact, and the ones this project only links against or uses while building.
+JTypeWriter itself is Apache-2.0 (see LICENSE). The bundled JavaFX and
+GStreamer binaries are not Apache-2.0, and their terms are stated below.
+
+Full license texts referenced here sit next to this file in the source tree
+and at the root of the application image, and inside the fat jar:
+
+    source tree / app image:  legal/<name>.txt
+    inside the fat jar:       META-INF/licenses/<name>.txt
+
+The two locations differ only in the parent directory; the file names are the
+same. META-INF/THIRD-PARTY-NOTICES in the jar is this text.
+
+
+Bundled at runtime
+------------------
+
+These components are distributed inside the fat jar and inside the native
+application image built from it. They are the only GPL/LGPL components in a
+JTypeWriter release.
+
+1. JavaFX / OpenJFX 26.0.1
+   Files: the javafx.* module classes in the fat jar, plus the native
+          libraries libjfxmedia.so, libfxplugins.so, libavplugin*.so,
+          libglass*.so, libprism_*.so, libdecora_sse.so and
+          libjavafx_{font,iio}*.so.
+   License: GPL-2.0-only WITH Classpath-exception-2.0
+   Copyright: Copyright (c) Oracle and/or its affiliates.
+   License text: legal/GPL-2.0-with-classpath-exception.txt
+   Source: https://github.com/openjdk/jfx26u (tag 26.0.1-ga)
+   Upstream publishes no NOTICE file for this release, so none is
+   reproduced here.
+
+2. GStreamer Lite 1.26.5
+   Files: libgstreamer-lite.so
+   License: LGPL-2.1-or-later
+   Copyright: Copyright (C) 1999-2021 The GStreamer contributors
+   License text: legal/LGPL-2.1.txt
+   Source: https://github.com/openjdk/jfx26u (tag 26.0.1-ga), under
+           modules/javafx.media/src/main/native/gstreamer/gstreamer-lite
+   This is the reduced GStreamer build used by JavaFX media. Three
+   components embedded in the same .so carry their own terms:
+
+   2a. KISS FFT
+       License: BSD-3-Clause
+       Copyright: Copyright (c) 2003-2010, Mark Borgerding.
+                  All rights reserved.
+
+   2b. dbesi0.c
+       License: "You may use, copy, modify this code for any purpose
+                and without fee."
+       Copyright: Copyright (C) 1996 Takuya OOURA
+
+   2c. gsturi.c
+       License: BSD-3-Clause
+       Copyright: Copyright (C) 1990-1993 The Regents of the
+                  University of California. All rights reserved.
+
+3. GCC runtime (libgcc, libstdc++ 14.2.0)
+   Files: statically linked into the native libraries listed above.
+   License: GPL-3.0-or-later WITH GCC-exception-3.1
+   Copyright: Copyright (C) Free Software Foundation, Inc.
+
+4. IJG JPEG 9f
+   Files: statically linked into libjavafx_iio.so.
+   License: IJG JPEG license
+   Copyright: Copyright (C) 1991-2024, Thomas G. Lane, Guido Vollbeding.
+   Required notice: this software is based in part on the work of the
+                    Independent JPEG Group
+
+
+Libraries loaded from the system at runtime (not distributed)
+-------------------------------------------------------------
+
+These are supplied by the user's operating system and are not part of a
+JTypeWriter release:
+
+    GLib / GObject / GModule / GThread
+    ALSA
+    GTK 3, Pango, FreeType
+    X11 and OpenGL
+
+FFmpeg is not distributed with JTypeWriter. The libavplugin-*.so files in
+the JavaFX media module are Oracle-authored GStreamer adapters that load
+libavcodec, libavformat and libswscale from the host at runtime; they do not
+contain FFmpeg. The FFmpeg build that ends up in use is therefore the one on
+the user's system, and its license is a matter between the user and their
+distribution - this project neither grants nor warrants anything for it.
+
+
+Build and test dependencies (not distributed)
+---------------------------------------------
+
+None of the following is inside the JAR or the application image. They are
+listed because the project uses them to build and test, not because a
+JTypeWriter release distributes them.
+
+    JUnit Jupiter 6.0.3, junit-platform-commons 6.0.3,
+    junit-platform-engine 6.0.3
+        License: EPL-2.0
+        Source: https://github.com/junit-team/junit-framework
+                (tag r6.0.3, LICENSE.md)
+        Upstream asserts no copyright line for these, so none is
+        reproduced here.
+
+    opentest4j 1.3.0, apiguardian-api 1.1.2, jspecify 1.0.0
+        License: Apache-2.0
+        Copyright: their respective contributors.
+
+    Mockito 5.23.0
+        License: MIT
+        Copyright: Copyright (c) 2007 Mockito contributors
+
+    Byte Buddy / byte-buddy-agent 1.17.7
+        License: Apache-2.0
+        Copyright: Copyright 2014 - Present Rafael Winterhalter
+        Bundles ASM 9.8, which is BSD-3-Clause.
+
+    Objenesis 3.3
+        License: Apache-2.0
+        Copyright: Copyright 2006-2022 Joe Walnes, Henri Tremblay,
+                   Leonardo Mesquita
+
+
+GStreamer source offer
+----------------------
+
+libgstreamer-lite.so ships unmodified. Under LGPL-2.1 section 6 the
+corresponding source is available from the same place as the binaries:
+
+    https://github.com/openjdk/jfx26u/tree/26.0.1-ga/modules/javafx.media/
+        src/main/native/gstreamer/gstreamer-lite
+
+In addition, JTypeWriter offers - valid for three years from the date this
+version of JTypeWriter is released - to provide the complete corresponding
+source for the LGPL-2.1 components to anyone who asks. Ask via the GitHub
+Release page for this version of JTypeWriter. You may also rebuild
+libgstreamer-lite.so yourself and replace the bundled copy with a modified,
+interface-compatible build; nothing in JTypeWriter prevents that.
+
+
+Corresponding source for the GPL/LGPL binaries
+----------------------------------------------
+
+Everything except JTypeWriter's own code comes from the OpenJFX git tree:
+
+    https://github.com/openjdk/jfx26u/tree/26.0.1-ga
+
+The GStreamer Lite source is in the modules/javafx.media/src/main/native/
+gstreamer/gstreamer-lite directory of that tree, and the sources of the
+third-party components embedded in it are under gstreamer/3rd_party there.
+
+This file is informational. It does not modify LICENSE and does not
+relicense any component listed in it.

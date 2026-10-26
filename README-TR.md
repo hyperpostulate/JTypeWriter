@@ -404,13 +404,14 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `LanguageTest` | Yerel dil adlarının her sistem dilinde sabit kod sabitleri olması (`getDisplayLanguage` tuzağı yok) |
 | `ToolbarStateTest` | Ses açılır listesinin tek ayarlayıcısı: yeniden başlatmada kalıcılık, ses motorunun takip etmesi, tekrarların etkisiz olması |
 | `ToolbarFitTest` | Araç çubuğu taşma politikası: başlıklı satırın (düğmeler, açılır listeler, ayırıcı, çerçeve) enjekte edilen ölçülerle nasıl hesaplandığı, FULL→COMPACT geçişi ve 40 px histerezisi; ayrıca Almanca ve Fransızcanın 1280 px'te kırpılmadığını ve daraltılmış satırın altı dilde 900 px'e sığdığını kanıtlayan kabul testleri |
+| `PackagingNoticesTest` | PW-34 paketleme sözleşmesi: `META-INF/THIRD-PARTY-NOTICES` ve iki lisans metni sınıf yolunda; bildirim her paketlenen bileşeni gerçek SPDX kimliğiyle adlandırıyor, FFmpeg'in dağıtılmadığını söylüyor, 100 sütun içinde yalnızca LF kullanıyor ve depodaki dosyayla bayt-özdeş, böylece bayat bir derleme çıktısı testi geçemiyor |
 | `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni, `-stats-warning-text` otomatik kayıt uyarısı, odak halkası veya popup hücresi kuralları AA'nın / 13 px'in altına düşerse ya da odak rengi yeniden saydamlaşırsa ya da var olmayan bir JavaFX CSS özelliği (`-fx-letter-spacing`, `-fx-transition`) geri dönerse derlemeyi başarısız kılan CSS ayrıştırma korumaları |
 
 ---
 
 ## Lisans
 
-JTypeWriter, Apache Lisansı 2.0 ile lisanslanmıştır. Tam metin için [LICENSE](LICENSE), atıf bildirimleri için [NOTICE](NOTICE) dosyasına bakın. Native imaja gömülen OpenJDK çalışma zamanı ve JavaFX kütüphaneleri GPLv2 + Classpath Exception altında kalır; bildirimleri `lib/runtime/legal/` altında gelir.
+JTypeWriter, Apache Lisansı 2.0 ile lisanslanmıştır. Tam metin için [LICENSE](LICENSE), atıf bildirimleri için [NOTICE](NOTICE) dosyasına bakın. [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) paketlenen her bileşeni lisans kimliği, telif satırı ve kaynağıyla listeler; tam metinler [legal/](legal) altındadır. İkisi de fat JAR içinde `META-INF/THIRD-PARTY-NOTICES` ve `META-INF/licenses/` olarak, native imajda ise kök dizinde bulunur. Paketlenen JavaFX kütüphaneleri GPLv2 + Classpath Exception, GStreamer Lite ise LGPL-2.1-or-later altında kalır; OpenJDK çalışma zamanı kendi bildirimlerini `lib/runtime/legal/` altında taşır.
 
 ---
 

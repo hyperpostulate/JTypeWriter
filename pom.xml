@@ -123,10 +123,14 @@
                 </configuration>
             </plugin>
             <!--
-                A plain JAR can only carry its license as a resource, so LICENSE and
-                NOTICE are copied into target/classes/META-INF during
-                process-resources. The maven-assembly-plugin packs that same class
-                directory into the fat jar, so this single copy covers both artifacts.
+                A plain JAR can only carry its license as a resource, so LICENSE,
+                NOTICE and the third-party notices are copied into
+                target/classes/META-INF during process-resources. The license texts
+                they reference travel with them under META-INF/licenses/, because a
+                fat jar that names a GPL component without carrying that component's
+                license text is a broken distribution, not a complete one. The
+                maven-assembly-plugin packs that same class directory into the fat
+                jar, so this single copy covers both artifacts.
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -147,7 +151,12 @@
                                     <includes>
                                         <include>LICENSE</include>
                                         <include>NOTICE</include>
+                                        <include>THIRD-PARTY-NOTICES</include>
                                     </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${project.basedir}/legal</directory>
+                                    <targetPath>licenses</targetPath>
                                 </resource>
                             </resources>
                         </configuration>

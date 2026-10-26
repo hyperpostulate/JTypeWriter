@@ -27,11 +27,14 @@ VENDOR="Mesut ORMANLI"
 COPYRIGHT="Copyright (c) 2026 Mesut ORMANLI"
 LICENSE_FILE="LICENSE"
 NOTICE_FILE="NOTICE"
+THIRD_PARTY_FILE="THIRD-PARTY-NOTICES"
+LEGAL_DIR="legal"
 MAIN_CLASS="org.mesutormanli.jtypewriter.JTypeWriterApp"
 
-# Every artifact must ship the license. Missing source text is a hard error here
-# rather than a silently license-less release.
-for required in "$LICENSE_FILE" "$NOTICE_FILE"; do
+# Every artifact must ship the license and the third-party notices. Missing source
+# text is a hard error here rather than a silently license-less release.
+for required in "$LICENSE_FILE" "$NOTICE_FILE" "$THIRD_PARTY_FILE" \
+    "$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt" "$LEGAL_DIR/LGPL-2.1.txt"; do
     if [[ ! -f "$required" ]]; then
         echo "no $required - refusing to package without it" >&2
         exit 1
@@ -136,25 +139,34 @@ echo
 echo "application image written to $DEST/ (version $APP_VERSION)"
 
 # jpackage's app-image bundler has no license support at all (--license-file is
-# fatal with --type app-image), so the license and the attribution notice are
-# added to the image by hand and then asserted below. On macOS the image is a
-# bundle, so its Contents/Resources is the equivalent of the Linux/Windows
-# image root.
+# fatal with --type app-image), so the license, the attribution notice and the
+# third-party notices with their license texts are added to the image by hand
+# and then asserted below. On macOS the image is a bundle, so its
+# Contents/Resources is the equivalent of the Linux/Windows image root.
 case "$PLATFORM" in
     mac) LICENSE_TARGET="$DEST/$APP_NAME.app/Contents/Resources/LICENSE" ;;
     *)   LICENSE_TARGET="$DEST/$APP_NAME/LICENSE" ;;
 esac
 cp "$LICENSE_FILE" "$LICENSE_TARGET"
 cp "$NOTICE_FILE" "$(dirname "$LICENSE_TARGET")/$NOTICE_FILE"
+cp "$THIRD_PARTY_FILE" "$(dirname "$LICENSE_TARGET")/$THIRD_PARTY_FILE"
+cp -R "$LEGAL_DIR" "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR"
 
 # A release without the license is invalid, in the image and in the jar alike.
-for artifact in "$LICENSE_TARGET" "$(dirname "$LICENSE_TARGET")/$NOTICE_FILE"; do
+for artifact in "$LICENSE_TARGET" \
+    "$(dirname "$LICENSE_TARGET")/$NOTICE_FILE" \
+    "$(dirname "$LICENSE_TARGET")/$THIRD_PARTY_FILE" \
+    "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt" \
+    "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/LGPL-2.1.txt"; do
     if [[ ! -f "$artifact" ]]; then
         echo "missing from the application image: $artifact" >&2
         exit 1
     fi
 done
-for entry in 'META-INF/LICENSE' 'META-INF/NOTICE'; do
+for entry in 'META-INF/LICENSE' 'META-INF/NOTICE' \
+    'META-INF/THIRD-PARTY-NOTICES' \
+    'META-INF/licenses/GPL-2.0-with-classpath-exception.txt' \
+    'META-INF/licenses/LGPL-2.1.txt'; do
     if ! jar tf "$FAT_JAR" | grep -x "$entry" >/dev/null; then
         echo "license missing from $FAT_JAR (expected $entry)" >&2
         exit 1
@@ -208,10 +220,24 @@ build_deb_resource_dir() {
         printf '%s\n' 'Files: opt/jtypewriter/lib/runtime/*'
         printf '%s\n' 'Copyright: 2026 Oracle and/or its affiliates, contributors'
         printf '%s\n' 'License: GPL-2.0-with-classpath-exception'
-        printf '%s\n' ' The bundled OpenJDK runtime and the JavaFX libraries ship under'
-        printf '%s\n' ' GPLv2 with the Classpath Exception. Their notices, including the'
-        printf '%s\n' ' licenses of the data libraries they contain, are reproduced'
-        printf '%s\n' ' unchanged in opt/jtypewriter/lib/runtime/legal/.'
+        printf '%s\n' ' The bundled OpenJDK runtime ships under GPLv2 with the Classpath'
+        printf '%s\n' ' Exception; its notices, including the licenses of the data'
+        printf '%s\n' ' libraries it contains, are reproduced unchanged in'
+        printf '%s\n' ' opt/jtypewriter/lib/runtime/legal/.'
+        printf '%s\n' ' The JavaFX libraries (GPLv2 with the Classpath Exception) and'
+        printf '%s\n' ' GStreamer Lite (LGPL-2.1-or-later) are not part of that runtime;'
+        printf '%s\n' ' their components, copyrights, license texts and source offers are'
+        printf '%s\n' ' in opt/jtypewriter/THIRD-PARTY-NOTICES and opt/jtypewriter/legal/.'
+        printf '\n'
+        printf '%s\n' 'Files: opt/jtypewriter/lib/app/*'
+        printf '%s\n' 'Copyright: Oracle and/or its affiliates; The GStreamer contributors;'
+        printf '%s\n' ' contributors to the components named in THIRD-PARTY-NOTICES'
+        printf '%s\n' 'License: GPL-2.0-with-classpath-exception and LGPL-2.1-or-later'
+        printf '%s\n' ' The application jar carries the JavaFX classes (GPLv2 with the'
+        printf '%s\n' ' Classpath Exception) and GStreamer Lite (LGPL-2.1-or-later).'
+        printf '%s\n' ' The components, copyrights, license texts and source offers are'
+        printf '%s\n' ' listed in opt/jtypewriter/THIRD-PARTY-NOTICES and reproduced in'
+        printf '%s\n' ' opt/jtypewriter/legal/.'
         printf '\n'
         printf '%s\n' 'Files: *'
         printf '%s\n' 'Copyright: APPLICATION_COPYRIGHT'
