@@ -293,8 +293,7 @@ org.mesutormanli.jtypewriter
 │       ├── ThemeManager.java             # CSS stil sayfası yükleme ve değiştirme
 │       ├── FontSizeManager.java          # Editör font boyutu durumu
 │       ├── TextColorManager.java         # Metin rengi döngüsü durumu
-│       ├── TextColor.java                # CSS değerleriyle metin rengi enum'u
-│       └── ContrastRatio.java            # WCAG kontrast matematiği (saf, CSS denetimli)
+│       └── TextColor.java                # CSS değerleriyle metin rengi enum'u
 ├── JTypeWriterApp.java                   # Ana giriş noktası
 ├── AppDirs.java                          # Kullanıcı veri/log/kurtarma/ayar dizinleri
 ├── AppGraph.java                         # Kompozisyon kökü (manuel bağımlılık enjeksiyonu)
@@ -335,7 +334,6 @@ org.mesutormanli.jtypewriter
 | `AppVersion` | About diyaloğu için uygulama sürümünü `META-INF/maven/org.mesutormanli/jtypewriter/pom.properties` dosyasından okur |
 | `AtomicFiles` | Dayanıklı atomik dosya yazımı (fsync, rename, dizin flush) |
 | `ThemeManager` | CSS tema yükleme ve değiştirme |
-| `ContrastRatio` | WCAG 2.1 kontrast matematiği; gerçek tema CSS'i başsız denetlenebilsin diye JavaFX'siz |
 | `FontSizeManager` | Editör font boyutu durumu (10-48px) |
 | `TextColorManager` | Metin rengi döngüsü durumu |
 | `SessionStats` | Gerçek zamanlı yazma istatistikleri (WPM, kelime/karakter/satır sayısı) |
@@ -400,7 +398,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `LanguageTest` | Yerel dil adlarının her sistem dilinde sabit kod sabitleri olması (`getDisplayLanguage` tuzağı yok) |
 | `ToolbarStateTest` | Ses açılır listesinin tek ayarlayıcısı: yeniden başlatmada kalıcılık, ses motorunun takip etmesi, tekrarların etkisiz olması |
 | `ToolbarFitTest` | Araç çubuğu taşma politikası: başlıklı satırın (düğmeler, açılır listeler, ayırıcı, çerçeve) enjekte edilen ölçülerle nasıl hesaplandığı, FULL→COMPACT geçişi ve 40 px histerezisi; ayrıca Almanca ve Fransızcanın 1280 px'te kırpılmadığını ve daraltılmış satırın altı dilde 900 px'e sığdığını kanıtlayan kabul testleri |
-| `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni, odak halkası veya popup hücresi kuralları AA'nın / 13 px'in altına düşerse ya da odak rengi yeniden saydamlaşırsa derlemeyi başarısız kılan CSS ayrıştırma korumaları |
+| `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni, odak halkası veya popup hücresi kuralları AA'nın / 13 px'in altına düşerse ya da odak rengi yeniden saydamlaşırsa ya da var olmayan bir JavaFX CSS özelliği (`-fx-letter-spacing`, `-fx-transition`) geri dönerse derlemeyi başarısız kılan CSS ayrıştırma korumaları |
 
 ---
 

@@ -8,6 +8,9 @@ package org.mesutormanli.jtypewriter.ui.theme;
  * <p>Ratio follows the WCAG definition: {@code (L_light + 0.05) / (L_dark + 0.05)}
  * over sRGB relative luminance, so the result is symmetric in the two colours
  * and ranges from 1 (identical) to 21 (black on white).</p>
+ *
+ * <p>This class lives in test scope because only {@code ContrastRatioTest}
+ * uses it; the production JAR must not ship a test helper (analysis M13).</p>
  */
 public final class ContrastRatio {
 

@@ -292,8 +292,7 @@ org.mesutormanli.jtypewriter
 │       ├── ThemeManager.java             # CSS stylesheet loading & switching
 │       ├── FontSizeManager.java          # Editor font size state
 │       ├── TextColorManager.java         # Text color cycling state
-│       ├── TextColor.java                # Text color enum with CSS values
-│       └── ContrastRatio.java            # WCAG contrast maths (pure, CSS-audited)
+│       └── TextColor.java                # Text color enum with CSS values
 ├── JTypeWriterApp.java                   # Main entry point
 ├── AppDirs.java                          # Per-user data/log/recovery/settings directories
 ├── AppGraph.java                         # Composition root (manual dependency injection)
@@ -334,7 +333,6 @@ org.mesutormanli.jtypewriter
 | `AppVersion` | Reads the application version from `META-INF/maven/org.mesutormanli/jtypewriter/pom.properties` for the About dialog |
 | `AtomicFiles` | Durable atomic file writes (fsync, rename, directory flush) |
 | `ThemeManager` | CSS theme loading and switching |
-| `ContrastRatio` | WCAG 2.1 contrast maths, JavaFX-free so the real theme CSS can be audited headlessly |
 | `FontSizeManager` | Editor font size state (10-48px) |
 | `TextColorManager` | Text color cycling state |
 | `SessionStats` | Real-time writing statistics (WPM, word/char/line count) |
@@ -399,7 +397,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `LanguageTest` | Native language names are stable code constants under every system locale (no `getDisplayLanguage` trap) |
 | `ToolbarStateTest` | The sound dropdown's single setter: persistence across a restart, the audio engine follows, repeats are no-ops |
 | `ToolbarFitTest` | Toolbar overflow policy: how the captioned row is measured (buttons, dropdowns, spacer, chrome) with injected metrics, the FULL→COMPACT switch and its 40 px hysteresis, plus acceptance tests proving German and French are not clipped at 1280 px and that the collapsed row fits 900 px in all six languages |
-| `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text, focus-ring or popup-cell rules drift below AA / below 13 px / make the focus colour transparent again |
+| `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text, focus-ring or popup-cell rules drift below AA / below 13 px / make the focus colour transparent again, or if a non-existent JavaFX CSS property (`-fx-letter-spacing`, `-fx-transition`) returns |
 
 ---
 

@@ -187,6 +187,19 @@ class ContrastRatioTest {
                 "base.css kills the focus colour again (RW-17 regression)");
     }
 
+    /** U17: {@code -fx-letter-spacing} and {@code -fx-transition} do not exist
+        in JavaFX CSS, so they are silently ignored while looking like working
+        styling. No shipped sheet may carry them again. */
+    @Test
+    void noIgnoredJavaFxCssPropertiesInAnyShippedSheet() {
+        var ignored = Pattern.compile("-fx-(letter-spacing|transition)\\s*:", Pattern.CASE_INSENSITIVE);
+        for (var sheet : new String[]{"/css/base.css", "/css/light.css", "/css/dark.css", "/css/sepia.css"}) {
+            var matcher = ignored.matcher(readCss(sheet));
+            assertFalse(matcher.find(),
+                    sheet + " declares an ignored JavaFX CSS property (U17 regression)");
+        }
+    }
+
     /** Status text ships at >= 13 px from both sides of the CSS/Java seam. */
     @Test
     void statusBarDefaultsToAtLeastThirteenPixels() {

@@ -351,7 +351,6 @@
     -fx-font-weight: 800;
     -fx-text-fill: -welcome-text;
     -fx-padding: 0 0 2px 0;
-    -fx-letter-spacing: 0.5px;
 }
 
 .welcome-tagline {
@@ -406,7 +405,6 @@
     -fx-background-color: -welcome-button-bg;
     -fx-border-width: 0;
     -fx-effect: dropshadow(gaussian, -welcome-shadow, 8, 0.15, 0, 2);
-    -fx-transition: all 0.2s;
 }
 
 .welcome-button:hover {
