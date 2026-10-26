@@ -91,6 +91,45 @@ class AppSettingsTest {
         assertEquals(state, new AppSettings(file).getWindowState().orElseThrow());
     }
 
+    /**
+     * V15: {@code Double.parseDouble} accepts {@code NaN} and {@code Infinity},
+     * and {@code Infinity > 0} passes the width/height guard in {@code MainStage}
+     * — so a hand-edited settings file used to reach {@code Stage.setWidth(
+     * Infinity)} and break startup. A non-finite size is now indistinguishable
+     * from a missing one, and the window opens with its default geometry.
+     */
+    @Test
+    void nonFiniteWindowSizeIsRejectedInsteadOfBreakingStartup(@TempDir Path dir) throws IOException {
+        for (var broken : new String[]{"Infinity", "-Infinity", "NaN"}) {
+            var file = dir.resolve("settings-" + broken.replace("-", "negative") + ".properties");
+            Files.writeString(file,
+                    "window.width=" + broken + "\nwindow.height=768\n");
+            assertEquals(Optional.empty(), new AppSettings(file).getWindowState(),
+                    "window.width=" + broken + " must not produce a window state");
+
+            Files.writeString(file,
+                    "window.width=1024\nwindow.height=" + broken + "\n");
+            assertEquals(Optional.empty(), new AppSettings(file).getWindowState(),
+                    "window.height=" + broken + " must not produce a window state");
+        }
+    }
+
+    /** A non-finite position is only as dangerous as a non-finite size; it
+     * degrades to the origin while the finite size is still restored. */
+    @Test
+    void nonFiniteWindowPositionFallsBackToTheOrigin(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file,
+                "window.width=1024\nwindow.height=768\nwindow.x=Infinity\nwindow.y=-Infinity\n");
+
+        var state = new AppSettings(file).getWindowState().orElseThrow();
+
+        assertEquals(0d, state.x());
+        assertEquals(0d, state.y());
+        assertEquals(1024d, state.width());
+        assertEquals(768d, state.height());
+    }
+
     /** RW-18: toolbar visibility, fullscreen and the stats bar size survive a restart. */
     @Test
     void appearanceStateSurvivesARestart(@TempDir Path dir) {

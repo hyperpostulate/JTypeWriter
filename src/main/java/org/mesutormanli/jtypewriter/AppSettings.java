@@ -320,13 +320,25 @@ public final class AppSettings {
         }
     }
 
+    /**
+     * A finite {@code double} from the settings file, or empty.
+     *
+     * <p>{@link Double#parseDouble} happily accepts the literals {@code NaN},
+     * {@code Infinity} and {@code -Infinity}, so a hand-edited settings file
+     * could smuggle a non-finite value into {@code Stage.setWidth/setHeight}.
+     * The window geometry guard in {@code MainStage} cannot screen that:
+     * {@code Infinity > 0} is true and an infinite rectangle intersects every
+     * screen. A non-finite value is therefore treated like a missing or
+     * malformed one, and the caller falls back to its default (V15).</p>
+     */
     private Optional<Double> optionalDouble(String key) {
         var raw = props.getProperty(key);
         if (raw == null || raw.isBlank()) {
             return Optional.empty();
         }
         try {
-            return Optional.of(Double.parseDouble(raw.trim()));
+            var value = Double.parseDouble(raw.trim());
+            return Double.isFinite(value) ? Optional.of(value) : Optional.empty();
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
