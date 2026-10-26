@@ -195,9 +195,8 @@ her madde aynı şekilde gereklidir.
 | ✅ PW-37 | S | **9** | **SPDX başlıkları** (43 dosya, tek geçiş) + ikon/artwork lisans notu. | B34, B35 | Her `.java` dosyasında `SPDX-License-Identifier: Apache-2.0`; `NOTICE` ikonu kapsar. Uygulama: dosya sayısı 43 değil **91**'di (51 main, 40 test) - hepsine dosyanın ilk baytından itibaren lisans bloğu eklendi; `git diff -U0` 91 adet `@@ -0,0 +1,5 @@` (tek hunk, sıfır silme, yeniden biçimlendirme yok). `jtypewriter.svg`'nin mevcut tasarım-anlatımı bloğuna yazar/lisans ve "PNG/ICO/ICNS bu dosyadan üretilir" notu, `NOTICE`'a ikon paragrafı. `LicenseHeaderTest` (3 test) başlığı byte 0'da arar ve **tüm** eksikleri tek mesajda toplar - checkstyle/spotless bilinçli olarak yok, bu yüzden lisans eksiği inceleme notu değil derleme hatası olarak düşer. Kapsam yalnızca `.java` + SVG; `.fxml`/`.css`/`.properties` kendi yorum sözdizimlerini gerektirdiği için dışarıda |
 | ✅ PW-38 | S | **9** | **Belgeler gerçeği söylesin.** README/README-TR: `--installer` **var olan** bir yol olarak dürüstçe anlatılır (kaldırılmaz), "Java 25 gerekir" yanlışı düzeltilir, taşınabilir/installer farkı netleşir, kanal kararının **açık** olduğu yazılır. | B20, §5.3 | README'deki 9 yanlış iddia (`analysis.md` §5.3) tek tek düzeltilir; iki dil birebir. §5.3'ün üç maddesi **zaten düzeltilmişti** (durum çubuğu AA kontrastı, dil değişiminin anındalığı, kısayol listesi) ve doğru oldukları için dokunulmadı. Düzeltilenler: paketlenmiş uygulama gömülü JDK 25.0.2 taşır (Java kurulumu yalnızca kaynak/fat JAR için), yeni "Download (end users)" bölümü (`git clone` geliştirici yolu olarak etiketlendi), iki kanalın da yayınlandığı ve varsayılanın açık karar olduğu, araç çubuğu için "ikinci satıra geçmez" + ölçülen 1280/900 px + pencere minimum genişliği olmadığı, `Tab` sırasının `viewOrder` ile sabitlendiği ve JavaFX'in bunu odak için garanti etmediği, yalnızca loglanan hata yolları (ayar yazımı/ses/undo sıfırlama) ve diyalogsuz taslak silme, `ContrastRatioTest`'in popup hücresi için yalnızca yazı boyutu eşitliğini denetlediği, CI tetikleyicisinin `main` olduğu, `package.sh`'nin her hedef platformda çalışması gerektiği. Parite: 15/15 `##`, 16/16 `###`, 79/79 tablo satırı, 18/18 iç madde, 52/52 madde |
 | ✅ PW-39 | S | **9** | **Gizlilik notu:** verinin nerede durduğu, yerel olduğu, nasıl silineceği (loglar, taslaklar, ayarlar). | B36 | README'de "Your Data" / "Verileriniz" bölümü; iki dilde. İçerik koddan doğrulandı: `~/.jtypewriter/` (settings, `recovery/`, `logs/`, `instance.lock`), taslakların belge metnini birebir ve geldiği mutlak yolu tuttuğu (Base64 = kodlama, **şifreleme değil**), belge yanındaki `.bak*`/`jtw-*.tmp` dosyalarının da metin içerdiği, 1 MB x 3 kuşak dönen loglar. Ağ: `src/main`'de soket/`HttpClient` yok; tek dışa açılan eylem Hakkında'daki `mailto:` devri. Silme: önce çıkış, sonra dizini sil - uygulama içinde "tüm verileri sil" komutu **yok** ve kaldırma bu veriyi **silmez**; bu iki sınırlama açıkça yazıldı |
-| PW-40 | S | 6 | **`maven-enforcer`:** JDK 25 + Maven sürüm kontrolü. | B4 | Yanlış JDK ile build **anında** ve anlaşılır hata verir |
-| PW-41 | S | 6 | **İkon `--check` CI'a** + `generate-icons.py` bağımlılığı belgelenir. | B7 | Asset bayatlarsa CI kırmızı |
-| PW-42 | S | 6 | **Rozet/artefakt retention** ve sürüm notu şablonu (EN+TR). | B26, B27 | Release notu iki dilli; retention sınırlı |
+| ✅ PW-40 | S | **6** | **`maven-enforcer`:** JDK 25 + Maven sürüm kontrolü. | B4 | Yanlış JDK ile build **anında** ve anlaşılır hata verir. Uygulama: `maven-enforcer-plugin` 3.6.3, `validate` aşamasında (`enforce-build-toolchain`), iki kural - `requireJavaVersion [${java.version},)` ve `requireMavenVersion [3.8,)`. JDK alt sınırı `java.version`'dan türetilir, yani dil seviyesi yükseltilince kontrol geride kalamaz; Maven 3.8 iki README'nin de yazdığı tabandır. Mesaj iki satırlık `message` bloğu yerine tek satıra indirildi çünkü Enforcer `message` gövdesini satır satır girintileyerek basıyor. Doğrulandı: JDK 25 `BUILD SUCCESS`; JDK 21 ve 17 `validate` aşamasında, tek bir sınıf derlenmeden `BUILD FAILURE` - "needs JDK 25 or newer … point JAVA_HOME at a JDK 25 installation". İki README'ye birer paragraf eklendi |
+| ✅ PW-42 | S | **6** | **Rozet/artefakt retention** ve sürüm notu şablonu (EN+TR). | B26, B27 | Release notu iki dilli; retention sınırlı. Uygulama: retention PW-12'de zaten konmuştu (badge raporları 1 gün, OS artefaktları 7 gün) ve rozet job'ı raporları **aynı koşuda** tükettiği için 1 gün yeterli - değişen tek şey bunun nedenini yazan yorum. Sürüm notu `release.yml` içindeki satır satır `printf` bloğundan çıkarılıp `docs/release-notes-template.md`'ye taşındı: EN ve TR yarıları aynı komutları (checksum doğrulama, imzasızlık uyarısı, kanal kararının açık olduğu) taşır, sürüm `@VERSION@`/`@TAG@` yer tutucularından gelir. `release.yml` şablonu `sed` ile render eder, **kalan her yer tutucuda** ve **iki dil başlığından biri yoksa** işi kırmızı yapar (negatif yol denendi: TR başlığı silinince adım `exit 1`). `ReleaseNotesTest` (4 test) sözleşmeyi kilitler: her `upload-artifact` adımında `retention-days` ≤ 7 (çizgi silinince test kırmızı), gövde şablondan geliyor, şablon iki dilli ve gömülü sürüm içermiyor, iki yarı aynı doğrulama komutlarını veriyor |
 
 ### 2.4 P1.3 — Doğrulama (Hafta 3–4)
 
@@ -417,27 +416,37 @@ Bilinçli olarak **yapılmayacak** işler — kapsam kaymasını önlemek için 
 
 ## 10. İş Paketi Kapsama Matrisi
 
-`docs/analysis.md`'deki **116 bulgu kimliğinin tamamı** (I4'ün 10 alt maddesi ayrı sayılırsa
-126) bir faza bağlanmıştır. Hiçbir bulgu "unutulmuş" değildir; bazıları bilinçli olarak
-**P4'e veya ADR'e** ertelenmiştir.
+`docs/analysis.md`'deki 116 bulgu kimliğinin **115'i** (I4'ün 10 alt maddesi ayrı sayılırsa
+125'i) bir faza bağlanmıştır. Hiçbir bulgu "unutulmuş" değildir; bazıları bilinçli olarak
+**P4'e veya ADR'e** ertelenmiştir, biri (**B7**) bilinçli olarak **yapılmayacak** sayılmıştır
+(madde 4).
 
 | Faz | Kapsanan analiz ID'leri | Adet |
 |---|---|---:|
 | **P1.0** | V1, V6, V7, V8, V14, V15 · M4, M12, M13 · F11 · U1–U11, U14, U17, U23 · I1, I2, I3, I5 · B5, B6, B22, B23, B24, B26, B28, B30, B33, B34, B35 | **39** |
 | **P1.1** | V2, V4, V17, V18, V19 · B4 | **6** |
-| **P1.2** | B7, B9, B11, B20, B21, B27, B29, B31, B32, B36 | **10** |
+| **P1.2** | B9, B11, B20, B21, B27, B29, B31, B32, B36 | **9** |
 | **P2** | V3, V5, V9, V10, V11, V12, V13 · M1, M2, M3, M5, M6, M7, M10, M11, M14, M16 · F1, F2, F4 · U12, U15, U16, U18, U20, U21, U24, U25 · I4 · B8, B17, B25 | **32** |
 | **P3** | M8 · B3, F3, F5, F7, F8, F9, F10, F12, F13 · B1, B2, B10, B12, B13, B14, B15, B16, B18, B19, B37 · U13, U19, U22 · V16 | **25** |
 | **P4** | M9, M15 · F6, F14 | **4** |
-| **Toplam** | | **116** |
+| **Toplam** | | **115** |
 
-**Bulgu → faz eşlemesinde dikkat edilecek üç nokta:**
+**Bulgu → faz eşlemesinde dikkat edilecek dört nokta:**
 
 1. **B3 ve M8 aynı iştir** (PW-74): `javafx-media`/`javafx-fxml` ağırlığı. Tek paket, iki ID.
 2. **V19'un kökü M1'dir** (PW-57): `AppLogging` enjekte edilebilir olmadan test hijyeni
    düzelmez. V19 P1.1'de "kısmi" (testler gerçek dizine yazmayı bırakır), M1/P2'de tam kapanır.
 3. **U19 (her açılışta modal karşılama)** P1.0'da yalnız *boyut/kırpılma* tarafıyla (PW-14)
    ele alınır; "ilk çalıştırma bayrağı" ayar şeması gerektirdiği için P3/PW-66'ya bağlıdır.
+4. **B7 (ikon drift'i) kapsam dışıdır** - bir iş paketi yoktur ve hiçbir faza sayılmaz.
+   `scripts/generate-icons.py --check`, üretilen PNG/ICO/ICNS baytlarını o an kurulu
+   ImageMagick yapısıyla (sürüm + HDRI + delegate seti) karşılaştırır; aynı SVG'den üretilen
+   asset'ler başka bir ImageMagick yapısında bayt-özdeş çıkmaz - ölçüldü: 512 px'te piksellerin
+   %0,3'ü farklı, fark gözle görülmüyor. Böyle bir adım CI'da "runner'ın ImageMagick'i commit'i
+   üreten yapıyla aynı mı" sorusunu ölçer, ikonun kendisi hakkında bir şey söylemez ve her
+   ImageMagick sürüm atlamasında kırmızıya döner. Asset'ler yalnızca SVG elle değiştiğinde
+   yeniden üretilir ve o değişiklik zaten diff'te görünür; bu yüzden kontrol bir yayın kapısı
+   değil, sürekli bakım borcudur.
 
 **Bilinçli ertelemeler (tarih yok, sıra var):**
 
