@@ -1,3 +1,8 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2026 Mesut ORMANLI
+ */
+
 package org.mesutormanli.jtypewriter;
 
 import org.junit.jupiter.api.Test;

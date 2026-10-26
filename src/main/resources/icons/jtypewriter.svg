@@ -40,6 +40,12 @@
     keep light-on-top order; groups carry ids. Primitives + opacity +
     clipPath only, so the PNG pipeline (`magick -background none
     -density 384 jtypewriter.svg -resize NxN PNG32:...`) stays faithful.
+
+  Author and licence: original artwork by the project author,
+  Copyright (c) 2026 Mesut ORMANLI, SPDX-License-Identifier: Apache-2.0.
+  The PNG/ICO/ICNS set is generated from this file by
+  scripts/generate-icons.py and inherits the same terms; this SVG is the
+  source of truth.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>

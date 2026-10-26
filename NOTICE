@@ -9,6 +9,12 @@ project author, Copyright (c) 2026 Mesut ORMANLI, and is distributed under the
 Apache License, Version 2.0. Its provenance is in audio/PROVENANCE.md, which
 ships at the same relative path inside the jar.
 
+The launcher icon artwork, src/main/resources/icons/jtypewriter.svg, is
+original work by the project author, Copyright (c) 2026 Mesut ORMANLI, and is
+distributed under the Apache License, Version 2.0. The PNG, ICO and ICNS files
+shipped with the application are generated from that SVG and carry the same
+terms; the SVG is the source of truth.
+
 This product bundles the JavaFX libraries, which are distributed under the GNU
 General Public License, version 2, with the Classpath Exception, and GStreamer
 Lite, which is distributed under the GNU Lesser General Public License,
