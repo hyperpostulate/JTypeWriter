@@ -132,10 +132,10 @@ kapsam yanlış kesilmiştir.
 | ✅ PW-19 | S | **9** | **Rozet betiğini güvenli hale getir:** repo adı tek yerden, token URL'de değil, hata `exit 1`; rozet **tüm locale koşularının toplamını** yayınlar. | B24 | Publish hatası sessizce yutulmaz; rozet tek locale sonucu değil toplamı gösterir |
 | ✅ PW-20 | S | **7** | **`StatsBar` ilk karede dolsun + dil değişiminde anında yenilensin.** Kurucuda `update()`; locale dinleyicisi. | U9, U10 | Açılışın ilk saniyesinde durum çubuğu dolu; dil değişimi ≤ 1 kare |
 | ✅ PW-21 | S | **6** | **Ölü i18n API'sini sil:** 7 ölü anahtar × 6 bundle, 8 ölü getter, `Language.toggle`. | M12, I5 | `MessagesTest` hâlâ yeşil; paket başına anahtar sayısı 93 → 86 (PW-16 dört `about*` anahtarı ekleyip `aboutAuthor`'ı kaldırdığı için taban 90 değil 93) |
-| PW-22 | S | **6** | **Karşılama kısayol listesi gerçeği söylesin:** `Ctrl+S` = Kaydet, `Ctrl+Shift+S` = Farklı Kaydet eklensin, `Ctrl+Shift+Z` listeye girsin. | U23, I4 | Liste `KeyboardShortcutHandler` ile birebir eşleşir; `MessagesTest` bunu sabitler |
-| PW-23 | S | **6** | **POM metadata + `.gitattributes` + `outputTimestamp`.** | B33, B6, B5 | `mvn help:effective-pom` lisans/developer/scm gösterir; Windows'ta CRLF script kırmaz |
-| PW-24 | S | **6** | **`ContrastRatio` test kapsamına taşınsın**; `-fx-letter-spacing` / `-fx-transition` gibi geçersiz özellikler silinsin. | M13, U17 | Üretim JAR'ında test yardımcısı yok; CSS'te yok sayılan özellik kalmaz |
-| PW-25 | S | **6** | **`NaN`/`Infinity` geometri reddedilsin.** `optionalDouble` sonlu olmayan değeri varsayılana düşürür. | V15 | Bozuk `window.width=Infinity` açılışı bozmaz |
+| ✅ PW-22 | S | **6** | **Karşılama kısayol listesi gerçeği söylesin:** `Ctrl+S` = Kaydet, `Ctrl+Shift+S` = Farklı Kaydet eklensin, `Ctrl+Shift+Z` listeye girsin. | U23, I4 | Liste `KeyboardShortcutHandler` ile birebir eşleşir; `MessagesTest` bunu sabitler |
+| ✅ PW-23 | S | **6** | **POM metadata + `.gitattributes` + `outputTimestamp`.** | B33, B6, B5 | `mvn help:effective-pom` lisans/developer/scm gösterir; Windows'ta CRLF script kırmaz |
+| ✅ PW-24 | S | **6** | **`ContrastRatio` test kapsamına taşınsın**; `-fx-letter-spacing` / `-fx-transition` gibi geçersiz özellikler silinsin. | M13, U17 | Üretim JAR'ında test yardımcısı yok; CSS'te yok sayılan özellik kalmaz |
+| ✅ PW-25 | S | **6** | **`NaN`/`Infinity` geometri reddedilsin.** `optionalDouble` sonlu olmayan değeri varsayılana düşürür. | V15 | Bozuk `window.width=Infinity` açılışı bozmaz |
 
 > ✅ = tamamlandı (kod + test). İşaretlenen satırların kabul kriterleri `mvn clean test` ve
 > TR/DE locale koşularında doğrulanmıştır. Proje lisansı GPLv3'ten Apache-2.0'a taşındı
