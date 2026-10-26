@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
  * leaving the first second of startup blank, and it had no locale listener,
  * so a language switch kept the old language until that tick. Both
  * behaviours now live in {@link StatsBarModel}, exercised here without a
- * JavaFX toolkit or any control (AGENTS.md: tests are headless).
+ * JavaFX toolkit or any control.
  */
 class StatsBarModelTest {
 

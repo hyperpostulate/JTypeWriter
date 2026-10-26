@@ -28,7 +28,7 @@ import java.util.Base64;
  * JVM. The GUI layer is deliberately out of the forked process; it only calls
  * these same methods, so its wiring cannot change what the disk shows.</p>
  *
- * <p>Every path is passed explicitly (AGENTS.md: {@code AppSettings} and
+ * <p>Every path is passed explicitly ({@code AppSettings} and
  * {@code RecoveryStore} take explicit paths), and the parent sets
  * {@code user.home} to a temporary directory, so {@code AppLogging} cannot
  * write into the developer's real {@code ~/.jtypewriter}.</p>

@@ -81,7 +81,7 @@ public final class ContrastRatio {
         }
         // Character.digit is locale-independent, unlike toLowerCase(): under
         // the Turkish locale a hex "I" would... there is no "I" in hex, but a
-        // stray bad character must throw, not silently fall back (AGENTS.md).
+        // stray bad character must throw, not silently fall back.
         for (var i = 0; i < 6; i++) {
             if (Character.digit(value.charAt(i), 16) < 0) {
                 throw new IllegalArgumentException("not a hex colour: " + hex);

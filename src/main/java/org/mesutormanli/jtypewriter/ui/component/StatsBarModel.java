@@ -17,7 +17,7 @@ import java.util.Optional;
 
 /**
  * The text logic behind {@link StatsBar}, kept free of JavaFX so it stays
- * testable headless (AGENTS.md: no toolkit, no control construction).
+ * testable headless (no toolkit, no control construction).
  *
  * <ul>
  *   <li>The bar only filled its labels from the
