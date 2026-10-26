@@ -4,6 +4,11 @@ Copyright (c) 2026 Mesut ORMANLI
 This product is licensed under the Apache License, Version 2.0. The full text
 is in the LICENSE file next to this notice.
 
+The bundled keystroke sample, audio/keystroke.wav, is original work by the
+project author, Copyright (c) 2026 Mesut ORMANLI, and is distributed under the
+Apache License, Version 2.0. Its provenance is in audio/PROVENANCE.md, which
+ships at the same relative path inside the jar.
+
 This product bundles the JavaFX libraries, which are distributed under the GNU
 General Public License, version 2, with the Classpath Exception, and GStreamer
 Lite, which is distributed under the GNU Lesser General Public License,

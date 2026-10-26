@@ -411,7 +411,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 
 ## Lisans
 
-JTypeWriter, Apache Lisansı 2.0 ile lisanslanmıştır. Tam metin için [LICENSE](LICENSE), atıf bildirimleri için [NOTICE](NOTICE) dosyasına bakın. [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) paketlenen her bileşeni lisans kimliği, telif satırı ve kaynağıyla listeler; tam metinler [legal/](legal) altındadır. İkisi de fat JAR içinde `META-INF/THIRD-PARTY-NOTICES` ve `META-INF/licenses/` olarak, native imajda ise kök dizinde bulunur. Paketlenen JavaFX kütüphaneleri GPLv2 + Classpath Exception, GStreamer Lite ise LGPL-2.1-or-later altında kalır; OpenJDK çalışma zamanı kendi bildirimlerini `lib/runtime/legal/` altında taşır.
+JTypeWriter, Apache Lisansı 2.0 ile lisanslanmıştır. Tam metin için [LICENSE](LICENSE), atıf bildirimleri için [NOTICE](NOTICE) dosyasına bakın. [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) paketlenen her bileşeni lisans kimliği, telif satırı ve kaynağıyla listeler; tam metinler [legal/](legal) altındadır. İkisi de fat JAR içinde `META-INF/THIRD-PARTY-NOTICES` ve `META-INF/licenses/` olarak, native imajda ise kök dizinde bulunur. Paketlenen JavaFX kütüphaneleri GPLv2 + Classpath Exception, GStreamer Lite ise LGPL-2.1-or-later altında kalır; OpenJDK çalışma zamanı kendi bildirimlerini `lib/runtime/legal/` altında taşır. Paketlenen tuş sesi (`src/main/resources/audio/keystroke.wav`) yazarın kendi eseridir, üçüncü taraf bir örnek içermez ve aynı Apache-2.0 lisansı kapsamındadır; kaynağı ve SHA-256 özeti [src/main/resources/audio/PROVENANCE.md](src/main/resources/audio/PROVENANCE.md) dosyasında kayıtlıdır.
 
 ---
 

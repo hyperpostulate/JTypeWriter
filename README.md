@@ -410,7 +410,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 
 ## License
 
-JTypeWriter is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the full text and [NOTICE](NOTICE) for attribution notices. [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) lists every bundled component with its license id, copyright line and source, and the full texts sit in [legal/](legal); both ship inside the fat JAR as `META-INF/THIRD-PARTY-NOTICES` and `META-INF/licenses/`, and at the root of the native image. The bundled JavaFX libraries stay under GPLv2 with the Classpath Exception and GStreamer Lite under LGPL-2.1-or-later; the OpenJDK runtime carries its own notices under `lib/runtime/legal/`.
+JTypeWriter is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the full text and [NOTICE](NOTICE) for attribution notices. [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) lists every bundled component with its license id, copyright line and source, and the full texts sit in [legal/](legal); both ship inside the fat JAR as `META-INF/THIRD-PARTY-NOTICES` and `META-INF/licenses/`, and at the root of the native image. The bundled JavaFX libraries stay under GPLv2 with the Classpath Exception and GStreamer Lite under LGPL-2.1-or-later; the OpenJDK runtime carries its own notices under `lib/runtime/legal/`. The bundled keystroke sound (`src/main/resources/audio/keystroke.wav`) is the author's own work, contains no third-party sample, and is covered by the same Apache-2.0 licence; its provenance and SHA-256 are recorded in [src/main/resources/audio/PROVENANCE.md](src/main/resources/audio/PROVENANCE.md).
 
 ---
 
