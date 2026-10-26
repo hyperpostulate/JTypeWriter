@@ -330,6 +330,19 @@
     -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
 }
 
+/* Autosave failure warning (V4/PW-27). This is not a moment in time like the
+   save confirmation above but a standing condition: the recovery copy written
+   for a crash could not be written at all. It is therefore bold as well as
+   coloured, and every theme supplies a -stats-warning-text that clears AA
+   (>= 4.5:1) against its own -toolbar-bg. Hidden and unmanaged through
+   StatsBar.setAutosaveFailing while the safety net works. */
+.stats-warning {
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -stats-warning-text;
+    -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+}
+
 .welcome-root {
     -fx-background-color: -welcome-bg;
     -fx-border-color: -welcome-border;

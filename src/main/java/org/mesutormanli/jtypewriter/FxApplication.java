@@ -86,4 +86,25 @@ public class FxApplication extends Application {
                 .flatMap(path -> app.fileService.loadFile(stage, path))
                 .ifPresent(path -> app.editorArea.setDocument(app.fileService.getCurrentContent()));
     }
+
+    /**
+     * End of the JavaFX lifecycle. Reached by {@code Platform.exit()}, by the
+     * implicit exit after the last window closed, and by a session log-out -
+     * paths that never answer a close request. Without this hook the draft of a
+     * dirty document survived only by luck: the hide handler used to delete it
+     * (V2/PW-26). Now the decision is made once, in
+     * {@code AutoSaveService.shutdown()}, and an unasked exit parks the draft
+     * instead of deleting it.
+     *
+     * <p>Runs on every exit, including the confirmed one, where the draft was
+     * already cleared; clearing twice is harmless and keeps the rule in one
+     * place.</p>
+     */
+    @Override
+    public void stop() {
+        if (app == null) {
+            return; // init() failed before the graph existed
+        }
+        app.autoSaveService.shutdown();
+    }
 }

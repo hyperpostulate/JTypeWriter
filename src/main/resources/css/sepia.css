@@ -16,6 +16,9 @@
     /* "Saved hh:mm" confirmation (RW-19): #4a5d2f on #e8dcc8 = 5.35:1; an
        olive green, so the sepia identity survives the added state colour. */
     -stats-save-text: #4a5d2f;
+    /* Autosave warning (V4/PW-27): #6b3a1a on #e8dcc8 = 6.92:1. A burnt brown
+       that stays inside the sepia range while reading as an alarm. */
+    -stats-warning-text: #6b3a1a;
     /* Focus ring (RW-17): a deepened brand brown - the lighter #8b7355 only
        reaches 2.65:1 against the hover wash. 5.42:1 against the toolbar,
        6.24:1 against the editor, 4.34:1 against the hover wash. */

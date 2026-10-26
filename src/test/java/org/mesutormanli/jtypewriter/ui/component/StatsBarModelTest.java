@@ -16,6 +16,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * PW-20 (findings U9/U10): the stats bar used to fill its labels only from the
@@ -128,6 +130,86 @@ class StatsBarModelTest {
 
         assertTrue(model.clockText().matches("\\d{2}\\.\\d{2}\\.\\d{4}  \\d{2}:\\d{2}:\\d{2}"),
                 "clock shape: " + model.clockText());
+    }
+
+    /** PW-27: nothing is wrong at startup, so the warning slot is empty. */
+    @Test
+    void warningTextIsEmptyWhileAutosaveWorks() {
+        var localeManager = localeManagerFor(Language.EN);
+        var model = new StatsBarModel(new SessionStats(), messagesFor(localeManager), localeManager);
+
+        assertFalse(model.isAutosaveFailing());
+        assertEquals("", model.warningText());
+    }
+
+    /** PW-27: turning the flag on shows the bundle text and repaints exactly once. */
+    @Test
+    void settingAutosaveFailingShowsTheWarningAndNotifiesOnce() {
+        var localeManager = localeManagerFor(Language.EN);
+        var messages = mock(Messages.class);
+        when(messages.autosaveWarning()).thenReturn("Autosave is not working - save now");
+        var model = new StatsBarModel(new SessionStats(), messages, localeManager);
+
+        var notifications = new AtomicInteger();
+        model.addListener(notifications::incrementAndGet);
+
+        model.setAutosaveFailing(true);
+
+        assertTrue(model.isAutosaveFailing());
+        assertEquals("Autosave is not working - save now", model.warningText());
+        assertEquals(1, notifications.get());
+    }
+
+    /** PW-27: a repeat of the same state is not a transition, so no extra repaint. */
+    @Test
+    void repeatingTheSameFailingStateDoesNotNotify() {
+        var localeManager = localeManagerFor(Language.EN);
+        var messages = mock(Messages.class);
+        when(messages.autosaveWarning()).thenReturn("Autosave is not working - save now");
+        var model = new StatsBarModel(new SessionStats(), messages, localeManager);
+        var notifications = new AtomicInteger();
+        model.addListener(notifications::incrementAndGet);
+        model.setAutosaveFailing(true);
+
+        model.setAutosaveFailing(true);
+
+        assertEquals(1, notifications.get(), "a standing warning must not repaint the bar");
+    }
+
+    /** PW-27: a later working write withdraws the warning from the bar. */
+    @Test
+    void clearingAutosaveFailingEmptiesTheWarning() {
+        var localeManager = localeManagerFor(Language.EN);
+        var messages = mock(Messages.class);
+        when(messages.autosaveWarning()).thenReturn("Autosave is not working - save now");
+        var model = new StatsBarModel(new SessionStats(), messages, localeManager);
+        model.setAutosaveFailing(true);
+
+        model.setAutosaveFailing(false);
+
+        assertFalse(model.isAutosaveFailing());
+        assertEquals("", model.warningText());
+    }
+
+    /**
+     * PW-27: the warning is bundle text, so a language switch while it stands
+     * must re-localise it - it must not stay English until the next tick.
+     */
+    @Test
+    void aLanguageSwitchWhileFailingReLocalisesTheWarning() {
+        var localeManager = localeManagerFor(Language.EN);
+        var messages = messagesFor(localeManager);
+        var model = new StatsBarModel(new SessionStats(), messages, localeManager);
+        model.setAutosaveFailing(true);
+        var english = model.warningText();
+
+        localeManager.setLanguage(Language.TR);
+
+        assertFalse(english.isBlank());
+        assertEquals(messages.autosaveWarning(), model.warningText());
+        assertFalse(english.equals(model.warningText()), "the English warning was stale");
+        assertTrue(model.warningText().contains("Otomatik"),
+                "warning text: " + model.warningText());
     }
 
     private LocaleManager localeManagerFor(Language language) {

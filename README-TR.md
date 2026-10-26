@@ -93,7 +93,7 @@ sonradan çıkıldığında hatırlanan konuma dönülür.
 
 - **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya yazılır, fsync edilir ve yeniden adlandırılarak yerine konur; kayıt ortasında çökme ya da elektrik kesintisi belgeyi yarım bırakamaz. Dosya sistemi atomik taşımayı desteklemiyorsa yeniden adlandırma düz taşımaya düşer; baytlar o anda zaten diskte olur. Üzerine yazmalarda dönen yedekler tutulur (`dosya.bak`, `.bak.1`, `.bak.2`) ve belgenin mevcut dosya izinleri korunur
 - **Belge farkındalığı:** pencere başlığı açık belgenin adını ve kaydedilmemiş değişiklik varken bir `*` işaretini gösterir (`[YOLO]` rozetinin yanında). `Ctrl+N` boş, adlandırılmamış bir belge açar (YOLO modu açıkken de çalışır); dosya açarken sorulan kaydet / kaydetme / iptal sorusu burada da sorulur. Belge açmak veya yeni belge oluşturmak geri alma geçmişini sıfırlar, böylece `Ctrl+Z` önceki belgenin metnini asla geri getiremez
-- **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökme sonrası taslak bir sonraki açılışta geri yükleme için teklif edilir. İstem geri yükle / sil / sonra sor seçeneklerini sunar — kapatmak taslağı asla silmez, ertelenen taslak sonraki açılışta yeniden sorulur ve üzerinde çalıştığınız belge için otomatik kayıt devam eder
+- **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökme sonrası taslak bir sonraki açılışta geri yükleme için teklif edilir. İstem geri yükle / sil / sonra sor seçeneklerini sunar — kapatmak taslağı asla silmez, ertelenen taslak sonraki açılışta yeniden sorulur ve üzerinde çalıştığınız belge için otomatik kayıt devam eder. Taslak yalnızca pencerenin kapatma isteği kapatma yönünde yanıtlandığında silinir - belge kaydedildiyse ya da açıkça atmayı seçtiyseniz. Diğer tüm çıkış yolları (`Platform.exit()`, oturumdan çıkış, pencerenin yalnızca gizlenmesi) taslağı `pending-<uuid>.jtw` olarak park eder; böylece bir sonraki açılışta yeniden teklif edilir. Ertelenen bir taslak park edilemezse slot dondurulur ve dosyaya hiç dokunulmaz. Başarısız bir kurtarma yazımı artık yalnızca logda kalmaz: durum çubuğu, sonraki yazım başarılı olana kadar otomatik kaydın çalışmadığını belirten kalıcı bir uyarı gösterir ve ilk hatada ne yapılacağını açıklayan tek bir diyalog açar
 - **Kodlama güvenliği:** BOM'lu bir dosya, BOM'unun belirttiği kodlamayla çözülür; BOM'suz bir dosya geçerli UTF-8 olmalıdır, aksi halde sessiz bozulma yerine Windows-1254 mü UTF-8 mi olduğu sorulur. Belgeler aynı kodlamayla geri yazılır; yalnızca metin o kodlamaya sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) sunulan UTF-8'e geçişi kabul ederseniz kodlama değişir — temsil edilemeyen karakterler asla sessizce `?` yapılmaz. UTF-8 veya UTF-16 bildiren ancak bazı baytları o kodlama için geçersiz olan bir bayt sıra işareti artık sessizce çözülmez: uygulama bayt sıra işaretinin içerikle eşleşmediğini söyler, bildirilen kodlamayı ve dosyayı adlandırır ve açmadan önce sorar. Yine de açmak bozuk baytları değiştirme karakterleri olarak gösterir ve bunu loglar; iptal etmek mevcut belgeye dokunmaz
 - **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir. Fırlatılan istisnalar tam yığın iziyle (neden zinciri dahil) yazılır. Bozuk ayar dosyası sessizce üzerine yazılmaz: `settings.properties.corrupt` olarak kenara alınır ve içeriği tanılama için korunur
 
@@ -261,8 +261,10 @@ org.mesutormanli.jtypewriter
 │   └── Messages.java                     # ResourceBundle tabanlı i18n erişici
 ├── service/
 │   ├── AutoSaveService.java              # Dönemsel taslak kaydı + kurtarma teklifi
+│   ├── AutosaveHealth.java               # Yapışkan otomatik kayıt hata durumu (DRAFT_WRITE / DRAFT_PARK)
 │   ├── BackupKeeper.java                 # Yazımdan önce dönen .bak yedekleri
 │   ├── DialogService.java                # FileChooser ve Alert dialog yönetimi
+│   ├── ExitDisposition.java              # Kurtarma taslağı için çıkış kuralı (CLEAR / PARK / KEEP)
 │   ├── FileService.java                  # Atomik dosya G/Ç (kodlama korumalı)
 │   ├── RecoveryChoice.java               # Kurtarma istemine yanıt (geri yükle / sil / sonra sor)
 │   ├── RecoveryStore.java                # Çökme kurtarma taslak deposu
@@ -313,7 +315,7 @@ org.mesutormanli.jtypewriter
 | `UndoHistoryReset` | Her belge yüklemesinde TextArea'nın geri al/ileri al geçmişini temizler (yansıma ile; JavaFX'te API yok) |
 | `YoloPolicy` | YOLO modu düzenleme politikası (silmeyi engeller, eklemeye izin verir) |
 | `EditorKeyHandler` | Tuş vuruşu ses efektleri ve oturum istatistiklerini yönetir |
-| `StatsBar` | Saati, *kaydedildi SS:dd* onayını ve canlı oturum istatistiklerini alt çubukta gösterir; yazı boyutu çift tıklamayla döner |
+| `StatsBar` | Saati, *kaydedildi SS:dd* onayını ve canlı oturum istatistiklerini alt çubukta gösterir; otomatik kayıt başarısızken kalıcı bir uyarı gösterir ve yazı boyutu çift tıklamayla döner |
 | `KeyboardShortcutHandler` | Merkezi klavye kısayolu yönlendirmesi |
 | `ToolbarView` | Tüm editör kontrollerini içeren üst araç çubuğu |
 | `ToolbarFit` | Araç çubuğu taşma politikası: başlıklı satır sığmadığında açılır liste başlıklarını değere indiren saf, JavaFX'siz ölçüm |
@@ -326,7 +328,9 @@ org.mesutormanli.jtypewriter
 | `BackupKeeper` | Yazımdan önce alınan dönen `.bak` yedekleri |
 | `RecoveryStore` | Çökme kurtarma taslakları: `~/.jtypewriter/recovery/` altında oturum başına tek atomik `draft-<uuid>.jtw` dosyası; ayrıca "sonra sor" denen taslak için `pending-<uuid>.jtw` |
 | `RecoveryChoice` | Kurtarma istemine yanıt: geri yükle, sil veya sonra sor; `LATER` hiçbir şeyi silmeyen ve geri yüklemeyen güvenli varsayılan |
-| `AutoSaveService` | Dönemsel taslak anlık görüntüleri ve açılışta kurtarma teklifi |
+| `ExitDisposition` | Kurtarma taslağı için saf çıkış matrisi: kapatma isteği kapatma yönünde yanıtlandığında `CLEAR`, sorulmamış çıkışta `PARK`, ertelenen taslak park edilemediğinde `KEEP`; dondurulmuş slot diğer tüm sinyallerin önüne geçer |
+| `AutosaveHealth` | JavaFX'siz, yapışkan otomatik kayıt hata durumu (`DRAFT_WRITE` / `DRAFT_PARK`); dinleyiciler yalnızca gerçek geçişlerde tetiklenir |
+| `AutoSaveService` | Dönemsel taslak anlık görüntüleri, açılışta kurtarma teklifi, taslağı yalnızca yanıtlanmış bir kapatma isteminden sonra silen çıkış kuralı ve otomatik kayıt hatalarının `AutosaveHealth`'e bildirilmesi |
 | `CrashHandler` | Global çökme ağı: log + kullanıcıya hata diyaloğu |
 | `InstanceLock` | İkinci örneği kullanıcı başına reddeden danışma amaçlı dosya kilidi |
 | `SingleInstanceWarning` | "Zaten çalışıyor" uyarısını gösterip kapanan minimal pencere |
@@ -379,7 +383,9 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `TextCodecTest` | Kodlama tespiti (BOM, sıkı UTF-8), eski kodlama sorusu, kayıpsız kodlama gidiş-dönüşü, sıkı kodlama (temsil edilemeyen karakterler `?` olmak yerine hata verir) |
 | `BackupKeeperTest` | Yazımdan önce yedek rotasyonu ve saklama |
 | `RecoveryStoreTest` | Çökme kurtarma taslağı yaşam döngüsü (kaydet/geri yükle/sil); oturum başına tek atomik `.jtw` dosyası, en yeni taslağın devralınması, eşzamanlı oturumların izolasyonu, ertelenen taslağın ayrı dosyaya park edilip aktif slotun serbest bırakılması, bozuk başlık, hatalı zaman damgası, kullanılamayan yol ve geçersiz UTF-8'e tolerans |
-| `AutoSaveServiceTest` | Belge açıldığında veya yeni belge oluşturulduğunda önceki belgenin bayat kurtarma taslağının silinmesi; ertelenen taslağın temiz çıkışta korunması ve yeni belgenin otomatik kaydını artık susturmaması (regresyon) |
+| `AutoSaveServiceTest` | Belge açıldığında veya yeni belge oluşturulduğunda önceki belgenin bayat kurtarma taslağının silinmesi; ertelenen taslağın çıkışta korunması ve yeni belgenin otomatik kaydını artık susturmaması (regresyon); yanıtlanmış çıkışın taslağı silmesi, sorulmamış çıkışın taslağı park etmesi, dondurulmuş slotun dosyayı olduğu gibi koruması ve başarısız anlık görüntü veya park işlemlerinin sağlık durumunu bildirmesi |
+| `ExitDispositionTest` | Dört yönlü çıkış matrisi: canlı ve dondurulmuş slot karşısında yanıtlanmış ve sorulmamış çıkış; dondurulmuş slot diğer tüm sinyallerin önüne geçer |
+| `AutosaveHealthTest` | Yapışkan hata durumu (`DRAFT_WRITE` / `DRAFT_PARK`); tekrarlanan hatalar boyunca korunur, başarılı bir yazımda temizlenir ve her gerçek geçişte tek bir bildirim gönderir |
 | `YoloPolicyTest` | YOLO modu düzenleme politikası (silme engelli, ekleme serbest, güvenli değiştirme) |
 | `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S), yeni belge için Ctrl+N ve numpad eşdeğerleri |
 | `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti) |
@@ -398,7 +404,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `LanguageTest` | Yerel dil adlarının her sistem dilinde sabit kod sabitleri olması (`getDisplayLanguage` tuzağı yok) |
 | `ToolbarStateTest` | Ses açılır listesinin tek ayarlayıcısı: yeniden başlatmada kalıcılık, ses motorunun takip etmesi, tekrarların etkisiz olması |
 | `ToolbarFitTest` | Araç çubuğu taşma politikası: başlıklı satırın (düğmeler, açılır listeler, ayırıcı, çerçeve) enjekte edilen ölçülerle nasıl hesaplandığı, FULL→COMPACT geçişi ve 40 px histerezisi; ayrıca Almanca ve Fransızcanın 1280 px'te kırpılmadığını ve daraltılmış satırın altı dilde 900 px'e sığdığını kanıtlayan kabul testleri |
-| `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni, odak halkası veya popup hücresi kuralları AA'nın / 13 px'in altına düşerse ya da odak rengi yeniden saydamlaşırsa ya da var olmayan bir JavaFX CSS özelliği (`-fx-letter-spacing`, `-fx-transition`) geri dönerse derlemeyi başarısız kılan CSS ayrıştırma korumaları |
+| `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni, `-stats-warning-text` otomatik kayıt uyarısı, odak halkası veya popup hücresi kuralları AA'nın / 13 px'in altına düşerse ya da odak rengi yeniden saydamlaşırsa ya da var olmayan bir JavaFX CSS özelliği (`-fx-letter-spacing`, `-fx-transition`) geri dönerse derlemeyi başarısız kılan CSS ayrıştırma korumaları |
 
 ---
 

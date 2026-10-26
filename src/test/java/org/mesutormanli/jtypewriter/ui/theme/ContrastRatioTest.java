@@ -99,6 +99,22 @@ class ContrastRatioTest {
         }
     }
 
+    /** PW-27: the standing autosave warning. Like the save confirmation it is
+        ordinary body text on the bar, so every theme's -stats-warning-text must
+        clear AA against its own -toolbar-bg. */
+    @Test
+    void autosaveWarningTextClearsFourPointFiveInEveryTheme() {
+        for (var theme : THEMES) {
+            var css = readCss("/css/" + theme + ".css");
+            var warning = color(css, "-stats-warning-text");
+            var bar = color(css, "-toolbar-bg");
+            var ratio = ContrastRatio.ratio(warning, bar);
+            assertTrue(ContrastRatio.meetsAa(ratio, false),
+                    "%s -stats-warning-text %s on %s is %.2f:1, below AA %s:1"
+                            .formatted(theme, warning, bar, ratio, TEXT_MIN));
+        }
+    }
+
     /** A focus ring is a non-text UI component: >= 3:1 against every surface
         it can sit on (bar, editor, hover wash) in every theme. */
     @Test
@@ -209,6 +225,7 @@ class ContrastRatioTest {
         assertTrue(cssFontSize(base, "\\.stats-clock\\s*\\{") >= 13);
         assertTrue(cssFontSize(base, "\\.stats-label\\s*\\{") >= 13);
         assertTrue(cssFontSize(base, "\\.stats-save\\s*\\{") >= 13);
+        assertTrue(cssFontSize(base, "\\.stats-warning\\s*\\{") >= 13);
     }
 
     /** Open dropdown list and closed control share one type scale (11 px). */

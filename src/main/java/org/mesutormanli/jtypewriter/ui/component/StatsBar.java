@@ -22,6 +22,7 @@ public class StatsBar extends BorderPane {
     private final Label clockLabel;
     private final Label statsLabel;
     private final Label saveStatus;
+    private final Label warningLabel;
 
     /**
      * RW-17: the status bar must start at >= 13 px without the user cycling
@@ -59,9 +60,18 @@ public class StatsBar extends BorderPane {
         saveStatus = new Label();
         saveStatus.getStyleClass().add("stats-save");
 
+        // V4/PW-27: "autosave is not working" while a recovery write fails.
+        // Unlike the save confirmation this is not a moment in time but a
+        // standing condition, so it lives next to the statistics the user is
+        // already reading and disappears only when a write succeeds again.
+        warningLabel = new Label();
+        warningLabel.getStyleClass().add("stats-warning");
+        warningLabel.setVisible(false);
+        warningLabel.setManaged(false);
+
         // Statistics sit on the left, date and time (with the save confirmation
         // that belongs to them) on the right.
-        var leftBox = new HBox(statsLabel);
+        var leftBox = new HBox(warningLabel, statsLabel);
         leftBox.getStyleClass().add("stats-left");
 
         var rightBox = new HBox(clockLabel, saveStatus);
@@ -104,6 +114,7 @@ public class StatsBar extends BorderPane {
         clockLabel.setStyle(style);
         statsLabel.setStyle(style);
         saveStatus.setStyle(style);
+        warningLabel.setStyle(style);
     }
 
     /**
@@ -121,10 +132,27 @@ public class StatsBar extends BorderPane {
         }
     }
 
+    /**
+     * V4/PW-27: the persistent autosave warning. {@code true} shows the
+     * bundle's warning text next to the statistics and takes the label out of
+     * layout when it is false, so a healthy session never pays for the space.
+     * The text itself lives in {@link StatsBarModel} (localised, refreshed on a
+     * language switch); this only mirrors the state onto the control.
+     */
+    public void setAutosaveFailing(boolean failing) {
+        model.setAutosaveFailing(failing);
+        applyTexts(); // the model already notified, but be explicit for a direct caller
+    }
+
     /** Copies the model's current texts onto the labels - the only rendering step. */
     private void applyTexts() {
         clockLabel.setText(model.clockText());
         statsLabel.setText(model.statsText());
+        var warning = model.warningText();
+        var visible = !warning.isBlank();
+        warningLabel.setText(warning);
+        warningLabel.setVisible(visible);
+        warningLabel.setManaged(visible);
     }
 
     public enum Size {

@@ -431,4 +431,24 @@ public class Messages {
     public String savedStatusTemplate() {
         return bundle.getString("savedStatus");
     }
+
+    /**
+     * V4/PW-27: the standing status-bar warning while the autosave safety net
+     * cannot write a recovery copy. Deliberately phrased as an instruction, not
+     * as a status: the only thing that helps the user right now is a normal
+     * save.
+     */
+    public String autosaveWarning() {
+        return bundle.getString("autosaveWarning");
+    }
+
+    /** V4/PW-27: header of the one-off dialog shown on the first failure. */
+    public String autosaveFailedHeader() {
+        return bundle.getString("autosaveFailedHeader");
+    }
+
+    /** V4/PW-27: body of the one-off dialog shown on the first failure. */
+    public String autosaveFailedContent() {
+        return bundle.getString("autosaveFailedContent");
+    }
 }

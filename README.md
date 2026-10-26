@@ -93,7 +93,7 @@ startup, and leaving it later lands on the remembered position.
 
 - **Atomic, durable saves with backups:** every save is written to a temp file, fsynced and then renamed into place, so a crash mid-save or a power cut cannot leave a truncated document; when the file system does not support an atomic move, the rename degrades to a plain move with the bytes already on disk. Overwrites keep rotating backups (`file.bak`, `.bak.1`, `.bak.2`) and preserve the document's existing file permissions
 - **Document awareness:** the window title shows the open document name and a `*` while there are unsaved changes (alongside the `[YOLO]` badge). `Ctrl+N` starts a fresh untitled document (it also works while YOLO mode is on) after the same save/discard/cancel prompt as opening a file; loading or creating a document clears the undo history, so `Ctrl+Z` can never bring back the previous document's text
-- **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`; after a crash the draft is offered for restoration on the next startup. The prompt offers restore, discard and later - closing it never deletes the draft, a postponed draft is offered again on the next start, and autosave keeps running for the document you are editing
+- **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`; after a crash the draft is offered for restoration on the next startup. The prompt offers restore, discard and later - closing it never deletes the draft, a postponed draft is offered again on the next start, and autosave keeps running for the document you are editing. The draft is deleted only when the window's close request was answered in favour of closing - the document was saved, or you explicitly chose to discard it. Every other way out (`Platform.exit()`, a session log-out, the window simply hiding) parks it as `pending-<uuid>.jtw` so the next start offers it again; if a postponed draft could not be parked, its slot is frozen and the file is left untouched. A recovery write that fails no longer stays buried in the log: the status bar keeps showing that autosave is not working until a later write succeeds, and the first failure raises one dialog explaining what to do
 - **Encoding safety:** a BOM-marked file is decoded with the encoding of its BOM; a file without a BOM must be valid UTF-8, otherwise you are asked whether it is Windows-1254 or UTF-8 instead of getting silent corruption. Documents are written back in the same encoding unless you accept the offered switch to UTF-8 when the text no longer fits (e.g. a pasted emoji in a Windows-1254 file) - unmappable characters are never silently replaced with `?`. A byte-order mark that declares UTF-8 or UTF-16 while some bytes are invalid for that encoding is no longer decoded silently: the app says the byte-order mark does not match the content, names the declared encoding and the file, and asks before opening. Opening anyway shows the broken bytes as replacement characters and logs it; cancelling leaves the current document untouched
 - **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently. Thrown exceptions are written with their full stack trace (including the cause chain), and a corrupt settings file is moved aside as `settings.properties.corrupt` instead of being silently overwritten
 
@@ -260,8 +260,10 @@ org.mesutormanli.jtypewriter
 │   └── Messages.java                     # ResourceBundle-based i18n accessor
 ├── service/
 │   ├── AutoSaveService.java              # Periodic draft snapshots + recovery offer
+│   ├── AutosaveHealth.java               # Sticky autosave failure state (DRAFT_WRITE / DRAFT_PARK)
 │   ├── BackupKeeper.java                 # Rotating .bak backups before overwrites
 │   ├── DialogService.java                # FileChooser & Alert dialog management
+│   ├── ExitDisposition.java              # Exit-path rule for the recovery draft (CLEAR / PARK / KEEP)
 │   ├── FileService.java                  # Atomic file I/O (encoding-stable)
 │   ├── RecoveryChoice.java               # Answer to the "recover draft" prompt (restore / discard / later)
 │   ├── RecoveryStore.java                # Crash-recovery draft storage
@@ -312,7 +314,7 @@ org.mesutormanli.jtypewriter
 | `UndoHistoryReset` | Clears the TextArea undo/redo history on every document load (reflective, JavaFX has no API) |
 | `YoloPolicy` | YOLO mode edit policy (blocks deletions, allows insertions) |
 | `EditorKeyHandler` | Handles keystroke sound effects and session stats tracking |
-| `StatsBar` | Renders the clock, the *saved HH:mm* confirmation and live session statistics in the bottom bar; its text size cycles on double-click |
+| `StatsBar` | Renders the clock, the *saved HH:mm* confirmation and live session statistics in the bottom bar; shows a persistent warning while autosave is failing; its text size cycles on double-click |
 | `KeyboardShortcutHandler` | Centralized keyboard shortcut routing |
 | `ToolbarView` | Top toolbar with all editor controls |
 | `ToolbarFit` | Toolbar overflow policy: pure, JavaFX-free measurement that collapses the dropdown captions when the captioned row would not fit |
@@ -325,7 +327,9 @@ org.mesutormanli.jtypewriter
 | `BackupKeeper` | Rotating `.bak` backups taken before overwrites |
 | `RecoveryStore` | Crash-recovery draft storage: one atomic `draft-<uuid>.jtw` file per session under `~/.jtypewriter/recovery/`, plus `pending-<uuid>.jtw` for a draft the user postponed |
 | `RecoveryChoice` | Answer to the recovery prompt: restore, discard or later; `LATER` is the safe default that neither deletes nor restores |
-| `AutoSaveService` | Periodic draft snapshots and startup recovery offer |
+| `ExitDisposition` | Pure exit matrix for the recovery draft: `CLEAR` when a close request was answered in favour of closing, `PARK` for an unasked exit, `KEEP` while a postponed draft could not be parked; a frozen slot wins over every other signal |
+| `AutosaveHealth` | JavaFX-free, sticky autosave failure state (`DRAFT_WRITE` / `DRAFT_PARK`) whose listeners fire only on real transitions |
+| `AutoSaveService` | Periodic draft snapshots, the startup recovery offer, the exit rule that clears the draft only after an answered close prompt, and reporting of autosave failures to `AutosaveHealth` |
 | `CrashHandler` | Global crash net: logging plus user-facing error dialog |
 | `InstanceLock` | Advisory file lock that rejects a second instance per user |
 | `SingleInstanceWarning` | Minimal window that shows the "already running" warning and exits |
@@ -378,7 +382,9 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `TextCodecTest` | Encoding detection (BOMs, strict UTF-8), legacy prompts, lossless encoding round trips, strict encode (unrepresentable characters fail instead of turning into `?`) |
 | `BackupKeeperTest` | Pre-overwrite backup rotation and retention |
 | `RecoveryStoreTest` | Crash-recovery draft lifecycle (save/restore/drop) in one atomic per-session `.jtw` file, newest-draft adoption, isolation between concurrent sessions, parking a postponed draft so the live slot stays free, tolerance for corrupt headers, bad timestamps, unusable paths and invalid UTF-8 |
-| `AutoSaveServiceTest` | Opening or creating a document drops the previous document's stale recovery draft; a postponed draft survives a clean exit and no longer silences autosave of the new document (regression) |
+| `AutoSaveServiceTest` | Opening or creating a document drops the previous document's stale recovery draft; a postponed draft survives an exit and no longer silences autosave of the new document (regression); an answered exit clears the draft, an unasked exit parks it, a frozen slot keeps the file untouched, and failed snapshots or parked drafts report health |
+| `ExitDispositionTest` | The four-way exit matrix: answered vs unasked exit against a live vs frozen slot, with a frozen slot winning over every other signal |
+| `AutosaveHealthTest` | Sticky failure state (`DRAFT_WRITE` / `DRAFT_PARK`) that survives repeated failures, clears on a successful write and notifies once per real transition |
 | `YoloPolicyTest` | YOLO mode edit policy (deletions blocked, insertions allowed, safe replacement) |
 | `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S), Ctrl+N for a new document and numpad equivalents |
 | `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge) |
@@ -397,7 +403,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `LanguageTest` | Native language names are stable code constants under every system locale (no `getDisplayLanguage` trap) |
 | `ToolbarStateTest` | The sound dropdown's single setter: persistence across a restart, the audio engine follows, repeats are no-ops |
 | `ToolbarFitTest` | Toolbar overflow policy: how the captioned row is measured (buttons, dropdowns, spacer, chrome) with injected metrics, the FULL→COMPACT switch and its 40 px hysteresis, plus acceptance tests proving German and French are not clipped at 1280 px and that the collapsed row fits 900 px in all six languages |
-| `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text, focus-ring or popup-cell rules drift below AA / below 13 px / make the focus colour transparent again, or if a non-existent JavaFX CSS property (`-fx-letter-spacing`, `-fx-transition`) returns |
+| `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text, the `-stats-warning-text` autosave warning, focus-ring or popup-cell rules drift below AA / below 13 px / make the focus colour transparent again, or if a non-existent JavaFX CSS property (`-fx-letter-spacing`, `-fx-transition`) returns |
 
 ---
 

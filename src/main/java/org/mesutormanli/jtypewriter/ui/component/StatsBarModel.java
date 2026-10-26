@@ -44,6 +44,9 @@ public final class StatsBarModel {
 
     private String statsText = "";
     private String clockText = "";
+    private String warningText = "";
+    /** Set by the controller from {@code AutoSaveService.health()}. */
+    private boolean autosaveFailing;
     private Runnable listener = () -> {
     };
 
@@ -76,6 +79,35 @@ public final class StatsBarModel {
                 stats.getTotalKeystrokes(),
                 stats.getFormattedDuration(),
                 stats.getWpm());
+        // V4/PW-27: the warning is bundle text, so it is rebuilt on every
+        // refresh - which is exactly what a language switch needs.
+        warningText = autosaveFailing ? messages.autosaveWarning() : "";
+    }
+
+    /**
+     * V4/PW-27: whether the autosave safety net is failing. The warning stands
+     * until a later write succeeds; a no-op repeat does not repaint the bar.
+     */
+    public void setAutosaveFailing(boolean failing) {
+        if (autosaveFailing == failing) {
+            return;
+        }
+        autosaveFailing = failing;
+        refresh(LocalDateTime.now());
+        listener.run();
+    }
+
+    /** {@code true} while the autosave warning must be displayed. */
+    public boolean isAutosaveFailing() {
+        return autosaveFailing;
+    }
+
+    /**
+     * The persistent autosave warning, or {@code ""} when the safety net
+     * works. Localised on construction, refresh and language switch.
+     */
+    public String warningText() {
+        return warningText;
     }
 
     /** The formatted statistics line; populated from construction on. */

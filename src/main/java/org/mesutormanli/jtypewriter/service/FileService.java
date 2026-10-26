@@ -372,13 +372,24 @@ public class FileService {
         };
     }
 
-    public void promptSaveOnExit(javafx.stage.Stage stage) {
-        var choice = dialogService.showUnsavedChangesDialog(stage);
-        if (choice == DialogService.SaveChoice.SAVE) {
-            saveFile(stage, currentContent).ifPresent(p -> stage.close());
-        } else if (choice == DialogService.SaveChoice.DISCARD) {
-            stage.close();
-        }
+    /** The verdict of the exit prompt; the caller owns closing the window. */
+    public enum ExitAnswer {
+        /** The document is safe (saved, never dirty, or explicitly discarded). */
+        CLOSE,
+        /** The user cancelled, or the save was abandoned: the window must stay. */
+        STAY
+    }
+
+    /**
+     * Asks the unsaved-changes question and reports the verdict, without
+     * closing the window. The caller closes it, because only the caller can
+     * tell the autosave service that this exit was a sanctioned one before the
+     * window hides - the difference between deleting a recovery draft the user
+     * has just abandoned and deleting one that was never asked about
+     * (V2/PW-26).
+     */
+    public ExitAnswer requestExit(javafx.stage.Stage stage) {
+        return confirmDiscardOrSave(stage) ? ExitAnswer.CLOSE : ExitAnswer.STAY;
     }
 
     public Path getCurrentFilePath() {

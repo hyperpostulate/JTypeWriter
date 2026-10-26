@@ -7,6 +7,7 @@ import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.service.AutoSaveService;
 import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 import org.mesutormanli.jtypewriter.ui.component.EditorKeyHandler;
@@ -34,6 +35,7 @@ public class MainController implements Initializable {
     private final LocaleManager localeManager;
     private final KeyboardShortcutHandler shortcutHandler;
     private final EditorKeyHandler editorKeyHandler;
+    private final AutoSaveService autoSaveService;
     private final AppSettings settings;
     private final Supplier<LocalTime> clock;
 
@@ -58,6 +60,7 @@ public class MainController implements Initializable {
                           FileService fileService, Messages messages, LocaleManager localeManager,
                           KeyboardShortcutHandler shortcutHandler,
                           EditorKeyHandler editorKeyHandler,
+                          AutoSaveService autoSaveService,
                           AppSettings settings, Supplier<LocalTime> clock) {
         this.editorArea = editorArea;
         this.toolbarView = toolbarView;
@@ -67,6 +70,7 @@ public class MainController implements Initializable {
         this.localeManager = localeManager;
         this.shortcutHandler = shortcutHandler;
         this.editorKeyHandler = editorKeyHandler;
+        this.autoSaveService = autoSaveService;
         this.settings = settings;
         this.clock = clock;
         // RW-18: the toolbar comes back exactly as visible (or hidden) as the
@@ -109,8 +113,24 @@ public class MainController implements Initializable {
         localeManager.addListener(language -> {
             refreshTitle();
             refreshSaveStatus();
+            refreshAutosaveWarning(); // the warning is bundle text too
         });
+        autoSaveService.health().addListener(this::refreshAutosaveWarning);
         refreshTitle();
+        // A failure can precede the wiring: parking the draft happens inside
+        // offerRecovery, before this controller sees the stage.
+        refreshAutosaveWarning();
+    }
+
+    /**
+     * V4/PW-27: the safety net's state, rendered as a persistent warning in the
+     * status bar. Autosave failures used to be a {@code WARNING} line in a log
+     * file nobody opens, while the product kept promising crash protection it
+     * could no longer deliver; the bar now says so for as long as it is true,
+     * and clears itself once a write succeeds again.
+     */
+    private void refreshAutosaveWarning() {
+        statsBar.setAutosaveFailing(autoSaveService.health().isFailing());
     }
 
     /** Drops the "Saved ..." claim: the document is dirty or was never saved. */

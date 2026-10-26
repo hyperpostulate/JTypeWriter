@@ -6,6 +6,7 @@ import javafx.scene.input.KeyCombination;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.AppSettings;
+import org.mesutormanli.jtypewriter.service.AutoSaveService;
 import org.mesutormanli.jtypewriter.service.FileService;
 
 import java.util.List;
@@ -14,10 +15,12 @@ public class MainStage {
 
     private final FileService fileService;
     private final AppSettings settings;
+    private final AutoSaveService autoSaveService;
 
-    public MainStage(FileService fileService, AppSettings settings) {
+    public MainStage(FileService fileService, AppSettings settings, AutoSaveService autoSaveService) {
         this.fileService = fileService;
         this.settings = settings;
+        this.autoSaveService = autoSaveService;
     }
 
     public void configure(Stage stage, Scene scene) {
@@ -65,11 +68,19 @@ public class MainStage {
             }
         });
 
+        // V2/PW-26: this is the only exit path that asks the user anything, so
+        // it is the only one allowed to delete the recovery draft. The request
+        // is answered first, then the autosave service is told that this exit
+        // was sanctioned - before the window hides, because the hide handler
+        // decides between deleting and parking from exactly that fact. Not
+        // consuming the event lets JavaFX close the window, so no path here
+        // can open a second prompt.
         stage.setOnCloseRequest(event -> {
-            if (fileService.hasUnsavedChanges()) {
+            if (fileService.requestExit(stage) == FileService.ExitAnswer.STAY) {
                 event.consume();
-                fileService.promptSaveOnExit(stage);
+                return;
             }
+            autoSaveService.approveExit();
         });
 
         // Geometry is remembered on hide, so it survives both a clean close

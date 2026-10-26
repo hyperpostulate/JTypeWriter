@@ -49,7 +49,8 @@ public final class AppGraph {
     public final DialogService dialogService = new DialogService(messages, settings);
     public final FileService fileService = new FileService(dialogService, messages);
     public final RecoveryStore recoveryStore = new RecoveryStore(AppDirs.recoveryDir());
-    public final AutoSaveService autoSaveService = new AutoSaveService(recoveryStore, fileService, dialogService);
+    public final AutoSaveService autoSaveService = new AutoSaveService(
+            recoveryStore, fileService, dialogService, messages);
 
     // --- UI state managers -----------------------------------------------
     public final ThemeManager themeManager = new ThemeManager(settings);
@@ -76,8 +77,8 @@ public final class AppGraph {
     public final MainController mainController = new MainController(
             editorArea, toolbarView, statsBar,
             fileService, messages, localeManager, shortcutHandler, editorKeyHandler,
-            settings, LocalTime::now);
-    public final MainStage mainStage = new MainStage(fileService, settings);
+            autoSaveService, settings, LocalTime::now);
+    public final MainStage mainStage = new MainStage(fileService, settings, autoSaveService);
 
     private volatile Stage stage;
 

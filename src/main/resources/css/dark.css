@@ -15,6 +15,10 @@
     /* "Saved hh:mm" confirmation (RW-19): #6fbf73 on #1e1e1e = 7.44:1. A
        muted green, so the state reads as confirmation, not as an alarm. */
     -stats-save-text: #6fbf73;
+    /* Autosave warning (V4/PW-27): #e0a04a on #1e1e1e = 7.18:1. Drawn from
+       the theme's own amber family, so a broken safety net reads as a warning
+       inside the palette instead of as an imported error colour. */
+    -stats-warning-text: #e0a04a;
     /* Focus ring (RW-17): the theme's amber, 5.42:1 against the toolbar,
        5.66:1 against the editor and 4.11:1 against the hover wash. */
     -focus-ring: #c0883c;

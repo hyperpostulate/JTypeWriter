@@ -15,6 +15,9 @@
     /* "Saved hh:mm" confirmation (RW-19): #2f6b34 on #f5f5f5 = 5.88:1. A deep
        green rather than the dark theme's lightened one, to keep the same read. */
     -stats-save-text: #2f6b34;
+    /* Autosave warning (V4/PW-27): #7a4a00 on #f5f5f5 = 6.90:1. A deep amber,
+       dark enough to stay readable on the light bar. */
+    -stats-warning-text: #7a4a00;
     /* Focus ring (RW-17): 4.41:1 against the toolbar, 4.80:1 against the
        editor, 3.64:1 against the hover wash (>=3:1 for non-text UI).
        -focus-ring-text is the on-accent colour for popup rows. */
