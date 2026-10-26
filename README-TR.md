@@ -33,6 +33,7 @@ JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap 
 ## İçindekiler
 
 - [Özellikler](#özellikler)
+- [Verileriniz](#verileriniz)
 - [Klavye Kısayolları](#klavye-kısayolları)
 - [Temalar](#temalar)
 - [Desteklenen Diller](#desteklenen-diller)
@@ -127,6 +128,18 @@ Altı metin rengi (bir varsayılan + beş vurgu rengi): Varsayılan, Adaçayı, 
 ### Çoklu Dil Desteği
 
 6 dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Dil değiştirildiğinde araç çubuğu, diyaloglar, pencere başlığı ve durum çubuğu anında güncellenir.
+
+---
+
+## Verileriniz
+
+JTypeWriter'ın sakladığı her şey makinenizde kalır. Hesap yok, telemetri yok, güncelleme denetimi yok ve ağ isteği yok: uygulama kendisi hiçbir şey göndermez; dışa açılan tek eylem, Hakkında diyaloğundaki e-posta bağlantısıdır ve `mailto:` adresini kendi posta istemcinize devreder.
+
+- **Nerede durur:** `~/.jtypewriter/` - `settings.properties` (dil, tema, metin rengi, yazı boyutu, ses, araç çubuğu görünürlüğü, durum çubuğu boyutu, pencere geometrisi ve son belge ile klasörü mutlak yol olarak), `recovery/` (çökme kurtarma taslakları), `logs/` ve belge içeriği taşımayan danışma amaçlı tek örnek kilidi `instance.lock`.
+- **Taslaklar metninizi içerir.** Her `recovery/draft-<uuid>.jtw` kaydedilmemiş belgenin metnini birebir tutar; ertelenen taslak `pending-<uuid>.jtw` olarak park edilir ve temiz çıkıştan sonra da kalır. Taslak, metnin geldiği mutlak yolu da yazar; ayırıcılar ve satır sonları bozulmasın diye Base64 ile kodlanmıştır - bu bir kodlamadır, şifreleme değildir - yani taslak, geldiği belgeden daha uzun yaşayabilir.
+- **Belgelerinizin yanında:** üzerine yazma `<document>.bak`, `.bak.1` ve `.bak.2` bırakır; kayıt, dosyayı yerine taşımadan önce yanına `jtw-<name>*.tmp` yazar. İkisi de belge metnini içerir.
+- **Loglar:** `logs/jtypewriter-0.log` ile `jtypewriter-2.log` arası, her biri bir megabaytlık, dönen üç kuşak. Dosya yollarını, hata iletilerini ve tam yığın izlerini içerirler.
+- **Hepsini silmek:** önce uygulamayı kapatın, aksi halde log tutucusu ve `instance.lock` yeniden oluşturulur; sonra `~/.jtypewriter` dizinini ve belgelerinizin yanındaki `<document>.bak*` ile artık kalmış `jtw-*.tmp` dosyalarını silin. Uygulama içinde "tüm verileri sil" komutu yoktur ve uygulamayı kaldırmak bu veriyi silmez - kurulu imajı veya paketi kaldırmak `~/.jtypewriter` dizinini yerinde bırakır.
 
 ---
 

@@ -33,6 +33,7 @@ JTypeWriter opens a single plain-text document and then stays out of the way: no
 ## Table of Contents
 
 - [Features](#features)
+- [Your Data](#your-data)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Themes](#themes)
 - [Supported Languages](#supported-languages)
@@ -126,6 +127,18 @@ Six text colors (one default plus five accents): Default, Sage, Lavender, Sand, 
 ### Multi-Language Support
 
 6 languages: English, Turkish, German, French, Italian, Spanish. Toolbar, dialogs, the window title and the status bar update immediately when the language is switched.
+
+---
+
+## Your Data
+
+Everything JTypeWriter keeps stays on your machine. There is no account, no telemetry, no update check and no network request: the application itself sends nothing, and the only outbound action is the e-mail link in the About dialog, which hands a `mailto:` address to your own mail client.
+
+- **Where it lives:** `~/.jtypewriter/` - `settings.properties` (language, theme, text colour, font size, sound, toolbar visibility, status-bar size, window geometry, and the last document and folder as absolute paths), `recovery/` (crash-recovery drafts), `logs/`, and `instance.lock`, the advisory single-instance lock that carries no document content.
+- **Drafts contain your text.** Each `recovery/draft-<uuid>.jtw` holds the unsaved document verbatim; a postponed draft is parked as `pending-<uuid>.jtw` and survives a clean exit. A draft also records the absolute path the text came from, Base64-encoded so separators and newlines survive - that is encoding, not encryption - so a draft can outlive the document it came from.
+- **Next to your documents:** an overwrite keeps `<document>.bak`, `.bak.1` and `.bak.2`, and a save stages a `jtw-<name>*.tmp` file beside the document before renaming it into place. Both contain document text.
+- **Logs:** `logs/jtypewriter-0.log` to `jtypewriter-2.log` - three rotating generations of up to one megabyte each. They hold file paths, error messages and full stack traces.
+- **Deleting all of it:** quit the application first, otherwise the log handler and `instance.lock` are recreated, then delete `~/.jtypewriter` and any `<document>.bak*` or leftover `jtw-*.tmp` next to your documents. There is no in-app "delete all data" command, and uninstalling the application does not remove this data - removing an installed app image or package leaves `~/.jtypewriter` in place.
 
 ---
 
