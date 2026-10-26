@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -131,6 +132,52 @@ class MessagesTest {
         assertFalse(shortcuts.contains("Toolbar"), shortcuts);
         assertFalse(shortcuts.contains("Font"), shortcuts);
         assertFalse(shortcuts.contains("Dark"), shortcuts);
+    }
+
+    /**
+     * PW-22/U23: the welcome card used to say {@code Ctrl+S  Save / Save As} -
+     * promising a Save As chord the handler does not have - and never listed
+     * {@code Ctrl+Shift+S} or {@code Ctrl+Shift+Z}. The exact chord-to-action
+     * table lives in {@code ShortcutRowsTest}; here only the structure is
+     * pinned, language-neutrally: chords are not translated, so each line can
+     * be split at its space padding and the key column inspected without
+     * reading a single description.
+     *
+     * <p>The combined-row check compares descriptions rather than searching a
+     * line for {@code "Ctrl+S"} and {@code "Ctrl+Shift+S"}: plain substring
+     * matching is ambiguous, because {@code "Ctrl+Shift+S"} itself starts with
+     * {@code "Ctrl+S"} (the S of "Shift").
+     */
+    @Test
+    void theWelcomeCardSplitsSaveFromSaveAsAndListsCtrlShiftZ() {
+        for (var language : Language.values()) {
+            var lines = messagesFor(language).welcomeShortcuts().lines().toList();
+
+            for (var chord : new String[]{"Ctrl+S", "Ctrl+Shift+S", "Ctrl+Shift+Z"}) {
+                assertEquals(1, lines.stream().filter(line -> chord.equals(chordOf(line))).count(),
+                        language + ": the card must list " + chord + " exactly once");
+            }
+
+            var save = descriptionOf(lines, "Ctrl+S");
+            var saveAs = descriptionOf(lines, "Ctrl+Shift+S");
+            assertFalse(save.contains(saveAs),
+                    language + ": Save still carries the Save As text: " + save);
+        }
+    }
+
+    /** The chord column of a card row, i.e. everything before the space padding. */
+    private static String chordOf(String line) {
+        return line.split(" {2,}", 2)[0].trim();
+    }
+
+    private static String descriptionOf(List<String> lines, String chord) {
+        return lines.stream()
+                .filter(line -> chord.equals(chordOf(line)))
+                .map(line -> line.split(" {2,}", 2))
+                .filter(parts -> parts.length > 1)
+                .map(parts -> parts[1].trim())
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no row for " + chord));
     }
 
     /**

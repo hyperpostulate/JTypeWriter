@@ -1,14 +1,20 @@
 package org.mesutormanli.jtypewriter.ui;
 
+import javafx.scene.input.KeyCode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.Language;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.ui.KeyboardShortcutHandler.ShortcutAction;
 import org.mesutormanli.jtypewriter.ui.theme.Theme;
 
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -135,6 +141,68 @@ class ShortcutRowsTest {
         assertEquals("Bold", rows.get(0).description());
         assertEquals("Orphan line", rows.get(1).keys());
         assertEquals("", rows.get(1).description());
+    }
+
+    /**
+     * PW-22/U23: the card and the handler must tell the same story. The old
+     * list claimed {@code Ctrl+S  Save / Save As} - a shortcut the handler does
+     * not have, since Save As is {@code Ctrl+Shift+S} - and never mentioned
+     * {@code Ctrl+Shift+Z}, which the handler does map to Redo. Chords are
+     * language-independent (only descriptions are translated), so one table
+     * driven by the package-private {@link KeyboardShortcutHandler#resolve}
+     * covers every bundle.
+     *
+     * <p>The row order is pinned too: dropping a chord and duplicating another
+     * would keep a set equal, but the card would still list the wrong thing.
+     * {@code Escape} resolves to {@code NONE} on purpose - it is handled by the
+     * fullscreen exit combination, not by {@code resolve}, and the card must
+     * not promise it any other action.
+     */
+    @Test
+    void theCardListsExactlyTheChordsTheHandlerImplements() {
+        for (var language : Language.values()) {
+            var rows = ShortcutRows.parse(shortcutsFor(language));
+            var chords = rows.stream().map(ShortcutRows.Row::keys).toList();
+
+            assertEquals(List.copyOf(HANDLER_CHORDS.keySet()), chords,
+                    language + ": the card and the handler disagree on the chords");
+
+            for (var row : rows) {
+                var chord = HANDLER_CHORDS.get(row.keys());
+                assertEquals(chord.action(),
+                        KeyboardShortcutHandler.resolve(chord.code(), chord.shift()),
+                        language + " " + row.keys() + ": the card promises an action the handler does not perform");
+            }
+        }
+    }
+
+    /** A card chord and how the handler decodes it. */
+    private record Chord(KeyCode code, boolean shift, ShortcutAction action) {
+    }
+
+    /** The full card, in the order every bundle must list it. */
+    private static final Map<String, Chord> HANDLER_CHORDS = handlerChords();
+
+    private static Map<String, Chord> handlerChords() {
+        var chords = new LinkedHashMap<String, Chord>();
+        chords.put("Ctrl+T", new Chord(KeyCode.T, false, ShortcutAction.TOGGLE_TOOLBAR));
+        chords.put("Ctrl+Shift+T", new Chord(KeyCode.T, true, ShortcutAction.CYCLE_THEME));
+        chords.put("Ctrl+Shift+Y", new Chord(KeyCode.Y, true, ShortcutAction.TOGGLE_YOLO));
+        chords.put("Ctrl+Shift+C", new Chord(KeyCode.C, true, ShortcutAction.CYCLE_TEXT_COLOR));
+        chords.put("Ctrl++", new Chord(KeyCode.EQUALS, false, ShortcutAction.FONT_UP));
+        chords.put("Ctrl+-", new Chord(KeyCode.MINUS, false, ShortcutAction.FONT_DOWN));
+        chords.put("Ctrl+0", new Chord(KeyCode.DIGIT0, false, ShortcutAction.FONT_RESET));
+        chords.put("Ctrl+Z", new Chord(KeyCode.Z, false, ShortcutAction.UNDO));
+        chords.put("Ctrl+Shift+Z", new Chord(KeyCode.Z, true, ShortcutAction.REDO));
+        chords.put("Ctrl+Y", new Chord(KeyCode.Y, false, ShortcutAction.REDO));
+        chords.put("Ctrl+N", new Chord(KeyCode.N, false, ShortcutAction.NEW_DOCUMENT));
+        chords.put("Ctrl+O", new Chord(KeyCode.O, false, ShortcutAction.OPEN));
+        chords.put("Ctrl+S", new Chord(KeyCode.S, false, ShortcutAction.SAVE));
+        chords.put("Ctrl+Shift+S", new Chord(KeyCode.S, true, ShortcutAction.SAVE_AS));
+        chords.put("F11", new Chord(KeyCode.F11, false, ShortcutAction.TOGGLE_FULLSCREEN));
+        // Fullscreen exit is not resolved here; see the test javadoc.
+        chords.put("Escape", new Chord(KeyCode.ESCAPE, false, ShortcutAction.NONE));
+        return Collections.unmodifiableMap(chords);
     }
 
     private String shortcutsFor(Language language) {
