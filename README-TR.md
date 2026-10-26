@@ -18,7 +18,7 @@
 
 <p align="center">English version: <a href="README.md">README.md</a></p>
 
-JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap yok, bulut yok, proje biçimi yok. Metnin, seçtiğin dosyada ve o dosyanın zaten sahip olduğu kodlamada kalır. Java 25 ile Linux, Windows ve macOS'ta çalışır; arayüzü İngilizce, Türkçe, Almanca, Fransızca, İspanyolca ve İtalyanca konuşur.
+JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap yok, bulut yok, proje biçimi yok. Metnin, seçtiğin dosyada ve o dosyanın zaten sahip olduğu kodlamada kalır. Paketlenmiş uygulama kendi Java çalışma zamanını taşır, yani önce hiçbir şey kurmanız gerekmez; kaynaktan derleme veya fat JAR'ı çalıştırma JDK 25 ve Maven 3.8+ gerektirir. Linux, Windows ve macOS'ta çalışır ve arayüzü İngilizce, Türkçe, Almanca, Fransızca, İspanyolca ve İtalyanca konuşur.
 
 **Neler var?**
 
@@ -72,8 +72,8 @@ Canlı istatistik çubuğu:
 
 - **`F11` ekranı devralır, `Escape` geri verir:** tam ekran `F11` ile açılıp kapanır, `Escape` ile çıkılır (platformun varsayılan çıkış ipucu gizlenir)
 - **Araç çubuğu tamamen kaybolabilir:** ekranda yalnızca metin kalsın istediğinizde `Ctrl+T` onu kaldırır
-- **Araç çubuğu her zaman tek satırdır:** her pencere genişliğinde altı açılır liste değeriyle birlikte bir başlık gösterir ("Tema: Koyu", "Boyut: 16", "Dil: Deutsch"); başlıklı satır sığmadığında altı başlığın tamamı yalın değere iner ("Koyu", "16", "Deutsch"). Bu, gerçek yerelleştirilmiş etiketlerden ölçülür; böylece hiçbir şey taşmaz veya kırpılmaz. Beş düğme hiçbir zaman daralmaz ve görünür kalır
-  - **Her kontrole ulaşılır ve her kontrol açıklanır.** `Tab` kontrolleri soldan sağa görsel sırayla dolaşır (önce düğmeler, sonra açılır listeler); her kontrol görünür bir odak halkası ve arayüz dilinden gelen, varsa kısayolu da içeren bir tooltip taşır, örneğin "Kaydet (Ctrl+S)"
+- **Araç çubuğu ikinci satıra geçmez:** her genişlikte tek yatay satır kalır. Test edilen pencere boyutlarında altı açılır liste de değeriyle birlikte bir başlık gösterir ("Tema: Koyu", "Boyut: 16", "Dil: Deutsch") ve hiçbir şey taşmaz - 1280 px'te tam başlıklı, 900 px'te başlıklar yalın değere iner ("Koyu", "16", "Deutsch"), altı dilin tamamında, gerçek yerelleştirilmiş etiketlerden ölçülür. Daraltılmış satırın kendi genişliğinin altında açılır listeler daralmaya devam eder ve kırpılabilir, çünkü pencerenin minimum genişliği yoktur. Beş düğme hiçbir zaman daralmaz ve her zaman görünür kalır
+  - **Her kontrole ulaşılır ve her kontrol açıklanır.** `Tab` sabitlenmiş görsel sırayı izler: Aç, Kaydet, Geri Al, İleri Al, Tema, YOLO, Ses, Renk, Boyut, Hakkında, Dil. Sıra `viewOrder` ile ayarlanır; JavaFX bu özelliği çizim ve isabet alma için belgeler, yani odak sırası araç takımı garantisi değil uygulama sözleşmesidir. Her kontrol görünür bir odak halkası ve arayüz dilinden gelen, varsa kısayolu da içeren bir tooltip taşır, örneğin "Kaydet (Ctrl+S)"
 - **Yerleşiminiz hatırlanır:** araç çubuğunun görünür veya gizli durumu, tam ekran ve durum çubuğunun boyutu yeniden başlatmalarda korunur; bir tercih yalnızca çıkışta değil, her değiştirdiğinizde kaydedilir
   - **Tam ekran pencere geometrisiyle çakışmaz.** Tam ekranda bırakılan bir pencere yeniden tam ekran açılır; açılışta tam ekran, hatırlanan konum ve boyuta karşı kazanır, sonradan çıkıldığında hatırlanan konuma dönülür
 
@@ -94,7 +94,8 @@ Canlı istatistik çubuğu:
   - **Uyuşmayan bayt sıra işareti tahmin değil, sorudur.** UTF-8 veya UTF-16 bildiren ancak bazı baytları o kodlama için geçersiz olan bir bayt sıra işareti sessizce çözülmez: uygulama işaretin içerikle eşleşmediğini söyler, bildirilen kodlamayı ve dosyayı adlandırır ve açmadan önce sorar. Yine de açmak bozuk baytları değiştirme karakterleri olarak gösterir ve bunu loglar; iptal etmek mevcut belgeye dokunmaz
   - **Kayıt kodlamayı korur.** Belgeler aynı kodlamayla geri yazılır; yalnızca metin o kodlamaya sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) sunulan UTF-8'e geçişi kabul ederseniz kodlama değişir - temsil edilemeyen karakterler asla sessizce `?` yapılmaz
   - **BOM'suz UTF-16 dosyası tahmin edilmez, tanınır.** Bayt sıra işareti olmayan ve baytları UTF-16 parite düzenine uyan bir belge, NUL yüklü UTF-8 olarak kabul edilip sonraki kayıtta yeniden yazılmak yerine UTF-16LE veya UTF-16BE olarak açılır (ve loglanır); iki düzene de uymayan metin sessiz bir varsayım yerine yine Windows-1254/UTF-8 sorusunu alır
-- **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına tam yığın iziyle (neden zinciri dahil) yazılır ve sessizce kaybolmak yerine hata diyaloğuyla gösterilir
+- **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına tam yığın iziyle (neden zinciri dahil) yazılır; yakalanmamış çökmeler ve yazılamayan veya park edilemeyen bir kurtarma taslağı da sessizce kaybolmak yerine hata diyaloğu açar.
+  - **Bazı yollar yalnızca loglanır.** Başarısız bir ayar yazımı, başarısız bir tuş sesi ve başarısız bir geri alma geçmişi sıfırlaması diyalog olmadan loglanır; başarısız bir taslak silme diyalog değil durum çubuğu uyarısı gösterir.
   - **Bozuk durum üzerine yazılmaz, kenara alınır.** Bozuk ayar dosyası `settings.properties.corrupt` olarak kenara alınır ve içeriği tanılama için korunur.
   - **Loglama açılışı engelleyemez.** Log dosyası oluşturulamazsa - JVM ev dizinine erişimi reddederse veya log konumu salt okunursa - uygulama yalnızca konsol loglamasıyla açılır.
 
@@ -184,12 +185,20 @@ CSS dosyaları `src/main/resources/css/` konumundadır:
 
 | Gereksinim | Sürüm |
 |------------|-------|
-| Java       | 25+   |
-| Maven      | 3.8+  |
+| Paketlenmiş uygulama | Java gerekmez (gömülü JDK çalışma zamanı) |
+| Kaynaktan derleme / fat JAR | Java 25+, Maven 3.8+ |
 
 ---
 
 ## Kurulum
+
+### İndirme (son kullanıcılar)
+
+Kurulum paketini (`.deb`, `.msi`, `.dmg`) ya da taşınabilir `.tar.gz` dosyasını
+GitHub Releases varlıklarından, doğrulamak için `SHA256SUMS` dosyasıyla birlikte
+indirin. İki kanal da gömülü çalışma zamanı taşır, yani hiçbiri Java kurulumu
+gerektirmez. Aşağıdaki `git clone` ve `mvn clean install` adımları geliştirici
+yoludur, kullanıcı yolu değildir.
 
 ### Manuel Derleme
 
@@ -217,11 +226,16 @@ mvn test -Dtest=FileServiceTest      # Tek test sınıfı
 Paketleme iki JAR üretir: ince olanı (yalnızca uygulama sınıfları) ve JavaFX'i kendi native
 kütüphaneleriyle birlikte taşıyan `jar-with-dependencies`. Bu native kütüphaneler derlemenin
 yapıldığı makineden geldiği için fat JAR yalnızca derlendiği platformda çalışır; kolaylık
-artefaktıdır, platformlar arası dağıtım için `scripts/package.sh` kullanılır. Geliştirme
+artefaktıdır, platformlar arası dağıtım değildir; `scripts/package.sh` yerel bir imaj
+üretir ve ana makinenin platformunu seçtiği için her hedef platformda çalıştırılması
+gerekir - sürüm iş akışı bunu her işletim sistemi için bir kez çalıştırır. Geliştirme
 girişi `mvn javafx:run` komutudur. `scripts/package.sh`, fat JAR'ı `jpackage` ile gömülü
 çalışma zamanlı yerel bir uygulama görüntüsüne sarar; `--installer` seçeneği bu görüntüyü
 Linux, Windows ve macOS için platform kurulum paketine (`.deb`, `.msi`, `.dmg`) dönüştürür —
-CI iş akışının çalıştırdığı komut da budur. Uygulama sürümünün tek kaynağı `pom.xml`'dir:
+CI iş akışının çalıştırdığı komut da budur. Her sürüm her platform için iki kanalı da
+yayımlar: kurulum paketi ve taşınabilir `.tar.gz`; hangisinin ürün varsayılanı olacağı hâlâ
+açık bir karardır (`docs/product-roadmap.md` §2.3), yani `--installer` desteklenen
+yollardan biridir, kararlaştırılmış olan değil. Uygulama sürümünün tek kaynağı `pom.xml`'dir:
 script sürümü üretilen artefaktten geri okur ve jpackage kurallarına karşı doğrular
 (örneğin macOS `0.x` paket sürümlerini reddeder).
 
@@ -235,7 +249,7 @@ güncelliklerini doğrular); `scripts/package.sh` platforma göre doğru biçimi
 
 ## CI/CD
 
-GitHub Actions iş akışları: her push'ta derleme ve test (`.github/workflows/maven.yml`), sürüm tag'inde yayın (`.github/workflows/release.yml`).
+GitHub Actions iş akışları: `main` dalına her push ve pull request'te derleme ve test (`.github/workflows/maven.yml`), sürüm tag'inde yayın (`.github/workflows/release.yml`).
 
 - **Tetikleme**: `main` dalına her push ve pull request'te çalışır
 - **Ortam**: Ubuntu, Windows ve macOS (build matrisi)
@@ -405,7 +419,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `ToolbarStateTest` | Ses açılır listesinin tek ayarlayıcısı: yeniden başlatmada kalıcılık, ses motorunun takip etmesi, tekrarların etkisiz olması |
 | `ToolbarFitTest` | Araç çubuğu taşma politikası: başlıklı satırın (düğmeler, açılır listeler, ayırıcı, çerçeve) enjekte edilen ölçülerle nasıl hesaplandığı, FULL→COMPACT geçişi ve 40 px histerezisi; ayrıca Almanca ve Fransızcanın 1280 px'te kırpılmadığını ve daraltılmış satırın altı dilde 900 px'e sığdığını kanıtlayan kabul testleri |
 | `PackagingNoticesTest` | PW-34 paketleme sözleşmesi: `META-INF/THIRD-PARTY-NOTICES` ve iki lisans metni sınıf yolunda; bildirim her paketlenen bileşeni gerçek SPDX kimliğiyle adlandırıyor, FFmpeg'in dağıtılmadığını söylüyor, 100 sütun içinde yalnızca LF kullanıyor ve depodaki dosyayla bayt-özdeş, böylece bayat bir derleme çıktısı testi geçemiyor |
-| `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni, `-stats-warning-text` otomatik kayıt uyarısı, odak halkası veya popup hücresi kuralları AA'nın / 13 px'in altına düşerse ya da odak rengi yeniden saydamlaşırsa ya da var olmayan bir JavaFX CSS özelliği (`-fx-letter-spacing`, `-fx-transition`) geri dönerse derlemeyi başarısız kılan CSS ayrıştırma korumaları |
+| `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni ya da otomatik kayıt uyarısı AA'nın veya 13 px'in altına düşerse, odak halkası 3:1'in altına düşerse, vurgulanan popup satırı metni AA'nın altına düşerse, popup hücresi yazı boyutu kapalı combo'nun boyutundan saparsa, odak rengi yeniden saydamlaşırsa ya da var olmayan bir JavaFX CSS özelliği (`-fx-letter-spacing`, `-fx-transition`) geri dönerse derlemeyi başarısız kılan CSS ayrıştırma korumaları |
 
 ---
 

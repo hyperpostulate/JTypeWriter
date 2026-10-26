@@ -18,7 +18,7 @@
 
 <p align="center">Türkçe sürüm: <a href="README-TR.md">README-TR.md</a></p>
 
-JTypeWriter opens a single plain-text document and then stays out of the way: no accounts, no cloud, no project format. Your text lives in the file you picked, in the encoding that file already had. It runs on Linux, Windows and macOS with Java 25, and the interface speaks English, Turkish, German, French, Spanish and Italian.
+JTypeWriter opens a single plain-text document and then stays out of the way: no accounts, no cloud, no project format. Your text lives in the file you picked, in the encoding that file already had. The packaged download carries its own Java runtime, so nothing has to be installed first; building from source or running the fat JAR needs JDK 25 and Maven 3.8+. It runs on Linux, Windows and macOS, and the interface speaks English, Turkish, German, French, Spanish and Italian.
 
 **What you get?**
 
@@ -72,8 +72,8 @@ Live stats bar showing:
 
 - **`F11` takes over the screen, `Escape` gives it back:** `F11` toggles fullscreen and `Escape` leaves it (the platform's default exit hint is suppressed)
 - **The toolbar can disappear completely:** `Ctrl+T` removes it when you want nothing but text on screen
-- **The toolbar is always one row:** at every window width the six dropdowns show a caption with their value ("Theme: Dark", "Size: 16", "Language: Deutsch"); when the fully-captioned row no longer fits, all six captions collapse to the bare value ("Dark", "16", "Deutsch"), measured from the actual localised labels, so nothing overflows or gets clipped. The five buttons never collapse and always stay visible
-  - **Every control is reachable and explained.** `Tab` walks the controls in left-to-right visual order (buttons first, then the dropdowns), each keeps a visible focus ring and a tooltip from the UI language that includes the shortcut where one exists, such as "Save (Ctrl+S)"
+- **The toolbar never wraps to a second row:** at every width it stays one horizontal row. At the tested window sizes the six dropdowns show a caption with their value ("Theme: Dark", "Size: 16", "Language: Deutsch") and nothing overflows - fully captioned at 1280 px, captions collapsed to the bare value ("Dark", "16", "Deutsch") at 900 px in all six languages, measured from the actual localised labels. Below the collapsed row's own width the dropdowns keep shrinking and can clip, because the window has no minimum width. The five buttons never collapse and always stay visible
+  - **Every control is reachable and explained.** `Tab` follows the pinned visual order: Open, Save, Undo, Redo, Theme, YOLO, Sound, Color, Size, About, Language. The order is set with `viewOrder`; JavaFX documents that property for rendering and picking, so the focus order is an application convention rather than a toolkit guarantee. Each control keeps a visible focus ring and a tooltip from the UI language that includes the shortcut where one exists, such as "Save (Ctrl+S)"
 - **Your layout is remembered:** the toolbar's shown or hidden state, fullscreen and the status bar's size all survive a restart, and a choice is saved the moment you toggle it rather than only on exit
   - **Fullscreen never fights the window geometry.** A window left in fullscreen comes back in fullscreen; fullscreen wins at startup over the remembered position and size, and leaving it later lands on the remembered position
 
@@ -94,7 +94,8 @@ Live stats bar showing:
   - **A mismatched byte-order mark is a question, not a guess.** A BOM that declares UTF-8 or UTF-16 while some bytes are invalid for that encoding is not decoded silently: the app says the mark does not match the content, names the declared encoding and the file, and asks before opening. Opening anyway shows the broken bytes as replacement characters and logs it; cancelling leaves the current document untouched
   - **Saves keep the encoding.** Documents are written back in the same encoding unless you accept the offered switch to UTF-8 when the text no longer fits (e.g. a pasted emoji in a Windows-1254 file) - unmappable characters are never silently replaced with `?`
   - **A BOM-less UTF-16 file is recognised, not guessed or rewritten.** A document without a byte-order mark whose bytes follow the UTF-16 parity pattern is opened as UTF-16LE or UTF-16BE (and logged) instead of being accepted as NUL-heavy UTF-8 and rewritten on the next save; text that fits neither pattern still gets the Windows-1254/UTF-8 question rather than a silent assumption
-- **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` and surfaced in an error dialog instead of failing silently, with their full stack trace (including the cause chain)
+- **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` with their full stack trace (including the cause chain); uncaught crashes and a recovery draft that cannot be written or parked also open an error dialog instead of failing silently.
+  - **Some paths log only.** A failed settings write, a failing keystroke sound and a failed undo-history reset are logged without a dialog; a failed draft delete raises a status-bar warning, not a dialog.
   - **Bad state is set aside, not overwritten.** A corrupt settings file is moved aside as `settings.properties.corrupt` and its content kept for diagnostics.
   - **Logging cannot block startup.** If the log file cannot be created - a home directory the JVM denies or a read-only log location - the app starts with console logging only.
 
@@ -183,12 +184,20 @@ CSS files are located in `src/main/resources/css/`:
 
 | Requirement | Version |
 |-------------|---------|
-| Java        | 25+     |
-| Maven       | 3.8+    |
+| Packaged application | No Java required (bundled JDK runtime) |
+| Building from source / fat JAR | Java 25+, Maven 3.8+ |
 
 ---
 
 ## Installation
+
+### Download (end users)
+
+Download the installer (`.deb`, `.msi`, `.dmg`) or the portable `.tar.gz` from
+the GitHub Releases assets, together with the `SHA256SUMS` file that lets you
+verify it. Both channels carry a bundled runtime, so neither needs Java
+installed. The `git clone` and `mvn clean install` steps below are the
+developer path, not the user path.
 
 ### Manual Build
 
@@ -217,13 +226,19 @@ Packaging produces two JARs: a thin one (application classes only) and a
 `jar-with-dependencies` that bundles JavaFX together with its native libraries.
 Because those natives come from the build machine, the fat JAR runs only on the
 platform it was built on - it is a convenience artifact, not a cross-platform
-distribution; use `scripts/package.sh` for that. `mvn javafx:run` is the development
-entry point. `scripts/package.sh` wraps the fat JAR into a native application image
-with a bundled runtime via `jpackage`, and `--installer` wraps that image into the
+distribution; `scripts/package.sh` builds a native image, and because it selects
+the host platform it has to be run on each target platform - the release
+workflow runs it once per OS. `mvn javafx:run` is the development entry point.
+`scripts/package.sh` wraps the fat JAR into a native application image with a
+bundled runtime via `jpackage`, and `--installer` wraps that image into the
 platform installer (`.deb`, `.msi`, `.dmg`) for Linux, Windows and macOS - the same
-command the CI workflow runs. The application version has a single source of truth:
-`pom.xml`. The script reads it back from the built artifact and validates it against
-jpackage's rules (macOS, for one, rejects `0.x` bundle versions).
+command the CI workflow runs. Every release publishes both channels for each
+platform, the installer and a portable `.tar.gz`; which one becomes the product
+default is still an open decision (`docs/product-roadmap.md` §2.3), so
+`--installer` is one supported path, not the decided one. The application
+version has a single source of truth: `pom.xml`. The script reads it back from
+the built artifact and validates it against jpackage's rules (macOS, for one,
+rejects `0.x` bundle versions).
 
 The launcher, window and taskbar icon is generated from the single source of the
 artwork, `src/main/resources/icons/jtypewriter.svg`: `scripts/generate-icons.py`
@@ -234,7 +249,7 @@ they are current), and `scripts/package.sh` picks the right format per platform.
 
 ## CI/CD
 
-GitHub Actions workflows: build and test on every push (`.github/workflows/maven.yml`), release on a version tag (`.github/workflows/release.yml`).
+GitHub Actions workflows: build and test on every push and pull request to `main` (`.github/workflows/maven.yml`), release on a version tag (`.github/workflows/release.yml`).
 
 - **Trigger**: Runs on every push and pull request to `main`
 - **Environment**: Ubuntu, Windows and macOS (build matrix)
@@ -404,7 +419,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `ToolbarStateTest` | The sound dropdown's single setter: persistence across a restart, the audio engine follows, repeats are no-ops |
 | `ToolbarFitTest` | Toolbar overflow policy: how the captioned row is measured (buttons, dropdowns, spacer, chrome) with injected metrics, the FULL→COMPACT switch and its 40 px hysteresis, plus acceptance tests proving German and French are not clipped at 1280 px and that the collapsed row fits 900 px in all six languages |
 | `PackagingNoticesTest` | The PW-34 packaging contract: `META-INF/THIRD-PARTY-NOTICES` and both license texts are on the classpath, the notice names every bundled component with its real SPDX id, states that FFmpeg is not distributed, stays LF-only within 100 columns, and is byte-identical to the checked-in file so a stale build output cannot pass |
-| `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text, the `-stats-warning-text` autosave warning, focus-ring or popup-cell rules drift below AA / below 13 px / make the focus colour transparent again, or if a non-existent JavaFX CSS property (`-fx-letter-spacing`, `-fx-transition`) returns |
+| `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text or the autosave warning drops below AA or 13 px, the focus ring drops below 3:1, highlighted popup-row text drops below AA, the popup cell font size drifts from the closed combo's, the focus colour becomes transparent again, or a non-existent JavaFX CSS property (`-fx-letter-spacing`, `-fx-transition`) returns |
 
 ---
 
