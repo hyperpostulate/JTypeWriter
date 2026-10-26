@@ -10,11 +10,19 @@
     <packaging>jar</packaging>
     <name>JTypeWriter</name>
     <description>A distraction-free text editor</description>
+    <url>https://github.com/hyperpostulate/JTypeWriter</url>
+
+    <organization>
+        <name>Mesut ORMANLI</name>
+        <url>https://github.com/hyperpostulate</url>
+    </organization>
 
     <!--
         Declared here as well as in the artifacts so `mvn help:effective-pom`
-        answers "what is this under" without opening the jar. The bundled
-        OpenJDK runtime and JavaFX stay GPLv2 + Classpath Exception; see NOTICE.
+        answers "what is this under" without opening the jar, and so Maven
+        Central-style tooling and SBOM generators can read the license without
+        guessing. The bundled OpenJDK runtime and JavaFX stay GPLv2 + Classpath
+        Exception; see NOTICE.
     -->
     <licenses>
         <license>
@@ -24,10 +32,33 @@
         </license>
     </licenses>
 
+    <developers>
+        <developer>
+            <id>hyperpostulate</id>
+            <name>Mesut ORMANLI</name>
+            <email>mesutormanli@gmail.com</email>
+            <url>https://github.com/hyperpostulate</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/hyperpostulate/JTypeWriter.git</connection>
+        <developerConnection>scm:git:git@github.com:hyperpostulate/JTypeWriter.git</developerConnection>
+        <url>https://github.com/hyperpostulate/JTypeWriter</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <properties>
         <java.version>25</java.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!--
+            Reproducible builds (B5): archive entries take this fixed epoch
+            instead of the wall clock at build time, so the same source and
+            toolchain produce identical timestamps. Bumped only with a release,
+            never per commit.
+        -->
+        <project.build.outputTimestamp>2026-10-25T00:00:00Z</project.build.outputTimestamp>
         <javafx.version>26.0.1</javafx.version>
         <junit.version>6.0.3</junit.version>
         <mockito.version>5.23.0</mockito.version>

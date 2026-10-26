@@ -1,0 +1,21 @@
+# Line endings are part of the build contract (B6). Text is normalised in the
+# repository and checked out with LF by default, so a Windows clone cannot hand
+# `bash scripts/package.sh` a CRLF shebang. Windows-native entry points keep
+# CRLF; binaries are never converted.
+#
+# This also keeps the artefact bytes stable across platforms, which is what the
+# reproducible-build timestamp in pom.xml relies on (B5).
+
+* text=auto eol=lf
+
+*.sh   text eol=lf
+*.py   text eol=lf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+*.png  binary
+*.ico  binary
+*.icns binary
+*.jar  binary
+*.wav  binary
