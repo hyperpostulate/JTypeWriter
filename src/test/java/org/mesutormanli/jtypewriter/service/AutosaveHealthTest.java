@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * PW-27: the autosave health value. State is sticky until a real success, and
+ * The autosave health value. State is sticky until a real success, and
  * listeners fire only on real transitions so a persistently failing tick does
  * not repaint the status bar every 30 seconds.
  */

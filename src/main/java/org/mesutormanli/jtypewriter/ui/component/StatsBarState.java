@@ -8,7 +8,7 @@ package org.mesutormanli.jtypewriter.ui.component;
 import org.mesutormanli.jtypewriter.AppSettings;
 
 /**
- * RW-18: the stats bar text size, persisted through {@link AppSettings} so it
+ * The stats bar text size, persisted through {@link AppSettings} so it
  * survives a restart. Non-Node UI state, following the {@link ToolbarState}
  * precedent: {@link StatsBar} owns the pixels, this class owns the choice -
  * which means the double-click cycle writes through to disk and the restored

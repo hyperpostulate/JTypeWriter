@@ -16,7 +16,7 @@ import java.util.List;
  * Puts the application stylesheets on an {@link javafx.scene.control.Alert}'s
  * dialog pane. Every Alert must be themed: without this the pane falls back to
  * Modena's white box with black text, contradicting the dark or sepia window
- * around it (analysis U3).
+ * around it.
  */
 public final class DialogStyling {
 

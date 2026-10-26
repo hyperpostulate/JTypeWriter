@@ -183,7 +183,7 @@ class AppLoggingTest {
     }
 
     /**
-     * V18/PW-30: the exact defect. {@code SecurityException} used to escape
+     * The exact defect. {@code SecurityException} used to escape
      * {@code init()} and surface as {@code ExceptionInInitializerError} from the
      * {@code static final Logger} fields, so the application never started on a
      * sandboxed home directory. The directory is now resolved inside the guard,
@@ -217,7 +217,7 @@ class AppLoggingTest {
     @Test
     void enablingLoggingFromAStaticInitialiserNeverThrows() {
         var logger = assertDoesNotThrow(() -> AppLogging.logger(AppLoggingTest.class),
-                "V18: logger() runs in static initialisers and must never throw");
+                "logger() runs in static initialisers and must never throw");
 
         assertNotNull(logger);
         assertEquals(AppLoggingTest.class.getName(), logger.getName());

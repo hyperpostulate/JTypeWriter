@@ -68,8 +68,8 @@ class AutoSaveServiceTest {
     }
 
     /**
-     * PW-26: only an exit whose close request was actually answered may delete
-     * the draft. The old code deleted on every {@code WINDOW_HIDDEN}, which also
+     * Only an exit whose close request was actually answered may delete the
+     * draft. The old code deleted on every {@code WINDOW_HIDDEN}, which also
      * fires for {@code Platform.exit()} and a session log-out - exits that never
      * asked the user anything about unsaved changes.
      */
@@ -86,9 +86,9 @@ class AutoSaveServiceTest {
     }
 
     /**
-     * PW-26: the complement of {@link #answeredExitDropsAResolvedDraft}. An exit
-     * nobody asked about parks the live draft instead of deleting it, so the
-     * text is offered again on the next start.
+     * The complement of {@link #answeredExitDropsAResolvedDraft}. An exit nobody
+     * asked about parks the live draft instead of deleting it, so the text is
+     * offered again on the next start.
      */
     @Test
     void anUnaskedExitParksTheDraftInsteadOfDeletingIt(@TempDir Path dir) throws Exception {
@@ -127,9 +127,9 @@ class AutoSaveServiceTest {
     }
 
     /**
-     * PW-26: with the close request answered the session's own draft goes, and
-     * the copy parked for the next start is untouched - the two never collapse
-     * into one.
+     * With the close request answered the session's own draft goes, and the
+     * copy parked for the next start is untouched - the two never collapse into
+     * one.
      */
     @Test
     void aCleanExitAfterPostponingDropsOnlyTheLiveDraft(@TempDir Path dir) throws Exception {
@@ -152,8 +152,8 @@ class AutoSaveServiceTest {
     }
 
     /**
-     * PW-26: without an answered close request the live copy is parked too, so
-     * nothing written this session is discarded by an unasked exit.
+     * Without an answered close request the live copy is parked too, so nothing
+     * written this session is discarded by an unasked exit.
      */
     @Test
     void anUnaskedExitAfterPostponingParksBothCopies(@TempDir Path dir) throws Exception {
@@ -172,9 +172,9 @@ class AutoSaveServiceTest {
     }
 
     /**
-     * PW-26: a postponed draft that could not be parked freezes the slot. An
-     * exit then keeps the file exactly as it is - deleting or re-parking it
-     * would destroy the only copy.
+     * A postponed draft that could not be parked freezes the slot. An exit then
+     * keeps the file exactly as it is - deleting or re-parking it would destroy
+     * the only copy.
      */
     @Test
     void aFrozenSlotSurvivesExitAndReportsTheParkFailure() {
@@ -190,9 +190,9 @@ class AutoSaveServiceTest {
     }
 
     /**
-     * PW-27: a failing snapshot must not be a log line nobody reads. The first
-     * failure raises one dialog with the localised text, later failures only
-     * keep the health state, and a working snapshot withdraws it.
+     * A failing snapshot must not be a log line nobody reads. The first failure
+     * raises one dialog with the localised text, later failures only keep the
+     * health state, and a working snapshot withdraws it.
      */
     @Test
     void aFailedSnapshotReportsOnceAndASuccessClearsTheWarning() throws Exception {
@@ -226,9 +226,9 @@ class AutoSaveServiceTest {
     }
 
     /**
-     * PW-27: the health value is sticky, not sampled - only real transitions
-     * reach the listener, so the status bar is not repainted every 30 seconds
-     * while the failure persists.
+     * The health value is sticky, not sampled - only real transitions reach the
+     * listener, so the status bar is not repainted every 30 seconds while the
+     * failure persists.
      */
     @Test
     void healthNotifiesOnlyOnRealTransitions() throws Exception {
@@ -255,9 +255,9 @@ class AutoSaveServiceTest {
     }
 
     /**
-     * V17/PW-28: a failed delete must not look like a clean slot. The warning
-     * stays, but the one-off dialog is reserved for write failures - its copy is
-     * about writing a recovery copy, which is not what went wrong here.
+     * A failed delete must not look like a clean slot. The warning stays, but
+     * the one-off dialog is reserved for write failures - its copy is about
+     * writing a recovery copy, which is not what went wrong here.
      */
     @Test
     void aFailedDeleteKeepsTheWarningAndRaisesNoDialog() {
@@ -279,8 +279,8 @@ class AutoSaveServiceTest {
     }
 
     /**
-     * V17/PW-28: the delete failure is sticky like any other problem, and a
-     * later delete that actually works withdraws it on its own.
+     * The delete failure is sticky like any other problem, and a later delete
+     * that actually works withdraws it on its own.
      */
     @Test
     void aLaterSuccessfulDeleteWithdrawsIt() {
@@ -298,7 +298,7 @@ class AutoSaveServiceTest {
                 "a successful delete is the success that withdraws DRAFT_DELETE");
     }
 
-    /** V17/PW-28: only a strictly newer file makes a draft stale. */
+    /** Only a strictly newer file makes a draft stale. */
     @Test
     void draftPrecedesFileOnlyWhenTheFileIsStrictlyNewer() {
         var savedAt = Instant.parse("2024-01-01T00:00:00Z");
@@ -315,9 +315,10 @@ class AutoSaveServiceTest {
     }
 
     /**
-     * V17 does not have to be prevented by the delete alone: even when the stale
-     * draft survives, restoring it must not target the newer document's path.
-     * The text is still recovered - forcing Save As - never silently dropped.
+     * The stale-draft hazard does not have to be prevented by the delete alone:
+     * even when the stale draft survives, restoring it must not target the newer
+     * document's path. The text is still recovered - forcing Save As - never
+     * silently dropped.
      *
      * <p>The decision is asserted through the package-private
      * {@code restoreTarget}: {@code EditorArea} cannot be mocked headlessly

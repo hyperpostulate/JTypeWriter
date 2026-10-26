@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Headless guard for the Alert keyboard contract (analysis U11). {@code ButtonType}
+ * Headless guard for the Alert keyboard contract. {@code ButtonType}
  * and {@code ButtonBar.ButtonData} are plain data classes, so no JavaFX toolkit,
  * window or control is started here.
  */

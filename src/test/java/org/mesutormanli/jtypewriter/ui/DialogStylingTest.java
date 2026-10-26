@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Headless guard for the themed Alert chrome (analysis U3). No JavaFX control,
+ * Headless guard for the themed Alert chrome. No JavaFX control,
  * dialog pane or scene is constructed: the tests pin the pure path list and the
  * CSS wiring that makes the dialog tokens resolvable in every theme.
  */

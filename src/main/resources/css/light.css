@@ -1,7 +1,7 @@
 /* Light theme */
 
 /* The .dialog-pane selector carries the tokens onto Alert panes, which have no
-   .root ancestor (U3): dialogs are themed even where .root never matches. */
+   .root ancestor: dialogs are themed even where .root never matches. */
 .root, .dialog-pane {
     -editor-bg: #ffffff;
     -toolbar-bg: #f5f5f5;
@@ -12,13 +12,13 @@
     -toolbar-separator-color: #cccccc;
     /* #6e6e6e on #f5f5f5 = 4.68:1 (was #888888, 3.25:1 - below AA). */
     -stats-text: #6e6e6e;
-    /* "Saved hh:mm" confirmation (RW-19): #2f6b34 on #f5f5f5 = 5.88:1. A deep
+    /* "Saved hh:mm" confirmation: #2f6b34 on #f5f5f5 = 5.88:1. A deep
        green rather than the dark theme's lightened one, to keep the same read. */
     -stats-save-text: #2f6b34;
-    /* Autosave warning (V4/PW-27): #7a4a00 on #f5f5f5 = 6.90:1. A deep amber,
+    /* Autosave warning: #7a4a00 on #f5f5f5 = 6.90:1. A deep amber,
        dark enough to stay readable on the light bar. */
     -stats-warning-text: #7a4a00;
-    /* Focus ring (RW-17): 4.41:1 against the toolbar, 4.80:1 against the
+    /* Focus ring: 4.41:1 against the toolbar, 4.80:1 against the
        editor, 3.64:1 against the hover wash (>=3:1 for non-text UI).
        -focus-ring-text is the on-accent colour for popup rows. */
     -focus-ring: #876e4e;

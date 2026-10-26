@@ -54,7 +54,7 @@ public class AboutDialog {
         var titleLabel = new Label("JTypeWriter");
         titleLabel.getStyleClass().add("welcome-title");
 
-        // PW-16: field reports need a version to name, so the running version
+        // Field reports need a version to name, so the running version
         // (from the Maven metadata, never hard-coded) sits right under the title.
         var versionLabel = new Label(messages.aboutVersion(AppVersion.get()));
         versionLabel.getStyleClass().add("about-version");
@@ -69,7 +69,7 @@ public class AboutDialog {
         // Same two-column grid as the welcome dialog (see ShortcutTable):
         // real columns instead of the space-padded single Label, with the
         // wrapping the long German/French/Italian/Spanish descriptions need
-        // (U5) handled inside the grid.
+        // is handled inside the grid.
         var shortcuts = ShortcutTable.build(
                 ShortcutRows.parse(messages.welcomeShortcuts()), CONTENT_WIDTH);
 
@@ -132,7 +132,7 @@ public class AboutDialog {
         var surface = themeManager.getCurrentTheme().getDialogFill();
         // Preferred size stays the historical card size, so the tallest locales
         // still fit without scrolling; clamping then keeps the window inside
-        // the visual bounds on a 768 px-tall display (U4).
+        // the visual bounds on a 768 px-tall display.
         var visual = Screen.getPrimary().getVisualBounds();
         var scene = new Scene(shell,
                 DialogSizing.clampWidth(540 + 2 * SHELL_MARGIN, visual.getWidth()),

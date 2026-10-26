@@ -78,7 +78,7 @@ public class MainController implements Initializable {
         this.autoSaveService = autoSaveService;
         this.settings = settings;
         this.clock = clock;
-        // RW-18: the toolbar comes back exactly as visible (or hidden) as the
+        // The toolbar comes back exactly as visible (or hidden) as the
         // user left it; applied in initialize(), i.e. before the first paint.
         this.toolbarVisible = settings.isToolbarVisible();
     }
@@ -98,7 +98,7 @@ public class MainController implements Initializable {
 
             @Override
             public void onSaved(java.nio.file.Path file) {
-                // RW-19: onSaved is the dirty→clean seam in FileService (the
+                // The onSaved listener is the dirty→clean seam in FileService (the
                 // autosave draft snapshot never reaches it), so this is the
                 // one honest moment to show "Saved 12:04" in the stats bar.
                 lastSavedAt = clock.get();
@@ -128,7 +128,7 @@ public class MainController implements Initializable {
     }
 
     /**
-     * V4/PW-27 / V17/PW-28: the safety net's state, rendered as a persistent
+     * The safety net's state, rendered as a persistent
      * warning in the status bar. Autosave failures used to be a {@code WARNING}
      * line in a log file nobody opens, while the product kept promising crash
      * protection it could no longer deliver; the bar now says so for as long as
@@ -185,7 +185,7 @@ public class MainController implements Initializable {
     }
 
     /**
-     * RW-19: pure save-status composition, the {@link #titleFor} precedent for
+     * Pure save-status composition, the {@link #titleFor} precedent for
      * headless tests. {@code template} is the localized {@code MessageFormat}
      * pattern from the bundle ({@code savedStatus}, {@code {0}} is the time)
      * and {@code savedAt} the already-resolved save time - the clock is
@@ -216,7 +216,7 @@ public class MainController implements Initializable {
         editorArea.textProperty().addListener((obs, oldVal, newVal) -> {
             fileService.setCurrentContent(newVal);
             refreshTitle(); // keep the dirty marker in the title in step with the text
-            // RW-19: the document is dirty again the moment it changes, so a
+            // The document is dirty again the moment it changes, so a
             // "Saved ..." claim would be a lie - drop it with the first edit.
             clearSaveStatus();
         });
@@ -226,7 +226,7 @@ public class MainController implements Initializable {
         toolbarVisible = !toolbarVisible;
         toolbarView.setVisible(toolbarVisible);
         toolbarView.setManaged(toolbarVisible);
-        // RW-18: write through immediately, like every other setting
+        // Write through immediately, like every other setting
         settings.setToolbarVisible(toolbarVisible);
         if (handOffFocusToEditor(toolbarVisible)) {
             // The focused control just vanished; without this the caret is lost

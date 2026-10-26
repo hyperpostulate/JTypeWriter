@@ -50,7 +50,7 @@ class MainStageTest {
     }
 
     /**
-     * RW-18: fullscreen and maximized are mutually exclusive at restore, and
+     * Fullscreen and maximized are mutually exclusive at restore, and
      * fullscreen wins, so the two persisted window states can never be applied
      * in a contradictory order.
      */

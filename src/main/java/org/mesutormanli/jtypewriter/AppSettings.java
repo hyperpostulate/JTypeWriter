@@ -53,7 +53,7 @@ public final class AppSettings {
     }
 
     /**
-     * Persisted stats bar text size (RW-18). A neutral mirror of
+     * Persisted stats bar text size. A neutral mirror of
      * {@code StatsBar.Size}: this class must never reference a class that
      * extends a JavaFX control (it is constructed before the toolkit exists
      * and used from headless tests), so the two enums are mapped by name in
@@ -140,7 +140,7 @@ public final class AppSettings {
         set(KEY_SOUND, String.valueOf(enabled));
     }
 
-    /** Whether the toolbar was showing at the last exit (RW-18, default: showing). */
+    /** Whether the toolbar was showing at the last exit (default: showing). */
     public boolean isToolbarVisible() {
         return getBool(KEY_TOOLBAR_VISIBLE, true);
     }
@@ -149,7 +149,7 @@ public final class AppSettings {
         set(KEY_TOOLBAR_VISIBLE, String.valueOf(visible));
     }
 
-    /** The stats bar text size from the last session (RW-18, default: {@code MEDIUM}). */
+    /** The stats bar text size from the last session (default: {@code MEDIUM}). */
     public StatsBarSize getStatsBarSize() {
         return optionalEnum(KEY_STATS_SIZE, StatsBarSize.class).orElse(StatsBarSize.MEDIUM);
     }
@@ -217,7 +217,7 @@ public final class AppSettings {
     }
 
     /**
-     * Whether the window was in fullscreen at the last exit (RW-18, default:
+     * Whether the window was in fullscreen at the last exit (default:
      * windowed). A separate key from the geometry because it is persisted the
      * moment fullscreen is toggled, not only when the window hides: a kill
      * after the toggle must not lose it, and while a fullscreen window is
@@ -334,7 +334,7 @@ public final class AppSettings {
      * The window geometry guard in {@code MainStage} cannot screen that:
      * {@code Infinity > 0} is true and an infinite rectangle intersects every
      * screen. A non-finite value is therefore treated like a missing or
-     * malformed one, and the caller falls back to its default (V15).</p>
+     * malformed one, and the caller falls back to its default.</p>
      */
     private Optional<Double> optionalDouble(String key) {
         var raw = props.getProperty(key);

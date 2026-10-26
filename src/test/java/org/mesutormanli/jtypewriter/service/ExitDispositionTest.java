@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * PW-26: the whole exit matrix as a pure decision.
+ * The whole exit matrix as a pure decision.
  *
  * <p>The four combinations of the two inputs are exhaustive, and they pin the
  * rule that the draft is only ever deleted after the window's close request was

@@ -274,7 +274,7 @@ public class DialogService {
             alert.initOwner(stage);
         }
         // One call covers every alert above: the pane only gets themed when the
-        // scene stylesheets reach it, never on its own (analysis U3).
+        // scene stylesheets reach it, never on its own.
         DialogStyling.applyFromScene(
                 alert.getDialogPane(), stage == null ? null : stage.getScene());
     }

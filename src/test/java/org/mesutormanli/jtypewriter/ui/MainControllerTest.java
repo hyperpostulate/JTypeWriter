@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The window title is the only place a user can see which document is open and
  * whether it is saved (the toolbar can be hidden), and the stats bar carries
- * the "Saved 12:04" confirmation (RW-19). Both compositions are pure so they
+ * the "Saved 12:04" confirmation. Both compositions are pure so they
  * can be pinned down here without a JavaFX toolkit.
  */
 class MainControllerTest {
@@ -49,7 +49,7 @@ class MainControllerTest {
     }
 
     /**
-     * Analysis M4: the text listener refreshes the title on every keystroke, so
+     * The text listener refreshes the title on every keystroke, so
      * an unchanged composition must never reach the native window again.
      */
     @Test
@@ -63,9 +63,9 @@ class MainControllerTest {
     }
 
     /**
-     * RW-19: the save status is composed from the bundle pattern and an
+     * The save status is composed from the bundle pattern and an
      * injected time (SessionStats' clock idiom), so it tests headlessly with
-     * a fixed time - and the acceptance example "Saved 12:04" is pinned.
+     * a fixed time - and the reference example "Saved 12:04" is pinned.
      */
     @Test
     void savedStatusUsesTheInjectedTime() {
@@ -77,7 +77,7 @@ class MainControllerTest {
     }
 
     /**
-     * The toolbar toggle is a focus boundary too (analysis U8): the control
+     * The toolbar toggle is a focus boundary too: the control
      * that had focus may be gone after it, so hiding the toolbar has to hand
      * the caret back to the editor.
      */

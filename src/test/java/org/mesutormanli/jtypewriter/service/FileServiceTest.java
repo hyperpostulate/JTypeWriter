@@ -83,7 +83,7 @@ class FileServiceTest {
         assertTrue(fileService.loadFile(null, target).isPresent());
 
         // Same length: only the comparison can tell, so this is the path that
-        // has to fall through the length guard (analysis M4).
+        // has to fall through the length guard.
         fileService.setCurrentContent("abd");
 
         assertTrue(fileService.hasUnsavedChanges());

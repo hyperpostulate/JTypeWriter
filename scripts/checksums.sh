@@ -4,7 +4,7 @@
 #
 #   scripts/checksums.sh <dir>
 #
-# An artifact nobody can verify is an artifact nobody can trust (analysis B11):
+# An artifact nobody can verify is an artifact nobody can trust:
 # a release without checksums cannot be distinguished from a tampered or
 # truncated download. The release job calls this after merging all platforms
 # into one directory; it is also runnable locally on any directory of assets.

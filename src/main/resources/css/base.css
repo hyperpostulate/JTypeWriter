@@ -1,6 +1,6 @@
 /* Base styles - shared across themes */
 
-/* --- Focus indicator tokens (RW-17) ---------------------------------------
+/* --- Focus indicator tokens -----------------------------------------------
    Every focus cue in the app resolves through -focus-ring, a looked-up colour
    each theme defines (a warm brown in light/sepia, amber in dark). The faint
    Modena halo stays off: one crisp ring per control reads better on a flat
@@ -108,7 +108,7 @@
     -fx-text-fill: -toolbar-text;
 }
 
-/* A 2px accent ring on keyboard focus (RW-17). Declared before :hover so a
+/* A 2px accent ring on keyboard focus. Declared before :hover so a
    mouse-over keeps the wash; the ring survives hover, armed and pressed. */
 .toolbar-button:focused {
     -fx-background-color: transparent;
@@ -145,12 +145,12 @@
     -fx-border-width: 2px;
     -fx-border-radius: 4px;
     /* Padding shrank 1 px left/right exactly where the border grew (1→2 px),
-       so the six pickers' preferred width is unchanged for RW-15's 900 px fit. */
+       so the six pickers' preferred width is unchanged for the 900 px fit. */
     -fx-padding: 1 1 1 4;
     -fx-cursor: hand;
 }
 
-/* Focus ring for the pickers (RW-17). Declared before :hover/:showing so the
+/* Focus ring for the pickers. Declared before :hover/:showing so the
    hover wash still wins the background, but the accent border keeps the ring
    while the popup is open. The explicit transparent background also re-pins
    the closed combo against Modena's opaque .combo-box-base:focused repaint,
@@ -231,7 +231,7 @@
 }
 
 /* Cell font matches the 11 px closed control (was 12 px): one type scale from
-   button to open list, per RW-17. */
+   button to open list. */
 .combo-box-popup .list-view .list-cell {
     -fx-background-color: transparent;
     -fx-text-fill: -toolbar-text;
@@ -304,10 +304,10 @@
     -fx-alignment: center-right;
 }
 
-/* 13 px floor (RW-17): the acceptance criterion "status text >= 13 px". The
-   inline style from StatsBar normally overrides this; the floor keeps the
-   guarantee even if the inline style ever goes away. StatsBar still cycles
-   11/13/15 on double-click; it just starts at 13. */
+/* 13 px floor: status text never renders smaller than 13 px. The inline style
+   from StatsBar normally overrides this; the floor keeps the guarantee even if
+   the inline style ever goes away. StatsBar still cycles 11/13/15 on
+   double-click; it just starts at 13. */
 .stats-clock {
     -fx-font-size: 13px;
     -fx-text-fill: -stats-text;
@@ -320,20 +320,20 @@
     -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
 }
 
-/* "Saved hh:mm" confirmation (RW-19). Without a rule of its own the label fell
-   back to Modena's default #333333, which against the dark bar #1e1e1e is
-   only 1.32:1 (analysis U1) - effectively unreadable. Each theme supplies a
-   -stats-save-text that clears AA (>=4.5:1) on its own -toolbar-bg. */
+/* "Saved hh:mm" confirmation. Without a rule of its own the label fell back to
+   Modena's default #333333, which against the dark bar #1e1e1e is only 1.32:1 -
+   effectively unreadable. Each theme supplies a -stats-save-text that clears AA
+   (>=4.5:1) on its own -toolbar-bg. */
 .stats-save {
     -fx-font-size: 13px;
     -fx-text-fill: -stats-save-text;
     -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
 }
 
-/* Autosave failure warning (V4/PW-27, V17/PW-28). This is not a moment in time
-   like the save confirmation above but a standing condition: the recovery copy
-   written for a crash could not be written, parked or deleted. It is therefore
-   bold as well as coloured, and every theme supplies a -stats-warning-text that
+/* Autosave failure warning. This is not a moment in time like the save
+   confirmation above but a standing condition: the recovery copy written for a
+   crash could not be written, parked or deleted. It is therefore bold as well
+   as coloured, and every theme supplies a -stats-warning-text that
    clears AA (>= 4.5:1) against its own -toolbar-bg. Hidden and unmanaged through
    StatsBar.setAutosaveProblem while the safety net works. */
 .stats-warning {
@@ -378,7 +378,7 @@
    The typography used to live here while the card was one wide Label; with
    per-column child labels it moved to .shortcut-key / .shortcut-description,
    leaving this class as the card background, border, padding and radius.
-   No -fx-max-width (U5): the dialogs pass their content box to ShortcutTable,
+   No -fx-max-width: the dialogs pass their content box to ShortcutTable,
    and the card must size to it, not fight it. */
 .welcome-shortcuts {
     -fx-padding: 16px 20px;
@@ -430,7 +430,7 @@
     -fx-effect: dropshadow(gaussian, -welcome-shadow, 4, 0.1, 0, 1);
 }
 
-/* Shared scroll host for the welcome and About cards (U4): both dialogs now
+/* Shared scroll host for the welcome and About cards: both dialogs now
    clamp their height to the screen, so either one may need to scroll. */
 .dialog-scroll {
     -fx-background-color: transparent;
@@ -457,7 +457,7 @@
     -fx-border-width: 0;
 }
 
-/* PW-16: version and legal lines. Both reuse the contrast-checked muted token
+/* Version and legal lines. Both reuse the contrast-checked muted token
    of .welcome-tagline instead of a new colour, so light, dark and sepia keep
    their contrast guarantees without touching this rule set again. */
 .about-version {
@@ -487,7 +487,7 @@
     -fx-text-fill: -welcome-button-hover;
 }
 
-/* --- Alert / Dialog chrome (U3) -------------------------------------------
+/* --- Alert / Dialog chrome -------------------------------------------------
    Every Alert used to fall back to Modena's white box with black text: no one
    ever put the scene stylesheets on the dialog pane. The themes now define
    their tokens on .dialog-pane too (see the .root, .dialog-pane selectors in

@@ -21,8 +21,8 @@ import java.util.Locale;
 import org.junit.jupiter.api.Test;
 
 /**
- * Guards the provenance contract introduced for PW-36 (finding B32): the
- * bundled keystroke sample has a written, unambiguous licence and origin.
+ * Guards the provenance contract: the bundled keystroke sample has a written,
+ * unambiguous licence and origin.
  *
  * <p>The sample was made by hand in Audacity, so there is nothing to
  * regenerate and no generator script is claimed. The SHA-256 recorded in

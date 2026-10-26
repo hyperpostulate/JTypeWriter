@@ -71,8 +71,7 @@ public class FxApplication extends Application {
 
             // The welcome card is modal and closes without returning focus to
             // the window behind it. Without this hand-back the first character
-            // typed after startup goes nowhere until the user clicks the text
-            // (analysis U7).
+            // typed after startup goes nowhere until the user clicks the text.
             app.editorArea.requestFocus();
         } catch (Throwable error) {
             app.crashHandler.report("Startup failed", error);
@@ -96,8 +95,8 @@ public class FxApplication extends Application {
      * End of the JavaFX lifecycle. Reached by {@code Platform.exit()}, by the
      * implicit exit after the last window closed, and by a session log-out -
      * paths that never answer a close request. Without this hook the draft of a
-     * dirty document survived only by luck: the hide handler used to delete it
-     * (V2/PW-26). Now the decision is made once, in
+     * dirty document survived only by luck: the hide handler used to delete it.
+     * Now the decision is made once, in
      * {@code AutoSaveService.shutdown()}, and an unasked exit parks the draft
      * instead of deleting it.
      *

@@ -6,7 +6,7 @@
 package org.mesutormanli.jtypewriter.service;
 
 /**
- * What an exit path may do with this session's recovery draft (V2/PW-26).
+ * What an exit path may do with this session's recovery draft.
  *
  * <p>The draft is often the only copy of a document the user never saved, so
  * the decision cannot be left to whichever lifecycle event happens to fire

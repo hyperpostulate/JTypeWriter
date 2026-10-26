@@ -16,7 +16,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * RW-18: the stats bar size is persisted through {@link AppSettings} like the
+ * The stats bar size is persisted through {@link AppSettings} like the
  * sound flag in {@link ToolbarStateTest}, so it survives a restart. Only the
  * state object is exercised - {@code StatsBar.Size} is a plain nested enum,
  * so this stays headless like every other test (no control is constructed).
@@ -38,7 +38,7 @@ class StatsBarStateTest {
         var state = new StatsBarState(new AppSettings(dir.resolve("settings.properties")));
 
         assertEquals(StatsBar.Size.MEDIUM, state.getSize(),
-                "RW-17: the factory default must stay MEDIUM (>= 13 px)");
+                "the factory default must stay MEDIUM (>= 13 px)");
     }
 
     /** The double-click cycle SMALL → MEDIUM → LARGE → SMALL, each step written through. */

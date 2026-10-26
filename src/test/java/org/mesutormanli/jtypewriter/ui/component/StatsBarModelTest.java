@@ -26,11 +26,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * PW-20 (findings U9/U10): the stats bar used to fill its labels only from the
- * one-second tick, leaving the first second of startup blank (U9), and it had
- * no locale listener, so a language switch kept the old language until that
- * tick (U10). Both behaviours now live in {@link StatsBarModel}, exercised here
- * without a JavaFX toolkit or any control (AGENTS.md: tests are headless).
+ * The stats bar used to fill its labels only from the one-second tick,
+ * leaving the first second of startup blank, and it had no locale listener,
+ * so a language switch kept the old language until that tick. Both
+ * behaviours now live in {@link StatsBarModel}, exercised here without a
+ * JavaFX toolkit or any control (AGENTS.md: tests are headless).
  */
 class StatsBarModelTest {
 
@@ -38,7 +38,7 @@ class StatsBarModelTest {
     Path dir;
 
     /**
-     * U9: the model is already complete the moment it is constructed - the
+     * The model is already complete the moment it is constructed - the
      * old timeline left both labels empty (equivalently {@code ""}) until the
      * first tick. The stats line is compared against the bundle's own format so
      * the expectation holds under the Turkish and German CI locales too.
@@ -60,8 +60,8 @@ class StatsBarModelTest {
                 stats.getTotalKeystrokes(),
                 stats.getFormattedDuration(),
                 stats.getWpm());
-        assertEquals(expected, model.statsText(), "U9: the first frame must already carry the stats");
-        assertFalse(model.statsText().isBlank(), "U9: an empty label for the first second is the bug");
+        assertEquals(expected, model.statsText(), "the first frame must already carry the stats");
+        assertFalse(model.statsText().isBlank(), "an empty label for the first second is the bug");
         assertFalse(model.clockText().isBlank(), "the clock is filled on construction too");
     }
 
@@ -83,7 +83,7 @@ class StatsBarModelTest {
     }
 
     /**
-     * U10: a language switch must notify exactly once and the text read at
+     * A language switch must notify exactly once and the text read at
      * notification time must already be in the new language - no waiting for
      * the next tick. {@link Messages} is constructed before the model on
      * purpose: it reloads the bundle in its own listener, which is the
@@ -104,11 +104,11 @@ class StatsBarModelTest {
 
         localeManager.setLanguage(Language.TR);
 
-        assertEquals(1, notifications.get(), "U10: one repaint per switch");
+        assertEquals(1, notifications.get(), "one repaint per switch");
         assertTrue(textAtNotification.get().contains("kelime"),
-                "U10: text at notification time must already be Turkish: " + textAtNotification.get());
+                "text at notification time must already be Turkish: " + textAtNotification.get());
         assertFalse(textAtNotification.get().contains("words"),
-                "U10: the English text was stale");
+                "the English text was stale");
         assertTrue(model.statsText().contains("kelime"), "model text: " + model.statsText());
     }
 
@@ -138,7 +138,7 @@ class StatsBarModelTest {
                 "clock shape: " + model.clockText());
     }
 
-    /** PW-27: nothing is wrong at startup, so the warning slot is empty. */
+    /** Nothing is wrong at startup, so the warning slot is empty. */
     @Test
     void warningTextIsEmptyWhileAutosaveWorks() {
         var localeManager = localeManagerFor(Language.EN);
@@ -148,7 +148,7 @@ class StatsBarModelTest {
         assertEquals("", model.warningText());
     }
 
-    /** PW-27: turning the flag on shows the bundle text and repaints exactly once. */
+    /** Turning the flag on shows the bundle text and repaints exactly once. */
     @Test
     void settingAutosaveFailingShowsTheWarningAndNotifiesOnce() {
         var localeManager = localeManagerFor(Language.EN);
@@ -166,7 +166,7 @@ class StatsBarModelTest {
         assertEquals(1, notifications.get());
     }
 
-    /** PW-27: a repeat of the same state is not a transition, so no extra repaint. */
+    /** A repeat of the same state is not a transition, so no extra repaint. */
     @Test
     void repeatingTheSameFailingStateDoesNotNotify() {
         var localeManager = localeManagerFor(Language.EN);
@@ -182,7 +182,7 @@ class StatsBarModelTest {
         assertEquals(1, notifications.get(), "a standing warning must not repaint the bar");
     }
 
-    /** PW-27: a later working write withdraws the warning from the bar. */
+    /** A later working write withdraws the warning from the bar. */
     @Test
     void clearingAutosaveFailingEmptiesTheWarning() {
         var localeManager = localeManagerFor(Language.EN);
@@ -198,7 +198,7 @@ class StatsBarModelTest {
     }
 
     /**
-     * PW-27: the warning is bundle text, so a language switch while it stands
+     * The warning is bundle text, so a language switch while it stands
      * must re-localise it - it must not stay English until the next tick.
      */
     @Test
@@ -219,7 +219,7 @@ class StatsBarModelTest {
     }
 
     /**
-     * V17/PW-28: a draft that could not be deleted is not a failed write, so it
+     * A draft that could not be deleted is not a failed write, so it
      * gets its own status text - the user is told a stale copy is still on disk,
      * not that autosave is broken.
      */

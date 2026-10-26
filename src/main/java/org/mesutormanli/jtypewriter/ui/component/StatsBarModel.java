@@ -19,14 +19,13 @@ import java.util.Optional;
  * The text logic behind {@link StatsBar}, kept free of JavaFX so it stays
  * testable headless (AGENTS.md: no toolkit, no control construction).
  *
- * <p>Fixes two findings from the analysis:</p>
  * <ul>
- *   <li><strong>U9</strong> - the bar only filled its labels from the
+ *   <li>The bar only filled its labels from the
  *       one-second {@code Timeline} tick, so the first second of startup showed
  *       an empty bar. The constructor computes both texts immediately, so a
  *       caller that reads the model right after construction already has the
  *       first frame's content.</li>
- *   <li><strong>U10</strong> - the bar had no locale listener, so switching
+ *   <li>The bar had no locale listener, so switching
  *       the language left stale text until the next tick. The constructor
  *       subscribes to {@link LocaleManager} and refreshes before notifying the
  *       consumer, which lets the control repaint within the same locale-change
@@ -69,10 +68,10 @@ public final class StatsBarModel {
         this.stats = stats;
         this.messages = messages;
 
-        // U9: fill the first frame now instead of waiting for the first tick.
+        // Fill the first frame now instead of waiting for the first tick.
         refresh(LocalDateTime.now());
 
-        // U10: the bundle is already reloaded when this runs (see the class
+        // The bundle is already reloaded when this runs (see the class
         // Javadoc ordering invariant), so the text painted here is localised.
         locales.addListener(language -> {
             refresh(LocalDateTime.now());
@@ -94,7 +93,7 @@ public final class StatsBarModel {
                 stats.getTotalKeystrokes(),
                 stats.getFormattedDuration(),
                 stats.getWpm());
-        // V4/PW-27: the warning is bundle text, so it is rebuilt on every
+        // The warning is bundle text, so it is rebuilt on every
         // refresh - which is exactly what a language switch needs.
         warningText = warningFor(autosaveProblem);
     }
@@ -104,7 +103,7 @@ public final class StatsBarModel {
         if (problem == null) {
             return "";
         }
-        // V17/PW-28: a stale draft is a different problem from a failed write,
+        // A stale draft is a different problem from a failed write,
         // and the user's next action is the same but the text says what is on
         // disk. The dialog copy is about writing a copy, so it would be wrong.
         return problem == AutosaveHealth.Problem.DRAFT_DELETE
@@ -113,7 +112,7 @@ public final class StatsBarModel {
     }
 
     /**
-     * V4/PW-27 / V17/PW-28: the safety net's current failure, {@code null}
+     * The safety net's current failure, {@code null}
      * meaning healthy. A failure stands until a later operation succeeds; a
      * no-op repeat does not repaint the bar.
      */
@@ -131,7 +130,7 @@ public final class StatsBarModel {
         return autosaveProblem != null;
     }
 
-    /** The standing failure kind, empty while the safety net works (PW-28). */
+    /** The standing failure kind, empty while the safety net works. */
     public Optional<AutosaveHealth.Problem> problem() {
         return Optional.ofNullable(autosaveProblem);
     }

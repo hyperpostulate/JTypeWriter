@@ -36,20 +36,20 @@ import java.util.logging.Logger;
  * editing keeps being snapshotted. Parking, not freezing, is what makes both
  * true at once.</p>
  *
- * <p><strong>Exit rule (V2/PW-26):</strong> deleting the draft is only ever
+ * <p><strong>Exit rule:</strong> deleting the draft is only ever
  * allowed after the window's close request was answered - that is the one path
  * that asked the user and got a decision. Every other way out
  * ({@code Platform.exit()}, a session log-out, a bare {@code stage.hide()})
  * parks the draft instead, so a dirty document survives an exit nobody
  * confirmed. See {@link ExitDisposition}.</p>
  *
- * <p><strong>Failures are visible (V4/PW-27):</strong> a snapshot or park that
+ * <p><strong>Failures are visible:</strong> a snapshot or park that
  * fails records a {@link AutosaveHealth} problem, which raises a dialog once
  * and keeps a warning in the status bar until a write succeeds again. A broken
  * recovery directory can no longer silently cancel the product's only
  * promise.</p>
  *
- * <p><strong>A failed delete is visible too (V17/PW-28):</strong> when the
+ * <p><strong>A failed delete is visible too:</strong> when the
  * draft that a save, a new document or an answered exit should have dropped
  * cannot be deleted, the slot still holds it. That is recorded as
  * {@link AutosaveHealth.Problem#DRAFT_DELETE} - a status-bar warning, never a
@@ -148,7 +148,7 @@ public class AutoSaveService {
         stage.addEventHandler(WindowEvent.WINDOW_HIDDEN, e -> shutdown());
     }
 
-    /** The observable state behind the status-bar warning (PW-27). */
+    /** The observable state behind the status-bar warning. */
     public AutosaveHealth health() {
         return health;
     }
@@ -173,7 +173,7 @@ public class AutoSaveService {
      * right after recovery cannot lose it. Closing the prompt (or choosing
      * "later") keeps the draft untouched for the next start.
      *
-     * <p><strong>Never roll the document back (V17/PW-28):</strong> a draft that
+     * <p><strong>Never roll the document back:</strong> a draft that
      * should have been deleted after a save can survive a failed delete. If the
      * document on disk is newer than that draft, restoring it onto its own path
      * would make the next save overwrite the newer file with older text. In that
@@ -210,7 +210,7 @@ public class AutoSaveService {
     }
 
     /**
-     * PW-28: true when the document on disk is newer than the draft, so the
+     * True when the document on disk is newer than the draft, so the
      * draft must not be restored onto its own path. Equal timestamps are not
      * stale: a save and a snapshot in the same instant must not force Save As.
      */
@@ -309,7 +309,7 @@ public class AutoSaveService {
                 store.saveDraft(text, fileService.getCurrentFilePath());
                 health.recover(); // a working snapshot withdraws an older warning
             } else if (clearDraft()) {
-                // V17/PW-28: only a delete that actually happened may withdraw a
+                // Only a delete that actually happened may withdraw a
                 // warning. Recovering unconditionally would instantly erase the
                 // DRAFT_DELETE recorded by clearDraft().
                 health.recover();
@@ -321,7 +321,7 @@ public class AutoSaveService {
     }
 
     /**
-     * Drops this session's draft and records a failed delete (V17/PW-28).
+     * Drops this session's draft and records a failed delete.
      *
      * @return {@code true} when the slot is empty afterwards
      */
@@ -334,8 +334,8 @@ public class AutoSaveService {
     }
 
     /**
-     * Records a failure. {@code explain} keeps the one-off dialog behaviour of
-     * PW-27; a delete failure passes {@code false} because the dialog copy is
+     * Records a failure. {@code explain} keeps the one-off dialog behaviour; a
+     * delete failure passes {@code false} because the dialog copy is
      * about writing a recovery copy, not about dropping one - there the status
      * bar and the log are the right channel.
      */

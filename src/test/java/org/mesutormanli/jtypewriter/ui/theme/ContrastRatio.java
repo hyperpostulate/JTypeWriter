@@ -15,7 +15,7 @@ package org.mesutormanli.jtypewriter.ui.theme;
  * and ranges from 1 (identical) to 21 (black on white).</p>
  *
  * <p>This class lives in test scope because only {@code ContrastRatioTest}
- * uses it; the production JAR must not ship a test helper (analysis M13).</p>
+ * uses it; the production JAR must not ship a test helper.</p>
  */
 public final class ContrastRatio {
 

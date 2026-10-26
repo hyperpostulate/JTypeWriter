@@ -17,9 +17,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Guards the release-publication contract introduced for PW-42 (findings B26
- * and B27): no workflow may upload an artifact without a short retention, and
- * the release body must stay the bilingual document the project promises.
+ * Guards the release-publication contract: no workflow may upload an artifact
+ * without a short retention, and the release body must stay the bilingual
+ * document the project promises.
  *
  * <p>Both properties are invisible until a release happens, which is exactly
  * when there is no second chance: an artifact left on the default 90-day
@@ -36,9 +36,9 @@ class ReleaseNotesTest {
     private static final Path TEMPLATE = Path.of("docs", "release-notes-template.md");
 
     /**
-     * GitHub's default retention is 90 days. The roadmap's budget (B26) is
-     * "long enough for the in-flight consumer, short enough to be free", which
-     * no upload here needs more than a week of.
+     * GitHub's default retention is 90 days. The budget here is "long enough
+     * for the in-flight consumer, short enough to be free", which no upload
+     * needs more than a week of.
      */
     private static final int MAX_RETENTION_DAYS = 7;
 

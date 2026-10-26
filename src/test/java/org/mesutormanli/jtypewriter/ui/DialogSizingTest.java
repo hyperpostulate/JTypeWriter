@@ -18,10 +18,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * PW-14 (analysis U4): the welcome/About dialogs must fit the display instead
- * of opening taller than a 768 px screen. The clamping is pure maths so it is
- * verified headlessly; the shared scroll style class is checked by reading the
- * two dialog sources as plain text.
+ * The welcome/About dialogs must fit the display instead of opening taller
+ * than a 768 px screen. The clamping is pure maths so it is verified
+ * headlessly; the shared scroll style class is checked by reading the two
+ * dialog sources as plain text.
  */
 class DialogSizingTest {
 

@@ -11,9 +11,9 @@
 # guess the URL without reading the release page.
 #
 # Besides the installer, the application image is archived as a .tar.gz holding
-# exactly one top-level directory. The installer-versus-portable channel decision
-# is still open (product-roadmap §2.3 preamble), so both channels ship for now;
-# the archive is also the only way to reach macOS/Windows without an installer.
+# exactly one top-level directory. Which channel becomes the product default is
+# still an open decision, so both ship for now; the archive is also the only way
+# to reach macOS/Windows without an installer.
 #
 # This script deliberately does not hash anything: the release job merges all
 # platforms into one directory and produces SHA256SUMS there (scripts/checksums.sh),

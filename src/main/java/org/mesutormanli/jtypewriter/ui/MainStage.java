@@ -29,7 +29,7 @@ public class MainStage {
     }
 
     public void configure(Stage stage, Scene scene) {
-        // RW-18: a session that ended in fullscreen comes back in fullscreen.
+        // A session that ended in fullscreen comes back in fullscreen.
         // Fullscreen and maximized are mutually exclusive states, so only one
         // of them is ever restored (fullscreen wins); the normal geometry is
         // still applied, so leaving fullscreen lands on the remembered
@@ -73,7 +73,7 @@ public class MainStage {
             }
         });
 
-        // V2/PW-26: this is the only exit path that asks the user anything, so
+        // This is the only exit path that asks the user anything, so
         // it is the only one allowed to delete the recovery draft. The request
         // is answered first, then the autosave service is told that this exit
         // was sanctioned - before the window hides, because the hide handler

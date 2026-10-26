@@ -34,8 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * PW-31: the draft a real process wrote must be recovered by a fresh process
- * after the first one is killed with {@code SIGKILL}.
+ * The draft a real process wrote must be recovered by a fresh process after
+ * the first one is killed with {@code SIGKILL}.
  *
  * <p>The scenario is a single end-to-end one: a child JVM ({@link CrashHarness})
  * builds the real service graph, snapshots a dirty document through the
@@ -56,8 +56,8 @@ import static org.junit.jupiter.api.Assertions.fail;
  * actually be exercised.</p>
  *
  * <p>No {@code Thread.sleep} anywhere: the only waits are for the child's
- * stdout marker and for {@code waitFor}, because the roadmap explicitly warns
- * that timing-based waits make this kind of test flaky.</p>
+ * stdout marker and for {@code waitFor}, because timing-based waits make this
+ * kind of test flaky.</p>
  */
 @EnabledOnOs(OS.LINUX)
 class ProcessCrashRecoveryTest {
@@ -128,7 +128,7 @@ class ProcessCrashRecoveryTest {
      * {@code AppLogging} resolves its log directory from {@code user.home}, so
      * the child's {@code -Duser.home} must keep it inside the temporary home -
      * the test can then never pollute the developer's real
-     * {@code ~/.jtypewriter} (analysis V19).
+     * {@code ~/.jtypewriter}.
      */
     @Test
     void theChildNeverWritesToTheRealUserHome(@TempDir Path dir) throws Exception {

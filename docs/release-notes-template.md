@@ -4,7 +4,7 @@ JTypeWriter @VERSION@, built from tag `@TAG@`.
 
 Both channels are published for every platform: the installer (`.deb`, `.msi`,
 `.dmg`) and a portable `.tar.gz`. Which one becomes the product default is still
-an open decision (`docs/product-roadmap.md` §2.3); neither is deprecated.
+an open decision; neither is deprecated.
 
 The installers are **not code-signed or notarised**. Windows SmartScreen and
 macOS Gatekeeper will warn on first launch.
@@ -31,8 +31,7 @@ JTypeWriter @VERSION@, `@TAG@` etiketinden derlendi.
 
 Her platform için iki kanal da yayınlanır: kurulum paketi (`.deb`, `.msi`,
 `.dmg`) ve taşınabilir `.tar.gz`. Hangisinin ürün varsayılanı olacağı hâlâ açık
-bir karardır (`docs/product-roadmap.md` §2.3); ikisi de kullanımdan kaldırılmış
-değildir.
+bir karardır; ikisi de kullanımdan kaldırılmış değildir.
 
 Kurulum paketleri **kod imzalı veya notarize edilmiş değildir**. Windows
 SmartScreen ve macOS Gatekeeper ilk açılışta uyarı gösterir.

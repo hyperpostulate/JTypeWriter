@@ -247,8 +247,8 @@ girişi `mvn javafx:run` komutudur. `scripts/package.sh`, fat JAR'ı `jpackage` 
 Linux, Windows ve macOS için platform kurulum paketine (`.deb`, `.msi`, `.dmg`) dönüştürür —
 CI iş akışının çalıştırdığı komut da budur. Her sürüm her platform için iki kanalı da
 yayımlar: kurulum paketi ve taşınabilir `.tar.gz`; hangisinin ürün varsayılanı olacağı hâlâ
-açık bir karardır (`docs/product-roadmap.md` §2.3), yani `--installer` desteklenen
-yollardan biridir, kararlaştırılmış olan değil. Uygulama sürümünün tek kaynağı `pom.xml`'dir:
+açık bir karardır, yani `--installer` desteklenen yollardan biridir, kararlaştırılmış olan
+değil. Uygulama sürümünün tek kaynağı `pom.xml`'dir:
 script sürümü üretilen artefaktten geri okur ve jpackage kurallarına karşı doğrular
 (örneğin macOS `0.x` paket sürümlerini reddeder).
 
@@ -436,7 +436,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `LanguageTest` | Yerel dil adlarının her sistem dilinde sabit kod sabitleri olması (`getDisplayLanguage` tuzağı yok) |
 | `ToolbarStateTest` | Ses açılır listesinin tek ayarlayıcısı: yeniden başlatmada kalıcılık, ses motorunun takip etmesi, tekrarların etkisiz olması |
 | `ToolbarFitTest` | Araç çubuğu taşma politikası: başlıklı satırın (düğmeler, açılır listeler, ayırıcı, çerçeve) enjekte edilen ölçülerle nasıl hesaplandığı, FULL→COMPACT geçişi ve 40 px histerezisi; ayrıca Almanca ve Fransızcanın 1280 px'te kırpılmadığını ve daraltılmış satırın altı dilde 900 px'e sığdığını kanıtlayan kabul testleri |
-| `PackagingNoticesTest` | PW-34 paketleme sözleşmesi: `META-INF/THIRD-PARTY-NOTICES` ve iki lisans metni sınıf yolunda; bildirim her paketlenen bileşeni gerçek SPDX kimliğiyle adlandırıyor, FFmpeg'in dağıtılmadığını söylüyor, 100 sütun içinde yalnızca LF kullanıyor ve depodaki dosyayla bayt-özdeş, böylece bayat bir derleme çıktısı testi geçemiyor |
+| `PackagingNoticesTest` | Paketleme sözleşmesi: `META-INF/THIRD-PARTY-NOTICES` ve iki lisans metni sınıf yolunda; bildirim her paketlenen bileşeni gerçek SPDX kimliğiyle adlandırıyor, FFmpeg'in dağıtılmadığını söylüyor, 100 sütun içinde yalnızca LF kullanıyor ve depodaki dosyayla bayt-özdeş, böylece bayat bir derleme çıktısı testi geçemiyor |
 | `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni ya da otomatik kayıt uyarısı AA'nın veya 13 px'in altına düşerse, odak halkası 3:1'in altına düşerse, vurgulanan popup satırı metni AA'nın altına düşerse, popup hücresi yazı boyutu kapalı combo'nun boyutundan saparsa, odak rengi yeniden saydamlaşırsa ya da var olmayan bir JavaFX CSS özelliği (`-fx-letter-spacing`, `-fx-transition`) geri dönerse derlemeyi başarısız kılan CSS ayrıştırma korumaları |
 
 ---

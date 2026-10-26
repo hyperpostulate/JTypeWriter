@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Pure overflow policy of the toolbar (RW-15). Deliberately free of JavaFX
+ * Pure overflow policy of the toolbar. Deliberately free of JavaFX
  * types - like {@link YoloPolicy} and {@link MainStage}'s intersection helper
  * it can be unit tested headlessly, without a toolkit or a display.
  *

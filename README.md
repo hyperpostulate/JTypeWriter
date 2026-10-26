@@ -247,11 +247,10 @@ bundled runtime via `jpackage`, and `--installer` wraps that image into the
 platform installer (`.deb`, `.msi`, `.dmg`) for Linux, Windows and macOS - the same
 command the CI workflow runs. Every release publishes both channels for each
 platform, the installer and a portable `.tar.gz`; which one becomes the product
-default is still an open decision (`docs/product-roadmap.md` §2.3), so
-`--installer` is one supported path, not the decided one. The application
-version has a single source of truth: `pom.xml`. The script reads it back from
-the built artifact and validates it against jpackage's rules (macOS, for one,
-rejects `0.x` bundle versions).
+default is still an open decision, so `--installer` is one supported path, not
+the decided one. The application version has a single source of truth:
+`pom.xml`. The script reads it back from the built artifact and validates it
+against jpackage's rules (macOS, for one, rejects `0.x` bundle versions).
 
 A wrong toolchain stops the build before it starts: `maven-enforcer-plugin` runs
 at the `validate` phase, requires a JDK at least as new as `java.version` in
@@ -436,7 +435,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `LanguageTest` | Native language names are stable code constants under every system locale (no `getDisplayLanguage` trap) |
 | `ToolbarStateTest` | The sound dropdown's single setter: persistence across a restart, the audio engine follows, repeats are no-ops |
 | `ToolbarFitTest` | Toolbar overflow policy: how the captioned row is measured (buttons, dropdowns, spacer, chrome) with injected metrics, the FULL→COMPACT switch and its 40 px hysteresis, plus acceptance tests proving German and French are not clipped at 1280 px and that the collapsed row fits 900 px in all six languages |
-| `PackagingNoticesTest` | The PW-34 packaging contract: `META-INF/THIRD-PARTY-NOTICES` and both license texts are on the classpath, the notice names every bundled component with its real SPDX id, states that FFmpeg is not distributed, stays LF-only within 100 columns, and is byte-identical to the checked-in file so a stale build output cannot pass |
+| `PackagingNoticesTest` | The packaging contract: `META-INF/THIRD-PARTY-NOTICES` and both license texts are on the classpath, the notice names every bundled component with its real SPDX id, states that FFmpeg is not distributed, stays LF-only within 100 columns, and is byte-identical to the checked-in file so a stale build output cannot pass |
 | `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text or the autosave warning drops below AA or 13 px, the focus ring drops below 3:1, highlighted popup-row text drops below AA, the popup cell font size drifts from the closed combo's, the focus colour becomes transparent again, or a non-existent JavaFX CSS property (`-fx-letter-spacing`, `-fx-transition`) returns |
 
 ---

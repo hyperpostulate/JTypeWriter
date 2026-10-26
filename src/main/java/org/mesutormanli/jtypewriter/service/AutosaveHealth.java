@@ -9,7 +9,7 @@ import java.util.Optional;
 
 /**
  * Whether the autosave safety net is currently working, as a plain, JavaFX-free
- * value (V4/PW-27).
+ * value.
  *
  * <p>Autosave used to fail by writing one {@code WARNING} line to a log file
  * nobody reads: the recovery directory could become read-only (full disk, a
@@ -37,7 +37,7 @@ public final class AutosaveHealth {
         /**
          * A draft that should have been dropped - after a save, a new document
          * or an answered exit - could not be deleted, so a stale copy stays on
-         * disk and would be offered for recovery again (V17/PW-28).
+         * disk and would be offered for recovery again.
          */
         DRAFT_DELETE
     }

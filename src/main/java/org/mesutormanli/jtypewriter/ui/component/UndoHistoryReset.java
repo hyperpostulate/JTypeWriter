@@ -25,7 +25,7 @@ import java.util.logging.Logger;
  *
  * <p>This works only because JavaFX is launched from the classpath (unnamed
  * module), where the internal fields are accessible. On the module path - for
- * example a jlink image (RW-40) - the reflective access is refused; the fallback
+ * example a jlink image - the reflective access is refused; the fallback
  * is a plain {@code setText}, which keeps the previous document's history
  * entries. Behaviour then degrades but nothing breaks.</p>
  */

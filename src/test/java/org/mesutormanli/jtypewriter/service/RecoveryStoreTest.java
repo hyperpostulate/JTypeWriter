@@ -109,7 +109,7 @@ class RecoveryStoreTest {
     }
 
     /**
-     * V17/PW-28: a failed delete used to be a {@code FINE} line, so the stale
+     * A failed delete used to be a {@code FINE} line, so the stale
      * draft silently survived and was offered for recovery again - accepting it
      * could overwrite a newer document. The failure must be reported, both to
      * the caller and at {@code WARNING} in the log.

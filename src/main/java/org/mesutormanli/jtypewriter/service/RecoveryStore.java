@@ -33,11 +33,11 @@ import java.util.logging.Logger;
  * Crash-recovery draft storage. Every {@code RecoveryStore} instance owns one
  * draft slot: a single UTF-8 file named {@code draft-<UUID>.jtw} inside the
  * store's directory. The UUID is generated in the constructor, so two running
- * application instances never overwrite each other's draft (RW-04).
+ * application instances never overwrite each other's draft.
  *
  * <p>The file holds both the metadata and the document text, which makes the
  * pair a single atomic unit: a crash can no longer leave a timestamp without
- * its text or text without its timestamp (RW-03). The layout is:</p>
+ * its text or text without its timestamp. The layout is:</p>
  *
  * <pre>
  * JTypeWriter-Draft/2
@@ -54,7 +54,7 @@ import java.util.logging.Logger;
  * is written through {@link AtomicFiles#writeMoving}, so a crash or power cut
  * cannot leave a truncated draft behind.</p>
  *
- * <p>Loading never discards recoverable text (RW-02). A file without the magic
+ * <p>Loading never discards recoverable text. A file without the magic
  * line, without the separator, or with an unparsable timestamp or path
  * degrades gracefully: the text is still offered, the broken metadata is
  * replaced by the file's last-modified time or by {@code null}, and a warning
@@ -188,9 +188,9 @@ public class RecoveryStore {
     /**
      * Drops this session's draft (successful save, new document, or an answered
      * exit). A failing delete is a real condition, not noise: the stale draft
-     * would be offered for recovery again and could overwrite a newer document
-     * (V17/PW-28), so it is reported at {@code WARNING} and returned to the
-     * caller instead of being logged at {@code FINE}.
+     * would be offered for recovery again and could overwrite a newer document,
+     * so it is reported at {@code WARNING} and returned to the caller instead
+     * of being logged at {@code FINE}.
      *
      * @return {@code true} when the slot holds no draft afterwards (there was
      *         nothing to delete, or the delete succeeded); {@code false} when
@@ -369,7 +369,7 @@ public class RecoveryStore {
 
     /**
      * Strict UTF-8 decode with a lossy fallback: a draft with invalid bytes is
-     * still more useful than a deleted one (RW-02).
+     * still more useful than a deleted one.
      */
     private static String decode(byte[] bytes) {
         try {

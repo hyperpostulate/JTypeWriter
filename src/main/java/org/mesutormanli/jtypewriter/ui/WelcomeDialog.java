@@ -57,7 +57,7 @@ public class WelcomeDialog {
         // the card edge) replaces the old single Label whose columns were
         // faked with space runs and rendered ragged. ShortcutTable sizes the
         // card to the full content box and keeps the wrapping the long
-        // German/French/Italian/Spanish descriptions need (U5).
+        // German/French/Italian/Spanish descriptions need.
         var shortcuts = ShortcutTable.build(
                 ShortcutRows.parse(messages.welcomeShortcuts()), CONTENT_WIDTH);
 
@@ -83,8 +83,8 @@ public class WelcomeDialog {
             root.getChildren().add(0, icon);
         }
 
-        // Scrollable like About, so a window clamped to a short screen (U4)
-        // can still reach every shortcut and the button.
+        // Scrollable like About, so a window clamped to a short screen can
+        // still reach every shortcut and the button.
         var scrollPane = new ScrollPane(root);
         scrollPane.setFitToWidth(true);
         scrollPane.setFitToHeight(true);
@@ -102,7 +102,7 @@ public class WelcomeDialog {
         var surface = themeManager.getCurrentTheme().getDialogFill();
         // Preferred size stays the historical card size, so the tallest locales
         // still fit without scrolling; clamping then keeps the window inside
-        // the visual bounds on a 768 px-tall display (U4).
+        // the visual bounds on a 768 px-tall display.
         var visual = Screen.getPrimary().getVisualBounds();
         var scene = new Scene(shell,
                 DialogSizing.clampWidth(460 + 2 * SHELL_MARGIN, visual.getWidth()),

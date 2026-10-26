@@ -31,10 +31,10 @@ public class StatsBar extends BorderPane {
     private final Label warningLabel;
 
     /**
-     * RW-17: the status bar must start at >= 13 px without the user cycling
+     * The status bar must start at >= 13 px without the user cycling
      * sizes, so the default is MEDIUM (13 px), never SMALL. At runtime the
      * actual startup size is whatever {@link StatsBarState} restored from the
-     * last session (RW-18); this method pins the factory default that that
+     * last session; this method pins the factory default that that
      * restore falls back to. Double-click cycling through all three sizes is
      * untouched.
      */
@@ -42,7 +42,7 @@ public class StatsBar extends BorderPane {
         return Size.MEDIUM;
     }
 
-    /** The default status text size in px, for headless assertions (RW-17). */
+    /** The default status text size in px, for headless assertions. */
     public static int defaultStatusFontSizePx() {
         return defaultSize().fontSize;
     }
@@ -60,13 +60,13 @@ public class StatsBar extends BorderPane {
         statsLabel = new Label();
         statsLabel.getStyleClass().add("stats-label");
 
-        // RW-19: "Saved 12:04" appears next to the clock on a successful save
+        // "Saved 12:04" appears next to the clock on a successful save
         // and is cleared by the next edit; unlike the stats text it only
         // changes when MainController says so, never on the one-second tick.
         saveStatus = new Label();
         saveStatus.getStyleClass().add("stats-save");
 
-        // V4/PW-27: "autosave is not working" while a recovery write fails.
+        // "autosave is not working" while a recovery write fails.
         // Unlike the save confirmation this is not a moment in time but a
         // standing condition, so it lives next to the statistics the user is
         // already reading and disappears only when a write succeeds again.
@@ -87,10 +87,10 @@ public class StatsBar extends BorderPane {
         setLeft(leftBox);
         setRight(rightBox);
 
-        // U9: paint the first frame from the model's constructor-time text
+        // Paint the first frame from the model's constructor-time text
         // instead of leaving the labels blank until the first tick.
         applyTexts();
-        // U10: repaint synchronously inside the locale-change event.
+        // Repaint synchronously inside the locale-change event.
         model.addListener(this::applyTexts);
 
         applySize();
@@ -124,7 +124,7 @@ public class StatsBar extends BorderPane {
     }
 
     /**
-     * RW-19: shows the localised save status (e.g. {@code "Saved 12:04"}) in
+     * Shows the localised save status (e.g. {@code "Saved 12:04"}) in
      * the stats bar. {@code null} or blank clears it. MainController owns the
      * lifecycle: set on the dirty→clean transition of a real save, cleared on
      * the next edit and on open/new, so a stale "saved" claim never sits under
@@ -139,7 +139,7 @@ public class StatsBar extends BorderPane {
     }
 
     /**
-     * V4/PW-27 / V17/PW-28: the standing warning kind. {@code null} means the
+     * The standing warning kind. {@code null} means the
      * safety net is healthy; the bundle text that matches the kind is chosen in
      * {@link StatsBarModel}. The label is hidden while the text is blank, so a
      * healthy session never pays for the space.

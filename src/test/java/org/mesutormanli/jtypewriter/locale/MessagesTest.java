@@ -140,7 +140,7 @@ class MessagesTest {
     }
 
     /**
-     * PW-22/U23: the welcome card used to say {@code Ctrl+S  Save / Save As} -
+     * The welcome card used to say {@code Ctrl+S  Save / Save As} -
      * promising a Save As chord the handler does not have - and never listed
      * {@code Ctrl+Shift+S} or {@code Ctrl+Shift+Z}. The exact chord-to-action
      * table lives in {@code ShortcutRowsTest}; here only the structure is
@@ -200,8 +200,8 @@ class MessagesTest {
     }
 
     /**
-     * Regression (PW-04): {@code MessageFormat} treats a lone apostrophe as
-     * its quote character, so an unescaped apostrophe in a bundle pattern
+     * Regression: {@code MessageFormat} treats a lone apostrophe as its quote
+     * character, so an unescaped apostrophe in a bundle pattern
      * ("This file's ...") swallowed the rest of the sentence and printed
      * {@code {0}} literally - the charset argument never reached the user in
      * English, French and Italian. The argument-bearing keys are derived from
@@ -243,9 +243,9 @@ class MessagesTest {
     }
 
     /**
-     * Regression (PW-05): {@code MessageFormat.format} used to follow the JVM
-     * default locale, so a Turkish UI on an English machine grouped numbers as
-     * "1,234". The UI language decides the separators, not the system locale.
+     * Regression: {@code MessageFormat.format} used to follow the JVM default
+     * locale, so a Turkish UI on an English machine grouped numbers as "1,234".
+     * The UI language decides the separators, not the system locale.
      */
     @Test
     void statsFormatUsesTheUiLanguageNumberFormatNotTheSystemLocale() {
@@ -270,7 +270,7 @@ class MessagesTest {
     }
 
     /**
-     * Guard against dead bundle keys (M12/I5).
+     * Guard against dead bundle keys.
      *
      * <p>The parity test above only compares the six bundles with each other:
      * a key that no getter ever reads survives in six files forever, and it

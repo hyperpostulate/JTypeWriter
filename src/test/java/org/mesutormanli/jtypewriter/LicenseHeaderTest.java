@@ -17,10 +17,9 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /**
- * Guards the licence-provenance contract introduced for PW-37 (findings B34 and
- * B35): every Java source under {@code src/} carries an SPDX licence header as
- * the first thing in the file, and the canonical icon artwork declares its
- * author and licence too.
+ * Guards the licence-provenance contract: every Java source under {@code src/}
+ * carries an SPDX licence header as the first thing in the file, and the
+ * canonical icon artwork declares its author and licence too.
  *
  * <p>This is a test rather than a build-time check because this project has no
  * checkstyle and no spotless by design - a plugin would be a new build

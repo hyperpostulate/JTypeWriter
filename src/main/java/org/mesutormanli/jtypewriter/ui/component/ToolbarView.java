@@ -45,13 +45,13 @@ import java.util.function.Supplier;
  * keyboard shortcuts and language switches all funnel through
  * {@link #refresh()}, so a control can never show a stale value - the two
  * paths used to be separate and the Ctrl+Shift+T shortcut left the theme
- * label behind (RW-12).</p>
+ * label behind.</p>
  *
  * <p>At narrow widths the row never wraps and never clips: {@link ToolbarFit}
- * measures the labels (RW-15) and the dropdowns collapse from
+ * measures the labels and the dropdowns collapse from
  * {@code "Theme: Dark"} to {@code "Dark"} so the five buttons and all six
  * dropdowns always stay visible. Every control carries a tooltip from the
- * bundle and is Tab-reachable in visual order (RW-16).</p>
+ * bundle and is Tab-reachable in visual order.</p>
  */
 public class ToolbarView extends HBox {
 
@@ -96,7 +96,7 @@ public class ToolbarView extends HBox {
 
     private final List<TooltipBinding> tooltipBindings = new ArrayList<>();
 
-    /** The current caption style; changed only by {@link #applyFit(double)} (RW-15). */
+    /** The current caption style; changed only by {@link #applyFit(double)}. */
     private ToolbarFit.LayoutMode layoutMode = ToolbarFit.LayoutMode.FULL;
 
     /** Preferred width of the fully-captioned row; recomputed in every {@link #refresh()}. */
@@ -126,7 +126,7 @@ public class ToolbarView extends HBox {
 
         getStyleClass().add("toolbar");
         // Deliberately compact; when even that is not enough at a narrow
-        // window, applyFit() collapses the dropdown captions (RW-15).
+        // window, applyFit() collapses the dropdown captions.
         setPadding(new Insets(8, 10, 8, 10));
         setSpacing(3);
         setAlignment(Pos.CENTER_LEFT);
@@ -224,7 +224,7 @@ public class ToolbarView extends HBox {
 
         // Tooltips: the localized label plus the language-neutral key hint,
         // re-read from the bundle in every refresh() so a language switch
-        // cannot leave a stale-language tooltip behind (RW-16).
+        // cannot leave a stale-language tooltip behind.
         attachTooltip(openBtn, () -> withShortcut(messages.toolbarOpen(), SHORTCUT_OPEN));
         attachTooltip(saveBtn, () -> withShortcut(messages.toolbarSave(), SHORTCUT_SAVE));
         attachTooltip(undoBtn, () -> withShortcut(messages.toolbarUndo(), SHORTCUT_UNDO));
@@ -240,7 +240,7 @@ public class ToolbarView extends HBox {
         // Tab order = visual order, left to right, buttons first and the
         // dropdowns after them. JavaFX 26 has no nextFocus API, so the order
         // is pinned deliberately through viewOrder, which both the indexed
-        // and the geometrical traversal methods honour (RW-16). It follows
+        // and the geometrical traversal methods honour. It follows
         // the child order, so the paint order cannot change.
         var traversalOrder = new Node[]{
                 openBtn, saveBtn, undoBtn, redoBtn,
@@ -254,7 +254,7 @@ public class ToolbarView extends HBox {
         localeManager.addListener(lang -> refresh());
         refresh();
 
-        // RW-15: keep the single row at every width by collapsing the
+        // Keep the single row at every width by collapsing the
         // dropdown captions when the fully-captioned row would not fit.
         widthProperty().addListener((obs, oldWidth, width) -> {
             if (applyFit(width.doubleValue())) {
@@ -294,7 +294,7 @@ public class ToolbarView extends HBox {
         return List.of(Language.values());
     }
 
-    // --- overflow fit (RW-15) -------------------------------------------------
+    // --- overflow fit -------------------------------------------------
 
     /**
      * The toolbar row as pure measurement data, in child order: every label
@@ -508,7 +508,7 @@ public class ToolbarView extends HBox {
 
     /**
      * Builds one flat toolbar dropdown: non-editable, Tab-reachable like the
-     * rest of the toolbar (RW-16; the popup list is keyboard-driven by
+     * rest of the toolbar (the popup list is keyboard-driven by
      * JavaFX itself), styled by {@code .toolbar-combo}. {@code onSelect}
      * never runs for values pushed in by {@link #refresh()}.
      */
@@ -533,7 +533,7 @@ public class ToolbarView extends HBox {
      * localised values. The caption is read through the supplier on every
      * render, so a language switch re-localises button and items together. In
      * {@link ToolbarFit.LayoutMode#COMPACT} the caption is left out and the
-     * closed dropdown shows the bare value - that is the RW-15 degradation.
+     * closed dropdown shows the bare value - that is the intended degradation.
      */
     private <T> void showAsCaptionedCombo(ComboBox<T> combo, Supplier<String> caption) {
         combo.setAccessibleRole(AccessibleRole.COMBO_BOX);

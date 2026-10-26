@@ -86,7 +86,7 @@ class InstanceLockTest {
     }
 
     /**
-     * PW-30 read-only-directory case: the lock file cannot be created, so the
+     * Read-only-directory case: the lock file cannot be created, so the
      * lock is reported unavailable and startup continues. A genuine
      * {@link SecurityException} cannot be injected any more (no
      * {@code SecurityManager} in JDK 25), so the same single catch is exercised

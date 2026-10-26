@@ -15,7 +15,7 @@ import javafx.scene.control.ButtonType;
  * so the dialog ends up with no default and no cancel button: Enter does nothing
  * and Escape does not close the prompt. Every custom button therefore declares
  * its intent here, so the keyboard contract is decided in one place instead of
- * being repeated - and accidentally forgotten - at each alert (analysis U11).
+ * being repeated - and accidentally forgotten - at each alert.
  *
  * <p>Pure JavaFX control classes, no toolkit: safe to unit-test headlessly.
  */

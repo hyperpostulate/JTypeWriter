@@ -1,6 +1,6 @@
 # Keeps the CI workflow supplied without a manual chore.
 #
-# maven.yml pins every action to a full commit SHA (PW-12): a mutable major tag
+# maven.yml pins every action to a full commit SHA: a mutable major tag
 # can be re-pointed at any commit, and one of these steps holds a write token.
 # The price of that hardening is that a security release no longer reaches us
 # on its own, so Dependabot bumps the SHA and the "# v4.x.y" comment beside it

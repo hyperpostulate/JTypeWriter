@@ -98,7 +98,7 @@ class ShortcutRowsTest {
     }
 
     /**
-     * A PW-18 guard through the parser: the theme cycle text must land in the
+     * A parser-level guard: the theme cycle text must land in the
      * description of the Ctrl+Shift+T row in cycle order (Dark/Sepia/Light),
      * in every language.
      */
@@ -149,7 +149,7 @@ class ShortcutRowsTest {
     }
 
     /**
-     * PW-22/U23: the card and the handler must tell the same story. The old
+     * The card and the handler must tell the same story. The old
      * list claimed {@code Ctrl+S  Save / Save As} - a shortcut the handler does
      * not have, since Save As is {@code Ctrl+Shift+S} - and never mentioned
      * {@code Ctrl+Shift+Z}, which the handler does map to Redo. Chords are

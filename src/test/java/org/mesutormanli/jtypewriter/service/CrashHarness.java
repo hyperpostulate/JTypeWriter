@@ -15,7 +15,7 @@ import java.nio.file.Path;
 import java.util.Base64;
 
 /**
- * Child JVM for the real process-kill recovery test (PW-31).
+ * Child JVM for the real process-kill recovery test.
  *
  * <p>The application is JavaFX and CI has no display, so this harness drives
  * the <em>real object graph</em> the application wires -

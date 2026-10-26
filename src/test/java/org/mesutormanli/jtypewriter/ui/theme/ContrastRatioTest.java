@@ -21,10 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * RW-17 "measure, don't assert": the contrast numbers are not prose in a
- * roadmap, they are recomputed here from the real {@code /css/*.css}
- * resources on the classpath. Edit a theme colour back below WCAG AA and
- * this suite goes red, in any locale.
+ * Measure, don't assert: the contrast numbers are recomputed here from the
+ * real {@code /css/*.css} resources on the classpath. Edit a theme colour
+ * back below WCAG AA and this suite goes red, in any locale.
  */
 class ContrastRatioTest {
 
@@ -75,7 +74,7 @@ class ContrastRatioTest {
 
     // --- The real palettes, parsed from the shipped CSS ------------------------
 
-    /** RW-17 acceptance: "durum metni >= 13 px" in all three themes. */
+    /** The status text stays "durum metni >= 13 px" in all three themes. */
     @Test
     void statusTextClearsFourPointFiveAgainstTheBarBackgroundInEveryTheme() {
         for (var theme : THEMES) {
@@ -89,8 +88,8 @@ class ContrastRatioTest {
         }
     }
 
-    /** The "Saved hh:mm" confirmation (RW-19). It used to render in Modena's
-        default #333333 on the dark bar: 1.32:1, invisible (analysis U1). */
+    /** The "Saved hh:mm" confirmation. It used to render in Modena's
+        default #333333 on the dark bar: 1.32:1, invisible. */
     @Test
     void saveStatusTextClearsFourPointFiveInEveryTheme() {
         for (var theme : THEMES) {
@@ -104,7 +103,7 @@ class ContrastRatioTest {
         }
     }
 
-    /** PW-27: the standing autosave warning. Like the save confirmation it is
+    /** The standing autosave warning. Like the save confirmation it is
         ordinary body text on the bar, so every theme's -stats-warning-text must
         clear AA against its own -toolbar-bg. */
     @Test
@@ -152,7 +151,7 @@ class ContrastRatioTest {
         }
     }
 
-    /** PW-15 (analysis U6): the welcome call-to-action label on both its
+    /** The welcome call-to-action label on both its
         resting and hover surfaces. In the dark theme the fix is the label
         colour (dark-on-amber), in the others the surface itself. */
     @Test
@@ -171,7 +170,7 @@ class ContrastRatioTest {
     }
 
     /** The About e-mail Hyperlink takes its text fill from -welcome-button-bg,
-        which must therefore read as body text on the dialog surface (U6). */
+        which must therefore read as body text on the dialog surface. */
     @Test
     void aboutEmailLinkClearsFourPointFiveInEveryTheme() {
         for (var theme : THEMES) {
@@ -185,7 +184,7 @@ class ContrastRatioTest {
         }
     }
 
-    /** The welcome tagline uses -welcome-muted on the dialog surface (U6). */
+    /** The welcome tagline uses -welcome-muted on the dialog surface. */
     @Test
     void welcomeTaglineClearsFourPointFiveInEveryTheme() {
         for (var theme : THEMES) {
@@ -199,16 +198,15 @@ class ContrastRatioTest {
         }
     }
 
-    /** The roadmap acceptance criterion verbatim: base.css must not smuggle
-        `-fx-focus-color: transparent` back in. */
+    /** base.css must not smuggle `-fx-focus-color: transparent` back in. */
     @Test
     void baseCssNeverMakesTheFocusColorTransparent() {
         var base = readCss("/css/base.css");
         assertFalse(Pattern.compile("-fx-focus-color:\\s*transparent").matcher(base).find(),
-                "base.css kills the focus colour again (RW-17 regression)");
+                "base.css kills the focus colour again");
     }
 
-    /** U17: {@code -fx-letter-spacing} and {@code -fx-transition} do not exist
+    /** {@code -fx-letter-spacing} and {@code -fx-transition} do not exist
         in JavaFX CSS, so they are silently ignored while looking like working
         styling. No shipped sheet may carry them again. */
     @Test
@@ -217,7 +215,7 @@ class ContrastRatioTest {
         for (var sheet : new String[]{"/css/base.css", "/css/light.css", "/css/dark.css", "/css/sepia.css"}) {
             var matcher = ignored.matcher(readCss(sheet));
             assertFalse(matcher.find(),
-                    sheet + " declares an ignored JavaFX CSS property (U17 regression)");
+                    sheet + " declares an ignored JavaFX CSS property");
         }
     }
 
@@ -242,7 +240,7 @@ class ContrastRatioTest {
         assertEquals(closed, open, "popup cell size drifted from the closed control");
     }
 
-    /** PW-07: each {@link TextColor} carries a dark-canvas and a light-canvas
+    /** Each {@link TextColor} carries a dark-canvas and a light-canvas
         hex, because a single value cannot clear 4.5:1 on both #1a1a1a and
         #ffffff / #f4ecd8. This recomputes every colour/theme pair, so a
         regression to the old inline constants goes red. */
@@ -263,8 +261,8 @@ class ContrastRatioTest {
         }
     }
 
-    /** PW-07 acceptance: "koyu tema değişmez" - the dark palette keeps the
-        historical hexes, pinned so a future lightening/darkening cannot slip in. */
+    /** The dark palette keeps the historical hexes ("koyu tema değişmez"),
+        pinned so a future lightening/darkening cannot slip in. */
     @Test
     void darkThemeTextColoursAreUnchanged() {
         assertEquals("#7A9E7E", TextColor.SAGE.getCssColor(Theme.DARK));

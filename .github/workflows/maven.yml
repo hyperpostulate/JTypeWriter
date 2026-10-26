@@ -73,7 +73,7 @@ jobs:
       # the publisher can sum them. The reports are identical on all three OS
       # legs, so only Linux uploads them. One day is enough because the badge
       # job consumes them in the same run; retention is a storage budget, not a
-      # history (analysis B26 / PW-42), and ReleaseNotesTest enforces the limit.
+      # history, and ReleaseNotesTest enforces the limit.
       - name: Upload test reports
         if: runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
@@ -92,7 +92,7 @@ jobs:
         run: bash scripts/package.sh --skip-build --installer
 
       # The packaged installers are rebuildable from source, so keeping every
-      # main push for 90 days is pure storage cost (analysis B26).
+      # main push for 90 days is pure storage cost.
       - name: Upload release artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:

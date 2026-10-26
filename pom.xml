@@ -53,10 +53,10 @@
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--
-            Reproducible builds (B5): archive entries take this fixed epoch
-            instead of the wall clock at build time, so the same source and
-            toolchain produce identical timestamps. Bumped only with a release,
-            never per commit.
+            Reproducible builds: archive entries take this fixed epoch instead of
+            the wall clock at build time, so the same source and toolchain
+            produce identical timestamps. Bumped only with a release, never per
+            commit.
         -->
         <project.build.outputTimestamp>2026-10-25T00:00:00Z</project.build.outputTimestamp>
         <javafx.version>26.0.1</javafx.version>
@@ -99,10 +99,10 @@
         <plugins>
             <!--
                 Fail at `validate` - before a single class is compiled - when the
-                build runs on a JDK or Maven that cannot produce this project
-                (analysis B4). Without this the first honest signal is a compiler
-                error about `release 25` or a plugin demanding a newer Maven,
-                which says nothing about what the user should install.
+                build runs on a JDK or Maven that cannot produce this project.
+                Without this the first honest signal is a compiler error about
+                `release 25` or a plugin demanding a newer Maven, which says
+                nothing about what the user should install.
 
                 The JDK floor is derived from ${java.version}, the same property
                 the compiler uses, so raising the language level cannot leave the

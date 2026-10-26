@@ -22,7 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The dropdown option lists, pinned headlessly (no JavaFX toolkit, no
  * controls): each list must be complete, ordered and duplicate-free, and the
  * current value must always be an entry of its own list - a dropdown that
- * cannot display its own value is the stale-label bug class of RW-12.
+ * cannot display its own value is the stale-label bug this class of test
+ * exists to catch.
  */
 class ToolbarOptionListsTest {
 

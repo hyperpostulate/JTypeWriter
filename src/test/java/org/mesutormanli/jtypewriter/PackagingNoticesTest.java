@@ -18,9 +18,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /**
- * Guards the packaging contract introduced for PW-34 (finding B31): the fat jar
- * and the application image must carry the third-party notices and the license
- * texts they reference, at the exact paths tooling and users look for.
+ * Guards the packaging contract: the fat jar and the application image must
+ * carry the third-party notices and the license texts they reference, at the
+ * exact paths tooling and users look for.
  *
  * <p>This is a test rather than a build-time check because the artifact-level
  * assertions (entries inside the jar, files inside the image) live in

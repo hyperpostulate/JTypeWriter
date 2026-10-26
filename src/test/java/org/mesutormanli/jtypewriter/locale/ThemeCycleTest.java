@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * PW-18: the shortcut list used to describe the themes in declaration order
+ * The shortcut list used to describe the themes in declaration order
  * (Light/Dark/Sepia) while {@link Theme#next()} cycles from the persisted
  * default {@link Theme#DARK} in the order Dark/Sepia/Light. The docs and the
  * code must say the same thing, so this test pins the real cycle in every

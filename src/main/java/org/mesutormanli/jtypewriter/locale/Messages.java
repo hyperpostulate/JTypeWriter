@@ -428,7 +428,7 @@ public class Messages {
     }
 
     /**
-     * RW-19: raw {@code MessageFormat} pattern for the save status in the
+     * Raw {@code MessageFormat} pattern for the save status in the
      * stats bar, {@code {0}} being the localised save time. Returned as the
      * pattern (not formatted here) so composition stays in the pure, headless
      * {@code MainController.savedStatusFor}.
@@ -438,7 +438,7 @@ public class Messages {
     }
 
     /**
-     * V4/PW-27: the standing status-bar warning while the autosave safety net
+     * The standing status-bar warning while the autosave safety net
      * cannot write a recovery copy. Deliberately phrased as an instruction, not
      * as a status: the only thing that helps the user right now is a normal
      * save.
@@ -447,18 +447,18 @@ public class Messages {
         return bundle.getString("autosaveWarning");
     }
 
-    /** V4/PW-27: header of the one-off dialog shown on the first failure. */
+    /** Header of the one-off dialog shown on the first failure. */
     public String autosaveFailedHeader() {
         return bundle.getString("autosaveFailedHeader");
     }
 
-    /** V4/PW-27: body of the one-off dialog shown on the first failure. */
+    /** Body of the one-off dialog shown on the first failure. */
     public String autosaveFailedContent() {
         return bundle.getString("autosaveFailedContent");
     }
 
     /**
-     * V17/PW-28: the standing status-bar warning shown when a draft that should
+     * The standing status-bar warning shown when a draft that should
      * have been deleted could not be deleted, so a stale copy would be offered
      * for recovery again.
      */

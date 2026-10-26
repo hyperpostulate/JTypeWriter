@@ -83,7 +83,7 @@ public final class ShortcutTable {
             // lines end at uneven pixels even when the column is aligned.
             var description = new Label(shortcut.description());
             description.getStyleClass().add("shortcut-description");
-            // PW-14/U5: the longer German/French/Italian/Spanish descriptions
+            // The longer German/French/Italian/Spanish descriptions
             // are wider than the card, so they must wrap inside the clamped
             // column - never clip and never push the card wider.
             description.setWrapText(true);

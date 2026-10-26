@@ -99,7 +99,7 @@ public class FileService {
 
     /**
      * Decides the dirty marker in O(1) for the common case: a keystroke changes
-     * the length, so the per-key path never walks the document (analysis M4).
+     * the length, so the per-key path never walks the document.
      * Only a same-length replacement pays for the comparison, and that is also
      * what lets "undone back to the saved text" clear the marker again.
      */
@@ -337,8 +337,8 @@ public class FileService {
             return Optional.empty();
         }
         // The file is written and fsynced at this point, so a failing listener
-        // must never turn a successful save into a reported failure (analysis
-        // V8): each one is isolated and only warns, and the rest still run.
+        // must never turn a successful save into a reported failure: each one is
+        // isolated and only warns, and the rest still run.
         for (var listener : listeners) {
             try {
                 listener.onSaved(path);
@@ -390,8 +390,7 @@ public class FileService {
      * closing the window. The caller closes it, because only the caller can
      * tell the autosave service that this exit was a sanctioned one before the
      * window hides - the difference between deleting a recovery draft the user
-     * has just abandoned and deleting one that was never asked about
-     * (V2/PW-26).
+     * has just abandoned and deleting one that was never asked about.
      */
     public ExitAnswer requestExit(javafx.stage.Stage stage) {
         return confirmDiscardOrSave(stage) ? ExitAnswer.CLOSE : ExitAnswer.STAY;

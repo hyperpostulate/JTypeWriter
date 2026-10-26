@@ -97,7 +97,7 @@ class AppSettingsTest {
     }
 
     /**
-     * V15: {@code Double.parseDouble} accepts {@code NaN} and {@code Infinity},
+     * {@code Double.parseDouble} accepts {@code NaN} and {@code Infinity},
      * and {@code Infinity > 0} passes the width/height guard in {@code MainStage}
      * — so a hand-edited settings file used to reach {@code Stage.setWidth(
      * Infinity)} and break startup. A non-finite size is now indistinguishable
@@ -135,7 +135,7 @@ class AppSettingsTest {
         assertEquals(768d, state.height());
     }
 
-    /** RW-18: toolbar visibility, fullscreen and the stats bar size survive a restart. */
+    /** Toolbar visibility, fullscreen and the stats bar size survive a restart. */
     @Test
     void appearanceStateSurvivesARestart(@TempDir Path dir) {
         var file = dir.resolve("settings.properties");
@@ -151,7 +151,7 @@ class AppSettingsTest {
         assertEquals(AppSettings.StatsBarSize.LARGE, reloaded.getStatsBarSize());
     }
 
-    /** RW-18: a corrupt stats size must degrade to MEDIUM, never break startup. */
+    /** A corrupt stats size must degrade to MEDIUM, never break startup. */
     @Test
     void corruptAppearanceValuesFallBackToDefaults(@TempDir Path dir) throws IOException {
         var file = dir.resolve("settings.properties");

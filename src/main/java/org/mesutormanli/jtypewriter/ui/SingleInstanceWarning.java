@@ -30,7 +30,7 @@ public final class SingleInstanceWarning extends Application {
         alert.setHeaderText(messages.singleInstanceHeader());
         alert.setContentText(messages.singleInstanceContent());
         // No main scene exists to copy from, so paint the pane from the
-        // classpath with the user's persisted theme (analysis U3).
+        // classpath with the user's persisted theme.
         DialogStyling.applyTheme(alert.getDialogPane(), settings.getTheme());
         alert.showAndWait();
         Platform.exit();

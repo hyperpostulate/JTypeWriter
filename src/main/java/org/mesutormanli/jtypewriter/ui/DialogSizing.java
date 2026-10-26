@@ -6,7 +6,7 @@
 package org.mesutormanli.jtypewriter.ui;
 
 /**
- * Pure sizing maths shared by the helper dialogs (PW-14, analysis U4).
+ * Pure sizing maths shared by the helper dialogs.
  *
  * <p>The welcome/About windows used to open at their preferred size whatever
  * the display was, so on a 768 px-tall screen (and even more so with a

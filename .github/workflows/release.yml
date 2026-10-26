@@ -5,7 +5,7 @@
 # exactly v<pom version>. Three OS builds then package installers and portable
 # archives, and a single publish job merges them, checksums the lot and uploads
 # the result to the Release itself. Uploading to the Release - not to Actions
-# artifacts - is what ends the 90-day expiry problem (analysis B9): the release
+# artifacts - is what ends the 90-day expiry problem: the release
 # is the durable copy, the artifact upload between jobs lives for one day.
 #
 # On purpose there is no workflow_dispatch here: a manual run has no tag, and
@@ -131,8 +131,8 @@ jobs:
             "$GITHUB_WORKSPACE/dist"
 
       # This is only the in-flight hop between the three OS legs and the publish
-      # job: one day is plenty, and the Release asset is the durable copy, so
-      # analysis B9's 90-day expiry is no longer a thing that can happen.
+      # job: one day is plenty, and the Release asset is the durable copy, so a
+      # 90-day expiry is no longer a thing that can happen.
       - name: Upload staged assets for the publish job
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
@@ -162,7 +162,7 @@ jobs:
           merge-multiple: true
           path: dist
 
-      # PW-35 made a source offer optional under Apache-2.0, but a checksummed
+      # Apache-2.0 makes a source offer optional, but a checksummed
       # source archive next to the binaries removes the question entirely.
       - name: Add the source archive
         shell: bash

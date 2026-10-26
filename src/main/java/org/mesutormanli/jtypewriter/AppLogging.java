@@ -135,7 +135,7 @@ public final class AppLogging {
 
     /**
      * Installs the stderr handler and the file handler exactly once. Crash-safe
-     * by design (V18): this method is reached from the {@code static final
+     * by design: this method is reached from the {@code static final
      * Logger} initialisers of {@code AtomicFiles}, {@code FileService},
      * {@code AppSettings} and {@code RecoveryStore}, so a throw here would
      * surface as {@code ExceptionInInitializerError} and the application would
@@ -187,10 +187,10 @@ public final class AppLogging {
      * file cannot be used. Package-private as the test seam, mirroring
      * {@link #ONE_LINE}.
      *
-     * <p>This method may never throw. It runs inside static initialisers
-     * (V18), so any escaping exception would prevent the application from
-     * starting. The catch therefore covers {@code IOException} and every
-     * runtime failure expected here:</p>
+     * <p>This method may never throw. It runs inside static initialisers, so
+     * any escaping exception would prevent the application from starting. The
+     * catch therefore covers {@code IOException} and every runtime failure
+     * expected here:</p>
      * <ul>
      *   <li>{@link SecurityException} - sandboxed home directory or a hardened
      *       JVM that denies file access;</li>
@@ -218,7 +218,7 @@ public final class AppLogging {
      * a {@code SecurityException} on a hardened JVM, a {@code
      * NullPointerException} when the property is unset. It is also what makes
      * the security failure testable: a supplier that throws is exactly the
-     * sandboxed-home scenario (PW-30).
+     * sandboxed-home scenario.
      */
     static Optional<Handler> openFileHandler(Supplier<Path> logsDir) {
         try {

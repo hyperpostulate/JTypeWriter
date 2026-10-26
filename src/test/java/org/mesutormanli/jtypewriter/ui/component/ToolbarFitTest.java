@@ -21,9 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The RW-15 overflow policy, pinned headlessly: the width model (text plus
+ * The overflow policy, pinned headlessly: the width model (text plus
  * documented chrome plus padding and spacing), the FULL/COMPACT decision
- * including its hysteresis, and the acceptance numbers - the real German and
+ * including its hysteresis, and the measured numbers - the real German and
  * French bundle labels must not clip at 1280 px and must fit 900 px once the
  * dropdown captions collapse.
  */
@@ -124,13 +124,13 @@ class ToolbarFitTest {
         assertTrue(length > 2 * shortness);
     }
 
-    // --- the acceptance numbers (real bundles, real font engine) ------------------
+    // --- the measured numbers (real bundles, real font engine) --------------------
 
-    /** Headroom the acceptance rows must keep below their width bound. */
+    /** Headroom the measured rows must keep below their width bound. */
     private static final double HEADROOM_PX = 64;
 
     /**
-     * RW-15 acceptance, first half: at 1280 px the German and French rows are
+     * First half: at 1280 px the German and French rows are
      * rendered FULL (fully captioned) and must not clip - with headroom, so
      * a system font wider than the measured one cannot break the promise.
      */
@@ -144,7 +144,7 @@ class ToolbarFitTest {
     }
 
     /**
-     * RW-15 acceptance, second half: at 900 px nothing overflows - with the
+     * Second half: at 900 px nothing overflows - with the
      * captions collapsed, every control that stays in row one (all of them:
      * the five buttons plus all six dropdowns) fits, with headroom. No
      * language may overflow 900 px in its compact form either.

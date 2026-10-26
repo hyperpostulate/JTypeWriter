@@ -34,12 +34,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * The PW-32 encoding matrix: every supported document encoding is opened,
- * saved unchanged, and byte-compared; then opened, edited in a way that stays
+ * The encoding matrix: every supported document encoding is opened, saved
+ * unchanged, and byte-compared; then opened, edited in a way that stays
  * representable, saved, and byte-compared again. The UTF-16 rows are the
- * regression test for the silent-corruption half of analysis V6 ("a BOM-less
- * UTF-16 file in the ASCII range is valid UTF-8, so it opens without warning
- * full of NULs and is rewritten as UTF-8 on the next save"). They use a real
+ * regression test for the silent-corruption defect ("a BOM-less UTF-16 file in
+ * the ASCII range is valid UTF-8, so it opens without warning full of NULs and
+ * is rewritten as UTF-8 on the next save"). They use a real
  * Turkish + ASCII payload, not an ASCII stand-in, because that is the text a
  * Turkish user actually has.
  */
