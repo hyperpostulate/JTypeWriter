@@ -17,13 +17,14 @@ import java.util.logging.Logger;
  * Deliberately free of JavaFX/UI types so it can be unit tested headlessly.
  *
  * <p>Detection order: byte-order marks (UTF-8 / UTF-16 LE / UTF-16 BE), then
- * strict UTF-8 decoding. Bytes that are neither BOM-marked nor valid UTF-8 are
- * reported as <em>undecodable</em> ({@code null} from {@link #decode}) so the
- * caller can ask the user for a legacy encoding (e.g. {@code windows-1254} for
- * Turkish ANSI files) instead of silently corrupting the text. Whichever
- * encoding a file was read with - including its BOM flag - is what
- * {@link #encode} writes back, so opening and saving never changes a file's
- * encoding behind the user's back.</p>
+ * BOM-less UTF-16 recognised by its byte-parity pattern, then strict UTF-8
+ * decoding. Bytes that are neither BOM-marked, nor match the BOM-less UTF-16
+ * pattern, nor valid UTF-8 are reported as <em>undecodable</em> ({@code null}
+ * from {@link #decode}) so the caller can ask the user for a legacy encoding
+ * (e.g. {@code windows-1254} for Turkish ANSI files) instead of silently
+ * corrupting the text. Whichever encoding a file was read with - including
+ * its BOM flag - is what {@link #encode} writes back, so opening and saving
+ * never changes a file's encoding behind the user's back.</p>
  *
  * <p>A byte-order mark is a declaration, so its payload is decoded
  * <em>strictly</em>: when the bytes do not match the declared encoding,
@@ -84,7 +85,8 @@ public final class TextCodec {
      * Detects the encoding of a document. BOM payloads are decoded strictly.
      *
      * @return the decoded document, or {@code null} when the bytes carry no
-     * recognizable BOM and are not valid UTF-8
+     * recognizable BOM, do not match the BOM-less UTF-16 byte-parity pattern,
+     * and are not valid UTF-8
      * @throws MalformedDocumentException when a byte-order mark declares an
      * encoding the payload does not satisfy; the bytes are never replaced with
      * {@code U+FFFD} here
@@ -101,6 +103,13 @@ public final class TextCodec {
         if (startsWith(bytes, UTF16BE_BOM)) {
             return new Result(decodeBomStrict(slice(bytes, UTF16BE_BOM.length), StandardCharsets.UTF_16BE),
                     StandardCharsets.UTF_16BE, true);
+        }
+        var bomlessUtf16 = decodeBomlessUtf16(bytes);
+        if (bomlessUtf16 != null) {
+            LOG.log(Level.WARNING, "decoding a document that has the byte-parity pattern of "
+                    + bomlessUtf16.charset().name() + " without a byte-order mark; it would otherwise be"
+                    + " misread as UTF-8 and rewritten on the next save");
+            return bomlessUtf16;
         }
         var utf8 = decodeStrict(bytes, StandardCharsets.UTF_8);
         return utf8 == null ? null : new Result(utf8, StandardCharsets.UTF_8, false);
@@ -188,6 +197,64 @@ public final class TextCodec {
         } catch (CharacterCodingException e) {
             return null;
         }
+    }
+
+    /**
+     * Detects BOM-less UTF-16 by its byte-parity pattern. Runs on the raw
+     * bytes, so it also catches payloads that are not valid UTF-8 - Turkish
+     * text is exactly that case: {@code ç} is {@code E7 00} in UTF-16LE and
+     * {@code E7} is a UTF-8 lead byte followed by a non-continuation
+     * {@code 00}.
+     *
+     * <p>In UTF-16LE every high byte of Latin-1 / Latin Extended-A text is
+     * {@code 0x00} or {@code 0x01} (the odd indices), while the low bytes are
+     * printable characters (the even indices); UTF-16BE mirrors this. No UTF-8
+     * or windows-1254 file has 80 % of one parity sitting in {0x00, 0x01} while
+     * the other parity stays near zero, so the test is:</p>
+     *
+     * <ul>
+     *   <li>LE: at least 80 % of the odd bytes are 0x00/0x01 and at most 10 %
+     *       of the even bytes are;</li>
+     *   <li>BE: the same with the roles swapped.</li>
+     * </ul>
+     *
+     * <p><strong>Boundary:</strong> text made only of U+0100..U+01FF has both
+     * parities in {0x00, 0x01} and is therefore deliberately <em>not</em>
+     * claimed. It falls through to the legacy encoding prompt: no silent
+     * guess, no silent corruption. The candidate must also decode strictly as
+     * UTF-16, otherwise this returns {@code null} so the normal UTF-8 path
+     * applies.</p>
+     *
+     * @return the decoded document, or {@code null} when the bytes are not a
+     *         confident BOM-less UTF-16 document
+     */
+    private static Result decodeBomlessUtf16(byte[] bytes) {
+        if (bytes.length < 4 || bytes.length % 2 != 0) {
+            return null;
+        }
+        var pairs = bytes.length / 2;
+        var highBytes = 0;
+        var lowBytes = 0;
+        for (var i = 0; i < bytes.length; i++) {
+            if (bytes[i] == 0 || bytes[i] == 1) {
+                if (i % 2 == 0) {
+                    lowBytes++;
+                } else {
+                    highBytes++;
+                }
+            }
+        }
+        Charset candidate = null;
+        if (highBytes * 5 >= pairs * 4 && lowBytes * 10 <= pairs) {
+            candidate = StandardCharsets.UTF_16LE;
+        } else if (lowBytes * 5 >= pairs * 4 && highBytes * 10 <= pairs) {
+            candidate = StandardCharsets.UTF_16BE;
+        }
+        if (candidate == null) {
+            return null;
+        }
+        var text = decodeStrict(bytes, candidate);
+        return text == null ? null : new Result(text, candidate, false);
     }
 
     private static String decodeLenient(byte[] bytes, Charset charset) {
