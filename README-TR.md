@@ -252,6 +252,11 @@ yollardan biridir, kararlaştırılmış olan değil. Uygulama sürümünün tek
 script sürümü üretilen artefaktten geri okur ve jpackage kurallarına karşı doğrular
 (örneğin macOS `0.x` paket sürümlerini reddeder).
 
+Yanlış araç zinciri derlemeyi başlamadan durdurur: `maven-enforcer-plugin` `validate`
+aşamasında çalışır, JDK'nın `pom.xml`'deki `java.version` değerinden (25) eski olmamasını
+ve Maven'ın 3.8 veya üstü olmasını şart koşar, eksiği tek satırda söyler; böylece
+`release 25` hakkındaki bir derleyici hatasının peşine düşmezsiniz.
+
 Başlatıcı, pencere ve görev çubuğu simgesi, görselin tek kaynağı olan
 `src/main/resources/icons/jtypewriter.svg` dosyasından üretilir: `scripts/generate-icons.py`
 PNG setini, Windows `.ico` ve macOS `.icns` dosyalarını yeniden oluşturur (`--check`

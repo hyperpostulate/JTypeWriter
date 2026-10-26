@@ -253,6 +253,11 @@ version has a single source of truth: `pom.xml`. The script reads it back from
 the built artifact and validates it against jpackage's rules (macOS, for one,
 rejects `0.x` bundle versions).
 
+A wrong toolchain stops the build before it starts: `maven-enforcer-plugin` runs
+at the `validate` phase, requires a JDK at least as new as `java.version` in
+`pom.xml` (25) and Maven 3.8 or newer, and names the missing piece in one line
+instead of failing later with a compiler error about `release 25`.
+
 The launcher, window and taskbar icon is generated from the single source of the
 artwork, `src/main/resources/icons/jtypewriter.svg`: `scripts/generate-icons.py`
 regenerates the PNG set plus the Windows `.ico` and macOS `.icns` (`--check` verifies

@@ -97,6 +97,43 @@
 
     <build>
         <plugins>
+            <!--
+                Fail at `validate` - before a single class is compiled - when the
+                build runs on a JDK or Maven that cannot produce this project
+                (analysis B4). Without this the first honest signal is a compiler
+                error about `release 25` or a plugin demanding a newer Maven,
+                which says nothing about what the user should install.
+
+                The JDK floor is derived from ${java.version}, the same property
+                the compiler uses, so raising the language level cannot leave the
+                check behind. Maven 3.8 is the floor documented in both READMEs.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>enforce-build-toolchain</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[${java.version},)</version>
+                                    <message>JTypeWriter needs JDK ${java.version} or newer (maven.compiler.release is ${java.version}); point JAVA_HOME at a JDK ${java.version} installation and run the build again</message>
+                                </requireJavaVersion>
+                                <requireMavenVersion>
+                                    <version>[3.8,)</version>
+                                    <message>JTypeWriter needs Maven 3.8 or newer; upgrade Maven (the POM pins every plugin version, so no wrapper is shipped)</message>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
