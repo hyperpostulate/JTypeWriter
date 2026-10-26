@@ -7,10 +7,13 @@ import org.mesutormanli.jtypewriter.locale.Messages;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -172,8 +175,8 @@ class AutoSaveServiceTest {
     void aFrozenSlotSurvivesExitAndReportsTheParkFailure() {
         var store = mock(RecoveryStore.class);
         when(store.park()).thenReturn(false);
+        when(store.clear()).thenReturn(true);
         var service = newService(store, mock(FileService.class));
-
         service.shutdown(); // no approveExit(): PARK, but parking fails -> KEEP
 
         verify(store, never()).clear();
@@ -189,6 +192,7 @@ class AutoSaveServiceTest {
     @Test
     void aFailedSnapshotReportsOnceAndASuccessClearsTheWarning() throws Exception {
         var store = mock(RecoveryStore.class);
+        when(store.clear()).thenReturn(true);
         doThrow(new IOException("read-only recovery directory"))
                 .doThrow(new IOException("still read-only"))
                 .doNothing()
@@ -224,6 +228,7 @@ class AutoSaveServiceTest {
     @Test
     void healthNotifiesOnlyOnRealTransitions() throws Exception {
         var store = mock(RecoveryStore.class);
+        when(store.clear()).thenReturn(true);
         doThrow(new IOException("read-only"))
                 .doThrow(new IOException("read-only"))
                 .doNothing()
@@ -242,6 +247,106 @@ class AutoSaveServiceTest {
         assertEquals(1, notifications.get(), "the same failure is not a new transition");
         service.snapshot("succeeds");
         assertEquals(2, notifications.get(), "recovery is a transition");
+    }
+
+    /**
+     * V17/PW-28: a failed delete must not look like a clean slot. The warning
+     * stays, but the one-off dialog is reserved for write failures - its copy is
+     * about writing a recovery copy, which is not what went wrong here.
+     */
+    @Test
+    void aFailedDeleteKeepsTheWarningAndRaisesNoDialog() {
+        var store = mock(RecoveryStore.class);
+        when(store.clear()).thenReturn(false);
+        var fileService = mock(FileService.class);
+        when(fileService.hasUnsavedChanges()).thenReturn(false);
+        var dialogService = mock(DialogService.class);
+        var service = new AutoSaveService(store, fileService, dialogService, mock(Messages.class));
+
+        var notifications = new AtomicInteger();
+        service.health().addListener(notifications::incrementAndGet);
+
+        service.snapshot("clean document");
+
+        assertEquals(AutosaveHealth.Problem.DRAFT_DELETE, service.health().problem().orElseThrow());
+        verify(dialogService, never()).showError(any(), any(), any());
+        assertEquals(1, notifications.get(), "the status bar must hear about it");
+    }
+
+    /**
+     * V17/PW-28: the delete failure is sticky like any other problem, and a
+     * later delete that actually works withdraws it on its own.
+     */
+    @Test
+    void aLaterSuccessfulDeleteWithdrawsIt() {
+        var store = mock(RecoveryStore.class);
+        when(store.clear()).thenReturn(false).thenReturn(true);
+        var fileService = mock(FileService.class);
+        when(fileService.hasUnsavedChanges()).thenReturn(false);
+        var service = newService(store, fileService);
+
+        service.snapshot("clean document");
+        assertEquals(AutosaveHealth.Problem.DRAFT_DELETE, service.health().problem().orElseThrow());
+
+        service.snapshot("still clean");
+        assertTrue(service.health().problem().isEmpty(),
+                "a successful delete is the success that withdraws DRAFT_DELETE");
+    }
+
+    /** V17/PW-28: only a strictly newer file makes a draft stale. */
+    @Test
+    void draftPrecedesFileOnlyWhenTheFileIsStrictlyNewer() {
+        var savedAt = Instant.parse("2024-01-01T00:00:00Z");
+        var draft = new RecoveryStore.Draft("text", Path.of("doc.txt"), savedAt);
+
+        assertTrue(AutoSaveService.draftPrecedesFile(draft, savedAt.plusSeconds(1)));
+        assertFalse(AutoSaveService.draftPrecedesFile(draft, savedAt.minusSeconds(1)));
+        assertFalse(AutoSaveService.draftPrecedesFile(draft, savedAt),
+                "equal timestamps are not stale");
+        assertFalse(AutoSaveService.draftPrecedesFile(
+                new RecoveryStore.Draft("text", null, savedAt), savedAt.plusSeconds(1)),
+                "a draft without an original path has nothing to overwrite");
+        assertFalse(AutoSaveService.draftPrecedesFile(draft, null));
+    }
+
+    /**
+     * V17 does not have to be prevented by the delete alone: even when the stale
+     * draft survives, restoring it must not target the newer document's path.
+     * The text is still recovered - forcing Save As - never silently dropped.
+     *
+     * <p>The decision is asserted through the package-private
+     * {@code restoreTarget}: {@code EditorArea} cannot be mocked headlessly
+     * (its JavaFX supertypes fail to initialise without a toolkit).</p>
+     */
+    @Test
+    void aDraftOlderThanTheDocumentIsNotRestoredOntoItsPath(@TempDir Path dir) throws Exception {
+        var doc = dir.resolve("doc.txt");
+        Files.writeString(doc, "newer text");
+        Files.setLastModifiedTime(doc, FileTime.from(Instant.now().plusSeconds(60)));
+
+        var store = new RecoveryStore(dir);
+        store.saveDraft("stale text", doc); // savedAt is now, before the future mtime
+        var draft = store.loadDraft().orElseThrow();
+
+        var service = newService(store, mock(FileService.class));
+
+        assertNull(service.restoreTarget(draft),
+                "the stale draft must be restored without its path so Save As is forced");
+    }
+
+    /** The ordinary case keeps its path, so Save writes back to the document. */
+    @Test
+    void anOrdinaryDraftStillRestoresOntoItsPath(@TempDir Path dir) throws Exception {
+        var doc = dir.resolve("doc.txt");
+        Files.writeString(doc, "older text");
+
+        var store = new RecoveryStore(dir);
+        store.saveDraft("text", doc);
+        var draft = store.loadDraft().orElseThrow();
+
+        var service = newService(store, mock(FileService.class));
+
+        assertEquals(doc.toAbsolutePath(), service.restoreTarget(draft));
     }
 
     private static AutoSaveService newService(RecoveryStore store, FileService fileService) {

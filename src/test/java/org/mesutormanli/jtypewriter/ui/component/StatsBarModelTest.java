@@ -6,6 +6,7 @@ import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.Language;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.service.AutosaveHealth;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
 
 import java.nio.file.Path;
@@ -153,7 +154,7 @@ class StatsBarModelTest {
         var notifications = new AtomicInteger();
         model.addListener(notifications::incrementAndGet);
 
-        model.setAutosaveFailing(true);
+        model.setAutosaveProblem(AutosaveHealth.Problem.DRAFT_WRITE);
 
         assertTrue(model.isAutosaveFailing());
         assertEquals("Autosave is not working - save now", model.warningText());
@@ -169,9 +170,9 @@ class StatsBarModelTest {
         var model = new StatsBarModel(new SessionStats(), messages, localeManager);
         var notifications = new AtomicInteger();
         model.addListener(notifications::incrementAndGet);
-        model.setAutosaveFailing(true);
+        model.setAutosaveProblem(AutosaveHealth.Problem.DRAFT_WRITE);
 
-        model.setAutosaveFailing(true);
+        model.setAutosaveProblem(AutosaveHealth.Problem.DRAFT_WRITE);
 
         assertEquals(1, notifications.get(), "a standing warning must not repaint the bar");
     }
@@ -183,9 +184,9 @@ class StatsBarModelTest {
         var messages = mock(Messages.class);
         when(messages.autosaveWarning()).thenReturn("Autosave is not working - save now");
         var model = new StatsBarModel(new SessionStats(), messages, localeManager);
-        model.setAutosaveFailing(true);
+        model.setAutosaveProblem(AutosaveHealth.Problem.DRAFT_WRITE);
 
-        model.setAutosaveFailing(false);
+        model.setAutosaveProblem(null);
 
         assertFalse(model.isAutosaveFailing());
         assertEquals("", model.warningText());
@@ -200,7 +201,7 @@ class StatsBarModelTest {
         var localeManager = localeManagerFor(Language.EN);
         var messages = messagesFor(localeManager);
         var model = new StatsBarModel(new SessionStats(), messages, localeManager);
-        model.setAutosaveFailing(true);
+        model.setAutosaveProblem(AutosaveHealth.Problem.DRAFT_WRITE);
         var english = model.warningText();
 
         localeManager.setLanguage(Language.TR);
@@ -210,6 +211,31 @@ class StatsBarModelTest {
         assertFalse(english.equals(model.warningText()), "the English warning was stale");
         assertTrue(model.warningText().contains("Otomatik"),
                 "warning text: " + model.warningText());
+    }
+
+    /**
+     * V17/PW-28: a draft that could not be deleted is not a failed write, so it
+     * gets its own status text - the user is told a stale copy is still on disk,
+     * not that autosave is broken.
+     */
+    @Test
+    void eachFailureKindShowsItsOwnWarning() {
+        var localeManager = localeManagerFor(Language.EN);
+        var messages = messagesFor(localeManager);
+        var model = new StatsBarModel(new SessionStats(), messages, localeManager);
+
+        model.setAutosaveProblem(AutosaveHealth.Problem.DRAFT_DELETE);
+        assertEquals(messages.staleDraftWarning(), model.warningText());
+        assertEquals(AutosaveHealth.Problem.DRAFT_DELETE, model.problem().orElseThrow());
+
+        model.setAutosaveProblem(AutosaveHealth.Problem.DRAFT_WRITE);
+        assertEquals(messages.autosaveWarning(), model.warningText());
+        assertFalse(messages.staleDraftWarning().equals(model.warningText()),
+                "a failed write keeps the write warning");
+
+        model.setAutosaveProblem(null);
+        assertEquals("", model.warningText());
+        assertTrue(model.problem().isEmpty());
     }
 
     private LocaleManager localeManagerFor(Language language) {

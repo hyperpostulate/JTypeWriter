@@ -28,7 +28,13 @@ public final class AutosaveHealth {
          * A postponed draft could not be moved out of the live slot, so
          * snapshots stay suppressed to protect its only copy.
          */
-        DRAFT_PARK
+        DRAFT_PARK,
+        /**
+         * A draft that should have been dropped - after a save, a new document
+         * or an answered exit - could not be deleted, so a stale copy stays on
+         * disk and would be offered for recovery again (V17/PW-28).
+         */
+        DRAFT_DELETE
     }
 
     private Problem current;

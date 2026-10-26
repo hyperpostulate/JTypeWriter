@@ -5,9 +5,13 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Headless coverage for the per-user instance lock. None of these tests start
@@ -74,5 +78,34 @@ class InstanceLockTest {
         assertEquals(InstanceLock.Status.UNAVAILABLE, result.status(),
                 "an unusable lock file must report unavailable instead of throwing");
         assertTrue(result.held().isEmpty(), "unavailable must not return a lock");
+    }
+
+    /**
+     * PW-30 read-only-directory case: the lock file cannot be created, so the
+     * lock is reported unavailable and startup continues. A genuine
+     * {@link SecurityException} cannot be injected any more (no
+     * {@code SecurityManager} in JDK 25), so the same single catch is exercised
+     * through the closest reachable I/O failure, {@code AccessDeniedException}.
+     */
+    @Test
+    void aReadOnlyDataDirectoryIsUnavailableInsteadOfBlockingStartup(@TempDir Path dir)
+            throws Exception {
+        assumeTrue(Files.getFileStore(dir).supportsFileAttributeView("posix"),
+                "POSIX permissions are required for a read-only directory");
+        assumeFalse("root".equals(System.getProperty("user.name")),
+                "root bypasses file permissions");
+
+        Path dataDir = dir.resolve("data");
+        Files.createDirectories(dataDir);
+        try {
+            Files.setPosixFilePermissions(dataDir, PosixFilePermissions.fromString("r-xr-xr-x"));
+            var result = assertDoesNotThrow(() -> InstanceLock.acquire(dataDir),
+                    "an unusable lock must never block startup by throwing");
+            assertEquals(InstanceLock.Status.UNAVAILABLE, result.status(),
+                    "a read-only data directory must report unavailable");
+            assertTrue(result.held().isEmpty(), "unavailable must not return a lock");
+        } finally {
+            Files.setPosixFilePermissions(dataDir, PosixFilePermissions.fromString("rwx------"));
+        }
     }
 }

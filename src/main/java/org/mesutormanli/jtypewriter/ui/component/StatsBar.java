@@ -11,6 +11,7 @@ import javafx.scene.layout.HBox;
 import javafx.util.Duration;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.service.AutosaveHealth;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
 
 import java.time.LocalDateTime;
@@ -133,14 +134,13 @@ public class StatsBar extends BorderPane {
     }
 
     /**
-     * V4/PW-27: the persistent autosave warning. {@code true} shows the
-     * bundle's warning text next to the statistics and takes the label out of
-     * layout when it is false, so a healthy session never pays for the space.
-     * The text itself lives in {@link StatsBarModel} (localised, refreshed on a
-     * language switch); this only mirrors the state onto the control.
+     * V4/PW-27 / V17/PW-28: the standing warning kind. {@code null} means the
+     * safety net is healthy; the bundle text that matches the kind is chosen in
+     * {@link StatsBarModel}. The label is hidden while the text is blank, so a
+     * healthy session never pays for the space.
      */
-    public void setAutosaveFailing(boolean failing) {
-        model.setAutosaveFailing(failing);
+    public void setAutosaveProblem(AutosaveHealth.Problem problem) {
+        model.setAutosaveProblem(problem);
         applyTexts(); // the model already notified, but be explicit for a direct caller
     }
 

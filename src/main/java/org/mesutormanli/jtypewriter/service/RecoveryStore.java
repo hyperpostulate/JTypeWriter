@@ -74,7 +74,10 @@ import java.util.logging.Logger;
  * <p>Lifecycle: the draft is refreshed periodically while a document is dirty,
  * cleared on every successful save and on clean exit. If the application dies
  * in between, the draft survives and is offered for recovery on next startup.
- * Free of UI types so it can be unit tested headlessly.</p>
+ * A clear that fails is not silent: the slot still holds the draft afterwards,
+ * {@link #clear()} reports that, and the stale copy is offered again on the
+ * next start unless the caller acts on the failure. Free of UI types so it can
+ * be unit tested headlessly.</p>
  */
 public class RecoveryStore {
 
@@ -177,13 +180,26 @@ public class RecoveryStore {
         }
     }
 
-    /** Drops this session's draft (successful save or clean exit). */
-    public synchronized void clear() {
+    /**
+     * Drops this session's draft (successful save, new document, or an answered
+     * exit). A failing delete is a real condition, not noise: the stale draft
+     * would be offered for recovery again and could overwrite a newer document
+     * (V17/PW-28), so it is reported at {@code WARNING} and returned to the
+     * caller instead of being logged at {@code FINE}.
+     *
+     * @return {@code true} when the slot holds no draft afterwards (there was
+     *         nothing to delete, or the delete succeeded); {@code false} when
+     *         the delete failed and the draft is still on disk
+     */
+    public synchronized boolean clear() {
         try {
             Files.deleteIfExists(ownFile);
-        } catch (IOException e) {
-            // a leftover draft is retried on the next autosave; never fatal
-            LOG.log(Level.FINE, "could not delete recovery draft " + ownFile, e);
+            return true;
+        } catch (IOException | SecurityException e) {
+            LOG.log(Level.WARNING, "could not delete recovery draft " + ownFile
+                    + "; the stale draft will be offered again on the next start and must not"
+                    + " overwrite a newer document", e);
+            return false;
         }
     }
 

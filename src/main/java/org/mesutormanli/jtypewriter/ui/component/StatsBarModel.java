@@ -2,10 +2,13 @@ package org.mesutormanli.jtypewriter.ui.component;
 
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.service.AutosaveHealth;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * The text logic behind {@link StatsBar}, kept free of JavaFX so it stays
@@ -31,6 +34,13 @@ import java.time.format.DateTimeFormatter;
  * the listener it registers in its own constructor, so listeners registered
  * afterwards - this model's included - always run after the bundle is fresh
  * and therefore format in the new language. Do not reorder those fields.</p>
+ *
+ * <p><strong>Why a {@code service} enum here:</strong> the warning text depends
+ * on <em>what</em> failed (a draft that could not be written, parked or
+ * deleted), so the model holds {@link AutosaveHealth.Problem} rather than a
+ * boolean. Only the enum type is referenced, never a JavaFX control or the
+ * service itself, which keeps this class free of UI types and testable
+ * headlessly.</p>
  */
 public final class StatsBarModel {
 
@@ -45,8 +55,8 @@ public final class StatsBarModel {
     private String statsText = "";
     private String clockText = "";
     private String warningText = "";
-    /** Set by the controller from {@code AutoSaveService.health()}. */
-    private boolean autosaveFailing;
+    /** Set by the controller from {@code AutoSaveService.health()}; {@code null} is healthy. */
+    private AutosaveHealth.Problem autosaveProblem;
     private Runnable listener = () -> {
     };
 
@@ -81,25 +91,44 @@ public final class StatsBarModel {
                 stats.getWpm());
         // V4/PW-27: the warning is bundle text, so it is rebuilt on every
         // refresh - which is exactly what a language switch needs.
-        warningText = autosaveFailing ? messages.autosaveWarning() : "";
+        warningText = warningFor(autosaveProblem);
+    }
+
+    /** The localised warning for a failing state, or {@code ""} while healthy. */
+    private String warningFor(AutosaveHealth.Problem problem) {
+        if (problem == null) {
+            return "";
+        }
+        // V17/PW-28: a stale draft is a different problem from a failed write,
+        // and the user's next action is the same but the text says what is on
+        // disk. The dialog copy is about writing a copy, so it would be wrong.
+        return problem == AutosaveHealth.Problem.DRAFT_DELETE
+                ? messages.staleDraftWarning()
+                : messages.autosaveWarning();
     }
 
     /**
-     * V4/PW-27: whether the autosave safety net is failing. The warning stands
-     * until a later write succeeds; a no-op repeat does not repaint the bar.
+     * V4/PW-27 / V17/PW-28: the safety net's current failure, {@code null}
+     * meaning healthy. A failure stands until a later operation succeeds; a
+     * no-op repeat does not repaint the bar.
      */
-    public void setAutosaveFailing(boolean failing) {
-        if (autosaveFailing == failing) {
+    public void setAutosaveProblem(AutosaveHealth.Problem problem) {
+        if (Objects.equals(autosaveProblem, problem)) {
             return;
         }
-        autosaveFailing = failing;
+        autosaveProblem = problem;
         refresh(LocalDateTime.now());
         listener.run();
     }
 
     /** {@code true} while the autosave warning must be displayed. */
     public boolean isAutosaveFailing() {
-        return autosaveFailing;
+        return autosaveProblem != null;
+    }
+
+    /** The standing failure kind, empty while the safety net works (PW-28). */
+    public Optional<AutosaveHealth.Problem> problem() {
+        return Optional.ofNullable(autosaveProblem);
     }
 
     /**

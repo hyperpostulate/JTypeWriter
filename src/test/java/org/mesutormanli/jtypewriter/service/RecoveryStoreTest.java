@@ -8,15 +8,24 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Crash-recovery draft lifecycle: survive crashes, be found, survive corrupt
@@ -80,7 +89,7 @@ class RecoveryStoreTest {
         var store = new RecoveryStore(dir);
         store.saveDraft("something", null);
 
-        store.clear();
+        assertTrue(store.clear());
 
         assertTrue(store.loadDraft().isEmpty());
         assertTrue(draftFiles(dir).isEmpty());
@@ -91,7 +100,66 @@ class RecoveryStoreTest {
         var store = new RecoveryStore(dir);
 
         assertTrue(store.loadDraft().isEmpty());
-        store.clear(); // clearing an empty store must not blow up
+        assertTrue(store.clear(), "clearing an empty store succeeds: there is no draft left");
+    }
+
+    /**
+     * V17/PW-28: a failed delete used to be a {@code FINE} line, so the stale
+     * draft silently survived and was offered for recovery again - accepting it
+     * could overwrite a newer document. The failure must be reported, both to
+     * the caller and at {@code WARNING} in the log.
+     */
+    @Test
+    void clearReportsFailureWhenTheDraftCannotBeDeleted(@TempDir Path dir) throws IOException {
+        assumeTrue(Files.getFileStore(dir).supportsFileAttributeView(PosixFileAttributeView.class),
+                "needs a POSIX filesystem to make a directory unwritable");
+        assumeFalse("root".equals(System.getProperty("user.name")),
+                "root bypasses directory permissions, so the delete would succeed");
+
+        var store = new RecoveryStore(dir);
+        store.saveDraft("silinemeyen taslak", null);
+        var draft = draftFiles(dir).get(0);
+
+        var records = new CopyOnWriteArrayList<LogRecord>();
+        var handler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                records.add(record);
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        handler.setLevel(Level.ALL);
+        var logger = Logger.getLogger(RecoveryStore.class.getName());
+        logger.addHandler(handler);
+
+        try {
+            Files.setPosixFilePermissions(dir, PosixFilePermissions.fromString("r-xr-xr-x"));
+            try {
+                assertFalse(store.clear(), "a delete that did not happen must not look like success");
+                assertTrue(Files.exists(draft), "the only copy of the text is still there");
+            } finally {
+                Files.setPosixFilePermissions(dir, PosixFilePermissions.fromString("rwx------"));
+            }
+        } finally {
+            logger.removeHandler(handler);
+        }
+
+        var warnings = records.stream()
+                .filter(record -> record.getLevel() == Level.WARNING)
+                .toList();
+        assertEquals(1, warnings.size(), "one visible WARNING for the failed delete: " + records);
+        assertTrue(warnings.get(0).getMessage().contains(draft.getFileName().toString()),
+                "the warning must name the draft file: " + warnings.get(0).getMessage());
+
+        assertTrue(store.clear(), "once the directory is writable again the slot can be freed");
+        assertTrue(draftFiles(dir).isEmpty());
     }
 
     @Test

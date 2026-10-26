@@ -123,14 +123,15 @@ public class MainController implements Initializable {
     }
 
     /**
-     * V4/PW-27: the safety net's state, rendered as a persistent warning in the
-     * status bar. Autosave failures used to be a {@code WARNING} line in a log
-     * file nobody opens, while the product kept promising crash protection it
-     * could no longer deliver; the bar now says so for as long as it is true,
-     * and clears itself once a write succeeds again.
+     * V4/PW-27 / V17/PW-28: the safety net's state, rendered as a persistent
+     * warning in the status bar. Autosave failures used to be a {@code WARNING}
+     * line in a log file nobody opens, while the product kept promising crash
+     * protection it could no longer deliver; the bar now says so for as long as
+     * it is true - with text that matches the failure kind - and clears itself
+     * once the operation succeeds again.
      */
     private void refreshAutosaveWarning() {
-        statsBar.setAutosaveFailing(autoSaveService.health().isFailing());
+        statsBar.setAutosaveProblem(autoSaveService.health().problem().orElse(null));
     }
 
     /** Drops the "Saved ..." claim: the document is dirty or was never saved. */

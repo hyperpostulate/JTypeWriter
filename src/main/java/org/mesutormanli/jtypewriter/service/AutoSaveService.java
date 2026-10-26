@@ -10,6 +10,10 @@ import org.mesutormanli.jtypewriter.AppLogging;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,6 +43,13 @@ import java.util.logging.Logger;
  * and keeps a warning in the status bar until a write succeeds again. A broken
  * recovery directory can no longer silently cancel the product's only
  * promise.</p>
+ *
+ * <p><strong>A failed delete is visible too (V17/PW-28):</strong> when the
+ * draft that a save, a new document or an answered exit should have dropped
+ * cannot be deleted, the slot still holds it. That is recorded as
+ * {@link AutosaveHealth.Problem#DRAFT_DELETE} - a status-bar warning, never a
+ * dialog, because the dialog copy is about writing a copy - so the user is not
+ * told the stale draft is gone when it is not.</p>
  */
 public class AutoSaveService {
 
@@ -90,14 +101,14 @@ public class AutoSaveService {
             @Override
             public void onLoaded(java.nio.file.Path file) {
                 if (!draftFrozen) {
-                    store.clear();
+                    clearDraft();
                 }
             }
 
             @Override
             public void onSaved(java.nio.file.Path file) {
                 if (!draftFrozen) {
-                    store.clear(); // content is on disk now, nothing left to recover
+                    clearDraft(); // content is on disk now, nothing left to recover
                 }
             }
 
@@ -108,7 +119,7 @@ public class AutoSaveService {
             @Override
             public void onNewDocument() {
                 if (!draftFrozen) {
-                    store.clear();
+                    clearDraft();
                 }
             }
         });
@@ -157,6 +168,14 @@ public class AutoSaveService {
      * right after recovery cannot lose it. Closing the prompt (or choosing
      * "later") keeps the draft untouched for the next start.
      *
+     * <p><strong>Never roll the document back (V17/PW-28):</strong> a draft that
+     * should have been deleted after a save can survive a failed delete. If the
+     * document on disk is newer than that draft, restoring it onto its own path
+     * would make the next save overwrite the newer file with older text. In that
+     * case the text is still offered and restored - recoverable text is never
+     * discarded - but without its original path, so saving forces Save As and
+     * cannot touch the newer document in place.</p>
+     *
      * @return {@code true} when a draft was restored (the caller must not load
      *         anything else into the editor), {@code false} when there was no
      *         draft, the user discarded it, or the answer was "later"
@@ -169,7 +188,8 @@ public class AutoSaveService {
         var choice = dialogService.showRecoveryDialog(stage, draft.get().savedAt());
         if (choice == RecoveryChoice.RESTORE) {
             draftFrozen = false;
-            fileService.restoreRecovered(draft.get().originalFile(), draft.get().content());
+            var recovered = draft.get();
+            fileService.restoreRecovered(restoreTarget(recovered), recovered.content());
             editorArea.setDocument(fileService.getCurrentContent());
             return true;
         }
@@ -182,6 +202,49 @@ public class AutoSaveService {
             keepDraftForNextStart();
         }
         return false;
+    }
+
+    /**
+     * PW-28: true when the document on disk is newer than the draft, so the
+     * draft must not be restored onto its own path. Equal timestamps are not
+     * stale: a save and a snapshot in the same instant must not force Save As.
+     */
+    static boolean draftPrecedesFile(RecoveryStore.Draft draft, Instant fileModified) {
+        return draft.originalFile() != null
+                && fileModified != null
+                && fileModified.isAfter(draft.savedAt());
+    }
+
+    /**
+     * The path the recovered text may be restored onto, or {@code null} when
+     * restoring it in place would overwrite a newer document (see
+     * {@link #draftPrecedesFile}). A failed mtime read never aborts recovery:
+     * the draft is then treated as ordinary and keeps its path.
+     *
+     * <p>Package-private so the decision can be asserted headlessly: an
+     * {@code EditorArea} cannot be mocked without starting the JavaFX
+     * toolkit.</p>
+     */
+    Path restoreTarget(RecoveryStore.Draft draft) {
+        var original = draft.originalFile();
+        if (original == null || !Files.isRegularFile(original)) {
+            return original;
+        }
+        Instant modified;
+        try {
+            modified = Files.getLastModifiedTime(original).toInstant();
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "cannot read mtime of the recovered document " + original
+                    + "; restoring the draft onto its path anyway", e);
+            return original;
+        }
+        if (!draftPrecedesFile(draft, modified)) {
+            return original;
+        }
+        LOG.log(Level.WARNING, "recovery draft for " + original
+                + " is older than the document on disk; restoring it without its path so a"
+                + " save cannot overwrite the newer document");
+        return null;
     }
 
     /**
@@ -205,7 +268,7 @@ public class AutoSaveService {
             timeline.stop();
         }
         switch (ExitDisposition.decide(closeRequestAnswered, draftFrozen)) {
-            case CLEAR -> store.clear();
+            case CLEAR -> clearDraft();
             case PARK -> parkOrFreeze();
             case KEEP -> {
                 // a postponed draft that could not be parked: never touch it
@@ -225,7 +288,7 @@ public class AutoSaveService {
             return;
         }
         draftFrozen = true;
-        reportFailure(AutosaveHealth.Problem.DRAFT_PARK);
+        reportFailure(AutosaveHealth.Problem.DRAFT_PARK, true);
     }
 
     /**
@@ -239,25 +302,41 @@ public class AutoSaveService {
         try {
             if (fileService.hasUnsavedChanges()) {
                 store.saveDraft(text, fileService.getCurrentFilePath());
-            } else {
-                store.clear();
+                health.recover(); // a working snapshot withdraws an older warning
+            } else if (clearDraft()) {
+                // V17/PW-28: only a delete that actually happened may withdraw a
+                // warning. Recovering unconditionally would instantly erase the
+                // DRAFT_DELETE recorded by clearDraft().
+                health.recover();
             }
-            health.recover(); // a working snapshot withdraws an older warning
         } catch (Exception e) {
             LOG.log(Level.WARNING, "autosave snapshot failed", e);
-            reportFailure(AutosaveHealth.Problem.DRAFT_WRITE);
+            reportFailure(AutosaveHealth.Problem.DRAFT_WRITE, true);
         }
     }
 
     /**
-     * Records a failure and explains it once. The dialog is shown at most once
-     * per session (the status bar keeps the warning up afterwards), and not at
-     * all when no window is showing - at exit there is nobody to read it, and
-     * the parked draft is still offered on the next start.
+     * Drops this session's draft and records a failed delete (V17/PW-28).
+     *
+     * @return {@code true} when the slot is empty afterwards
      */
-    private void reportFailure(AutosaveHealth.Problem problem) {
+    private boolean clearDraft() {
+        if (store.clear()) {
+            return true;
+        }
+        reportFailure(AutosaveHealth.Problem.DRAFT_DELETE, false);
+        return false;
+    }
+
+    /**
+     * Records a failure. {@code explain} keeps the one-off dialog behaviour of
+     * PW-27; a delete failure passes {@code false} because the dialog copy is
+     * about writing a recovery copy, not about dropping one - there the status
+     * bar and the log are the right channel.
+     */
+    private void reportFailure(AutosaveHealth.Problem problem, boolean explain) {
         health.fail(problem);
-        if (failureReported) {
+        if (!explain || failureReported) {
             return;
         }
         failureReported = true;

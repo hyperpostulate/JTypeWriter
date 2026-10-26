@@ -451,4 +451,13 @@ public class Messages {
     public String autosaveFailedContent() {
         return bundle.getString("autosaveFailedContent");
     }
+
+    /**
+     * V17/PW-28: the standing status-bar warning shown when a draft that should
+     * have been deleted could not be deleted, so a stale copy would be offered
+     * for recovery again.
+     */
+    public String staleDraftWarning() {
+        return bundle.getString("staleDraftWarning");
+    }
 }
