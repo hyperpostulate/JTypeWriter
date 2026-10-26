@@ -211,28 +211,34 @@ jobs:
             exit 1
           fi
 
+      # The body lives in the repository, not in this file: the release note is
+      # the one document every user reads, and this project documents itself in
+      # English and Turkish with the same sections in the same order. Keeping it
+      # as a checked-in template makes that pairing reviewable (a diff shows both
+      # halves) instead of hiding it inside an inline block.
+      #
+      # The template carries @VERSION@ and @TAG@ placeholders; the checks below
+      # make a half-rendered note impossible to publish.
       - name: Write release notes
         shell: bash
         run: |
-          {
-            printf '%s\n' "JTypeWriter ${{ needs.prepare.outputs.version }}, built from tag \`$GITHUB_REF_NAME\`."
-            printf '\n'
-            printf '%s\n' "The installers are **not code-signed or notarised**. Windows SmartScreen and"
-            printf '%s\n' "macOS Gatekeeper will warn on first launch."
-            printf '\n'
-            printf '%s\n' "Verify your download before running it:"
-            printf '\n'
-            printf '%s\n' '```'
-            printf '%s\n' 'sha256sum -c SHA256SUMS'
-            printf '%s\n' '```'
-            printf '\n'
-            printf '%s\n' "On Windows, where \`sha256sum\` is not available by default, compare the"
-            printf '%s\n' "printed value with:"
-            printf '\n'
-            printf '%s\n' '```'
-            printf '%s\n' 'certutil -hashfile <file> SHA256'
-            printf '%s\n' '```'
-          } > "$RUNNER_TEMP/release-notes.md"
+          sed \
+            -e "s/@VERSION@/${{ needs.prepare.outputs.version }}/g" \
+            -e "s/@TAG@/$GITHUB_REF_NAME/g" \
+            docs/release-notes-template.md > "$RUNNER_TEMP/release-notes.md"
+
+          if grep -n '@[A-Z][A-Z_]*@' "$RUNNER_TEMP/release-notes.md"; then
+            echo "unsubstituted placeholder in the release notes above" >&2
+            exit 1
+          fi
+          # A template that lost one language would still render, so the release
+          # job is the last place that can notice. Both headings are required.
+          for heading in '^## English$' '^## Türkçe$'; do
+            if ! grep -qx "$heading" "$RUNNER_TEMP/release-notes.md"; then
+              echo "release notes are missing the section: $heading" >&2
+              exit 1
+            fi
+          done
 
       # gh is already on the runners, so publishing needs no extra pinned
       # dependency (and no third-party action) in the job that holds the write
