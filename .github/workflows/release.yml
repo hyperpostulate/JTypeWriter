@@ -1,0 +1,249 @@
+# Publishes a GitHub Release from a version tag.
+#
+# A `v*` tag is the one place where "the version we built" and "the version we
+# promised" can disagree, so prepare refuses to continue unless the tag is
+# exactly v<pom version>. Three OS builds then package installers and portable
+# archives, and a single publish job merges them, checksums the lot and uploads
+# the result to the Release itself. Uploading to the Release - not to Actions
+# artifacts - is what ends the 90-day expiry problem (analysis B9): the release
+# is the durable copy, the artifact upload between jobs lives for one day.
+#
+# On purpose there is no workflow_dispatch here: a manual run has no tag, and
+# a release built from a branch tip could never be reproduced from $GITHUB_REF_NAME.
+# Tag pushes are the only trigger that makes the provenance claim true.
+
+name: Release
+
+on:
+  push:
+    tags: [ "v*" ]
+
+# Reading the repository is enough for prepare and the three build legs. The
+# publish job alone gets contents: write below (GitHub has no step-level
+# permissions, so the write grant has to be scoped to a whole job).
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Check tag against the build version
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      # Every action is pinned to a full commit SHA: a mutable tag can be
+      # re-pointed at another commit and would then run with this token.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # Nothing here pushes; keeping the token out of .git/config keeps it
+          # out of every later step.
+          persist-credentials: false
+
+      # A release whose tag disagrees with the built version would be
+      # unverifiable - the asset names say one thing and the jar says another -
+      # so this fails before three OS builds run.
+      #
+      # The first <version> element is the project version: this build has no
+      # parent POM, so there is no parent <version> ahead of it to skip.
+      - name: Read the project version and verify the tag
+        id: version
+        shell: bash
+        run: |
+          version=$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' pom.xml | head -n 1)
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "could not read a release version from pom.xml (got '$version')" >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_NAME" != "v$version" ]]; then
+            echo "tag '$GITHUB_REF_NAME' does not match pom.xml version '$version'" >&2
+            echo "a release built from this tag would not be reproducible - tag v$version instead" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build & package (${{ matrix.os }})
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # Pin the exact commit the tag points at, not whatever the branch has
+          # moved to by the time this job starts.
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad  # v6.1.0
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build and test with Maven
+        run: mvn -B package --file pom.xml
+
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+
+      - name: Build application image and platform installer
+        shell: bash
+        run: bash scripts/package.sh --skip-build --installer
+
+      # release-assets.sh speaks the same vocabulary as the file names it
+      # produces; runner.os / runner.arch are the only platform facts available
+      # before the asset exists, so they are translated here.
+      - name: Resolve asset platform
+        id: platform
+        shell: bash
+        run: |
+          case "${{ runner.os }}" in
+            Linux)   os=linux ;;
+            Windows) os=windows ;;
+            macOS)   os=mac ;;
+            *) echo "unsupported runner.os '${{ runner.os }}'" >&2; exit 1 ;;
+          esac
+          case "${{ runner.arch }}" in
+            X64)   arch=x64 ;;
+            ARM64) arch=arm64 ;;
+            *) echo "unsupported runner.arch '${{ runner.arch }}'" >&2; exit 1 ;;
+          esac
+          echo "os=$os" >> "$GITHUB_OUTPUT"
+          echo "arch=$arch" >> "$GITHUB_OUTPUT"
+
+      - name: Stage normalised release assets
+        shell: bash
+        run: |
+          bash scripts/release-assets.sh \
+            "${{ needs.prepare.outputs.version }}" \
+            "${{ steps.platform.outputs.os }}" \
+            "${{ steps.platform.outputs.arch }}" \
+            "$GITHUB_WORKSPACE/releases/${{ steps.platform.outputs.os }}" \
+            "$GITHUB_WORKSPACE/dist"
+
+      # This is only the in-flight hop between the three OS legs and the publish
+      # job: one day is plenty, and the Release asset is the durable copy, so
+      # analysis B9's 90-day expiry is no longer a thing that can happen.
+      - name: Upload staged assets for the publish job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: JTypeWriter-${{ matrix.os }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    name: Publish GitHub Release
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # only this job creates the Release
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # The tag must exist locally for git archive and --verify-tag; no push
+          # credential is needed for either.
+          persist-credentials: false
+
+      - name: Download staged assets
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          pattern: JTypeWriter-*
+          merge-multiple: true
+          path: dist
+
+      # PW-35 made a source offer optional under Apache-2.0, but a checksummed
+      # source archive next to the binaries removes the question entirely.
+      - name: Add the source archive
+        shell: bash
+        run: |
+          git archive \
+            --format=tar.gz \
+            --prefix="JTypeWriter-${{ needs.prepare.outputs.version }}/" \
+            -o "dist/JTypeWriter-${{ needs.prepare.outputs.version }}-source.tar.gz" \
+            "$GITHUB_REF_NAME"
+
+      - name: Generate checksums
+        shell: bash
+        run: bash scripts/checksums.sh dist
+
+      # A silently missing Windows asset is exactly the bug this job exists to
+      # prevent, so the listing is asserted, not assumed.
+      - name: Verify the expected assets are present
+        shell: bash
+        run: |
+          version="${{ needs.prepare.outputs.version }}"
+          expected=(
+            "JTypeWriter-$version-linux-x64.deb"
+            "JTypeWriter-$version-linux-x64.tar.gz"
+            "JTypeWriter-$version-windows-x64.msi"
+            "JTypeWriter-$version-windows-x64.tar.gz"
+            "JTypeWriter-$version-mac-arm64.dmg"
+            "JTypeWriter-$version-mac-arm64.tar.gz"
+            "JTypeWriter-$version-source.tar.gz"
+          )
+          for asset in "${expected[@]}"; do
+            if [[ ! -f "dist/$asset" ]]; then
+              echo "missing expected release asset: dist/$asset" >&2
+              echo "dist/ contains:" >&2
+              ls -la dist >&2
+              exit 1
+            fi
+          done
+          if [[ ! -f dist/SHA256SUMS ]]; then
+            echo "dist/SHA256SUMS was not produced" >&2
+            exit 1
+          fi
+          sums=$(find dist -maxdepth 1 -type f -name SHA256SUMS | wc -l)
+          if [[ "$sums" -ne 1 ]]; then
+            echo "expected exactly one SHA256SUMS under dist/, found $sums" >&2
+            ls -la dist >&2
+            exit 1
+          fi
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          {
+            printf '%s\n' "JTypeWriter ${{ needs.prepare.outputs.version }}, built from tag \`$GITHUB_REF_NAME\`."
+            printf '\n'
+            printf '%s\n' "The installers are **not code-signed or notarised**. Windows SmartScreen and"
+            printf '%s\n' "macOS Gatekeeper will warn on first launch."
+            printf '\n'
+            printf '%s\n' "Verify your download before running it:"
+            printf '\n'
+            printf '%s\n' '```'
+            printf '%s\n' 'sha256sum -c SHA256SUMS'
+            printf '%s\n' '```'
+            printf '\n'
+            printf '%s\n' "On Windows, where \`sha256sum\` is not available by default, compare the"
+            printf '%s\n' "printed value with:"
+            printf '\n'
+            printf '%s\n' '```'
+            printf '%s\n' 'certutil -hashfile <file> SHA256'
+            printf '%s\n' '```'
+          } > "$RUNNER_TEMP/release-notes.md"
+
+      # gh is already on the runners, so publishing needs no extra pinned
+      # dependency (and no third-party action) in the job that holds the write
+      # token. --verify-tag matters because a tag that only exists locally would
+      # otherwise get a Release pointing at a commit nobody can fetch.
+      - name: Create the GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --verify-tag \
+            --title "JTypeWriter ${{ needs.prepare.outputs.version }}" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"

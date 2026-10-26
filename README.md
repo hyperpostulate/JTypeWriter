@@ -234,7 +234,7 @@ they are current), and `scripts/package.sh` picks the right format per platform.
 
 ## CI/CD
 
-GitHub Actions workflow (`.github/workflows/maven.yml`):
+GitHub Actions workflows: build and test on every push (`.github/workflows/maven.yml`), release on a version tag (`.github/workflows/release.yml`).
 
 - **Trigger**: Runs on every push and pull request to `main`
 - **Environment**: Ubuntu, Windows and macOS (build matrix)
@@ -242,6 +242,7 @@ GitHub Actions workflow (`.github/workflows/maven.yml`):
 - **Command**: `mvn -B package` (build + tests), then `scripts/package.sh --skip-build --installer`
 - **Locales**: the test suite also runs under Turkish and German system locales, so i18n regressions (e.g. a language that silently resolves to the system language) cannot slip through
 - **Artifacts**: native application image plus a platform installer (`.deb` / `.msi` / `.dmg`) per OS
+- **Releases**: pushing a `v*` tag that matches the `pom.xml` version builds all three platforms and publishes them to a GitHub Release together with a `SHA256SUMS` file, so the binaries no longer live in Actions artifacts that expire after a few days
 
 ---
 

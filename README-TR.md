@@ -235,7 +235,7 @@ güncelliklerini doğrular); `scripts/package.sh` platforma göre doğru biçimi
 
 ## CI/CD
 
-GitHub Actions iş akışı (`.github/workflows/maven.yml`):
+GitHub Actions iş akışları: her push'ta derleme ve test (`.github/workflows/maven.yml`), sürüm tag'inde yayın (`.github/workflows/release.yml`).
 
 - **Tetikleme**: `main` dalına her push ve pull request'te çalışır
 - **Ortam**: Ubuntu, Windows ve macOS (build matrisi)
@@ -243,6 +243,7 @@ GitHub Actions iş akışı (`.github/workflows/maven.yml`):
 - **Komut**: `mvn -B package` (derleme + testler), ardından `scripts/package.sh --skip-build --installer`
 - **Diller**: test paketi Türkçe ve Almanca sistem dillerinde de çalışır; böylece yerelleştirme regresyonları (ör. bir dilin sessizce sistem diline çözülmesi) gözden kaçamaz
 - **Artefaktlar**: her işletim sistemi için yerel uygulama görüntüsü ve platform kurulum paketi (`.deb` / `.msi` / `.dmg`)
+- **Sürümler**: `pom.xml` sürümüyle eşleşen bir `v*` tag'i itildiğinde üç platform da derlenip bir GitHub Release'e yüklenir; yanına `SHA256SUMS` dosyası eklenir, böylece ikililer birkaç gün sonra silinen Actions artefaktlarına bağlı kalmaz
 
 ---
 
