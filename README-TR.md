@@ -70,24 +70,12 @@ Canlı istatistik çubuğu:
 
 ### Tam Ekran ve Araç Çubuğu
 
-`F11` tam ekranı açar/kapatır, `Escape` tam ekrandan çıkar (platformun varsayılan çıkış
-ipucu gizlenir). Ekranda yalnızca metin kalsın istiyorsanız araç çubuğunu `Ctrl+T` ile
-gizleyebilirsiniz.
-
-Araç çubuğu her pencere genişliğinde tek satır kalır. Altı açılır listenin her biri normalde
-değeriyle birlikte bir başlık gösterir ("Tema: Koyu", "Boyut: 16", "Dil: Deutsch"); başlıklı
-satır sığmadığında altı başlığın tamamı yalın değere iner ("Koyu", "16", "Deutsch"). Bu,
-gerçek yerelleştirilmiş etiketlerden ölçülür; böylece hiçbir şey taşmaz veya kırpılmaz. Beş
-düğme hiçbir zaman daralmaz ve görünür kalır. Her araç çubuğu kontrolüne `Tab` ile soldan sağa
-görsel sırayla ulaşılır (önce düğmeler, sonra açılır listeler), odaklanan kontrol görünür bir
-halka gösterir ve arayüz dilinden gelen, varsa kısayolu da içeren bir tooltip'i vardır; örneğin
-"Kaydet (Ctrl+S)".
-
-Araç çubuğunun görünür veya gizli durumu, tam ekran ve durum çubuğunun boyutu yeniden
-başlatmalarda korunur. Tam ekranda bırakılan bir pencere yeniden tam ekran açılır; bu
-tercih yalnızca çıkışta değil, her değiştirdiğinizde kaydedilir. Tam ekranın geri
-yüklenmesi hatırlanan pencere konumu ve boyutuyla çakışmaz: açılışta tam ekran kazanır,
-sonradan çıkıldığında hatırlanan konuma dönülür.
+- **`F11` ekranı devralır, `Escape` geri verir:** tam ekran `F11` ile açılıp kapanır, `Escape` ile çıkılır (platformun varsayılan çıkış ipucu gizlenir)
+- **Araç çubuğu tamamen kaybolabilir:** ekranda yalnızca metin kalsın istediğinizde `Ctrl+T` onu kaldırır
+- **Araç çubuğu her zaman tek satırdır:** her pencere genişliğinde altı açılır liste değeriyle birlikte bir başlık gösterir ("Tema: Koyu", "Boyut: 16", "Dil: Deutsch"); başlıklı satır sığmadığında altı başlığın tamamı yalın değere iner ("Koyu", "16", "Deutsch"). Bu, gerçek yerelleştirilmiş etiketlerden ölçülür; böylece hiçbir şey taşmaz veya kırpılmaz. Beş düğme hiçbir zaman daralmaz ve görünür kalır
+  - **Her kontrole ulaşılır ve her kontrol açıklanır.** `Tab` kontrolleri soldan sağa görsel sırayla dolaşır (önce düğmeler, sonra açılır listeler); her kontrol görünür bir odak halkası ve arayüz dilinden gelen, varsa kısayolu da içeren bir tooltip taşır, örneğin "Kaydet (Ctrl+S)"
+- **Yerleşiminiz hatırlanır:** araç çubuğunun görünür veya gizli durumu, tam ekran ve durum çubuğunun boyutu yeniden başlatmalarda korunur; bir tercih yalnızca çıkışta değil, her değiştirdiğinizde kaydedilir
+  - **Tam ekran pencere geometrisiyle çakışmaz.** Tam ekranda bırakılan bir pencere yeniden tam ekran açılır; açılışta tam ekran, hatırlanan konum ve boyuta karşı kazanır, sonradan çıkıldığında hatırlanan konuma dönülür
 
 ### Veri Güvenliği ve Kurtarma
 
@@ -112,13 +100,9 @@ sonradan çıkıldığında hatırlanan konuma dönülür.
 
 ### Ayarlar ve Oturum Geri Yükleme
 
-Dil, tema, metin rengi, font boyutu, ses, son belge ve klasörü ile pencere geometrisi
-`~/.jtypewriter/settings.properties` dosyasına kaydedilir. Bir sonraki oturum,
-öncekinin bittiği yerden başlar: aynı görünüm, aynı belge, aynı pencere. Aradan
-geçen sürede silinmiş bir belge sessizce atlanır; bozuk bir ayar dosyası ise
-başlangıcı engellemek yerine varsayılanlara döner. YOLO modu bilinçli olarak
-*kaydedilmez*: silmeyi engelleyen bir modun bir sonraki açılışta hâlâ etkin olması
-istenmez.
+- **Neler hatırlanır:** dil, tema, metin rengi, font boyutu, ses, son belge ve klasörü ile pencere geometrisi `~/.jtypewriter/settings.properties` dosyasına kaydedilir; bir sonraki oturum öncekinin bittiği yerden başlar - aynı görünüm, aynı belge, aynı pencere
+  - **Hiçbir şey açılışı engellemez.** Aradan geçen sürede silinmiş bir belge sessizce atlanır, bozuk bir ayar dosyası ise başlangıcı engellemek yerine varsayılanlara döner
+  - **YOLO modu bilinçli olarak *kaydedilmez*.** Silmeyi engelleyen bir modun bir sonraki açılışta hâlâ etkin olması istenmez
 
 ### Tek Örnek
 

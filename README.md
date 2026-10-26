@@ -70,24 +70,12 @@ Live stats bar showing:
 
 ### Fullscreen & Toolbar
 
-`F11` toggles fullscreen and `Escape` leaves it (the platform's default exit hint is
-suppressed). The toolbar can be hidden with `Ctrl+T` when you want nothing but text
-on screen.
-
-The toolbar always stays a single row at every window width. Each of the six dropdowns
-normally shows a caption with its value ("Theme: Dark", "Size: 16", "Language: Deutsch");
-when the fully-captioned row no longer fits, all six captions collapse to the bare value
-("Dark", "16", "Deutsch"), measured from the actual localised labels, so nothing overflows
-or gets clipped. The five buttons are never collapsed and always stay visible. Every
-toolbar control is reachable with `Tab` in left-to-right visual order (buttons first, then
-the dropdowns), shows a visible focus ring, and has a tooltip from the UI language that
-includes the shortcut where one exists, such as "Save (Ctrl+S)".
-
-The toolbar's shown or hidden state, fullscreen and the status bar's size are all
-remembered across restarts. A window left in fullscreen comes back in fullscreen, and
-that choice is saved the moment you toggle it rather than only on exit. Restoring
-fullscreen never fights the remembered window position and size: fullscreen wins at
-startup, and leaving it later lands on the remembered position.
+- **`F11` takes over the screen, `Escape` gives it back:** `F11` toggles fullscreen and `Escape` leaves it (the platform's default exit hint is suppressed)
+- **The toolbar can disappear completely:** `Ctrl+T` removes it when you want nothing but text on screen
+- **The toolbar is always one row:** at every window width the six dropdowns show a caption with their value ("Theme: Dark", "Size: 16", "Language: Deutsch"); when the fully-captioned row no longer fits, all six captions collapse to the bare value ("Dark", "16", "Deutsch"), measured from the actual localised labels, so nothing overflows or gets clipped. The five buttons never collapse and always stay visible
+  - **Every control is reachable and explained.** `Tab` walks the controls in left-to-right visual order (buttons first, then the dropdowns), each keeps a visible focus ring and a tooltip from the UI language that includes the shortcut where one exists, such as "Save (Ctrl+S)"
+- **Your layout is remembered:** the toolbar's shown or hidden state, fullscreen and the status bar's size all survive a restart, and a choice is saved the moment you toggle it rather than only on exit
+  - **Fullscreen never fights the window geometry.** A window left in fullscreen comes back in fullscreen; fullscreen wins at startup over the remembered position and size, and leaving it later lands on the remembered position
 
 ### Data Safety & Crash Recovery
 
@@ -112,13 +100,9 @@ startup, and leaving it later lands on the remembered position.
 
 ### Settings & Session Restore
 
-Language, theme, text colour, font size, sound, the last document and its folder,
-and the window geometry are persisted to `~/.jtypewriter/settings.properties`. The
-next session starts where the last one ended: same look, same document, same window.
-A document that has disappeared in the meantime is skipped silently, and a broken
-settings file falls back to the defaults instead of blocking startup. YOLO mode is
-deliberately *not* persisted: a mode that blocks deletions should not still be armed
-at the next start.
+- **What is remembered:** language, theme, text colour, font size, sound, the last document and its folder, and the window geometry are persisted to `~/.jtypewriter/settings.properties`, so the next session starts where the last one ended - same look, same document, same window
+  - **Nothing blocks startup.** A document that has disappeared in the meantime is skipped silently, and a broken settings file falls back to the defaults instead of blocking startup
+  - **YOLO mode is deliberately *not* persisted.** A mode that blocks deletions should not still be armed at the next start
 
 ### Single Instance
 
