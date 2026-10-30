@@ -1,13 +1,15 @@
 # JTypeWriter — Kapsamlı Analiz ve Ürünleştirme Değerlendirmesi (P2 Öncesi)
 
-> **Sürüm:** 3.0 · **Tarih:** 27 Ekim 2026 · **Kod tabanı:** `main` @ `8a649ed`
+> **Sürüm:** 3.1 · **Tarih:** 30 Ekim 2026 · **Kod tabanı:** `main` @ `95b386e`
 > **Kapsam:** P0 ve P1 kapanışının doğrulanması, mevcut ürün durumunun ölçülmesi, P2 için
 > karar girdileri. **Bu belge bir yol haritası değildir**; iş sıralaması, sahiplik ve takvim
 > ayrı bir `docs/product-roadmap.md` belgesinde üretilecektir.
 > **Yöntem:** Her bulgu kaynak koda veya ölçüme bağlanmıştır. Ölçülemeyen iddialar
 > "ölçülmedi" olarak işaretlenmiştir. Önceki analiz ve yol haritası `f5d00db` ile silindiği
 > için bulgu kimlikleri bu belgede **yeniden ve bağımsız** verilmiştir (D/E/X/U/B/M/T).
-> **Ölçüm ortamı:** Linux x64, sıcak önbellek, `DISPLAY=:0.0`; JDK 25.0.2.
+> **Ölçüm ortamı:** Linux x64, sıcak önbellek, `DISPLAY=:0.0`; JDK 25.0.2 (Corretto),
+> Maven 3.9.12. Artefakt ölçümleri **30 Ekim 2026 tarihli taze build** üzerinde alındı:
+> `./scripts/package.sh --installer` + `scripts/release-assets.sh` (bkz. §9.1, §14).
 
 ---
 
@@ -28,12 +30,12 @@ satırından açma, yazdırma) hiç yok — ve ürün hiç yayınlanmadı.
 | Üretim kodu | **51 sınıf, 7.611 satır** | `find src/main/java` |
 | Test | **40 sınıf, 350 test** | `src/test/java` |
 | Yerelleştirme | **6 bundle × 90 anahtar**, EN taban | `src/main/resources/messages*.properties` |
-| Uygulama imajı | **145,6 MiB** (runtime 139,97 MB = **%91,7**) | `releases/linux/JTypeWriter` |
-| Fat JAR | **11,2 MB** (6.105 giriş) | aynı imaj, `lib/app` |
-| Taşınabilir `.tar.gz` | **59,3 MB** | yerel, bayat artefakt |
-| `.deb` | **47,3 MB**, 13 runtime bağımlılığı | yerel, bayat artefakt |
-| Açılış (ana pencere) | **1,59–1,66 s**, ilk sahne 0,57–0,61 s | 5 koşu, bu makine |
-| Bellek (RSS) | **~280 MB** | aynı koşular |
+| Uygulama imajı | **145,6 MiB** (runtime 133,5 MiB = **%91,7**) | `releases/linux/JTypeWriter`, taze build |
+| Fat JAR | **10,7 MiB** (6.106 giriş) | aynı imaj, `lib/app` |
+| Taşınabilir `.tar.gz` | **59,3 MiB** (imajın %40,7'si) | `scripts/release-assets.sh` |
+| `.deb` | **47,4 MiB**, 12 runtime bağımlılığı | `scripts/package.sh --installer` |
+| Açılış (ana pencere) | **0,60–0,77 s**, karşılama kartı 1,88–2,23 s | 5 koşu, bu makine, taze profil |
+| Bellek (RSS) | **~274 MiB** (ps: 280.696–287.340 KiB) | aynı koşular |
 | Yayınlanmış sürüm | **0** (git tag yok, GitHub Release yok) | `git tag -l`, API |
 | CI | 3 OS × 3 locale koşusu, 350 test | `.github/workflows/maven.yml` |
 
@@ -58,7 +60,7 @@ satırından açma, yazdırma) hiç yok — ve ürün hiç yayınlanmadı.
    doğrulanmadan `Path.of` ile kabul edilip sonraki kaydetmenin hedefi olabiliyor.
 7. **E2/E3 — OS'ten açılamıyor.** Menü çubuğu yok; `Application.getParameters()` hiç
    okunmuyor, dosya ilişkilendirmesi/MIME yok. Çift tıklama veya "birlikte aç" çalışmaz.
-8. **B4 — 145 MB paket, %91,7'si tam JDK.** jlink kullanılmıyor; 52 modül (compiler, javadoc,
+8. **B4 — 145 MiB paket, %91,7'si tam JDK.** jlink kullanılmıyor; 52 modül (compiler, javadoc,
    jshell, jfr dahil) taşınıyor. Fat JAR'da yalnızca 71 KB'lık WAV için JavaFX Media, boş bir
    `BorderPane` için FXML var.
 9. **P1 kapanışı kısmi.** Yedi çıkış kriterinden **2'si tam, 4'ü kısmi, 1'i açık**; P1'in
@@ -88,13 +90,16 @@ Skorlar (§11): **motor 3,6 · deneyim 2,2 · ambalaj 2,0 · güven 2,8 · pazar
 | **Ölçüldü** | Bu makinede komut/araçla sayı veya süre alındı | Boyutlar, açılış, RSS, sınıf/test/anahtar sayıları |
 | **Koddan okundu** | Davranış kaynakta izlendi | D, E, X, U, M bulgularının tamamı |
 | **Çıkarıldı** | Koddan mantıksal sonuç, ölçüm yok | 10/50 MB senaryoları, Windows/macOS boyutları |
-| **Doğrulanamadı** | Kod garanti vermiyor, test yok | macOS `Cmd+Q` davranışı, render edilmiş CSS, taze `.deb` payload'ı |
+| **Doğrulanamadı** | Kod garanti vermiyor, test yok | macOS `Cmd+Q` davranışı, render edilmiş CSS |
 
-**Uyarı — yerel artefaktlar bayat.** `releases/` git'te izlenmiyor ve `HEAD`'den eski.
-İmajdaki `NOTICE` 713 B, repodaki 1.338 B; imajdaki jar 11.202.493 B, `.deb` içindeki jar
-11.164.155 B (80'e karşı 91 uygulama sınıfı). Yani boyutlar **gösterge**, hukuki payload
-iddiaları **temiz bir build ile yeniden doğrulanmalı**. Bu, kod hatası değil, hijyen
-bulgusudur (B11).
+**Artefaktlar taze build'den ölçüldü.** 30 Ekim 2026'da `releases/` silinip
+`./scripts/package.sh --installer` ve `scripts/release-assets.sh` ile yeniden üretildi;
+imaj, imaj içindeki fat JAR, `.deb` payload'ı ve taşınabilir arşiv **aynı koşudan** geliyor.
+Önceki sürümdeki dört uyuşmazlık (imajdaki `NOTICE` 713 B / repo 1.338 B; `.deb` içindeki
+jar 11.164.155 B / imajdaki 11.202.493 B; jar'da 80 yerine 91 uygulama sınıfı; eksik
+`audio/PROVENANCE.md`) artık **yok**: `.deb` içindeki jar imajdaki jar ile bayt-özdeş
+(11.204.099 B, 91 sınıf), `NOTICE` iki tarafta da 1.338 B, `audio/PROVENANCE.md` jar'da.
+Bkz. §9.8'deki karşılaştırma tablosu.
 
 ### 2.2 P1 çıkış kriterleri denetimi
 
@@ -105,8 +110,8 @@ bulgusudur (B11).
 | 3 | Kapatma isteği dışı çıkış, salt-okunur ev, disk dolu, `kill -9` — dördünde de kayıp yok | **Kapalı** | `ExitDisposition.CLEAR/PARK/KEEP` (`ExitDisposition.java:55-60`), `AutoSaveService.shutdown` (`:271-282`), `ProcessCrashRecoveryTest`. Artıklar: D9, D10. |
 | 4 | Hiçbir yolda sessiz kodlama değişimi yok | **Kapalı** | `restoreRecovered` legacy charset'i koruyor; `EncodingMatrixTest` (11 test) bayt-özdeş gidiş-dönüşü sabitliyor. |
 | 5 | 6 dilde argümanlı anahtarlar doğru; sayı/tarih UI diliyle uyumlu; ölü anahtar yok | **Kısmi** | Anahtar paritesi, `MessageFormat` ve sayı biçimi testli; **tarih/saat desenleri hâlâ sabit** (`dd.MM.yyyy`, `HH:mm`), ayırıcılar kodda (`": "`, `" - "`), tooltip'ler macOS'ta `Ctrl` diyor. |
-| 6 | `v*` tag'i checksum'lı Release üretiyor; her artefaktta lisanslar; POM metadata tam | **Kısmi** | Betikler ve `release.yml` var, POM metadata tam; **hat hiç koşmadı**, tag yok, imza yok, deb payload'ı taze build'de doğrulanmadı. |
-| 7 | `mvn clean test` + TR/DE + paket smoke testi yeşil | **Açık** | İlk ikisi yeşil; **paket smoke testi yok** — imaj açılmıyor, deb kurulmuyor. |
+| 6 | `v*` tag'i checksum'lı Release üretiyor; her artefaktta lisanslar; POM metadata tam | **Kısmi** | Betikler ve `release.yml` var, POM metadata tam; `.deb` lisans belgesi ve jar/imaj payload'ı taze build'de doğrulandı; **hat hiç koşmadı**, tag yok, imza yok. |
+| 7 | `mvn clean test` + TR/DE + paket smoke testi yeşil | **Açık** | İlk ikisi yeşil; **CI'da paket smoke testi yok** — imaj CI'da açılmıyor, deb kurulmuyor. (Taze imaj bu makinede 5 kez elle başlatıldı; ölçüm §7.1.) |
 
 **Sonuç:** P1'in en zor kısmı (veri güvenliği + kodlama) gerçekten kapandı. Görünür kalite ve
 yayın tarafında ise "kapandı" iddiası **kapsam daraltılarak** doğru: kriter metni geniş,
@@ -116,7 +121,7 @@ uygulama dar.
 
 | İş | Durum | Neden P2'ye girmeden kapanmalı |
 |---|---|---|
-| Üretilen artefaktı CI'da **aç** (app-image başlat, Linux'ta `.deb` kur/kaldır) | Yok | Bugün "paketlendi" ile "çalışıyor" arasındaki tek kanıt yok. Bir sonraki sürümde ilk gerçek regresyon burada yakalanır. |
+| Üretilen artefaktı CI'da **aç** (app-image başlat, Linux'ta `.deb` kur/kaldır) | Yok | Bugün CI'da "paketlendi" ile "çalışıyor" arasındaki tek kanıt yok (elle doğrulama §9.8). Bir sonraki sürümde ilk gerçek regresyon burada yakalanır. |
 | `AGENTS.md`'yi sürüm kontrolüne al | Yok (`.gitignore:57`, `git ls-files` boş) | Ajan kuralları PR'da görünmüyor; ekip/otomasyon bilgisi makineye bağlı kalıyor. |
 
 ---
@@ -131,7 +136,7 @@ uygulama dar.
 |---|---|---|
 | **Motor** | "Metnini kaybetmek çok zor" | Atomik yazma, dönen yedek, 30 s taslak, çıkış matrisi, kodlama koruması — **gerçek ve testli**. Ancak tek yazar / düz dosya / sağlam FS koşullu. |
 | **Deneyim** | "Sessiz, dikkat dağıtmayan yazma" | Tek `TextArea`, zorunlu satır sarma, araç çubuğu, durum çubuğu. Arama, menü, yazdırma yok. "Sessiz" ama **çıplak**. |
-| **Ambalaj** | "İndir, çalıştır; Java gerekmez" | 145 MB imaj, imzasız, hiç yayınlanmamış, OS'ten açılamıyor. |
+| **Ambalaj** | "İndir, çalıştır; Java gerekmez" | 145 MiB imaj, imzasız, hiç yayınlanmamış, OS'ten açılamıyor. |
 
 Dolayısıyla ürünün **savunulabilir tek farklılaştırıcısı** daktilo sesi değil, **silme engeli +
 veri güvenliği** kombinasyonu. Ses bir tatlandırıcı; YOLO ve kurtarma bir ürün tezi.
@@ -467,13 +472,12 @@ tabanı**. E1 olmadan uzun metin, E2 olmadan keşfedilebilirlik, E3 olmadan masa
 
 | Ölçüt | Değer | Koşul |
 |---|---|---|
-| İlk sahne | 565–613 ms | 5 koşu, sıcak önbellek |
-| Ana pencere | 1.586–1.657 ms | aynı |
-| Karşılama diyaloğu | ~1.691 ms | bir koşu |
-| RSS | ~280 MB | açılış sonrası |
-| İmaj | 145,6 MiB | Linux x64 |
-| Runtime payı | 139,97 MB (**%91,7**) | 52 modül |
-| Fat JAR | 11,2 MB | 6.105 giriş |
+| Ana pencere (X eşlemesi) | 601–772 ms | 5 koşu, sıcak önbellek, boş profil |
+| Karşılama kartı | 1.881–2.228 ms | aynı koşular |
+| RSS (karşılama açıldıktan sonra) | ~274 MiB (280.696–287.340 KiB) | aynı koşular |
+| İmaj | 145,6 MiB | Linux x64, taze build |
+| Runtime payı | 133,5 MiB (**%91,7**) | 52 modül |
+| Fat JAR | 10,7 MiB | 6.106 giriş |
 
 Her açılışta stderr'e şu uyarı düşüyor: `Unsupported JavaFX configuration: classes were
 loaded from 'unnamed module ...'`. Bu, classpath ile başlatmanın **bilinçli** sonucu
@@ -632,26 +636,37 @@ belirsizliktir (U10) — ve P1'in "hiçbir çıkış taslağı silmez" garantisi
 
 ## 9. Paketleme, Dağıtım ve Destek
 
-### 9.1 Artefakt envanteri (yerel, Linux x64)
+### 9.1 Artefakt envanteri (taze build, Linux x64)
 
 | Artefakt | Boyut | Not |
 |---|---:|---|
-| `JTypeWriter/` app image | **145,6 MiB** | 125 dosya |
-| ├ `lib/runtime` | 139,97 MB | **%91,7**; 52 modül |
-| └ `lib/app` | 11,20 MB | tek fat JAR |
-| `jtypewriter_1.0.0_amd64.deb` | **47,3 MB** | 13 runtime bağımlılığı |
-| `JTypeWriter-1.0.0-linux-x64.tar.gz` | **59,3 MB** | imajın %40,7'si |
-| Kaynak arşivi | 0,69 MB | `git archive` |
+| `JTypeWriter/` app image | **145,6 MiB** (152.660.043 B) | 125 dosya |
+| ├ `lib/runtime` | 133,5 MiB (139.967.672 B) | **%91,7**; 52 modül |
+| └ `lib/app` | 10,7 MiB (11.204.099 B) | tek fat JAR, 6.106 giriş |
+| `jtypewriter_1.0.0_amd64.deb` | **47,4 MiB** (49.663.034 B) | 12 runtime bağımlılığı |
+| `JTypeWriter-1.0.0-linux-x64.tar.gz` | **59,3 MiB** (62.188.431 B) | imajın %40,7'si |
+| Kaynak arşivi | 0,68 MiB (711.297 B) | `git archive` |
+
+Ölçüm: 30 Ekim 2026, temiz `releases/` üzerine `./scripts/package.sh --installer`, ardından
+`bash scripts/release-assets.sh 1.0.0 linux x64 releases/linux <out>` (`.deb` ve `.tar.gz`'nin
+normalize adlarını üreten yol budur; `package.sh` yalnız jpackage çıktısını yazar).
+`du -sb` ile bayt, `du -h --apparent-size` ile MiB doğrulandı.
 
 İmajda `bin/java` yok (jpackage başlatıcısı), bu iyi. Ama `modules` dosyası tek başına
-90,6 MB; `jdk.compiler`, `jdk.javadoc`, `jdk.jshell`, `jdk.jfr`, `jdk.jdwp.agent` gibi
-uygulamanın kullanmadığı modüller taşınıyor. **jlink yok.**
+86,4 MiB (90.567.712 B); `jdk.compiler`, `jdk.javadoc`, `jdk.jshell`, `jdk.jfr`,
+`jdk.jdwp.agent` gibi uygulamanın kullanmadığı modüller taşınıyor. **jlink yok.**
+
+> **Kapsam notu:** Windows ve macOS artefaktları bu makinede üretilemez — `jpackage`
+> yalnız kendi platformu için paket yazar (`AGENTS.md`). Bu iki platformun ölçümü CI'da
+> `maven.yml` matrisinin (3 OS) çıktısına bağlıdır; bu belgede **yerel build yoktur** ve
+> Windows/macOS boyutları hâlâ "çıkarıldı" seviyesindedir (§2.1).
 
 ### 9.2 Runtime ağırlığı ve ölü ağırlık
 
-- JavaFX Media: 0,43 MB sınıf + `libgstreamer-lite.so` 2,31 MB + 11 `libavplugin*.so`;
-  uygulamada yalnızca 71 KB'lık `keystroke.wav` için kullanılıyor.
-- JavaFX FXML: 0,12 MB; `fxml/main.fxml` yalnızca boş bir `BorderPane`.
+- JavaFX Media: 72 sınıf / 170.997 B + `libgstreamer-lite.so` 2.308.048 B + 9
+  `libavplugin*.so` (toplam 470.976 B) + `libjfxmedia.so` 574.824 B; uygulamada yalnızca
+  71.204 B'lik `keystroke.wav` için kullanılıyor.
+- JavaFX FXML: 41 sınıf / 129.523 B; `fxml/main.fxml` yalnızca boş bir `BorderPane`.
 - İkisinin çıkarılması fat JAR'ı küçültür; jpackage imajında büyük kazanç **jlink** ile gelir.
 
 ### 9.3 CI kapıları ve eksik smoke test
@@ -663,7 +678,7 @@ uygulamanın kullanmadığı modüller taşınıyor. **jlink yok.**
 | TR/DE locale koşusu | ✅ | 3 kez suite |
 | Lisans/üçüncü taraf bildirimleri | ✅ | `PackagingNoticesTest` + `package.sh` |
 | Sürüm/tag eşleşmesi | ✅ | `release.yml` `prepare` işi |
-| **Artefaktı çalıştırma** | ❌ | İmaj açılmıyor, deb kurulmuyor |
+| **Artefaktı çalıştırma** | ❌ | CI'da imaj açılmıyor, deb kurulmuyor (elle doğrulama §9.8) |
 | Kod imzalama / notarization | ❌ | |
 | Kapsam ölçümü (JaCoCo) | ❌ | |
 | Statik analiz / SBOM / zafiyet taraması | ❌ | |
@@ -687,8 +702,8 @@ uygulamanın kullanmadığı modüller taşınıyor. **jlink yok.**
   `Application Support` değil — **B7**. Kanal kararı verilmeden taşınması riskli, ama P3'te
   kaçınılmaz.
 - Yerel `.deb`'de `.desktop` dosyası `Categories=Unknown`, `MimeType=` boş, ikon mutlak yol;
-  hicolor ikon seti, MIME XML, dosya ilişkilendirmesi yok — **B8**. (Bayat artefaktta ölçüldü,
-  taze build'de doğrulanmalı.)
+  hicolor ikon seti, MIME XML, dosya ilişkilendirmesi yok — **B8**. (30 Ekim 2026 taze
+  build'inde doğrulandı: `/opt/jtypewriter/lib/jtypewriter-JTypeWriter.desktop`.)
 - App image'da `.desktop` yok; MSI menü/kısayol seçicisi var; DMG yalnız uygulama paketi.
 
 ### 9.6 Destek yüzeyi
@@ -714,13 +729,30 @@ Bu, ilk 100 kullanıcıda destek maliyetini doğrudan artırır.
 - Dependabot yalnız action'ları güncelliyor; **Maven bağımlılıkları için giriş yok**.
 - SBOM, imza, provenance attestation yok.
 
-### 9.8 Yerel artefaktların bayatlığı (hijyen uyarısı)
+### 9.8 Artefakt tazeliği — taze build doğrulaması
 
-`releases/` ve `target/` git'te izlenmiyor; yerel imaj `HEAD`'den eski. İmajdaki `NOTICE`
-713 B (repo: 1.338 B), `.deb` içindeki jar farklı boyutta ve 80 sınıf içeriyor (güncel: 91),
-`audio/PROVENANCE.md` jar'da yok. Bu, **kod hatası değil**: `mvn clean package &&
-./scripts/package.sh --installer` ile yeniden üretilip doğrulanmalı. Aksi halde bu belgedeki
-boyutlar ve lisans payload'ı iddiaları gösterge olarak kalır.
+`releases/` ve `target/` git'te izlenmiyor, yani bir artefakt iddiası ancak üretildiği koşu
+kaydedilirse anlamlıdır. 30 Ekim 2026'da `releases/linux/` silinip yeniden üretildi ve
+imaj ↔ `.deb` ↔ repo üçlüsü karşılaştırıldı:
+
+| Kontrol | Önceki (bayat) değer | Taze build | Durum |
+|---|---|---|---|
+| İmajdaki `NOTICE` | 713 B | **1.338 B** = repo | ✅ eşit |
+| İmajdaki `THIRD-PARTY-NOTICES` | — | **6.220 B** = repo | ✅ eşit |
+| `.deb` içindeki fat JAR | 11.164.155 B | **11.204.099 B** = imajdaki jar | ✅ bayt-özdeş |
+| Jar'daki uygulama sınıfı | 80 | **91** (imaj ve `.deb` aynı) | ✅ eşit |
+| Jar'daki `audio/PROVENANCE.md` | yok | **var** (1.227 B) | ✅ |
+| `.deb` `Depends` | 13 | **12** | ✅ ölçüldü |
+| `.deb` copyright belgesi | doğrulanmamış | `package.sh` doğruladı (`Apache-2.0` + runtime stanza) | ✅ |
+
+Ek olarak taze imaj bu makinede **5 kez başlatıldı** (boş `user.home`, `DISPLAY=:0.0`): her
+koşuda ana pencere ve karşılama kartı açıldı; ölçüm alındıktan sonra süreç sonlandırıldı ve
+boş profil silindi. §7.1'deki süreler bu koşulardan. Bu, CI'daki eksik smoke testinin (B1)
+yerini tutmaz — ama "paketlendi" ile "açılıyor" arasındaki iddia artık bu build için ölçülmüş
+durumda.
+
+**Kalan hijyen borcu:** `releases/` hâlâ `.gitignore`'da, yani bu tablodaki hiçbir sayı git
+tarafından korunmuyor; bir sonraki ölçüm §14'teki iki komutla baştan üretilmeli.
 
 ### 9.9 Lisans ve ticari model
 
@@ -796,7 +828,7 @@ ya da toolkit testi için kural delinir.
 |---|---:|---|---:|
 | **Motor** | **3,6** | Veri yolu tek ilkelden geçiyor, kodlama/çıkış/kurtarma gerçekten testli. Ama güvenlik vaadi tek yazar + düz dosya + sağlam FS koşullu (D1/D2/D3/D6). | 3,8 |
 | **Deneyim** | **2,2** | Ara/değiştir, menü, yazdırma yok; uzun diyalog taşması ve sabit tarih biçimi 6 dilin 3'ünde görünür kusur. "Sessiz" ama çıplak. | 2,5 |
-| **Ambalaj** | **2,0** | Artefaktlar üretiliyor ve lisanslı; ama hiç çalıştırılmadı, hiç yayınlanmadı, imza yok, jlink yok. | 2,0 |
+| **Ambalaj** | **2,0** | Artefaktlar üretiliyor, lisanslı ve taze build'de doğrulandı; ama CI'da hiç çalıştırılmadı, hiç yayınlanmadı, imza yok, jlink yok. | 2,0 |
 | **Güven** | **2,8** | SPDX, üçüncü taraf bildirimleri, SHA pinleme, çıkış matrisi gerçek altyapı. Ama yayınlanmış sürüm, `SECURITY.md`, smoke test ve imza yok. | — |
 | **Pazara erişim** | **1,5** | Hiç Release yok, dosya ilişkilendirmesi yok, CLI yok, notarization yok: ürün bulunsa bile OS'ten açılamıyor. | — |
 
@@ -860,7 +892,7 @@ durumda; skorlar bu koşulları yansıtıyor.
 |---|---|
 | **Sekmeler / çoklu belge** | Tek belge, romancı için tutarlı bir kimlik; P1'in stabilize ettiği çıkış/kirli/taslak matrisini ikiye katlar. P4 işi. |
 | **Yazım denetimi** | Sözlük lisansı + büyük UI yüzeyi (XL); farklılaştırıcı değil. Kullanıcı kanıtı olmadan girilmemeli. |
-| **jlink ile runtime budama** | 145 MB → ~50 MB iyi bir kazanç ama ilk kullanıcıyı engellemiyor. Ölçüm ve karar P3. (Media/FXML temizliği A10 olarak kalabilir.) |
+| **jlink ile runtime budama** | 145 MiB → ~50 MiB iyi bir kazanç ama ilk kullanıcıyı engellemiyor. Ölçüm ve karar P3. (Media/FXML temizliği A10 olarak kalabilir.) |
 | **Kod imzalama / notarization** | **Koşullu**: ilk kullanıcı ve OS kararına bağlı (§12.5). macOS/Windows hedefleniyorsa P2'ye girer ve A6'yı değiştirir. |
 | **Otomatik güncelleme / telemetri** | Yayınlanmış kurulu taban yokken anlamsız; gizlilik duruşuyla da çelişir. |
 | **Satır numaraları, sarma anahtarı, girinti politikası** | A4'ün komut katmanından sonra ucuzlar; bölüm bitirmeyi engellemiyor. |
@@ -916,7 +948,7 @@ olur.
 
 ## 13. Bulgu Dizini
 
-**Dağılım:** 0 kritik · 8 yüksek · 39 orta · 13 düşük.
+**Dağılım:** 0 kritik · 8 yüksek · 39 orta · 12 düşük (+1 kapanan: B11).
 
 ### Yüksek
 
@@ -989,9 +1021,12 @@ olur.
 | U11 | Çökme diyaloğu ham `Throwable` basıyor |
 | U12 | `" - "`/`": "` ayırıcıları ve register karışıklığı |
 | B6 | Güncelleme denetimi yok (bilinçli) |
-| B11 | Yerel artefaktlar bayat (`NOTICE`/jar uyuşmazlığı) |
 | B12 | Kapsam/statik analiz yok (kısmen bilinçli) |
 | B13 | `AGENTS.md` sürüm kontrolünde değil |
+
+**B11 — kapandı (30 Ekim 2026).** Yerel artefaktların bayatlığı giderildi: `releases/linux/`
+taze build ile yeniden üretildi, imaj ↔ `.deb` ↔ repo payload'ı bayt düzeyinde eşleşiyor
+(§9.8).
 
 ---
 
@@ -999,16 +1034,23 @@ olur.
 
 | Ölçüm | Komut / kaynak |
 |---|---|
-| Sınıf ve satır sayısı | `find src/main/java -name '*.java' \| wc -l`; paket başına `wc -l` |
-| Test sayısı | `grep -rho '@Test' src/test/java \| wc -l` (350); sınıf: 40 |
+| Sınıf ve satır sayısı | `find src/main/java -name '*.java' \| wc -l`; paket başına `wc -l` (51 / 7.611) |
+| Test sayısı | `grep -rho '@Test' src/test/java \| wc -l` (350); `@Test` içeren sınıf: 40 |
 | Bundle anahtarları | `grep -cE '^[a-zA-Z][a-zA-Z0-9]*=' src/main/resources/messages*.properties` (her biri 90) |
-| Artefakt boyutları | `du -sh releases/linux/...`; `ls -la` |
-| Açılış / RSS | Yerel imaj 5 kez başlatıldı, ilk sahne ve ana pencere zaman damgaları; `ps` ile RSS |
+| Artefakt boyutları | `du -sb` / `du -h --apparent-size releases/linux/...`; `stat -c %s`; `.deb` için `dpkg-deb -x` + `unzip -l` |
+| Açılış / RSS | `scripts/package.sh --installer` imajı **boş `user.home`** ile 5 kez başlatıldı; ana pencere ve karşılama kartının X ağacına girişi `xwininfo -root -tree` ile 10 ms aralıkla yoklanıp `date +%s%N` ile zaman damgalandı; RSS karşılama açıldıktan sonra `ps -o rss=` |
 | Runtime modülleri | İmajdaki `lib/runtime/release` ve `modules` dosyası; 52 modül |
 | Tag/Release | `git tag -l` (boş); GitHub Releases API (`[]`) |
 | CI kapıları | `.github/workflows/maven.yml`, `release.yml`, `scripts/package.sh` |
 | Kontrast | `ContrastRatioTest` + `css/*.css` token çiftleri |
 
-**Yeniden üretilebilirlik notu:** Bu belgedeki imaj/deb/tar.gz boyutları yerel, bayat
-artefaktlardan alındı. Temiz bir `mvn clean package && ./scripts/package.sh --installer`
-sonrası yeniden ölçülmeli; lisans payload'ı ve `NOTICE` boyutu da aynı koşuda doğrulanmalı.
+**Yeniden üretim:** Bu belgedeki tüm artefakt sayıları 30 Ekim 2026 taze build'inden
+(`./scripts/package.sh --installer` + `scripts/release-assets.sh`) alınmıştır ve imaj ↔ `.deb`
+↔ repo payload'ı aynı koşuda doğrulanmıştır (§9.8). Aynı ölçümü tekrarlamak için:
+
+```bash
+rm -rf releases/linux && ./scripts/package.sh --installer
+bash scripts/release-assets.sh 1.0.0 linux x64 releases/linux dist
+du -sb releases/linux/JTypeWriter releases/linux/JTypeWriter/lib/runtime dist/*
+dpkg-deb -x dist/JTypeWriter-1.0.0-linux-x64.deb /tmp/jtw-deb   # payload karşılaştırması
+```
