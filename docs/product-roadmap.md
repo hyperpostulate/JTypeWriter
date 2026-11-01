@@ -397,6 +397,12 @@ engelleyen tek kuraldır.
 yeniden puanlanır ve bu belgeye tarihli satır olarak eklenir. Puanlama, "hangi vaat artık
 koşulsuz doğru" sorusuna verilen cevapla yapılır — test sayısıyla değil.
 
+**Kapı günlüğü.**
+
+| Tarih | Kapı | Kanıt | Sonuç |
+|---|---|---|---|
+| 2026-11-01 | **G0** | `git ls-files AGENTS.md` dolu; `mvn clean test` → 350 test, 0 hata; `scripts/verify-artifacts.sh` → 17/17 bayt karşılaştırması geçti | **geçildi** — betik ilk koşuda gerçek bir sapma buldu: `.deb` yükü `LICENSE`/`NOTICE`/`THIRD-PARTY-NOTICES`/`legal/` dosyalarını hiç taşımıyordu; `package.sh` yükü artık tamamlıyor |
+
 ---
 
 ## 13. Ek — Bulgu İzlenebilirliği

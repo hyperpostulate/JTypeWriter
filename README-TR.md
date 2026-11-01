@@ -232,6 +232,7 @@ mvn clean package                    # Derleme + test + ince JAR + fat JAR
 ./scripts/package.sh                 # Derleme + yerel uygulama görüntüsü (releases/<os>/)
 ./scripts/package.sh --skip-build    # Son derlemeyi kullan, yalnızca yeniden sar
 ./scripts/package.sh --installer     # Aynı + platform kurulum paketi (.deb / .msi / .dmg)
+./scripts/verify-artifacts.sh        # Taze derleme, ardından her kopyayı bayt bayt karşılaştır
 mvn test -Dtest=SessionStatsTest     # Tek test sınıfı
 mvn test -Dtest=FileServiceTest      # Tek test sınıfı
 ```
@@ -251,6 +252,13 @@ açık bir karardır, yani `--installer` desteklenen yollardan biridir, kararla�
 değil. Uygulama sürümünün tek kaynağı `pom.xml`'dir:
 script sürümü üretilen artefaktten geri okur ve jpackage kurallarına karşı doğrular
 (örneğin macOS `0.x` paket sürümlerini reddeder).
+
+`scripts/verify-artifacts.sh` bu döngünün diğer yarısını kapatır: depodaki yükü
+(`LICENSE`, `NOTICE`, `THIRD-PARTY-NOTICES`, `legal/`, fat JAR ve JAR'ın kendi
+`META-INF` girdileri) gerçekten gönderilenle — yerel imaj ve kurulum paketi —
+tek komutta bayt bayt karşılaştırır. `.deb` yükü `dpkg-deb` ile açılıp aynı
+şekilde karşılaştırılır; çünkü `jpackage`'ın deb paketleyicisi imaj kökündeki
+dosyaları düşürür ve `scripts/package.sh` yükü sonradan tamamlar.
 
 Yanlış araç zinciri derlemeyi başlamadan durdurur: `maven-enforcer-plugin` `validate`
 aşamasında çalışır, JDK'nın `pom.xml`'deki `java.version` değerinden (25) eski olmamasını

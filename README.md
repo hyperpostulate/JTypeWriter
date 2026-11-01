@@ -231,6 +231,7 @@ mvn clean package                    # Build + tests + thin JAR + fat JAR
 ./scripts/package.sh                 # Build + wrap into a native app image (releases/<os>/)
 ./scripts/package.sh --skip-build    # Reuse the last build, only re-wrap it
 ./scripts/package.sh --installer     # Same, plus the platform installer (.deb / .msi / .dmg)
+./scripts/verify-artifacts.sh        # Fresh build, then compare every shipped copy byte for byte
 mvn test -Dtest=SessionStatsTest     # Run a single test class
 mvn test -Dtest=FileServiceTest      # Run a single test class
 ```
@@ -251,6 +252,14 @@ default is still an open decision, so `--installer` is one supported path, not
 the decided one. The application version has a single source of truth:
 `pom.xml`. The script reads it back from the built artifact and validates it
 against jpackage's rules (macOS, for one, rejects `0.x` bundle versions).
+
+`scripts/verify-artifacts.sh` closes the other half of that loop: it compares the
+checked-in payload (`LICENSE`, `NOTICE`, `THIRD-PARTY-NOTICES`, `legal/`, the fat
+JAR and the jar's own `META-INF` entries) against what actually ships in the
+native image and in the installer, byte for byte, in one command. The `.deb`
+payload is unpacked with `dpkg-deb` and compared the same way, because
+`jpackage`'s deb bundler drops the image-root files and `scripts/package.sh`
+completes the payload afterwards.
 
 A wrong toolchain stops the build before it starts: `maven-enforcer-plugin` runs
 at the `validate` phase, requires a JDK at least as new as `java.version` in
