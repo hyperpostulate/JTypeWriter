@@ -194,6 +194,72 @@ wrap_installer() {
     echo "installer written to $DEST/ ($type)"
 }
 
+# jpackage's deb bundler copies bin/, lib/ and its own share/doc/ into the
+# payload, but silently drops every file the app-image has at its root - so
+# LICENSE, NOTICE, THIRD-PARTY-NOTICES and legal/ never reach the installer even
+# though the image carries them. The release notes promise every asset carries
+# them, and Apache-2.0 requires NOTICE to travel with the binary, so the payload
+# is completed here rather than left to the image alone.
+#
+# The deb is unpacked with dpkg-deb -R (which keeps DEBIAN/ intact), the legal
+# files are copied in, md5sums and Installed-Size are regenerated because the
+# payload grew, and the package is rebuilt. --root-owner-group keeps the files
+# root:root without needing fakeroot. dpkg-deb is already required to verify the
+# copyright document below, so this adds no new dependency.
+complete_deb_payload() {
+    local deb="$1"
+    local work out
+    work=$(mktemp -d)
+    out=$(mktemp -d)
+    local rebuilt="$out/$(basename "$deb")"
+
+    if ! dpkg-deb -R "$deb" "$work" 2>/dev/null; then
+        rm -rf "$work" "$out"
+        echo "could not unpack $deb to complete its payload" >&2
+        exit 1
+    fi
+
+    local payload="$work/opt/jtypewriter"
+    if [[ ! -d "$payload" ]]; then
+        rm -rf "$work" "$out"
+        echo "unexpected deb layout: no payload at opt/jtypewriter" >&2
+        exit 1
+    fi
+
+    cp "$LICENSE_FILE" "$NOTICE_FILE" "$THIRD_PARTY_FILE" "$payload/"
+    rm -rf "$payload/$LEGAL_DIR"
+    cp -R "$LEGAL_DIR" "$payload/$LEGAL_DIR"
+    # The image's copies carry the build user's umask (664); a package payload
+    # should be world-readable, not group-writable.
+    chmod 644 "$payload/$LICENSE_FILE" "$payload/$NOTICE_FILE" "$payload/$THIRD_PARTY_FILE"
+    chmod 644 "$payload/$LEGAL_DIR"/*
+
+    # dpkg-deb trusts an existing md5sums file and would otherwise install files
+    # the package database knows nothing about.
+    rm -f "$work/DEBIAN/md5sums"
+    (
+        cd "$work"
+        find . -path ./DEBIAN -prune -o -type f -printf '%P\0' \
+            | LC_ALL=C sort -z \
+            | xargs -0 md5sum > "$work/DEBIAN/md5sums"
+    )
+
+    # Installed-Size is in KiB and the control file is line oriented: the field
+    # is replaced, never appended, so a rebuild cannot grow the stanza.
+    local installed_size
+    installed_size=$(du -sk --exclude=DEBIAN "$work" | cut -f1)
+    sed -i -e "s/^Installed-Size:.*/Installed-Size: $installed_size/" "$work/DEBIAN/control"
+
+    if ! dpkg-deb --build --root-owner-group "$work" "$rebuilt" >/dev/null 2>&1; then
+        rm -rf "$work" "$out"
+        echo "could not rebuild $deb with its legal payload" >&2
+        exit 1
+    fi
+    mv -f "$rebuilt" "$deb"
+    rm -rf "$work" "$out"
+    echo "legal payload added to $(basename "$deb")"
+}
+
 # The one supported way to put our own text into the deb's copyright document:
 # --resource-dir overrides the template jpackage fills in. Two options are not
 # open to us - --license-file would dump the text into the DEP-5 "License:"
@@ -325,6 +391,14 @@ if [[ "$INSTALLER" == "1" ]]; then
                 --linux-deb-maintainer "mesutormanli@gmail.com" \
                 --copyright "$COPYRIGHT" \
                 --resource-dir "$(build_deb_resource_dir)"
+            shopt -s nullglob
+            built_debs=("$DEST"/*.deb)
+            shopt -u nullglob
+            if [[ ${#built_debs[@]} -ne 1 ]]; then
+                echo "expected exactly one .deb under $DEST/, found ${#built_debs[@]}" >&2
+                exit 1
+            fi
+            complete_deb_payload "${built_debs[0]}"
             verify_deb_license
             ;;
         windows)
