@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -198,6 +200,100 @@ class ContrastRatioTest {
         }
     }
 
+    /**
+     * The toolbar's own text - the five buttons, the six closed dropdowns and
+     * their arrow glyphs - was never measured, so a theme could ship a fill
+     * that disappeared into its own bar. It renders on the bar at rest and on
+     * the hover wash while the pointer is over it (the wash is also the pressed
+     * fill), so both pairings have to clear AA.
+     */
+    @Test
+    void toolbarTextClearsFourPointFiveOnTheBarAndOnTheHoverWashInEveryTheme() {
+        for (var theme : THEMES) {
+            var css = readCss("/css/" + theme + ".css");
+            var text = color(css, "-toolbar-text");
+            for (var surface : new String[]{"-toolbar-bg", "-toolbar-hover"}) {
+                var background = color(css, surface);
+                var ratio = ContrastRatio.ratio(text, background);
+                assertTrue(ContrastRatio.meetsAa(ratio, false),
+                        "%s -toolbar-text %s on %s (%s) is %.2f:1, below AA %s:1"
+                                .formatted(theme, text, surface, background, ratio, TEXT_MIN));
+            }
+        }
+    }
+
+    /**
+     * The open dropdown's ordinary rows - not the keyboard-highlighted one,
+     * which has its own on-accent pairing below. The row surfaces are taken
+     * from base.css rather than assumed: the list paints the last layer of its
+     * background list, and a hovered row repaints itself with the wash, so the
+     * test follows the sheet if either ever changes.
+     */
+    @Test
+    void popupRowTextClearsFourPointFiveOnTheListAndOnTheHoverRowInEveryTheme() {
+        var base = readCss("/css/base.css");
+        var listSurface = lastLayer(cssValue(base,
+                "\\.combo-box-popup \\.list-view\\s*\\{", "-fx-background-color"));
+        var hoverSurface = lastLayer(cssValue(base,
+                "\\.combo-box-popup \\.list-view \\.list-cell:filled:hover\\s*\\{",
+                "-fx-background-color"));
+
+        for (var theme : THEMES) {
+            var css = readCss("/css/" + theme + ".css");
+            var text = color(css, "-toolbar-text");
+            for (var surface : new String[]{listSurface, hoverSurface}) {
+                var background = color(css, surface);
+                var ratio = ContrastRatio.ratio(text, background);
+                assertTrue(ContrastRatio.meetsAa(ratio, false),
+                        "%s popup row text %s on %s (%s) is %.2f:1, below AA %s:1"
+                                .formatted(theme, text, surface, background, ratio, TEXT_MIN));
+            }
+        }
+    }
+
+    /**
+     * The text the user reads and writes all day. It was the one surface left
+     * out: {@code TextColor.DEFAULT} deliberately carries no inline hex because
+     * the theme owns this colour, and nothing measured the theme's own value.
+     * Anything but a legible default makes every document hard to read.
+     */
+    @Test
+    void defaultEditorTextClearsFourPointFiveOnItsEditorBackgroundInEveryTheme() {
+        for (var theme : THEMES) {
+            var css = readCss("/css/" + theme + ".css");
+            var text = cssValue(css, "\\.editor-area\\s*\\{", "-fx-text-fill");
+            var background = color(css, "-editor-bg");
+            var ratio = ContrastRatio.ratio(text, background);
+            assertTrue(ContrastRatio.meetsAa(ratio, false),
+                    "%s .editor-area text %s on -editor-bg %s is %.2f:1, below AA %s:1"
+                            .formatted(theme, text, background, ratio, TEXT_MIN));
+        }
+    }
+
+    /**
+     * A declared token that base.css never reads is styling that only looks
+     * live: {@code -toolbar-text-muted} survived in all three themes while no
+     * rule consumed it, and it could not have been used for body text anyway
+     * (3.25:1 in light, 3.31:1 in sepia). Either a token is used or it is
+     * deleted - a third state is a lie the eye cannot see.
+     */
+    @Test
+    void everyThemeTokenIsActuallyReadByBaseCss() {
+        var base = readCss("/css/base.css");
+        for (var theme : THEMES) {
+            var css = readCss("/css/" + theme + ".css");
+            var tokenBlock = css.substring(0, css.indexOf('}'));
+            var matcher = Pattern.compile("(?m)^\\s{4}(-[a-z-]+):").matcher(tokenBlock);
+            var dead = new TreeSet<String>();
+            while (matcher.find()) {
+                if (!base.contains(matcher.group(1))) {
+                    dead.add(matcher.group(1));
+                }
+            }
+            assertEquals(Set.of(), dead, theme + " declares tokens base.css never reads");
+        }
+    }
+
     /** base.css must not smuggle `-fx-focus-color: transparent` back in. */
     @Test
     void baseCssNeverMakesTheFocusColorTransparent() {
@@ -243,12 +339,16 @@ class ContrastRatioTest {
     /** Each {@link TextColor} carries a dark-canvas and a light-canvas
         hex, because a single value cannot clear 4.5:1 on both #1a1a1a and
         #ffffff / #f4ecd8. This recomputes every colour/theme pair, so a
-        regression to the old inline constants goes red. */
+        regression to the old inline constants goes red. The theme's own
+        default text - the pair a document is read in whenever no accent is
+        chosen - is measured by
+        {@link #defaultEditorTextClearsFourPointFiveOnItsEditorBackgroundInEveryTheme}
+        instead, because it lives in CSS and not in {@link TextColor}. */
     @Test
     void textColoursClearFourPointFiveOnEveryEditorBackground() {
         for (var color : TextColor.values()) {
             if (color == TextColor.DEFAULT) {
-                continue; // the theme's own editor text colour, no inline hex
+                continue; // measured from CSS by the default-editor-text test below
             }
             for (var theme : Theme.values()) {
                 var hex = color.getCssColor(theme);
@@ -291,6 +391,25 @@ class ContrastRatioTest {
                 .matcher(css);
         assertTrue(matcher.find(), "no " + name + " declaration found in CSS");
         return matcher.group(1);
+    }
+
+    /** The value of {@code property} inside the first rule whose selector matches. */
+    private static String cssValue(String css, String selectorRegex, String property) {
+        var matcher = Pattern
+                .compile(selectorRegex + "[^}]*" + Pattern.quote(property) + ":\\s*([^;}]+)")
+                .matcher(css);
+        assertTrue(matcher.find(), "no " + property + " found for selector " + selectorRegex);
+        return matcher.group(1).trim();
+    }
+
+    /**
+     * The surface a background list of layers actually paints, e.g.
+     * {@code -toolbar-bg} out of {@code "-toolbar-border, -toolbar-bg"}: the
+     * later layer wins, so the last entry is the one text sits on.
+     */
+    private static String lastLayer(String valueList) {
+        var layers = valueList.split(",");
+        return layers[layers.length - 1].trim();
     }
 
     /** The -fx-font-size inside the first rule whose selector matches. */

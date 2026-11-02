@@ -156,7 +156,7 @@ kapıyı beklerken boş kapasiteye biner. **P2, 20 puanda biter (D13 ile 21).**
 |---|---|---|---|---|
 | **9 `Alert` kelepçesiz/sarmasız** (kriter 2) | U1, M3 | Açık | **W0-01** | DE/FR en uzun metinle 768 px sığma testi; `DialogSizing` tek yol |
 | **Sabit tarih/saat biçimi** (kriter 5) | U5, U12 | Kısmi | **W0-02** | Tüm biçimler `LocaleManager` üzerinden; TR/DE locale koşusunda farklı çıktı |
-| **Kontrast kapsamı eksik** (kriter 1) | U3 | Kısmi | **W0-03** | `ContrastRatioTest` 4 yüzeyi daha zorlar |
+| **Kontrast kapsamı eksik** (kriter 1) | U3 | Kısmi | **W0-03** | `ContrastRatioTest` 19 → 23; araç çubuğu metni, düz popup satırı ve varsayılan editör metni de AA sınırında |
 | **CI artefaktı çalıştırmıyor** (kriter 7 / PW-43) | B1 | Açık | **W1-01** | CI'da imaj başlar, `.deb` kurulur/kaldırılır |
 | **`verify-artifacts.sh` CI'da değil** | B14 | Açık | **W0-04** | Workflow'da adım yeşil, 17/17 |
 | **İkon `--check` CI'da değil** | B15 | Açık | **W0-04** | Workflow'da adım yeşil, 10 dosya |
@@ -497,7 +497,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 |---|---|---|---|---|---|---|
 | W0-01 | Dokuz `Alert` kelepçesi | U1, M3 | M | — | ✅ | `mvn test -Dtest=DialogSizingTest,DialogServiceTest` → 18/18; `grep -rn "new Alert" src/main/java` → yalnız `DialogService`; `mvn -B clean test` → 354/354 |
 | W0-02 | Tarih/saat + ayırıcı yerelleştirmesi | U5, U12 | S | — | ✅ | `mvn test -Dtest=StatsBarModelTest,MessagesTest` → 25/25; `grep -rn "HH:mm\|yyyy" src/main/java` → boş; `mvn -B clean test` → 357/357; `mvn -B test -Duser.language=de -Duser.country=DE` → 357/357 |
-| W0-03 | Kontrast kapsamı | U3 | S | — | ☐ | |
+| W0-03 | Kontrast kapsamı | U3 | S | — | ✅ | `mvn test -Dtest=ContrastRatioTest` → 23/23; `-toolbar-text-muted` üç temadan da silindi, `everyThemeTokenIsActuallyReadByBaseCss` ölü token'ı yakalıyor; `mvn -B clean test` → 361/361; `mvn -B test -Duser.language=de -Duser.country=DE` → 361/361 |
 | W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ☐ | |
 | W1-01 | CI artefakt smoke | B1 | M | W0-04 | ☐ | |
 | W1-02 | Release dry-run | B2 | S | — | ☐ | |
