@@ -12,6 +12,7 @@ import org.mesutormanli.jtypewriter.stats.SessionStats;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -48,10 +49,14 @@ import java.util.Optional;
  */
 public final class StatsBarModel {
 
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
-    /** The date and the clock are joined by exactly two spaces, as they always were. */
-    private static final String DATE_TIME_SEPARATOR = "  ";
+    /**
+     * The clock is rendered with the UI language's own short date-time
+     * pattern, so the same instant reads {@code "3.11.2026 14:05"} in Turkish
+     * and {@code "03.11.26, 14:05"} in German. A hard-coded pattern could
+     * only ever be right for one language: it fixed the day-month-year order,
+     * the two-digit year and the 24-hour clock for everyone.
+     */
+    private static final FormatStyle CLOCK_STYLE = FormatStyle.SHORT;
 
     private final SessionStats stats;
     private final Messages messages;
@@ -84,7 +89,10 @@ public final class StatsBarModel {
      * Exposed so the one-second tick and tests can drive it explicitly.
      */
     public void refresh(LocalDateTime now) {
-        clockText = now.format(DATE_FORMAT) + DATE_TIME_SEPARATOR + now.format(TIME_FORMAT);
+        // Re-resolve the formatter on every refresh instead of caching it: the
+        // UI language can change between two ticks (see the class Javadoc).
+        clockText = now.format(DateTimeFormatter.ofLocalizedDateTime(CLOCK_STYLE)
+                .withLocale(messages.locale()));
         statsText = messages.statsFormat(
                 stats.getWordCount(),
                 stats.getCharCount(),
@@ -148,7 +156,10 @@ public final class StatsBarModel {
         return statsText;
     }
 
-    /** The formatted {@code dd.MM.yyyy  HH:mm:ss} clock; populated from construction on. */
+    /**
+     * The localised date and clock of the current UI language; populated from
+     * construction on and re-rendered whenever the language changes.
+     */
     public String clockText() {
         return clockText;
     }

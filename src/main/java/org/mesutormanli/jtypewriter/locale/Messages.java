@@ -428,6 +428,27 @@ public class Messages {
     }
 
     /**
+     * The separator between a dropdown's caption and its value
+     * ({@code "Theme: Dark"}). It lives in the bundle because the colon's
+     * spacing is a typographic rule of the language, not of the widget:
+     * French puts a no-break space before the colon and an ordinary one after
+     * it, the other five do neither.
+     */
+    public String captionSeparator() {
+        return bundle.getString("captionSeparator");
+    }
+
+    /**
+     * The separator between two already-localised fragments - the application
+     * name and the document name in the window title, the alert header and
+     * the file name in dialogs. A bundle key so every join uses the same dash
+     * and a language can choose its own.
+     */
+    public String dashSeparator() {
+        return bundle.getString("dashSeparator");
+    }
+
+    /**
      * Raw {@code MessageFormat} pattern for the save status in the
      * stats bar, {@code {0}} being the localised save time. Returned as the
      * pattern (not formatted here) so composition stays in the pure, headless

@@ -18,6 +18,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.stream.Stream;
 
@@ -38,6 +39,19 @@ class DialogServiceTest {
     @Test
     void extensionLessNamesGetTheTxtExtension() {
         assertEquals("notes.txt", DialogService.withDefaultExtension(new File("notes")).getName());
+    }
+
+    /**
+     * The default name of a never-saved document carries an ISO-ordered,
+     * filesystem-safe stamp: sortable, identical in every UI language
+     * (a file name is not prose), and free of the colon Windows forbids.
+     */
+    @Test
+    void theSuggestedFileNameStampIsIsoOrderedAndFilesystemSafe() {
+        assertEquals("2026-11-03_14-05-30",
+                DialogService.fileStamp(LocalDateTime.of(2026, 11, 3, 14, 5, 30, 123_000_000)));
+        assertFalse(DialogService.fileStamp(LocalDateTime.now()).contains(":"),
+                "a colon is illegal in a Windows file name");
     }
 
     @Test

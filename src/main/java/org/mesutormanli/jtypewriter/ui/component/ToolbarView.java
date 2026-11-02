@@ -311,18 +311,25 @@ public class ToolbarView extends HBox {
                 .map(String::valueOf).toList();
         var languageTexts = languageOptions().stream().map(Language::nativeName).toList();
         // A null caption is the COMPACT form: the closed dropdown shows the bare value.
+        var separator = messages.captionSeparator();
         return List.of(
                 ToolbarFit.Control.button(messages.toolbarOpen()),
                 ToolbarFit.Control.button(messages.toolbarSave()),
                 ToolbarFit.Control.button(messages.toolbarUndo()),
                 ToolbarFit.Control.button(messages.toolbarRedo()),
-                ToolbarFit.Control.combo(compact ? null : messages.toolbarTheme(), themeTexts),
-                ToolbarFit.Control.combo(compact ? null : messages.toolbarYolo(), onOffTexts),
-                ToolbarFit.Control.combo(compact ? null : messages.toolbarSound(), onOffTexts),
-                ToolbarFit.Control.combo(compact ? null : messages.toolbarColor(), colorTexts),
-                ToolbarFit.Control.combo(compact ? null : messages.toolbarFontSize(), sizeTexts),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarTheme(),
+                        themeTexts, separator),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarYolo(),
+                        onOffTexts, separator),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarSound(),
+                        onOffTexts, separator),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarColor(),
+                        colorTexts, separator),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarFontSize(),
+                        sizeTexts, separator),
                 ToolbarFit.Control.button(messages.toolbarAbout()),
-                ToolbarFit.Control.combo(compact ? null : messages.toolbarLanguage(), languageTexts),
+                ToolbarFit.Control.combo(compact ? null : messages.toolbarLanguage(),
+                        languageTexts, separator),
                 ToolbarFit.Control.spacer()
         );
     }
@@ -546,7 +553,7 @@ public class ToolbarView extends HBox {
                 } else if (layoutMode == ToolbarFit.LayoutMode.COMPACT) {
                     setText(combo.getConverter().toString(item));
                 } else {
-                    setText(caption.get() + ToolbarFit.CAPTION_SEPARATOR
+                    setText(caption.get() + messages.captionSeparator()
                             + combo.getConverter().toString(item));
                 }
             }

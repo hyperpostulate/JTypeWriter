@@ -16,11 +16,13 @@ import org.mesutormanli.jtypewriter.stats.SessionStats;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -128,14 +130,50 @@ class StatsBarModelTest {
         assertTrue(model.statsText().contains("Wörter"), "model text: " + model.statsText());
     }
 
-    /** The clock is {@code dd.MM.yyyy  HH:mm:ss} with exactly two spaces, asserted by shape. */
+    /**
+     * The clock used one hard-coded {@code dd.MM.yyyy  HH:mm:ss} pattern, so
+     * every language saw Turkish-style day-month-year with a 24-hour clock.
+     * The same instant must now render in each UI language's own short
+     * pattern, and the system locale must never decide.
+     */
     @Test
-    void clockTextMatchesTheExpectedShape() {
+    void theClockFollowsTheUiLanguageNotTheSystemLocale() {
+        var previous = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.US);
+            var localeManager = localeManagerFor(Language.TR);
+            var messages = messagesFor(localeManager);
+            var model = new StatsBarModel(new SessionStats(), messages, localeManager);
+            var instant = LocalDateTime.of(2026, 11, 3, 14, 5);
+
+            model.refresh(instant);
+            var turkish = model.clockText();
+
+            localeManager.setLanguage(Language.DE);
+            model.refresh(instant);
+            var german = model.clockText();
+
+            assertNotEquals(turkish, german, "one pattern cannot serve both languages");
+            assertEquals("3.11.2026 14:05", turkish);
+            assertEquals("03.11.26, 14:05", german);
+        } finally {
+            Locale.setDefault(previous);
+        }
+    }
+
+    /** A language switch re-renders the clock, not only the stats and the warning. */
+    @Test
+    void aLanguageSwitchReRendersTheClockToo() {
         var localeManager = localeManagerFor(Language.EN);
         var model = new StatsBarModel(new SessionStats(), messagesFor(localeManager), localeManager);
+        var instant = LocalDateTime.of(2026, 11, 3, 14, 5);
+        model.refresh(instant);
+        var english = model.clockText();
 
-        assertTrue(model.clockText().matches("\\d{2}\\.\\d{2}\\.\\d{4}  \\d{2}:\\d{2}:\\d{2}"),
-                "clock shape: " + model.clockText());
+        localeManager.setLanguage(Language.TR);
+        model.refresh(instant);
+
+        assertNotEquals(english, model.clockText(), "the English clock was stale");
     }
 
     /** Nothing is wrong at startup, so the warning slot is empty. */
@@ -154,6 +192,7 @@ class StatsBarModelTest {
         var localeManager = localeManagerFor(Language.EN);
         var messages = mock(Messages.class);
         when(messages.autosaveWarning()).thenReturn("Autosave is not working - save now");
+        when(messages.locale()).thenReturn(Locale.ENGLISH);
         var model = new StatsBarModel(new SessionStats(), messages, localeManager);
 
         var notifications = new AtomicInteger();
@@ -172,6 +211,7 @@ class StatsBarModelTest {
         var localeManager = localeManagerFor(Language.EN);
         var messages = mock(Messages.class);
         when(messages.autosaveWarning()).thenReturn("Autosave is not working - save now");
+        when(messages.locale()).thenReturn(Locale.ENGLISH);
         var model = new StatsBarModel(new SessionStats(), messages, localeManager);
         var notifications = new AtomicInteger();
         model.addListener(notifications::incrementAndGet);
@@ -188,6 +228,7 @@ class StatsBarModelTest {
         var localeManager = localeManagerFor(Language.EN);
         var messages = mock(Messages.class);
         when(messages.autosaveWarning()).thenReturn("Autosave is not working - save now");
+        when(messages.locale()).thenReturn(Locale.ENGLISH);
         var model = new StatsBarModel(new SessionStats(), messages, localeManager);
         model.setAutosaveProblem(AutosaveHealth.Problem.DRAFT_WRITE);
 

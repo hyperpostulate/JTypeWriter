@@ -496,7 +496,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | ID | Kart | Bulgu | Efor | Bağımlılık | Durum | Kanıt |
 |---|---|---|---|---|---|---|
 | W0-01 | Dokuz `Alert` kelepçesi | U1, M3 | M | — | ✅ | `mvn test -Dtest=DialogSizingTest,DialogServiceTest` → 18/18; `grep -rn "new Alert" src/main/java` → yalnız `DialogService`; `mvn -B clean test` → 354/354 |
-| W0-02 | Tarih/saat + ayırıcı yerelleştirmesi | U5, U12 | S | — | ☐ | |
+| W0-02 | Tarih/saat + ayırıcı yerelleştirmesi | U5, U12 | S | — | ✅ | `mvn test -Dtest=StatsBarModelTest,MessagesTest` → 25/25; `grep -rn "HH:mm\|yyyy" src/main/java` → boş; `mvn -B clean test` → 357/357; `mvn -B test -Duser.language=de -Duser.country=DE` → 357/357 |
 | W0-03 | Kontrast kapsamı | U3 | S | — | ☐ | |
 | W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ☐ | |
 | W1-01 | CI artefakt smoke | B1 | M | W0-04 | ☐ | |

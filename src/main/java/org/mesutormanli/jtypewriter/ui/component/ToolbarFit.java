@@ -89,9 +89,6 @@ public final class ToolbarFit {
      */
     public static final double MODE_HYSTERESIS_PX = 40;
 
-    /** The caption separator of the closed dropdowns, e.g. {@code "Theme: Dark"}. */
-    public static final String CAPTION_SEPARATOR = ": ";
-
     /** One measured child of the toolbar row, with its chrome footprint. */
     public enum Kind {
         BUTTON(BUTTON_CHROME),
@@ -131,12 +128,16 @@ public final class ToolbarFit {
          * A dropdown: the popup always lists {@code values}; closed, each
          * value renders under {@code caption} ({@code "Theme: Dark"}) when a
          * caption is given, or bare in compact mode ({@code caption == null}).
+         * {@code separator} is the bundle's {@code captionSeparator} - it is
+         * passed in, never a constant here, because the space around the
+         * colon is a property of the language (French spaces it on both
+         * sides) and the width model must measure what the widget renders.
          */
-        public static Control combo(String caption, List<String> values) {
+        public static Control combo(String caption, List<String> values, String separator) {
             var texts = new ArrayList<>(values);
             if (caption != null) {
                 for (var value : values) {
-                    texts.add(caption + CAPTION_SEPARATOR + value);
+                    texts.add(caption + separator + value);
                 }
             }
             return new Control(Kind.COMBO, texts);

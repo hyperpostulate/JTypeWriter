@@ -31,21 +31,21 @@ class MainControllerTest {
     @Test
     void titleShowsTheApplicationAndDocumentName() {
         assertEquals("JTypeWriter - novel.txt",
-                MainController.titleFor("JTypeWriter", "novel.txt", false, false));
+                MainController.titleFor("JTypeWriter", "novel.txt", false, false, " - "));
     }
 
     @Test
     void unsavedChangesAreMarkedWithAStar() {
         assertEquals("JTypeWriter - novel.txt *",
-                MainController.titleFor("JTypeWriter", "novel.txt", true, false));
+                MainController.titleFor("JTypeWriter", "novel.txt", true, false, " - "));
     }
 
     @Test
     void yoloBadgeIsAppendedAfterTheDirtyMarker() {
         assertEquals("JTypeWriter - novel.txt *   [YOLO]",
-                MainController.titleFor("JTypeWriter", "novel.txt", true, true));
+                MainController.titleFor("JTypeWriter", "novel.txt", true, true, " - "));
         assertEquals("JTypeWriter - novel.txt   [YOLO]",
-                MainController.titleFor("JTypeWriter", "novel.txt", false, true));
+                MainController.titleFor("JTypeWriter", "novel.txt", false, true, " - "));
     }
 
     /**
@@ -54,8 +54,8 @@ class MainControllerTest {
      */
     @Test
     void titleIsOnlyRewrittenWhenTheDirtyStateChanges() {
-        var clean = MainController.titleFor("JTypeWriter", "novel.txt", false, false);
-        var dirty = MainController.titleFor("JTypeWriter", "novel.txt", true, false);
+        var clean = MainController.titleFor("JTypeWriter", "novel.txt", false, false, " - ");
+        var dirty = MainController.titleFor("JTypeWriter", "novel.txt", true, false, " - ");
 
         assertFalse(MainController.titleChanged(clean, clean));
         assertTrue(MainController.titleChanged(clean, dirty));
@@ -65,15 +65,20 @@ class MainControllerTest {
     /**
      * The save status is composed from the bundle pattern and an
      * injected time (SessionStats' clock idiom), so it tests headlessly with
-     * a fixed time - and the reference example "Saved 12:04" is pinned.
+     * a fixed time. The time follows the UI language's short time pattern:
+     * English is 12-hour with AM/PM while Turkish is 24-hour, so one
+     * hard-coded pattern could only ever be right for one of them.
      */
     @Test
-    void savedStatusUsesTheInjectedTime() {
-        assertEquals("Saved 12:04",
+    void savedStatusUsesTheInjectedTimeInTheUiLanguagesFormat() {
+        assertEquals("Saved 12:04\u202fPM",
                 MainController.savedStatusFor("Saved {0}", LocalTime.of(12, 4), Locale.ENGLISH));
-        assertEquals("Saved 09:07",
+        assertEquals("Saved 9:07\u202fAM",
                 MainController.savedStatusFor("Saved {0}", LocalTime.of(9, 7), Locale.ENGLISH),
-                "single-digit hours and minutes keep their leading zero");
+                "English short time drops the leading zero of the hour");
+        assertEquals("Kaydedildi 12:04",
+                MainController.savedStatusFor("Kaydedildi {0}", LocalTime.of(12, 4), Locale.of("tr")),
+                "Turkish stays 24-hour regardless of the system locale");
     }
 
     /**
@@ -87,11 +92,13 @@ class MainControllerTest {
         assertFalse(MainController.handOffFocusToEditor(true));
     }
 
-    /** The shipped English and Turkish texts, through the real bundle lookup. */
+    /** The shipped English, Turkish and German texts, through the real bundle lookup. */
     @Test
     void savedStatusIsLocalisedThroughTheBundles(@TempDir Path dir) {
-        assertEquals("Saved 12:04", savedStatusFromBundle(Language.EN, LocalTime.of(12, 4), dir));
+        assertEquals("Saved 12:04\u202fPM", savedStatusFromBundle(Language.EN, LocalTime.of(12, 4), dir));
         assertEquals("Kaydedildi 12:04", savedStatusFromBundle(Language.TR, LocalTime.of(12, 4), dir));
+        assertEquals("Gespeichert um 12:04", savedStatusFromBundle(Language.DE, LocalTime.of(12, 4), dir),
+                "Turkish and German share the 24-hour clock but not the wording");
     }
 
     private static String savedStatusFromBundle(Language language, LocalTime savedAt, Path dir) {

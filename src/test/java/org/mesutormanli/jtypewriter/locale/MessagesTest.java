@@ -82,6 +82,26 @@ class MessagesTest {
         }
     }
 
+    /**
+     * The separators the code joins localised fragments with are language
+     * rules, not constants: French puts a no-break space in front of the
+     * colon of a dropdown caption ({@code "Thème : Sombre"}) and an ordinary
+     * one after it, while the other five languages use the bare colon. The
+     * dash that joins the app name to the document name is kept as-is in all
+     * six, but through the bundle so a language can change it.
+     */
+    @Test
+    void theCaptionAndDashSeparatorsComeFromTheLanguageBundles() {
+        assertEquals(": ", messagesFor(Language.EN).captionSeparator());
+        assertEquals(": ", messagesFor(Language.DE).captionSeparator());
+        assertEquals("\u00a0: ", messagesFor(Language.FR).captionSeparator(),
+                "French spaces the colon on both sides, the left one no-break");
+        for (var language : Language.values()) {
+            assertEquals(" - ", messagesFor(language).dashSeparator(),
+                    "dash separator of " + language);
+        }
+    }
+
     @Test
     void themeNamesAreLocalisedForEveryLanguage() {
         assertEquals("Dark", Theme.DARK.getDisplayName(messagesFor(Language.EN)));

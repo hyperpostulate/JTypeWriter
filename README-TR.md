@@ -67,7 +67,7 @@ Canlı istatistik çubuğu:
 - Oturum süresi (SS:DD:SS)
 - Dakikada kelime (WPM) - aktif yazım süresine dayalı kalıcı hız; molalar değeri düşürmez
 - Durum çubuğu metni varsayılan olarak 13 px'tir ve çift tıklandığında küçük, orta ve büyük arasında döner; rengi üç temada da WCAG AA kontrastını (en az 4.5:1) karşılar
-- Başarılı bir kayıt, saatini durum çubuğuna yazar (ör. `Kaydedildi 12:04`); sonraki düzenlemede temizlenir ve 30 saniyelik otomatik kayıt taslağı anlık görüntüsünü değil gerçek bir kaydı gösterir
+- Başarılı bir kayıt, saatini arayüz dilinin kendi saat biçimiyle durum çubuğuna yazar (ör. Türkçe `Kaydedildi 12:04`, İngilizce `Saved 12:04 PM`); sonraki düzenlemede temizlenir ve 30 saniyelik otomatik kayıt taslağı anlık görüntüsünü değil gerçek bir kaydı gösterir
 
 ### Tam Ekran ve Araç Çubuğu
 
@@ -127,7 +127,7 @@ Altı metin rengi (bir varsayılan + beş vurgu rengi): Varsayılan, Adaçayı, 
 
 ### Çoklu Dil Desteği
 
-6 dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Dil değiştirildiğinde araç çubuğu, diyaloglar, pencere başlığı ve durum çubuğu anında güncellenir.
+6 dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Dil değiştirildiğinde araç çubuğu, diyaloglar, pencere başlığı ve durum çubuğu anında güncellenir; sabit bir desen yerine her tarih ve saat o dilin kendi biçimiyle yazılır.
 
 ---
 
@@ -353,7 +353,7 @@ org.mesutormanli.jtypewriter
 | `UndoHistoryReset` | Her belge yüklemesinde TextArea'nın geri al/ileri al geçmişini temizler (yansıma ile; JavaFX'te API yok) |
 | `YoloPolicy` | YOLO modu düzenleme politikası (silmeyi engeller, eklemeye izin verir) |
 | `EditorKeyHandler` | Tuş vuruşu ses efektleri ve oturum istatistiklerini yönetir |
-| `StatsBar` | Saati, *kaydedildi SS:dd* onayını ve canlı oturum istatistiklerini alt çubukta gösterir; otomatik kayıt hatasını adlandıran kalıcı bir uyarı gösterir, eski taslak için ayrı metin kullanır ve yazı boyutu çift tıklamayla döner |
+| `StatsBar` | Saati ve *kaydedildi ...* onayını arayüz dilinin tarih/saat biçimleriyle alt çubukta gösterir; otomatik kayıt hatasını adlandıran kalıcı bir uyarı gösterir, eski taslak için ayrı metin kullanır ve yazı boyutu çift tıklamayla döner |
 | `KeyboardShortcutHandler` | Merkezi klavye kısayolu yönlendirmesi |
 | `ToolbarView` | Tüm editör kontrollerini içeren üst araç çubuğu |
 | `ToolbarFit` | Araç çubuğu taşma politikası: başlıklı satır sığmadığında açılır liste başlıklarını değere indiren saf, JavaFX'siz ölçüm |

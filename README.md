@@ -67,7 +67,7 @@ Live stats bar showing:
 - Session duration (HH:MM:SS)
 - Words per minute (WPM) - sustained speed based on active typing time, so breaks do not drag it down
 - The status bar text is 13 px by default and cycles between small, medium and large when you double-click it; its colour meets WCAG AA contrast (at least 4.5:1) in all three themes
-- A successful save stamps the status bar with its time, e.g. `Saved 12:04`; it clears on the next edit, and it marks a real save rather than the 30-second autosave draft snapshot
+- A successful save stamps the status bar with its time in the UI language's own clock format (e.g. `Saved 12:04 PM` in English, `Kaydedildi 12:04` in Turkish); it clears on the next edit, and it marks a real save rather than the 30-second autosave draft snapshot
 
 ### Fullscreen & Toolbar
 
@@ -126,7 +126,7 @@ Six text colors (one default plus five accents): Default, Sage, Lavender, Sand, 
 
 ### Multi-Language Support
 
-6 languages: English, Turkish, German, French, Italian, Spanish. Toolbar, dialogs, the window title and the status bar update immediately when the language is switched.
+6 languages: English, Turkish, German, French, Italian, Spanish. Toolbar, dialogs, the window title and the status bar update immediately when the language is switched, and every date and time is rendered in that language's own format rather than a fixed pattern.
 
 ---
 
@@ -354,7 +354,7 @@ org.mesutormanli.jtypewriter
 | `UndoHistoryReset` | Clears the TextArea undo/redo history on every document load (reflective, JavaFX has no API) |
 | `YoloPolicy` | YOLO mode edit policy (blocks deletions, allows insertions) |
 | `EditorKeyHandler` | Handles keystroke sound effects and session stats tracking |
-| `StatsBar` | Renders the clock, the *saved HH:mm* confirmation and live session statistics in the bottom bar; shows a persistent warning naming the autosave failure, with separate text for a stale draft, and its text size cycles on double-click |
+| `StatsBar` | Renders the clock and the *saved at ...* confirmation, both in the UI language's date/time formats, and live session statistics in the bottom bar; shows a persistent warning naming the autosave failure, with separate text for a stale draft, and its text size cycles on double-click |
 | `KeyboardShortcutHandler` | Centralized keyboard shortcut routing |
 | `ToolbarView` | Top toolbar with all editor controls |
 | `ToolbarFit` | Toolbar overflow policy: pure, JavaFX-free measurement that collapses the dropdown captions when the captioned row would not fit |

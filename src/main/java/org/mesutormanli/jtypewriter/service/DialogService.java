@@ -22,9 +22,11 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 /**
@@ -85,9 +87,7 @@ public class DialogService {
             chooser.setInitialFileName(currentFile.getFileName().toString());
         } else {
             applyInitialDirectory(chooser, settings.getLastDirectory());
-            var timestamp = java.time.LocalDateTime.now()
-                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
-            chooser.setInitialFileName("JTypeWriter_" + timestamp + DEFAULT_EXTENSION);
+            chooser.setInitialFileName("JTypeWriter_" + fileStamp(LocalDateTime.now()) + DEFAULT_EXTENSION);
         }
         chooser.getExtensionFilters().add(
                 new FileChooser.ExtensionFilter(messages.fileTextFile(), "*.txt")
@@ -199,7 +199,8 @@ public class DialogService {
             java.nio.charset.Charset declared) {
         var alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle(messages.encodingMalformedTitle());
-        alert.setHeaderText(messages.encodingMalformedHeader() + " - " + file.getFileName());
+        alert.setHeaderText(messages.encodingMalformedHeader()
+                + messages.dashSeparator() + file.getFileName());
         alert.setContentText(messages.encodingMalformedContent(declared.displayName()));
 
         var openButton = DialogButtons.primary(messages.encodingMalformedOpen());
@@ -213,7 +214,8 @@ public class DialogService {
     public EncodingChoice showEncodingDialog(Stage stage, java.nio.file.Path file) {
         var alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle(messages.encodingTitle());
-        alert.setHeaderText(messages.encodingHeader() + " - " + file.getFileName());
+        alert.setHeaderText(messages.encodingHeader()
+                + messages.dashSeparator() + file.getFileName());
         alert.setContentText(messages.encodingContent());
 
         // UTF-8 is the default because it is the lossless choice: it round-trips
@@ -347,9 +349,30 @@ public class DialogService {
         }
     }
 
-    private static String format(Instant instant) {
+    /**
+     * A recovery draft's timestamp in the UI language, in the machine's time
+     * zone. The locale is the UI language's, not the system default: an
+     * English UI on a German machine must not print a German month name.
+     */
+    private String format(Instant instant) {
         return DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
+                .withLocale(messages.locale())
                 .withZone(ZoneId.systemDefault())
                 .format(instant);
+    }
+
+    /**
+     * The timestamp in the suggested file name of a never-saved document.
+     *
+     * <p>Deliberately ISO ordering with filesystem-safe punctuation: a file
+     * name is not prose, so it must not follow the UI language (a Turkish or
+     * German user must be able to sort the drafts the same way, and the digits
+     * must not depend on which language the app happens to run in), and it may
+     * contain neither a colon nor a space.</p>
+     */
+    static String fileStamp(LocalDateTime now) {
+        var second = now.truncatedTo(ChronoUnit.SECONDS);
+        var time = second.toLocalTime().format(DateTimeFormatter.ISO_LOCAL_TIME).replace(':', '-');
+        return second.format(DateTimeFormatter.ISO_LOCAL_DATE) + "_" + time;
     }
 }

@@ -23,14 +23,13 @@ import java.net.URL;
 import java.text.MessageFormat;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.function.Supplier;
 
 public class MainController implements Initializable {
-
-    private static final DateTimeFormatter SAVE_STATUS_TIME = DateTimeFormatter.ofPattern("HH:mm");
 
     private final EditorArea editorArea;
     private final ToolbarView toolbarView;
@@ -167,7 +166,7 @@ public class MainController implements Initializable {
         var path = fileService.getCurrentFilePath();
         var documentName = path != null ? path.getFileName().toString() : messages.windowUntitled();
         var title = titleFor(messages.appName(), documentName,
-                fileService.hasUnsavedChanges(), editorArea.isYoloMode());
+                fileService.hasUnsavedChanges(), editorArea.isYoloMode(), messages.dashSeparator());
         if (titleChanged(lastTitle, title)) {
             lastTitle = title;
             stage.setTitle(title);
@@ -179,9 +178,14 @@ public class MainController implements Initializable {
         return !Objects.equals(previousTitle, nextTitle);
     }
 
-    /** Pure title composition, kept out of the stage so it can be unit tested. */
-    static String titleFor(String appName, String documentName, boolean dirty, boolean yolo) {
-        return appName + " - " + documentName + (dirty ? " *" : "") + (yolo ? "   [YOLO]" : "");
+    /**
+     * Pure title composition, kept out of the stage so it can be unit tested.
+     * {@code separator} is the bundle's {@code dashSeparator}: the dash that
+     * joins two names is language typography, not a constant.
+     */
+    static String titleFor(String appName, String documentName, boolean dirty, boolean yolo,
+                           String separator) {
+        return appName + separator + documentName + (dirty ? " *" : "") + (yolo ? "   [YOLO]" : "");
     }
 
     /**
@@ -190,14 +194,17 @@ public class MainController implements Initializable {
      * pattern from the bundle ({@code savedStatus}, {@code {0}} is the time)
      * and {@code savedAt} the already-resolved save time - the clock is
      * injected, mirroring {@code SessionStats}, so no test needs a toolkit or
-     * the wall clock. The time is {@code HH:mm}, matching the app's other
-     * readouts; only the wording lives in the bundles. {@code locale} is the
-     * UI language's locale ({@code messages.locale()}), passed explicitly so
-     * {@code MessageFormat} does not fall back to the system locale.
+     * the wall clock. The time itself follows the UI language's short time
+     * pattern, so English says {@code "12:04 PM"} while Turkish and German say
+     * {@code "12:04"}; only the wording lives in the bundles. {@code locale}
+     * is the UI language's locale ({@code messages.locale()}), passed
+     * explicitly so neither the formatter nor {@code MessageFormat} falls back
+     * to the system locale.
      */
     static String savedStatusFor(String template, LocalTime savedAt, Locale locale) {
-        return new MessageFormat(template, locale)
-                .format(new Object[]{savedAt.format(SAVE_STATUS_TIME)});
+        var time = savedAt.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+                .withLocale(locale));
+        return new MessageFormat(template, locale).format(new Object[]{time});
     }
 
     @Override

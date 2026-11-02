@@ -55,8 +55,8 @@ class ToolbarFitTest {
     void aComboIsMeasuredByItsWidestStateCaptionedOrNot() {
         // popup value is tiny but the captioned form dominates; in compact
         // mode the same dropdown is only as wide as its widest popup item
-        var captioned = ToolbarFit.Control.combo("Theme", List.of("Light", "Sepia"));
-        var compact = ToolbarFit.Control.combo(null, List.of("Light", "Sepia"));
+        var captioned = ToolbarFit.Control.combo("Theme", List.of("Light", "Sepia"), ": ");
+        var compact = ToolbarFit.Control.combo(null, List.of("Light", "Sepia"), ": ");
         double captionedWidth = ToolbarFit.requiredWidth(List.of(captioned), FONT, FAKE_METRICS);
         double compactWidth = ToolbarFit.requiredWidth(List.of(compact), FONT, FAKE_METRICS);
         double saving = captionedWidth - compactWidth;
