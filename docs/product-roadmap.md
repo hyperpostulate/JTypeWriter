@@ -451,7 +451,7 @@ A3 önce, çünkü A2'nin önkoşulu ve ölçülmüş darboğaz orada.
 - **Doğrulama:** W1-03 ile aynı API sorgusu.
 
 > **Kapı G4:** Tam suite yeşil, `verify-artifacts` 17/17, ikon `--check` 10 dosya,
-> `v1.1.0` yayında, §5'teki tüm kartlar `☑`.
+> `v1.1.0` yayında, §5'teki tüm kartlar `✅`.
 
 ---
 
@@ -459,7 +459,7 @@ A3 önce, çünkü A2'nin önkoşulu ve ölçülmüş darboğaz orada.
 
 ### 6.1 Kartın bitti sayılma kuralları (her kart için geçerli)
 
-Bir kart ancak **altı koşul birden** sağlanınca `☑` olur:
+Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 
 1. **Önce kırmızı test.** Bulgu kimliğini taşıyan ve düzeltme olmadan **başarısız olan** bir test
    yazıldı (`analysis.md` §6.4 dersi: testi olmayan düzeltme geri gelir).
@@ -477,7 +477,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `☑` olur:
 | `☐` | Başlamadı |
 | `◐` | Başladı, kanıt yok |
 | `⛔` | Bloke — engel tek satırda yazılır (kim/ne bekleniyor) |
-| `☑` | Kanıtlı bitti (koşul 1–6 sağlandı) |
+| `✅` | Kanıtlı bitti (koşul 1–6 sağlandı) |
 
 ### 6.3 Her PR'da korunacak değişmezler (testler zorlar)
 
@@ -495,7 +495,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `☑` olur:
 
 | ID | Kart | Bulgu | Efor | Bağımlılık | Durum | Kanıt |
 |---|---|---|---|---|---|---|
-| W0-01 | Dokuz `Alert` kelepçesi | U1, M3 | M | — | ☑ | `mvn test -Dtest=DialogSizingTest,DialogServiceTest` → 18/18; `grep -rn "new Alert" src/main/java` → yalnız `DialogService`; `mvn -B clean test` → 354/354 |
+| W0-01 | Dokuz `Alert` kelepçesi | U1, M3 | M | — | ✅ | `mvn test -Dtest=DialogSizingTest,DialogServiceTest` → 18/18; `grep -rn "new Alert" src/main/java` → yalnız `DialogService`; `mvn -B clean test` → 354/354 |
 | W0-02 | Tarih/saat + ayırıcı yerelleştirmesi | U5, U12 | S | — | ☐ | |
 | W0-03 | Kontrast kapsamı | U3 | S | — | ☐ | |
 | W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ☐ | |
