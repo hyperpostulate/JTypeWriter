@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/hyperpostulate/JTypeWriter/blob/main/pom.xml"><img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25"></a>
-  <img src="https://img.shields.io/badge/Platforms-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg" alt="Platforms">
+  <img src="https://img.shields.io/badge/Platforms-Linux%20%7C%20Windows-lightgrey.svg" alt="Platforms">
   <img src="https://img.shields.io/badge/Languages-6-blue.svg" alt="6 languages">
   <a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
   <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml/badge.svg" alt="Java CI"></a>
@@ -18,7 +18,7 @@
 
 <p align="center">Türkçe sürüm: <a href="README-TR.md">README-TR.md</a></p>
 
-JTypeWriter opens a single plain-text document and then stays out of the way: no accounts, no cloud, no project format. Your text lives in the file you picked, in the encoding that file already had. The packaged download carries its own Java runtime, so nothing has to be installed first; building from source or running the fat JAR needs JDK 25 and Maven 3.8+. It runs on Linux, Windows and macOS, and the interface speaks English, Turkish, German, French, Spanish and Italian.
+JTypeWriter opens a single plain-text document and then stays out of the way: no accounts, no cloud, no project format. Your text lives in the file you picked, in the encoding that file already had. The packaged download carries its own Java runtime, so nothing has to be installed first; building from source or running the fat JAR needs JDK 25 and Maven 3.8+. It runs on Linux and Windows, and the interface speaks English, Turkish, German, French, Spanish and Italian.
 
 **What you get?**
 
@@ -144,7 +144,7 @@ Everything JTypeWriter keeps stays on your machine. There is no account, no tele
 
 ## Keyboard Shortcuts
 
-Shortcuts use `Ctrl` on Windows/Linux and `⌘` (Cmd) on macOS — plain `Ctrl` works on macOS too. Numpad `+`, `-` and `0` are accepted as equivalents of their main-keyboard neighbours.
+Shortcuts use `Ctrl` on Windows and Linux. Numpad `+`, `-` and `0` are accepted as equivalents of their main-keyboard neighbours.
 
 | Shortcut | Action |
 |----------|--------|
@@ -206,7 +206,8 @@ CSS files are located in `src/main/resources/css/`:
 
 ### Download (end users)
 
-Download the installer (`.deb`, `.msi`, `.dmg`) or the portable `.tar.gz` from
+Download the installer (`.deb` on Linux, `.msi` on Windows) or the portable
+`.tar.gz` from
 the GitHub Releases assets, together with the `SHA256SUMS` file that lets you
 verify it. Both channels carry a bundled runtime, so neither needs Java
 installed. The `git clone` and `mvn clean install` steps below are the
@@ -230,7 +231,7 @@ mvn clean test                       # Run all tests
 mvn clean package                    # Build + tests + thin JAR + fat JAR
 ./scripts/package.sh                 # Build + wrap into a native app image (releases/<os>/)
 ./scripts/package.sh --skip-build    # Reuse the last build, only re-wrap it
-./scripts/package.sh --installer     # Same, plus the platform installer (.deb / .msi / .dmg)
+./scripts/package.sh --installer     # Same, plus the platform installer (.deb / .msi)
 ./scripts/verify-artifacts.sh        # Fresh build, then compare every shipped copy byte for byte
 mvn test -Dtest=SessionStatsTest     # Run a single test class
 mvn test -Dtest=FileServiceTest      # Run a single test class
@@ -245,13 +246,13 @@ the host platform it has to be run on each target platform - the release
 workflow runs it once per OS. `mvn javafx:run` is the development entry point.
 `scripts/package.sh` wraps the fat JAR into a native application image with a
 bundled runtime via `jpackage`, and `--installer` wraps that image into the
-platform installer (`.deb`, `.msi`, `.dmg`) for Linux, Windows and macOS - the same
+platform installer (`.deb`, `.msi`) for Linux and Windows - the same
 command the CI workflow runs. Every release publishes both channels for each
 platform, the installer and a portable `.tar.gz`; which one becomes the product
 default is still an open decision, so `--installer` is one supported path, not
 the decided one. The application version has a single source of truth:
 `pom.xml`. The script reads it back from the built artifact and validates it
-against jpackage's rules (macOS, for one, rejects `0.x` bundle versions).
+against jpackage's rules.
 
 `scripts/verify-artifacts.sh` closes the other half of that loop: it compares the
 checked-in payload (`LICENSE`, `NOTICE`, `THIRD-PARTY-NOTICES`, `legal/`, the fat
@@ -268,7 +269,7 @@ instead of failing later with a compiler error about `release 25`.
 
 The launcher, window and taskbar icon is generated from the single source of the
 artwork, `src/main/resources/icons/jtypewriter.svg`: `scripts/generate-icons.py`
-regenerates the PNG set plus the Windows `.ico` and macOS `.icns` (`--check` verifies
+regenerates the PNG set plus the Windows `.ico` (`--check` verifies
 they are current), and `scripts/package.sh` picks the right format per platform.
 
 ---
@@ -278,12 +279,12 @@ they are current), and `scripts/package.sh` picks the right format per platform.
 GitHub Actions workflows: build and test on every push and pull request to `main` (`.github/workflows/maven.yml`), release on a version tag (`.github/workflows/release.yml`).
 
 - **Trigger**: Runs on every push and pull request to `main`
-- **Environment**: Ubuntu, Windows and macOS (build matrix)
+- **Environment**: Ubuntu and Windows (build matrix)
 - **JDK**: Temurin 25
 - **Command**: `mvn -B package` (build + tests), then `scripts/package.sh --skip-build --installer`
 - **Locales**: the test suite also runs under Turkish and German system locales, so i18n regressions (e.g. a language that silently resolves to the system language) cannot slip through
-- **Artifacts**: native application image plus a platform installer (`.deb` / `.msi` / `.dmg`) per OS
-- **Releases**: pushing a `v*` tag that matches the `pom.xml` version builds all three platforms and publishes them to a GitHub Release together with a `SHA256SUMS` file, so the binaries no longer live in Actions artifacts that expire after a few days
+- **Artifacts**: native application image plus a platform installer (`.deb` / `.msi`) per OS
+- **Releases**: pushing a `v*` tag that matches the `pom.xml` version builds both platforms and publishes them to a GitHub Release together with a `SHA256SUMS` file, so the binaries no longer live in Actions artifacts that expire after a few days
 
 ---
 
@@ -430,7 +431,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S), Ctrl+N for a new document and numpad equivalents |
 | `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge) |
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
-| `AppIconsTest` | The icon set on the classpath: every PNG decodes to the declared size, and the `.ico`/`.icns` files start with their expected magic bytes (pure byte checks, no toolkit) |
+| `AppIconsTest` | The icon set on the classpath: every PNG decodes to the declared size, and the `.ico` file starts with its expected magic bytes (pure byte checks, no toolkit) |
 | `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it |
 | `StatsBarStateTest` | Persisted status-bar size: starts from the setting, a fresh install starts at medium, cycling persists each step, a corrupt value degrades to medium, the mapping covers both enums both ways |
 | `FontSizeManagerTest` | The font-size ladder, off-ladder sizes inserted without changing the setting, ladder stepping for Ctrl+±, clamping to the supported range and the persisted reset to the default size |

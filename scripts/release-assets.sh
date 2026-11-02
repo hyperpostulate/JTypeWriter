@@ -6,14 +6,14 @@
 #
 # package.sh writes the raw jpackage output into releases/<os>/ with names the
 # installer backend chose (jtypewriter_1.0.0_amd64.deb on Linux, JTypeWriter-1.0.0.msi
-# on Windows, ...). A release with three platforms needs one naming scheme, so
+# on Windows). A release with several platforms needs one naming scheme, so
 # every asset becomes JTypeWriter-<version>-<os>-<arch>.<ext> and a downloader can
 # guess the URL without reading the release page.
 #
 # Besides the installer, the application image is archived as a .tar.gz holding
 # exactly one top-level directory. Which channel becomes the product default is
 # still an open decision, so both ship for now; the archive is also the only way
-# to reach macOS/Windows without an installer.
+# to reach Windows without an installer.
 #
 # This script deliberately does not hash anything: the release job merges all
 # platforms into one directory and produces SHA256SUMS there (scripts/checksums.sh),
@@ -23,7 +23,7 @@ set -euo pipefail
 
 if [[ $# -ne 5 ]]; then
     echo "usage: $0 <version> <os> <arch> <releases-dir> <out-dir>" >&2
-    echo "  <os>   linux | windows | mac" >&2
+    echo "  <os>   linux | windows" >&2
     echo "  <arch> x64 | arm64" >&2
     exit 1
 fi
@@ -53,13 +53,8 @@ case "$OS" in
         INSTALLER_GLOB='*.msi'
         INSTALLER_EXT="msi"
         ;;
-    mac)
-        IMAGE="JTypeWriter.app"
-        INSTALLER_GLOB='*.dmg'
-        INSTALLER_EXT="dmg"
-        ;;
     *)
-        echo "unsupported os '$OS' (expected linux, windows or mac)" >&2
+        echo "unsupported os '$OS' (expected linux or windows)" >&2
         exit 1
         ;;
 esac

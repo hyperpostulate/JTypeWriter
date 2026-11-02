@@ -74,9 +74,9 @@ public class KeyboardShortcutHandler {
     }
 
     /**
-     * {@code isShortcutDown()} is Ctrl on Windows/Linux and Cmd on macOS, so
-     * the shortcuts match each platform's conventions; plain Ctrl on macOS is
-     * accepted too, for users who switch between platforms.
+     * The guard accepts the platform shortcut modifier (Ctrl on Windows/Linux)
+     * and plain Ctrl as well, so a shortcut is not lost when the JavaFX
+     * {@code shortcutKey} differs from the physical Ctrl key.
      */
     private void handleKeyPress(KeyEvent event) {
         // F11 is the only modifier-less shortcut, so it passes the guard.

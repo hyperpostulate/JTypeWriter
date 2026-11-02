@@ -2,12 +2,12 @@ JTypeWriter @VERSION@, built from tag `@TAG@`.
 
 ## English
 
-Both channels are published for every platform: the installer (`.deb`, `.msi`,
-`.dmg`) and a portable `.tar.gz`. Which one becomes the product default is still
-an open decision; neither is deprecated.
+Supported platforms: **Linux x64 and Windows x64**. Both channels are published
+for each of them: the installer (`.deb`, `.msi`) and a portable `.tar.gz`. Which
+one becomes the product default is still an open decision; neither is deprecated.
 
-The installers are **not code-signed or notarised**. Windows SmartScreen and
-macOS Gatekeeper will warn on first launch.
+The installers are **not code-signed**. Windows SmartScreen will warn on first
+launch.
 
 Verify your download before running it:
 
@@ -29,12 +29,13 @@ archive next to the binaries is the exact tree the release was built from.
 
 JTypeWriter @VERSION@, `@TAG@` etiketinden derlendi.
 
-Her platform için iki kanal da yayınlanır: kurulum paketi (`.deb`, `.msi`,
-`.dmg`) ve taşınabilir `.tar.gz`. Hangisinin ürün varsayılanı olacağı hâlâ açık
-bir karardır; ikisi de kullanımdan kaldırılmış değildir.
+Desteklenen platformlar: **Linux x64 ve Windows x64**. Her biri için iki kanal da
+yayınlanır: kurulum paketi (`.deb`, `.msi`) ve taşınabilir `.tar.gz`. Hangisinin
+ürün varsayılanı olacağı hâlâ açık bir karardır; ikisi de kullanımdan kaldırılmış
+değildir.
 
-Kurulum paketleri **kod imzalı veya notarize edilmiş değildir**. Windows
-SmartScreen ve macOS Gatekeeper ilk açılışta uyarı gösterir.
+Kurulum paketleri **kod imzalı değildir**. Windows SmartScreen ilk açılışta uyarı
+gösterir.
 
 İndirdiğiniz dosyayı çalıştırmadan önce doğrulayın:
 

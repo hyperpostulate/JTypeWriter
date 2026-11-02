@@ -9,7 +9,7 @@
 #
 #   repository payload  LICENSE, NOTICE, THIRD-PARTY-NOTICES, legal/* and the
 #                       fat jar Maven built from this source tree
-#   application image   releases/<os>/JTypeWriter (or .app), as jpackage wrote it
+#   application image   releases/<os>/JTypeWriter, as jpackage wrote it
 #   installer payload   the files inside the .deb, unpacked into a temporary
 #                       directory with dpkg-deb
 #
@@ -22,7 +22,7 @@
 # The .deb is the only installer this script unpacks. That is deliberate: Linux
 # x64 is the platform the roadmap releases first, and the rubber-stamp that
 # matters for it is the one that can be reproduced on any Debian/Ubuntu machine.
-# Windows .msi and macOS .dmg are compared only as part of the application image.
+# A Windows .msi is compared only as part of the application image.
 #
 # The jar entries are compared too: the notice inside the jar must equal the
 # checked-in file, not just be present (PackagingNoticesTest asserts the same
@@ -44,9 +44,8 @@ APP_NAME="JTypeWriter"
 
 case "$(uname -s)" in
     Linux*)               PLATFORM="linux" ;;
-    Darwin*)              PLATFORM="mac" ;;
     MINGW*|MSYS*|CYGWIN*) PLATFORM="windows" ;;
-    *)                    echo "unsupported platform: $(uname -s)" >&2; exit 1 ;;
+    *)                    echo "unsupported platform: $(uname -s) (supported: Linux, Windows)" >&2; exit 1 ;;
 esac
 
 if [[ "$BUILD" == "1" ]]; then
@@ -109,17 +108,13 @@ fi
 VERSION=$(basename "$FAT_JAR" | sed -e 's/^jtypewriter-//' -e 's/-jar-with-dependencies\.jar$//')
 DEST="releases/$PLATFORM"
 
-case "$PLATFORM" in
-    mac) IMAGE="$DEST/$APP_NAME.app" ;;
-    *)   IMAGE="$DEST/$APP_NAME" ;;
-esac
+IMAGE="$DEST/$APP_NAME"
 if [[ ! -d "$IMAGE" ]]; then
     echo "application image '$IMAGE' is missing - run scripts/package.sh first" >&2
     exit 1
 fi
 
-# The image keeps the fat jar under lib/app/ on Linux/Windows and under
-# Contents/app/ inside the .app bundle; find it rather than hard-coding both.
+# The image keeps the fat jar under lib/app/; find it rather than hard-coding.
 IMAGE_JAR=$(find "$IMAGE" -type f -name 'jtypewriter-*-jar-with-dependencies.jar' -print)
 if [[ -z "$IMAGE_JAR" || "$(printf '%s\n' "$IMAGE_JAR" | wc -l)" -ne 1 ]]; then
     echo "expected exactly one application jar inside '$IMAGE', found: ${IMAGE_JAR:-none}" >&2
@@ -128,13 +123,10 @@ fi
 
 compare "fat jar" "$FAT_JAR" "$IMAGE_JAR"
 
-# The legal payload sits next to the launcher in the image root on Linux/Windows
-# and in Contents/Resources inside the .app bundle. package.sh wrote both, so the
-# location is known; the comparison is about the bytes at those paths.
-case "$PLATFORM" in
-    mac) IMAGE_ROOT="$IMAGE/Contents/Resources" ;;
-    *)   IMAGE_ROOT="$IMAGE" ;;
-esac
+# The legal payload sits next to the launcher in the image root. package.sh
+# wrote it there, so the location is known; the comparison is about the bytes at
+# those paths.
+IMAGE_ROOT="$IMAGE"
 
 LEGAL_FILES=(
     "LICENSE"
@@ -174,8 +166,8 @@ else
 fi
 
 # --- installer payload --------------------------------------------------
-# dpkg-deb unpacking is only meaningful on Linux; on other platforms the
-# application image comparison above is all this script can honestly claim.
+# dpkg-deb unpacking is only meaningful on Linux; on Windows the application
+# image comparison above is all this script can honestly claim.
 if [[ "$PLATFORM" != "linux" ]]; then
     echo "note: installer payload comparison is implemented for the .deb only - skipping"
 elif ! command -v dpkg-deb >/dev/null 2>&1; then

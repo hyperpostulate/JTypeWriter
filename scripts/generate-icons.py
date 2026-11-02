@@ -2,7 +2,7 @@
 """Regenerate the bundled application icons from the canonical SVG.
 
 The artwork has exactly one source, ``src/main/resources/icons/jtypewriter.svg``.
-This script renders the PNG sizes, the Windows ``.ico`` and the macOS ``.icns``
+This script renders the PNG sizes and the Windows ``.ico``
 from it so the committed binaries can always be traced back to that file.
 
 Usage:
@@ -33,24 +33,12 @@ ICON_DIR = ROOT / "src" / "main" / "resources" / "icons"
 SVG = ICON_DIR / "jtypewriter.svg"
 
 # PNG sizes kept in the repository. 16/24/32 feed JavaFX and Windows trays,
-# 64..512 the launchers and package icons, 1024 the macOS @2x chunk.
+# 64..512 the launchers and package icons, 1024 the source for the downscales.
 PNG_SIZES = (16, 24, 32, 48, 64, 128, 256, 512, 1024)
 
 # ICO entries: (size, chunk id). Modern Windows (and jpackage, which needs 10+)
 # reads PNG-compressed entries at any size, so the .ico stays small.
 ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
-
-# ICNS chunk ids -> pixel size. Apple's PNG-based chunk types.
-ICNS_CHUNKS = (
-    ("ic11", 32),    # 16x16 @2x
-    ("ic12", 64),    # 32x32 @2x
-    ("ic07", 128),   # 128x128
-    ("ic13", 256),   # 128x128 @2x
-    ("ic08", 256),   # 256x256
-    ("ic14", 512),   # 256x256 @2x
-    ("ic09", 512),   # 512x512
-    ("ic10", 1024),  # 512x512 @2x
-)
 
 RENDER_DENSITY = "384"
 
@@ -114,17 +102,6 @@ def build_ico(pngs: dict[int, bytes]) -> bytes:
     return bytes(header + entries + payload)
 
 
-def build_icns(pngs: dict[int, bytes]) -> bytes:
-    """PNG-based .icns: each chunk is a big-endian (type, length, data) tuple."""
-    body = bytearray()
-    for chunk_id, size in ICNS_CHUNKS:
-        data = pngs[size]
-        body += chunk_id.encode("ascii")
-        body += struct.pack(">I", 8 + len(data))
-        body += data
-    return b"icns" + struct.pack(">I", 8 + len(body)) + bytes(body)
-
-
 def generate() -> dict[Path, bytes]:
     """Return {path: bytes} for every asset, without writing anything."""
     outputs: dict[Path, bytes] = {}
@@ -139,7 +116,6 @@ def generate() -> dict[Path, bytes]:
             pngs[size] = data
             outputs[ICON_DIR / target.name] = data
     outputs[ICON_DIR / "jtypewriter.ico"] = build_ico(pngs)
-    outputs[ICON_DIR / "jtypewriter.icns"] = build_icns(pngs)
     return outputs
 
 

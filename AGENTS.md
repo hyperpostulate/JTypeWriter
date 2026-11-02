@@ -3,6 +3,12 @@
 JavaFX 26 / Java 25 desktop text editor, single Maven module. Import root is
 `org.mesutormanli.jtypewriter`.
 
+**Supported platforms: Linux x64 and Windows x64 only.** macOS was removed from the product
+(packaging, icons, CI matrix, tests and docs). Do not reintroduce `Darwin*` branches, `.dmg`,
+`.icns`, `Contents/Resources` bundle paths or a `macos-latest` runner without an explicit
+product decision — `package.sh`, `release-assets.sh` and `verify-artifacts.sh` reject unknown
+platforms on purpose.
+
 ## Commands
 
 - JDK 25 + Maven 3.8+ are hard requirements (`maven-enforcer-plugin` at `validate`, floor
@@ -89,7 +95,7 @@ suite is the gate, and it enforces several non-code invariants below.
 - Version has one source: `pom.xml`. Release tag must be `v<version>`; `package.sh` rejects
   versions jpackage cannot use (`0.x`, `-SNAPSHOT`).
 - Icons have one source: `src/main/resources/icons/jtypewriter.svg`.
-  `scripts/generate-icons.py` regenerates PNG/ICO/ICNS (needs ImageMagick), `--check` verifies.
+  `scripts/generate-icons.py` regenerates PNG/ICO (needs ImageMagick), `--check` verifies.
 - `releases/` and `target/` are generated — never hand-edit or commit them.
 - Docs are bilingual: update `README.md` and `README-TR.md` (and release notes) together.
 - `.gitattributes` forces LF for text (CRLF only for `.bat/.cmd/.ps1`); keep new text files LF.

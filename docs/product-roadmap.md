@@ -1,14 +1,13 @@
-# JTypeWriter — Ürün Yol Haritası (Pareto Sıralı)
+# JTypeWriter — P2 Ürün Yol Haritası (Pareto Sıralı)
 
-> **Sürüm:** 1.0 · **Tarih:** 31 Ekim 2026 · **Taban:** `docs/analysis.md` v3.1 (`main` @ `95b386e`)
-> **Kapsam:** P2'nin iş sırası, sahipliği, kapıları ve takvimi.
-> **Yöntem:** Sıralama, analizdeki `(Etki × Güven) / Efor` skoruna **Pareto kesme çizgisi** ve
-> **bağımlılık kısıtları** uygulanarak türetilmiştir. Her ölçüt ya taban belgedeki bir bulgu
-> kimliğine ya da burada açıkça yazılmış bir varsayıma bağlanmıştır; varsayımlar "çıkarıldı"
-> olarak işaretlenmiştir.
+> **Sürüm:** 2.0 · **Tarih:** 2 Kasım 2026 · **Taban:** `docs/analysis.md` v4.1 (`main` @ `f32d3f8`)
+> **Kapsam:** **Yalnız P2.** P2'nin iş sırası, kartları, kapıları, izleme biçimi ve takvimi.
+> P0/P1/P1.2/G0 kapanmıştır; macOS 2 Kasım 2026'da üründen çıkarılmıştır (`analysis.md` §2.4).
 > **Atıf kuralı:** yalın `§N` bu belgenin bölümüne, `analysis.md §N` taban belgeye işaret eder.
-> **Bu belge bir istek listesi değildir.** Hangi işin **yapılmayacağını** ve neden
-> yapılmayacağını da tanımlar (§7, §11).
+> **Bulgu kimlikleri** (`D/E/X/U/B/M/T`) `analysis.md` §14'ten alınmıştır; burada yeniden
+> tanımlanmaz, yalnız kullanılır.
+> **Bu belge bir istek listesi değildir.** Neyin **yapılmayacağını** ve neden yapılmayacağını da
+> tanımlar (§8). Bir kart "bitti" sayılmaz; **kanıtı** olmadan "bitti" sayılmaz (§6).
 
 ---
 
@@ -16,439 +15,674 @@
 
 ### 1.1 Tek cümle
 
-**Altı iş, eforun ~%57'si, beş kapının beşi:** erken ama gerçek bir sürüm yayınla (A6), komut
-yüzeyini kur (A4), G/Ç'yi FX thread'inden çıkar (A3), belgeye kimlik ver (A1), ara/değiştir'i
-ekle (A2), diyalogları yerelleştir (A5) — bu sırayla, kapasite boşluğunda üç binici ile.
+**Altı iş, havuzun %45'i, beş kapının beşi:** önce yayın kanıtını üret (A6), sonra yazarken
+donmayı bitir (A3), sonra dosyaya kimlik ver (A1), sonra komut yüzeyini kur (A4), sonra
+ara/değiştir'i ekle (A2), ve P1'den devreden diyalog/yerel biçim borcunu kapat (A5) — bu sırayla;
+P1'in kalan üç açığı (U1 taşma, U5 sabit tarih, B1/B14/B15 paket kanıtı) bu kümenin **içine**
+yerleştirilmiştir, ayrı bir kuyruk oluşturmaz.
 
-### 1.2 Pareto'nun bu repoda nasıl uygulandığı
+### 1.2 Bu belgenin taban belgeden devraldığı üç karar
 
-Pareto ilkesi burada üç ayrı karara dönüşür; üçü de ölçülebilir:
-
-| # | Pareto kuralı | Bu yol haritasındaki karşılığı |
+| Karar | Kaynak | Yol haritasına etkisi |
 |---|---|---|
-| 1 | **Hayati azınlık** — kazancın çoğunu veren az sayıda iş | 12 aday işten **6'sı** (A6, A4, A3, A1, A2, A5) beş çıkış kapısının **beşini** kapatır; kalan 6 iş **hiçbir kapıyı** kapatmaz (§4.1–4.2) |
-| 2 | **Kuyruğu kes, sıralamakla uğraşma** — değerin %80'ini tüketen %80 | A9, A11, A12 ve tüm P3 listesi **bilinçli olarak yapılmıyor** (§11); gerekçe "düşük değer" değil, "kapıyı geciktiriyor" |
-| 3 | **Kesme noktası, sıralamadan önemli** | 6 kapı işi = 14 puan = eforun **%57'si**; A7/A8/A10 bu işlerin yanına **binicidir** (5 puan); A9/A11/A12 **kesilir**. P2, 19,5 puanda biter (§4.3) |
-
-**Dürüstlük notu:** Bu repoda **katı 20/80 tutmuyor** ve tutması da beklenmemeli. P1, "ucuz
-kazançları" (veri güvenliği sınıfı, kodlama, çıkış matrisi) zaten toplamış durumda
-(`analysis.md` §2.2, §5.1). Geriye kalan her iş **kesişen** bir iştir: 6 bundle, test, paket
-ve belge aynı anda dokunur. Bu yüzden doğru ifade *"işin %20'si kazancın %80'i"* değil,
-**"işlerin yarısı, eforun %57'si, beş kapının beşi"**dir. Pareto'nun buradaki değeri sıralama
-değil, **kesme cesaretidir**: 12 adaydan 6'sını seçip kalanı gerekçesiyle kesmek.
+| macOS desteklenmez | `analysis.md` §2.4 | A11 (Cmd+Q doğrulama) havuzdan düştü; CI matrisi 2 OS × 3 locale; beklenen yayın varlığı **5 + 1 (`SHA256SUMS`)** |
+| Gerçek darboğaz istatistik yenilemesi | `analysis.md` §8.3 (ölçüm) | X5, A3'ün **birinci** kartı oldu; "10 MB'da kaydetme donar" iddiası geçersiz |
+| Bir kapıyı kapatan iş ≠ kapının ön koşulu | `analysis.md` §12.3 | W0 kartları kapı saymaz; "üç kart bitti, skor artmalı" yanılgısı burada engellenir |
 
 ### 1.3 Sıralamanın tek cümlelik gerekçesi
 
-> **Önce yayınla, çünkü hiç yayınlanmamış bir ürünün diğer bütün işleri tahmindir; sonra
-> editörü kur, çünkü "metin alanı" ile "editör" arasındaki fark orada; sonra güvenceyi
-> koşulsuz yap, çünkü ürünün tek savunulabilir farklılaştırıcısı orada.**
+> **Önce yayınla**, çünkü yayınlanmamış bir üründe diğer her iş tahmindir (`analysis.md` §4.4);
+> **sonra donmayı bitir**, çünkü ürünün adı "kesintisiz yazma" ve ölçülen tek darboğaz orada;
+> **sonra kimlik ver**, çünkü ürünün tek savunulabilir farklılaştırıcısı veri bütünlüğü;
+> **sonra editör yap**, çünkü "metin alanı" ile "editör" arasındaki fark arama ve menüde.
 
 ---
 
-## 2. Ölçüm Tabanı ve Hedef
+## 2. Taban, Hedef ve Hedefin Niteliği
 
-`analysis.md` §11'deki beş boyut, burada bir **ağırlıklı olgunluk endeksi**ne çevrilir.
-Ağırlıklar, ürün tezinin sırasına göre seçildi: motor ve deneyim ürünün kendisi, ambalaj
-"çalıştırabilir misin", güven ve erişim "bulup güvenebilir misin".
+### 2.1 Bugünkü ölçüm
 
-| Boyut | Ağırlık | Bugün | P2 çıkışı | Gerekçe |
-|---|---:|---:|---:|---|
-| Motor | 0,25 | 3,6 | 4,4 | Farklılaştırıcı: silme engeli + kaybetmeme |
-| Deneyim | 0,25 | 2,2 | 3,6 | Günlük döngünün yarısı yok (`analysis.md` §6.2) |
-| Ambalaj | 0,20 | 2,0 | 3,2 | İndirilen ikili açılmıyor/denenmemiş |
-| Güven | 0,15 | 2,8 | 3,4 | Altyapı gerçek, kanıt yok |
-| Pazara erişim | 0,15 | 1,5 | 3,1 | Yayın, CLI, OS entegrasyonu yok |
-| **Endeks** | 1,00 | **2,50** | **3,60** | +1,10 |
+| Boyut | Ağırlık | Bugün | Kaynak |
+|---|---:|---:|---|
+| Motor | 0,25 | **3,6** | `analysis.md` §12 |
+| Deneyim | 0,25 | **2,2** | aynı |
+| Ambalaj | 0,20 | **2,1** | aynı |
+| Güven | 0,15 | **2,9** | aynı |
+| Pazara erişim | 0,15 | **1,5** | aynı |
+| **Endeks** | 1,00 | **2,53** | aynı |
 
-Endeks hesabı: `0,25·3,6 + 0,25·2,2 + 0,20·2,0 + 0,15·2,8 + 0,15·1,5 = 2,50`.
+### 2.2 P2'nin beklenen sonucu (hedef değil, **sonuç**)
 
-**Hedef seçimi:** 3,60 "olgun ürün" değil, **"iddia edilebilir ürün"** eşiğidir: bir romancı
-bir bölümü bitirebilir (`analysis.md` §6.2'deki 9 adımın 8'i) ve indirdiği ikili açılır. 4,0+
-hedefi P3'e aittir ve bu belgede bilinçli olarak yoktur — aksi halde §11 ihlal edilir.
+| Boyut | P2 sonrası (beklenen) | Neyle hareket eder | Neden tavana vurmaz |
+|---|---:|---|---|
+| Motor | **~4,3** | A1 (D1/D2/D3/D8), A3 (X1–X5) | Symlink/dış değişiklik kapanır; tek-yazar ve sağlam-FS varsayımı sürer |
+| Deneyim | **~3,4** | A2, A4, A5, A7, A17 | Yazdırma (A12) yok; sekmeler/satır numarası P3 |
+| Ambalaj | **~3,0** | A6 (yayın + smoke + CI kapıları) | jlink (A13) yok → imaj 145,4 MiB kalır; imza yok |
+| Güven | **~3,3** | A6, A8, A16 | `SECURITY.md`/SBOM (A9, A15) yok |
+| Pazara erişim | **~2,6** | A4 (CLI), A6 (yayın) | MIME/`.desktop` (A14) yok → "OS'ten aç" gerçekleşmez |
+| **Endeks** | **~3,4** | | |
+
+> **Uyarı (`analysis.md` §12.2):** Endeks beş boyutlu, ağırlıklı, tek kişilik bir yargıdır;
+> istatistik değildir ve **bu yol haritasının hedefi değildir**. Hedef §7'deki beş
+> yanlışlanabilir kapıdır. Endeks yalnız *beklenen sonucu* gösterir; kapılar geçilip endeks
+> 3,4 çıkmazsa yanlış olan endekstir, kapılar değil.
 
 ---
 
-## 3. Sıralama Yöntemi (yanlışlanabilir)
+## 3. Pareto Yöntemi ve Kesme Noktası
 
-### 3.1 Girdiler
+### 3.1 Üç kural, üç ölçülebilir karşılık
 
-Analizin skoru **göreli öncelik** göstergesidir, sıralama değil (`analysis.md` §12.2). Bu
-belge skoru üç kısıtla düzeltir:
+| # | Pareto kuralı | Bu belgedeki karşılığı |
+|---|---|---|
+| 1 | **Hayati azınlık** | Havuzdaki 16 adaydan **6'sı** (`analysis.md` §13.1) beş kapının **beşini** kapatır: A6, A3, A1, A4, A2, A5 |
+| 2 | **Kuyruğu kes, sıralamakla uğraşma** | A9, A10, A12, A13, A14, A15 **yapılmaz** (§8). Gerekçe "değersiz" değil, **"hiçbir kapıyı kapatmıyor ve kritik yolu uzatıyor"** |
+| 3 | **Kesme noktası sıralamadan önemlidir** | 6 kapı işi = **14 puan** (`analysis.md` §13.1 birimi). P2 havuzdan **20 puan** alır; 31 puanlık havuzun **11 puanı bilinçli harcanmaz**. Buna havuzda olmayan zorunlu bağımlılık D13 (+1) eklenir |
 
-1. **Bağımlılık** — bir iş, önkoşulu bitmeden başlayamaz (§3.3).
-2. **Boyut yayılımı** — aynı skora sahip iki işten **daha çok boyuta dokunan** önce gelir;
-   olgunluk endeksi boyutların ortalamasıdır, tek boyutu tavana vurmak endeksi taşımaz.
-3. **Bilgi değeri** — efor/ölçüm oranı değil, **belirsizliği azaltma** değeri. Bu yüzden A6
-   (yayın) skoru en yüksek olmasa da ilk sıradadır: yayınlanana kadar diğer her şey tahmindir
-   (`analysis.md` §12.4).
+**Dürüstlük notu:** Bu repoda katı 20/80 tutmuyor ve tutması beklenmemeli — P1 ucuz kazançları
+(veri güvenliği, kodlama, çıkış matrisi) zaten toplamıştır (`analysis.md` §3.2). Geriye kalan her
+iş **kesişen** iştir: 6 bundle + test + paket + belge aynı anda dokunur. Doğru ifade
+*"işin %20'si kazancın %80'i"* değil, **"havuzun %45'i, beş kapının beşi"**dir. Pareto'nun
+buradaki değeri sıralama değil, **kesme cesaretidir**.
 
 ### 3.2 Düzeltilmiş sıra
 
-| Sıra | İş | Skor (§12.2) | Etki alanı (boyut) | Efor | Bağımlılık | Neden bu sırada |
+| Sıra | İş | Skor (`analysis.md` §13.1) | Kapı | Efor (puan) | Bağımlılık | Neden bu sırada |
 |---:|---|---:|---|---:|---|---|
-| 1 | **A6** Yayın + CI artefakt smoke | 7,5 | Ambalaj, Erişim, Güven | 2 | — | Tek başına **3 boyutu** hareket ettiren tek iş; diğer işlerin doğrulama zemini |
-| 2 | **A4** Komut katmanı + menü + CLI + D&D | 4,0 | Deneyim, Erişim | 2 | A6 (yayın hattı hazır olmalı) | A2'nin önkoşulu; kurulmazsa arama iki kez kablolanır (`analysis.md` §12.2 not 1) |
-| 3 | **A3** G/Ç'yi FX thread'inden çıkar | 4,0 | Deneyim, Motor | 2 | A6 | A2'nin önkoşulu; büyük belgede arama UI'yı kilitlememeli (`analysis.md` §12.2 not 3) |
-| 4 | **A1** Belge kimliği | 3,3 | Motor, Güven | 3 | A6; A3 ile aynı dosyalara dokunmaz | En düşük skorlu çekirdek iş, ama ürün tezini **koşullu olmaktan çıkaran tek iş**; A4/A3 ile paralel koşabilir |
-| 5 | **A2** Ara / Değiştir | 5,0 | Deneyim, Motor | 3 | **A4 + A3** | Skoru en yüksek ikinci iş; ama önkoşulsuz yapılırsa iki kez yazılır. Beklemesi ucuz, yanlış yapılması pahalı |
-| 6 | **A5** Diyalog taşması + yerel biçim | 4,5 | Deneyim | 2 | — | G3'ün (yerel ayar sığması) tek sahibi; kapsamı kesişmez (DialogService/CSS/Messages) → her dalgaya paralel koşar |
-| — | **A7, A8, A10** biniciler | 4,5 / 4,5 / 6,0 | Deneyim, Güven, Ambalaj | 2 / 2 / 1 | — | Hiçbir kapıyı kapatmaz; kapı işinin dokunduğu dosyalara dokunmadıkları için **boş kapasiteye** binerler, takvimi uzatmazlar |
+| 1 | **A6** Yayın + CI artefakt smoke + CI kapıları | 7,5 | **G1 / 5** | 2 | — | Tek başına **3 boyutu** hareket ettirir; diğer işlerin doğrulama zemini (K5) |
+| 2 | **A3** Sayaç + G/Ç FX thread'inden çıksın | 6,0 | **G2 / 4** | 2 | A6 | Ölçülen tek darboğaz (§8.3); A2'nin önkoşulu (K2) |
+| 3 | **A1** Belge kimliği | 3,3 | **G2 / 1** | 3 | A6 | En düşük skorlu çekirdek iş, ama tezi **koşullu olmaktan çıkaran tek iş**; A3'ten **sonra** (K4) |
+| 4 | **A4** Komut katmanı + menü + CLI + D&D | 4,0 | **G3 / 2** | 2 | A6 | A2'nin önkoşulu (K1) |
+| 5 | **A2** Ara / Değiştir | 5,0 | **G3 / 2** | 3 | **A4 + A3** | Skoru en yüksek ikinci iş; önkoşulsuz yapılırsa iki kez yazılır |
+| 6 | **A5** Diyalog taşması + yerel biçim | 4,5 | **G3 / 3** | 2 | — | **P1 borcu**; kapsamı (`DialogService`/`Messages`/CSS) hiçbir kapı işiyle kesişmez → en erken ve izole koşar |
+| — | **A16** Kontrast kapsamı | 6,0 | — | 1 | — | **P1 kriter 1**'i kapatır; S eforla en yüksek getiri |
+| — | **A8** Taslak yaşam döngüsü + gizlilik | 4,5 | — | 2 | — | Yayın öncesi sertleştirme: taslak tarayıcı keyfî dosya okumamalı |
+| — | **A7** Yazar ergonomisi | 4,5 | — | 2 | A4 (menü) | Binici; kendi ayar yüzeyini menüden alır |
+| — | **A17** Ses politikası | 6,0 | — | 1 | A4 (menü) | Binici; **ürünün adı** olan özellik |
+| — | **D13** Ayar şema sürümü | — | — | 1 | A7 | K6: yeni ayar → göç borcu aynı PR'da |
 
 ### 3.3 Bağımlılık grafiği
 
 ```text
-W0   B13 ──► G0
-W1   A6 ──► G1        (+ A10 binici)
-W2   A1 ──┐
-     A3 ──┤──► G2     (+ A5: G3/2–3 hazırlanır)
-     A5 ──┘
-W3   A4 ──► A2 ──► G3   (+ A8 binici)
-     A5 ──► (G3/2–3 tamamlanır)
-W4   A7 ──► v1.1.0 ──► G4
+W0  A5 ─┐
+    A16 ─┼──► G0'   (P1 borcu kapanır; CI'ya iki kapı eklenir: B14, B15)
+    B14/B15 ─┘
+
+W1  A6 ──► G1       (+ A8: yayın öncesi gizlilik sertleştirmesi)
+
+W2  A3 ──► A1 ──► G2      (K4: aynı FileService sözleşmesi → sıralı, paralel değil)
+
+W3  A4 ──► A2 ──► G3      (A2 ayrıca A3'e bağlı: K2, W2'den miras)
+
+W4  D13 ──► A7 ──► A17 ──► v1.1.0 ──► G4
 ```
 
-Sert kısıtlar: **A2, A4 ve A3'ten sonra gelir** (menü/arama aynı komut katmanı; büyük belgede
-arama UI'yı kilitlemez). Yumuşak kısıt: A1 → A3 (A1 `FileService` sözleşmesini tanımlar, A3
-onu async'e taşır).
+**Sert kısıtlar** (`analysis.md` §13.2): K1 (A2 ← A4), K2 (A2 ← A3), K4 (A1 ⟂ A3 sıralı),
+K5 (A6 önce), K6 (yeni ayar → D13), K7 (yeni metin → 6 bundle + `Messages`).
+**Kritik yol:** A6 → A3 → A1 → G2 (7 puan) ve A6 → A4 → A2 → G3 (7 puan); iki kol A3'te
+birleşir (K2). İki geliştirici varsa W2'nin A3 kolu ile W3'ün A4 kolu **paralel** koşabilir;
+A1 ve A2 sırasıyla kendi kolunun önkoşulunu bekler. Tek geliştiricide sıra yukarıdaki gibidir.
 
-Kritik yol: **A6 → A4 → A2** (7 puan). A1 ve A3 kritik yolda değildir; W2'de paralel
-koşarlar. Bu, tek geliştirici varsayımında bile takvimi kısaltan tek manevradır.
+### 3.4 Kesme noktası
 
----
+| Küme | Aday | Puan | Kapatılan kapı |
+|---|---:|---:|---|
+| Kapı işleri (A6, A3, A1, A4, A2, A5) | 6 | **14** | **5 / 5** |
+| P1 borcunu kapatan ek (A16) | 1 | 1 | 0 — P1 kriteri 1'i kapatır |
+| Yayın sertleştirme (A8) | 1 | 2 | 0 |
+| Cila (A7, A17) | 2 | 3 | 0 |
+| Havuz dışı zorunlu bağımlılık (D13) | — | 1 | 0 — K6 |
+| **P2 (havuzdan)** | **10 / 16** | **20** | **5 / 5** |
+| **P2 (D13 dahil)** | — | **21** | |
+| Kesilen (§8) | 6 | **11** | 0 |
+| Havuz toplamı | 16 | **31** | |
 
-## 4. Pareto Kümesi ve Kesme Noktası
-
-### 4.1 Hayati azınlık — beş kapıyı kapatan altı iş
-
-| İş | Hangi vaadi koşulsuz yapar | Kapattığı bulgular | Kapattığı çıkış kriteri (`analysis.md` §12.6) |
-|---|---|---|---|
-| A6 | "İndirdiğin ikili gerçekten açılır" + "sürüm var" | B1, B2 | **5** — sürüm var ve çalışıyor |
-| A4 | "Editörü klavyeden değil, gözle de keşfedebilirsin" | E2, E3, E4, M1 | **2** (menü yarısı) |
-| A3 | "Yazarken donmaz" (1 MB kayıtta duraklama, 10 MB'da donma) | X1, X2, X3, X4 | **4** — FX thread'inde G/Ç yok |
-| A1 | "Dosyanı başkası değiştirdiyse sessizce ezmezsin" | D1, D2, D3, D8 | **1** — üzerine yazma güvenliği |
-| A2 | "Uzun metinde cümle bulabilirsin" | E1 | **2** (arama yarısı) |
-| A5 | "Almanca/Fransızca metin ekrana sığar, tarih kendi dilinde" | U1, U5 | **3** — yerel ayar sığması |
-
-### 4.2 Kuyruk — hiçbir kapıyı kapatmayan işler
-
-| İş | Neden yine de var | Neden kapıyı kapatmıyor |
-|---|---|---|
-| **A7** (W4) | Günlük sürtünmeyi azaltır; G3 sonrası boş kapasiteye biner | Son dosyalar, karşılama opt-out'u, min genişlik bir kapı kriteri değil |
-| **A10** (W1) | En iyi skor/efor oranı (6,0); JAR'ı küçültür | Ambalaj boyutu bir kapı kriteri değil |
-| **A8** (W2–W3) | D5 gizlilik açığını kapatır; izole kapsam (RecoveryStore) | Taslak yaşam döngüsü §12.6'da yok |
-| **A9** (§11.1) | Test hijyeni gerçek bir kural ihlali (`AGENTS.md`) | Katı bir kapı kriteri değil → **kesildi** |
-| **A11, A12** (§11.1) | macOS/çıktı hattı | §9 kararına ve kullanıcı kanıtına bağlı → **kesildi** |
-
-### 4.3 Kesme noktası
-
-| Küme | İş sayısı | Efor | Efor payı | Kapatılan kapı |
-|---|---:|---:|---:|---:|
-| Kapı işleri (A6, A4, A3, A1, A2, A5) | **6 / 12** | 14 | **%57** | **5 / 5** |
-| Biniciler (A7, A8, A10) | 3 | 5 | %20 | 0 |
-| W0 ön koşulları | 2 kart | 0,5 | %2 | 0 (kapıları mümkün kılar) |
-| **P2 toplamı** | **9 / 12** | **19,5** | **%80** | **5 / 5** |
-| Kesilen (A9, A11, A12) | 3 | 5 | %20 | 0 |
-
-**Okunuşu:** İşlerin yarısı (6/12), eforun %57'si, **beş kapının beşini** kapatır. Geriye kalan
-her şey — biniciler dahil — tek bir ölçülebilir çıkış kriterini bile açmaz. Yol haritasının en
-önemli sayısı: **P2, 19,5 puanda biter; son 4,5 puan bilinçli harcanmaz.**
-
-Binicilerin varlık sebebi takvim değil, **dolgu**: kapı işinin dokunmadığı dosyalara
-dokundukları için (A10 → ses/JAR, A8 → RecoveryStore, A7 → Welcome/MainStage) bir darboğaz
-oluştuğunda kapasiteyi kullanırlar. Darboğaz yoksa ilk kesilen onlardır (§6 son paragraf).
-
-Bu, "iyi"den "rahat"a geçişi bilinçli olarak gerçek kullanıcıya bırakır — §11'deki yeniden
-giriş koşulları tam olarak bunun içindir.
+**Okunuşu:** Altı kapı işi havuzun **%45'ini** (14/31) tüketir ve **beş kapının beşini** kapatır.
+P2'nin tamamı 20 puanla havuzun **%65'i**dir; kalan **%35 (11 puan) kesilir**. Kapı açmayan 6
+puan üç şeyi satın alır: P1'in "kısmi" damgasını silmek (A16), yayından önce bir gizlilik açığını
+kapatmak (A8), ürünün adındaki özelliği düzeltmek (A17) — ve bu 6 puanın 3'ü (A7, A17) bir
+kapıyı beklerken boş kapasiteye biner. **P2, 20 puanda biter (D13 ile 21).**
 
 ---
 
-## 5. Dalgalar
+## 4. P1'den Devreden Açıklar — Nerede Kapanıyor
 
-Her dalga **tek bir çıkış kapısı** ve **tek bir ölçülebilir kanıt** ile biter. Kapı geçilmeden
-sonraki dalga başlamaz; bu, P1'in kısmi kapanışının (§2.2) tekrarını önleyen kuraldır.
+`analysis.md` §3.2'ye göre P1'in yedi çıkış kriterinden **dördü kısmi, biri açık** kaldı
+(kriter 3 ve 4 gerçekten kapandı). Bunlara §3.3'ün P2'ye devrettiği üç iş eklenince yedi satır
+çıkıyor. Hiçbiri ayrı bir "borç dalgası" oluşturmuyor; her biri zaten gerekli bir karta
+**gömülmüştür**. Bu tablo, o gömülmenin denetlenebilir kaydıdır.
 
-### W0 — Ön koşullar · 0,5 puan · ~2 saat
+| P1 açığı | Bulgu | Durum (2 Kas 2026) | Hangi kartta kapanır | Kapanış kanıtı |
+|---|---|---|---|---|
+| **9 `Alert` kelepçesiz/sarmasız** (kriter 2) | U1, M3 | Açık | **W0-01** | DE/FR en uzun metinle 768 px sığma testi; `DialogSizing` tek yol |
+| **Sabit tarih/saat biçimi** (kriter 5) | U5, U12 | Kısmi | **W0-02** | Tüm biçimler `LocaleManager` üzerinden; TR/DE locale koşusunda farklı çıktı |
+| **Kontrast kapsamı eksik** (kriter 1) | U3 | Kısmi | **W0-03** | `ContrastRatioTest` 4 yüzeyi daha zorlar |
+| **CI artefaktı çalıştırmıyor** (kriter 7 / PW-43) | B1 | Açık | **W1-01** | CI'da imaj başlar, `.deb` kurulur/kaldırılır |
+| **`verify-artifacts.sh` CI'da değil** | B14 | Açık | **W0-04** | Workflow'da adım yeşil, 17/17 |
+| **İkon `--check` CI'da değil** | B15 | Açık | **W0-04** | Workflow'da adım yeşil, 10 dosya |
+| **Sürüm yok / hat koşmadı** (kriter 6) | B2 | Kısmi | **W1-02, W1-03** | GitHub Release + 6 varlık |
 
-| Kart | İş | Kanıt |
-|---|---|---|
-| W0.1 | `AGENTS.md`'yi sürüm kontrolüne al (`.gitignore:57`) | `git ls-files AGENTS.md` dolu; PR'da görünür |
-| W0.2 | Taze build yeniden üretim betiğini yaz (`scripts/verify-artifacts.sh`) | İmaj ↔ `.deb` ↔ repo payload'ı bayt karşılaştırması tek komut |
-
-**Kapı G0:** `mvn clean test` yeşil + `git ls-files AGENTS.md` dolu.
-**Neden burada:** B13 bir bulgu ama bir *saatlik* iş; ertelenmesi P1'de bir dönem maliyete
-dönüştü (`analysis.md` §2.3).
-
-### W1 — "Yayınlanabilir" · 3 puan · ~1 hafta
-
-| Kart | İş | Kapattığı | Kanıt (kapı) |
-|---|---|---|---|
-| W1.1 | CI artefakt smoke testi: Linux'ta app-image'ı boş `user.home` + Xvfb ile başlat, ana pencereyi bekle, kapat; `.deb` kur → çalıştır → kaldır | B1 | Workflow'da yeni `smoke` işi yeşil; `upload-artifact` adımlarında `retention-days` ≤ 7 |
-| W1.2 | `release.yml`: `gh release create --prerelease` desteği + SHA-256 checksum dosyası | B2 | Tag'sız koşuda `prepare` hâlâ reddediyor; checksum dosyası Release'te |
-| W1.3 | İlk yayın: `v1.0.0` (GitHub **pre-release**, "Erken erişim" notuyla) | B2 | Release URL'i; 6 artefakt + kaynak arşivi |
-| W1.4 | **A10** — sesi `javax.sound.sampled`'a taşı, JavaFX Media + FXML'i fat JAR'dan çıkar | B4 | JAR boyutu düşer; `THIRD-PARTY-NOTICES` güncel ve taze build'le bayt-özdeş |
-
-**Sürüm notu (taban belgedeki çelişki):** `analysis.md` §12.6/5 "`v0.x` yayınlanmıştır" der,
-ama `scripts/package.sh:79-83` ve `release.yml:55` **0.x'i reddeder** (jpackage/macOS kısıtı).
-Bu yüzden ilk yayın **v1.0.0'dır** ve "1.0 kalitesi" iddiası **pre-release işareti + dürüst
-sürüm notu** ile taşınır. Alternatif (pom'u 0.9 yapmak) yayın hattını kırar — yapılmaz.
-
-**Kapı G1:** GitHub'da bir Release var; CI o Release'in imajını **açtı** ve `.deb`'i **kurup
-kaldırdı**; ölçülen artefakt boyutları Release notunda yazılı.
-**Neden ilk:** 7,5 skor + 3 boyut + diğer tüm işlerin doğrulama zemini. Ayrıca `analysis.md` §12.4'teki en
-büyük riski (bir yıl daha mükemmelleştirip hiç yayınlamamak) **bir haftada** ortadan kaldıran
-tek hamle.
-
-### W2 — "Güven koşulsuz" · 7 puan (A1 3 · A3 2 · A5 2) · ~2 hafta (üç paralel hat)
-
-| Hat | Kart | İş | Kapattığı |
-|---|---|---|---|
-| A | W2.1 | **A1** — yüklemede `(mtime, boyut, içerik hash'i)` sakla; kaydetmeden önce karşılaştır; çelişkide **sor** (üzerine yaz / yeni ada kaydet / vazgeç) | D1 |
-| A | W2.2 | **A1** — `toRealPath()` ile symlink hedefe yaz; `.bak` gerçek hedefin yanına | D2 |
-| A | W2.3 | **A1** — taslak başlığındaki yolu doğrula (mutlaklık + kanoniklik + izinli kök); geçersizse kurtarma **hedefsiz** açılır (Farklı Kaydet'e zorlar) | D3 |
-| A | W2.4 | **A1** — belge düzeyi `FileLock`; kilit `UNAVAILABLE` ise uyarı | D8 |
-| B | W2.5 | **A3** — `ExecutorService` + `Task`: açma, kaydetme, otomatik kayıt FX thread'i dışında; UI'da "kaydediliyor" durumu; 1 Hz istatistiğin O(n) taraması artımlı sayaçla değiştirilir | X1, X3 |
-| B | W2.6 | **A3** — otomatik kayıtta `getText()`'i **kirli kontrolünden sonra** al | X2 |
-| B | W2.7 | **A3** — boyut sınırı + ilerleme; `readAllBytes` yerine akış; `Error`'ı da kapsayan kaydetme hata yolu | X4 |
-| C | W2.8 | **A5** — 9 `Alert` için `DialogSizing` + sarma + yeniden boyutlandırma (G3/2'nin motoru) | U1 |
-
-**A9 neden yok:** testlerin gerçek `~/.jtypewriter`'a yazması (M4, T6) bir kural ihlali ama bir
-kapı kriteri değil; A3'ün testleri zaten `-Duser.home=<temp>` ile koşacak (geçici çözüm). Kalıcı
-enjeksiyon seam'i §11.1'de, tetikleyicisiyle bekliyor.
-
-**Kapı G2** (yanlışlanabilir, `analysis.md` §12.6/1 ve /4):
-1. Yüklemeden sonra diskte değişen dosyaya kaydetmek **ya sorar ya reddeder**; symlink'li belge
-   kaydedildikten sonra **hâlâ symlink**; geçersiz taslak yolu hedef olarak **kabul edilmez**. Testli.
-2. 2 MB'lık belge açılır, kaydedilir, otomatik kaydedilirken **FX thread'inde dosya G/Ç'si veya
-   `fsync` yok** (test: G/Ç çağrılarını saran sayaç + FX thread kimliği kontrolü).
-
-**Not:** A1 ve A3 **farklı dosyalara** dokunur (`FileService`/`AtomicFiles`/`RecoveryStore` ↔
-`AutoSaveService`/yeni `IoExecutor`), ama ikisi de `FileService`'in sözleşmesini değiştirir.
-Tek geliştirici varsayımında sıra: **A1 → A3** (A1 sözleşmeyi tanımlar, A3 onu async'e taşır).
-
-### W3 — "Editör" · 7 puan (A4 2 · A2 3 · A8 2) · ~2,5 hafta
-
-| Kart | İş | Kapattığı | Not |
-|---|---|---|---|
-| W3.1 | **A4** — `EditorAction` komut katmanı: kimlik + etiket anahtarı + hızlandırıcı + çalıştırma; mevcut 16 kısayol ve 5 araç çubuğu düğmesi buradan besleniyor | M1 | `KeyboardShortcutHandler` + `ToolbarView` + `MainController` üçlüsü tek yere iner |
-| W3.2 | **A4** — menü çubuğu (Dosya/Düzen/Görünüm/Yardım), `Yeni` + `Farklı Kaydet` görünür | E2 | macOS'ta `SystemMenuBar` koşullu (§9 kararına bağlı) |
-| W3.3 | **A4** — CLI/süreç argümanıyla açma; çift tıklama aynı yolu kullanır | E3 | İkinci örnek: mevcut kilit yolu **devredemiyor** → W3'te "reddet" davranışı korunur, devir P3 |
-| W3.4 | **A4** — sürükle-bırak (`Dragboard`, `.txt`/`.md`), kirli belgede mevcut çıkış matrisinden geçer | E4 | Yeni bir kaydetme yolu **icat edilmez** |
-| W3.5 | **A2** — saf `FindModel` (eşleşme listesi, ileri/geri, büyük/küçük harf, tümünü değiştir) — JavaFX'siz, testli | E1 | Toolkit'siz test kuralı korunur (`analysis.md` §10.3) |
-| W3.6 | **A2** — `Ctrl+F` / `F3` / `Shift+F3` / `Ctrl+H` paneli; **YOLO açıkken "tümünü değiştir" onay ister** | E1 | YOLO ile etkileşim ayrı tasarlanmalı (`analysis.md` §12.2) |
-| binici | W3.7 | **A8** — taslak taraması: symlink takibi yok, boyut/sayı sınırı, N taslağı birlikte sun | D4 |
-| binici | W3.8 | **A8** — `pending-*.jtw` yaş/sayı temizliği; `ATOMIC_MOVE` fallback'te bayt doğrulama; temp süpürme; `Error` maskelemesi | D5, D6, D9, D10, D11 |
-| kapı | W3.9 | **A5** — tarih/saat biçimleri UI diline (`DateTimeFormatter.ofLocalized…`), `" - "`/`": "` ayırıcıları bundle'a | U5, U12 |
-
-**Kapı G3** (`analysis.md` §12.6/2 ve /3):
-1. `Ctrl+F` bulur, `F3`/`Shift+F3` gezer, `Ctrl+H` bir/tümünü değiştirir; **aynı işlevler menüden
-   de erişilebilir**; `FindModel` toolkit'siz testli; menüdeki her eylem komut katmanından gelir.
-2. En uzun DE/FR metinleriyle **her** `Alert` 768 px'e sığar; tüm tarih/saat gösterimi UI dilini
-   kullanır.
-3. 6 bundle anahtar paritesi + `Messages` erişimcisi korunur (yeni anahtarlar 6 dosyada).
-
-### W4 — "Cila ve sürüm" · 2 puan · ~1 hafta
-
-> `v1.1.0` yayını (W4.5) **A6 kapsamındadır**, ek puan saymaz: hat W1'de kuruldu, burada yalnız
-> pre-release işareti kaldırılır.
-
-| Kart | İş | Kapattığı |
-|---|---|---|
-| W4.1 | **A7** — son dosyalar listesi (en çok 10, silinmişse sessizce düş) | E5 |
-| W4.2 | **A7** — karşılama kartında "bir daha gösterme" + ayar | U7 |
-| W4.3 | **A7** — minimum pencere genişliği; araç çubuğu kırpılması biter | U8 |
-| W4.4 | **A7** — klavyeyle yazı boyutu (`Ctrl+=` / `Ctrl+-`), fare çift tıklaması yanında | U2 |
-| W4.5 | **A6** — `v1.1.0` yayını (pre-release işareti **kaldırılır**) | B2 |
-
-**Kapı G4:** `v1.1.0` yayınlandı, pre-release değil; G1–G3 kapılarının testleri hâlâ yeşil;
-olgunluk endeksi yeniden ölçüldü ve **≥ 3,55**.
+**Kural:** Bu tablodaki hiçbir satır "P2 sırasında bir ara" diye bırakılmaz. Her satırın bir kart
+numarası vardır; kart kapanmadan satır kapanmaz. P1'in kısmi kapanış hatası (`analysis.md` §3.2
+"kriter metni geniş, uygulama dar") **tekrar etmeyecek** biçimde burada sabitlenmiştir.
 
 ---
 
-## 6. Takvim ve Efor Modeli
+## 5. Dalgalar ve Kartlar
 
-| Varsayım | Değer | Not |
-|---|---|---|
-| Efor birimi | **1 puan = 1 net geliştirme günü** | Analizdeki S/M/L/XL = 1/2/3/5 ile aynı ölçek |
-| Kapasite | 3 net gün/hafta | Tek geliştirici; kalan 2 gün bakım, inceleme, sürüm işi |
-| Belirsizlik | ±%50 | A1/A2 gibi L işlerde üst sınır gerçekçi |
-| Toplam (P2) | **19,5 puan ≈ 6,5 net hafta ≈ 8 takvim haftası** | |
-| İlk yayın | **W1 sonu: ~1 hafta** | Yol haritasının en önemli tarihi |
+> **Kart şablonu:** her kart `Bulgu · Bağımlılık · Kapsam · Bitti tanımı · Doğrulama` taşır.
+> `Bitti tanımı` maddeleri **gözlemlenebilir** olmak zorundadır; "iyileştirildi" gibi bir madde
+> kabul edilmez (§6.1).
 
-Dalga süreleri (3 net gün/hafta): W0 ~2 saat · W1 ~1 hafta · W2 ~2 hafta · W3 ~2,5 hafta ·
-W4 ~1 hafta.
+### W0 — "P1 borcunu kapat" · ~4 iş günü
 
-**Takvim baskısı altında kesme sırası (sondan başa):** W4.4 → W4.3 → W4.1 → W4.2 → W3.8 →
-W3.7 → (gerekirse) `v1.1.0` işareti W4'ten W3 sonuna alınır. **Kesilmeyenler:** W1'in tamamı,
-A1, A3, A4, A2, A5/U1. Bunlar kapı işleridir; kesilirse yol haritası P2 olmaktan çıkar.
+Bu dalga kritik yolda **değildir** ama ilk yapılır: en ucuz, en izole, en yüksek getirili küme.
+Hiçbir kart `FileService`'e dokunmaz, yani W2'nin hazırlığını kilitlemez.
 
----
+**W0-01 · A5a — Dokuz `Alert`'i kelepçele** · M · U1, M3
+- **Kapsam:** `service/DialogService.java`, `ui/DialogSizing.java`, `ui/DialogStyling.java`,
+  `ui/MainController.java` (uyarı çağrıları), `css/*`
+- **Yapılacak:** `DialogSizing`'in kelepçe matematiği tüm `Alert`'lere uygulanır; içerik sarılır
+  (`Label.setWrapText(true)` + `setMaxWidth`), pencere yeniden boyutlandırılabilir olur. Dokuz
+  tekrar tek bir yardımcıdan geçer (M3 de kapanır).
+- **Bitti tanımı:** (1) Hiçbir `Alert` doğrudan `showAndWait()` çağırmıyor — hepsi
+  `DialogService` üzerinden geçiyor (kaynak taramasıyla kanıtlanır). (2) En uzun DE/FR metniyle
+  dokuz diyalog da 768 px genişlikte yatay kaydırma çubuğu üretmiyor.
+- **Doğrulama:** `mvn test -Dtest=DialogSizingTest,DialogServiceTest` + `grep -rn "new Alert" src/main/java`
+  çıktısının yalnız `DialogService`'i göstermesi.
 
-## 7. Her Kartın Tanımı (Definition of Done)
+**W0-02 · A5b — Tarih, saat ve ayırıcılar UI diline** · S · U5, U12
+- **Kapsam:** `ui/component/StatsBarModel.java:51-52`, `ui/MainController.java:33,184`,
+  `ui/component/ToolbarFit.java:93`, `locale/Messages.java`, 6 × `messages*.properties`
+- **Yapılacak:** `DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)` + `LocaleManager`
+  yerel ayarı; `": "` ve `" - "` ayırıcıları bundle anahtarına taşınır (FR'de iki nokta öncesi boşluk
+  gibi tipografik kurallar dile ait).
+- **Bitti tanımı:** (1) Kaynakta tarih/saat deseni **literal olarak yok** (`grep -n "HH:mm\|yyyy"`).
+  (2) Aynı an, TR ve DE locale'de farklı biçim üretiyor (test).
+- **Doğrulama:** `mvn test -Dtest=StatsBarModelTest,MessagesTest` +
+  `mvn test -Duser.language=de -Duser.country=DE` yeşil.
 
-Bu repoda "bitti" tanımı dilek değil, testle korunan kuraldır (`AGENTS.md`). Her kart şunları
-**aynı PR'da** taşır:
+**W0-03 · A16 — Kontrast kapsamını kapat** · S · U3
+- **Kapsam:** `css/*.css` (`-toolbar-text`, `-toolbar-text-muted` ölü token), `ContrastRatioTest`
+- **Yapılacak:** Araç çubuğu metni, düz popup satırları ve varsayılan editör metni ölçüme
+  katılır; ölü token silinir veya kullanılır.
+- **Bitti tanımı:** Üç yüzey de AA eşiğini geçiyor; `-toolbar-text-muted` ya kullanılıyor ya
+  yok; test sayısı 19 → ≥22.
+- **Doğrulama:** `mvn test -Dtest=ContrastRatioTest`.
 
-1. **SPDX bloğu** dosyanın 0. baytında (`LicenseHeaderTest`).
-2. **6 bundle × anahtar paritesi** + `Messages` erişimcisi; ölü anahtar yok (`MessagesTest`).
-3. **Saf model + ince UI:** karar/geometri/ayrıştırma JavaFX'siz statik metot veya model
-   nesnesinde; test toolkit açmadan koşar. `Alert` yalnız `DialogSizing` üzerinden.
-4. **Bulgu testi:** kartın kapattığı her bulgu için, o bulgunun **yeniden üretilebilir**
-   senaryosunu sabitleyen bir test (ör. symlink hedefi, dış değişiklik, 768 px sığma).
-5. **Kullanıcıya görünen değişiklikte** `README.md` + `README-TR.md` birlikte.
-6. **Bağımlılık değiştiyse** `THIRD-PARTY-NOTICES` güncel + taze build sonrası test.
-7. `mvn clean test` + `tr-TR`/`de-DE` koşuları yeşil.
-8. `AGENTS.md`'deki değişmezler değiştiyse `AGENTS.md` güncel (W0'dan sonra PR'da görünür).
+**W0-04 · B14/B15 — Kanıt kapılarını CI'ya taşı** · S · B14, B15
+- **Kapsam:** `.github/workflows/maven.yml` (yeni adımlar), `scripts/verify-artifacts.sh`,
+  `scripts/generate-icons.py`
+- **Yapılacak:** `verify-artifacts.sh --skip-build` ve `generate-icons.py --check` her PR'da ve
+  `main` push'unda koşar. Windows ayağında `--check` koşar, `verify-artifacts` yalnız Linux'ta
+  (dpkg-deb).
+- **Bitti tanımı:** İki adım da yeşil; bir kasıtlı bozma denemesinde (ör. `.deb` payload'ından
+  `NOTICE` silinmiş bir yamayla) iş **kırmızıya** dönüyor.
+- **Doğrulama:** Bozma denemesi PR'ı (kanıt için ekran/CI logu) + sonrasında geri alınmış hâli.
 
-**Yasaklar (kartı reddettiren):** JavaFX toolkit açan test; yeni bir yazma yolu (`AtomicFiles`
-dışında); `AppGraph` dışında bileşen kurmak; sabit `dd.MM.yyyy`/`Ctrl+` metni; kelepçesiz yeni
-`Alert`.
-
----
-
-## 8. Kapıların Özeti
-
-| Kapı | Ne zaman | Tek cümlelik kanıt | Yanlışlanma biçimi |
-|---|---|---|---|
-| G0 | W0 sonu | `mvn clean test` yeşil + `AGENTS.md` izleniyor | `git ls-files` boşsa |
-| G1 | W1 sonu | Yayınlanmış Release + CI'da açılmış imaj + kurulmuş `.deb` | Release yoksa veya smoke işi kırmızıysa |
-| G2 | W2 sonu | Dış değişiklik sorar; symlink korunur; FX thread'inde G/Ç yok | Test senaryosu üretilemiyorsa |
-| G3 | W3 sonu | `Ctrl+F` bulur; menüden de bulunur; her `Alert` 768 px'e sığar | Menüde eksik eylem varsa |
-| G4 | W4 sonu | `v1.1.0` yayınlandı, endeks ≥ 3,55 | Sürüm pre-release ise |
-
----
-
-## 9. Açık Karar (yol haritasını dallandıran tek soru)
-
-`analysis.md` §12.5: **İlk benimseyen kullanıcı kim ve hangi işletim sisteminde?**
-
-Bu belge **Linux x64** varsayımıyla yazıldı — gerekçe: ölçülen tek artefakt kümesi Linux
-(`analysis.md` §9.1), `.deb` hattı var, ikincil persona (§3.2) Linux kullanıcısı, imza bütçesi
-gerekmiyor. Karar farklı çıkarsa değişenler:
-
-| Karar | W1'e eklenen | P2'ye eklenen | Takvim etkisi |
-|---|---|---|---|
-| **Linux x64** (varsayılan) | — | — | 0 |
-| + Windows x64 | MSI smoke (sessiz kur/kaldır) | SmartScreen uyarısını release notuna yaz | +2 gün |
-| + macOS (arm64) | DMG smoke (`.app` aç, `Cmd+Q` → kaydetme akışı) | **A11** P2'ye girer: `QuitHandler` + `SystemMenuBar` doğrulaması; imza/notarization bütçesi | +1,5–2 hafta |
-
-**Bu karar W1 başlamadan verilmeli.** Verilmezse varsayılan (Linux) uygulanır ve macOS/Windows
-P3'e düşer; sonradan eklemek W1'i yeniden açmak demektir.
+> **Kapı G0′:** P1 kriter 1, 2, 5 tam kapalı; B14 ve B15 CI'da; `mvn -B clean test` yeşil.
+> Bu kapı **puan saymaz** — kapıların ön koşuludur (`analysis.md` §12.3'teki ayrım).
 
 ---
 
-## 10. Risk Kaydı
+### W1 — "Yayınlanabilir" · ~6 iş günü
 
-| # | Risk | Olasılık | Etki | Azaltma |
-|---|---|---:|---:|---|
-| R1 | **Bir yıl daha mükemmelleştirip hiç yayınlamamak** (analizin en büyük riski, §12.4) | Orta | Yüksek | W1 **ilk** dalga ve **1 hafta** ile sınırlı; v1.0.0 pre-release çıkmadan hiçbir özellik işi başlamaz |
-| R2 | A2, A4'ün komut katmanını beklemeden yazılır → arama iki kez kablolanır | Orta | Orta | Sıra kısıtı §3.3'te sertleştirildi; W3.1 bitmeden W3.5 başlamaz |
-| R3 | A3 eşzamanlılık hatası veri güvenliğini bozar (P1'in kapattığı sınıf yeniden açılır) | Orta | **Yüksek** | A3'ün her kartı mevcut `ExitDisposition`/`AutosaveHealth` matrisini korur; `ProcessCrashRecoveryTest` her A3 PR'ında koşar |
-| R4 | A1 yanlış pozitif verir (mtime çözünürlüğü, senkron istemcisi) → her kayıtta uyarı | Orta | Orta | Hash karşılaştırması ikincil; uyarı yalnız **içerik** değiştiyse; "yeni ada kaydet" varsayılan güvenli seçenek |
-| R5 | 6 bundle × 90 anahtar borcu büyür, çeviri kalitesi düşer | Yüksek | Düşük | `MessagesTest` zaten zorluyor; yeni anahtarlar tek PR'da 6 dosyada |
-| R6 | Yayın hattı ilk kez koşarken sürpriz (B2'nin asıl riski) | **Yüksek** | Orta | W1.2 önce `--prerelease` + checksum ile **kuru koşu**; G1 pre-release'e izin verir |
+Bu dalganın tek amacı: **"paketlendi" ile "çalışıyor" arasındaki kanıtı üretmek ve sürümü
+yayınlamak.** Yayınlanana kadar diğer bütün işler tahmindir (`analysis.md` §4.4).
+
+**W1-01 · A6a — CI artefakt smoke testi** · M · B1
+- **Kapsam:** `scripts/smoke-appimage.sh` (yeni), `.github/workflows/maven.yml` (yeni `smoke` job)
+- **Yapılacak:** Linux: boş `user.home` + `Xvfb` altında app image başlatılır, `xwininfo` ile ana
+  pencere beklenir, süreç kapatılır; ardından `.deb` kurulur, başlatılır, kaldırılır. Windows:
+  image başlatılır, süreç N saniye ayakta kalır ve `jpackage` launcher'ı sıfırdan farklı kodla
+  çıkmaz.
+- **Bitti tanımı:** (1) `smoke` job iki OS'te yeşil. (2) Betik yerelde de koşuyor
+  (`bash scripts/smoke-appimage.sh --skip-build`). (3) Kurulum sonrası `dpkg -l | grep jtypewriter`
+  boş dönüyor (kaldırma gerçekten oldu).
+- **Doğrulama:** CI run URL'i + yerel çalıştırma çıktısı.
+- **Not:** `retention-days ≤ 7` zorunlu (`ReleaseNotesTest`).
+
+**W1-02 · A6b — Release hattını yayından önce kurut** · S · B2
+- **Kapsam:** `.github/workflows/release.yml`
+- **Yapılacak:** `workflow_dispatch` + `dry_run` girdisi: `prepare` ve iki build ayağı aynen
+  koşar, `release` job'u yayın yerine artefakt yükler. Böylece ilk gerçek yayın sürpriz olmaz.
+- **Bitti tanımı:** (1) `dry_run` koşusu uçtan uca yeşil. (2) Tag↔pom uyuşmazlığı hâlâ
+  reddediliyor. (3) Beklenen varlık assert'i **5 varlık** ile eşleşiyor (macOS sonrası, §1.2).
+- **Doğrulama:** `dry_run` run URL'i; `git tag -l` hâlâ boş.
+
+**W1-03 · A6c — İlk yayın `v1.0.0` (pre-release)** · S · B2
+- **Kapsam:** tag + `docs/release-notes-template.md` (yalnız doldurulur, yapısı değişmez)
+- **Yapılacak:** `v1.0.0` etiketi; iki dilli not; "erken erişim" işareti; imza yokluğu dürüstçe
+  yazılı; ölçülen artefakt boyutları notta.
+- **Bitti tanımı:** Release'te **5 varlık + `SHA256SUMS`**; not iki dilli ve `@VERSION@`/`@TAG@`
+  doldurulmuş; `SHA256SUMS` doğrulanabiliyor.
+- **Doğrulama:** `curl -s https://api.github.com/repos/hyperpostulate/JTypeWriter/releases |
+  jq '.[0].assets[].name'` → 6 satır. (`gh` bu makinede kurulu değil.)
+
+**W1-04 · A8a — Taslak tarayıcısını sertleştir** · M · D4, D5, D14
+- **Kapsam:** `service/RecoveryStore.java:131-139,145,271`, `service/BackupKeeper.java`
+- **Yapılacak:** Tarama symlink takip etmez (`NOFOLLOW_LINKS`); taslak okumasına boyut sınırı;
+  `readAllBytes` yerine sınırlı akış; `parked-*.jtw` için yaş/sayı/boyut temizliği; disk
+  çarpanı (4,00× kalıcı, ≈6× tepe) kullanıcıya bir kez söylenir.
+- **Bitti tanımı:** (1) Symlink'li taslak adayı **okunmuyor** (test). (2) 100 MB'lık bir taslak
+  dosyası kurtarma taramasını bloke etmiyor (test, sınırlı okuma). (3) `parked-*` temizliği
+  yaş eşiğiyle çalışıyor (test).
+- **Doğrulama:** `mvn test -Dtest=RecoveryStoreTest,BackupKeeperTest`.
+- **Neden W1'de:** Yayın öncesi gizlilik hijyeni — keyfî bir dosya yoluna işaret eden symlink'in
+  içeriği kullanıcıya "kurtarılmış taslak" olarak sunulmamalı. Bir kapı kapatmaz, ama **yayın
+  öncesi** olması gerekçelidir.
+
+> **Kapı G1:** GitHub'da bir Release var; CI o Release'in imajını **açtı**, `.deb`'i **kurup
+> kaldırdı**; `verify-artifacts` ve ikon `--check` CI'da yeşil; `SHA256SUMS` doğrulanıyor.
 
 ---
 
-## 11. Bilinçli Olarak Yapılmayanlar
+### W2 — "Donmayan ve ezmeyen editör" · ~9 iş günü
 
-Pareto'nun ikinci yarısı: **kuyruğu kesmek.** Aşağıdakiler "sonra" için değil, **koşul**
-belirtilerek ertelenmiştir. Koşul gerçekleşirse yol haritası yeniden planlanır — bu, takvimi
-kaydırmaz, sırayı değiştirir.
+Sıra **serttir** (K4): A3 ve A1 aynı `FileService` sözleşmesine dokunur, paralel yazılmaz.
+A3 önce, çünkü A2'nin önkoşulu ve ölçülmüş darboğaz orada.
 
-### 11.1 P3'e ertelenen işler ve yeniden giriş koşulları
+**W2-01 · A3a — İstatistiği artımlı yap** · M · X5, X3
+- **Kapsam:** `stats/SessionStats.java` (112 satır, JavaFX'siz), `SessionStatsTest`
+- **Yapılacak:** Kelime/satır/boşluksuz karakter sayıları artımlı sayaçla tutulur; **public API
+  korunur** (getter imzaları değişmez), böylece `StatsBarModel` dokunulmaz. Deltayı
+  `EditorArea`'nın metin dinleyicisi besler; `SessionStats`'a JavaFX tipi **sızmaz** (küçük bir
+  `before/after` çifti ya da offset+uzunluk kaydı). `getText()` kopyası yenileme yolundan çıkar.
+- **Bitti tanımı:** (1) 10 MB metinde tek yenileme **< 5 ms** (referans makine). (2) Ekleme,
+  silme, değiştirme, tümünü değiştirme ve dosya yükleme sonrası sayaçlar tam metin taramasıyla
+  **birebir** aynı (property-style karşılaştırma testi). (3) `SessionStatsTest` (12) yeşil ve
+  ≥6 test eklendi.
+- **Doğrulama:** `StatsPerfHarness` (yeni, `src/test/java`) çıktısı; CI'da eşik **50 ms**
+  (O(n)'e geri dönüş 163 ms → yakalanır), referans makinede eşik **5 ms**.
 
-| İş | Neden şimdi değil | Yeniden giriş koşulu |
-|---|---|---|
-| **A9** Test hijyeni (`AppLogging` enjeksiyonu, gerçek eve yazmayı bitir) | Bir kapı kriteri değil; A3'ün testleri `-Duser.home=<temp>` ile geçici olarak çözülür | A3 sonrası bu geçici çözüm kaldırılırsa (ya da yeni bir test yolu eklenirse) **hemen P2'ye girer** |
-| **A11** macOS çıkış yolu (Cmd+Q) | Yalnız macOS hedeflenirse anlamlı | §9 kararı macOS'u içeriyorsa **P2'ye girer** |
-| **A12** Yazdırma / PDF | Bölüm bitirmeyi engellemiyor; E7 etkisi 3 | ≥5 kullanıcı "yazdıramıyorum" derse |
-| **E10** Dosya ilişkilendirmesi / MIME | `.deb` `.desktop` düzeltmesi W1'e biniyor; tam ilişkilendirme paketleme kararına bağlı | W1 sonrası, kurulu taban ölçülünce |
-| **E6** Tercihler penceresi | Ayarlar bugün varsayılanla çalışıyor | İkinci "ayar değiştiremiyorum" bildirimi |
-| **E8** Satır numaraları | Düz `TextArea`; yön kaybı gerçek ama bölüm bitirmeyi engellemiyor | Komut katmanı sonrası ucuzlar (W3 sonrası) |
-| **E9** Sarma anahtarı / yazı tipi ailesi | Zorunlu sarma bilinçli tasarım | Kullanıcı kanıtı |
-| **jlink** ile runtime budama (145 → ~50 MiB) | 145 MiB ilk kullanıcıyı engellemiyor; ölçüm ve karar P3 | İndirme dönüşümü ölçülünce |
-| **Kod imzalama / notarization** | Koşullu; §9 kararına bağlı | macOS/Windows hedefi |
-| **U3, U4, U6, U9, U11** (kontrast kapsamı, macOS tooltip, erişilebilir adlar, ses politikası, çökme metni) | Etkisi 1–2; U1/U5 aynı dosyalara dokunurken bedava gelirse alınır | Yeni diyalog/kontrast dokunuşu zaten yapılıyorsa |
-| **D12, D13** (ayar yazma hatası, şema sürümü) | Yeni ayar eklenmedikçe borç büyümüyor | W4'te "bir daha gösterme" ayarı eklenince **D13 aynı PR'da** |
-| **M5, M6, M8** (dinleyici sırası, yansımalı undo, dispose) | jlink/modül yolu ve P4 işi | jlink kararı veya ikinci pencere |
-| **M2, P4** (sekmeler / çoklu belge) | Tek belge romancı için tutarlı kimlik; çıkış/kirli/taslak matrisini ikiye katlar | İlk kullanıcı geri bildirimi |
-| **B3, B5, B6, B7, B8, B9, B10, B12** | Ambalaj/kanal kararına bağlı | §9 kararı + kurulu taban |
-| **Yazım denetimi, dışa aktarma (HTML/DOCX), otomatik güncelleme, telemetri** | XL veya gizlilik duruşuyla çelişiyor | Kanıtlı talep |
+**W2-02 · A3b — G/Ç'yi FX thread'inden çıkar** · M · X1, X2
+- **Kapsam:** `service/FileService.java`, `service/AutoSaveService.java`, yeni `IoExecutor`
+- **Yapılacak:** Açma/kaydetme/otomatik kayıt `Task`/`ExecutorService` üzerinde; UI'da
+  "kaydediliyor" durumu; otomatik kayıtta `getText()` **kirli kontrolünden sonra** alınır.
+- **Bitti tanımı:** (1) FX thread kimliğinde yapılan `FileChannel`/`fsync` çağrısı **sıfır**
+  (test: G/Ç sarmalayıcısına konan sayaç + `Platform.isFxApplicationThread()`).
+  (2) Kaydetme sırasında arayüz donmuyor (elle: 10 MB belgede sürükleme akıcı).
+  (3) Otomatik kayıt kirli değilken metin kopyası **almıyor** (test).
+- **Doğrulama:** `mvn test -Dtest=FileServiceTest,AutoSaveServiceTest` +
+  yeni `FxThreadIoTest`.
 
-### 11.2 Yapılmama gerekçesinin testi
+**W2-03 · A3c — Bellek, boyut ve hata yolu** · M · X4, M10, D7, D14
+- **Kapsam:** `FileService.loadFile`, `AtomicFiles`, `AutoSaveService.java:317`
+- **Yapılacak:** `readAllBytes` yerine boyut denetimli akış; üst sınır aşılırsa **açık uyarı**
+  (sessiz kısaltma yok); `Error` da kaydetme hata yolundan geçer; disk alanı ön kontrolü.
+- **Bitti tanımı:** (1) Sınır üstü dosya açılmıyor ve kullanıcıya **ne olduğu** söyleniyor
+  (6 dilde metin). (2) `OutOfMemoryError` benzeri `Error` senaryosunda taslak korunuyor (test).
+  (3) Disk dolu senaryosu (temp `user.home` + kotasız FS simülasyonu) kaydetmeyi "başarılı"
+  göstermiyor.
+- **Doğrulama:** `mvn test -Dtest=FileServiceTest,AtomicFilesTest` + yeni testler.
 
-Bir işi ertelerken kullanılan ölçüt: **"Bu iş, G1–G4 kapılarından birini açıyor mu?"**
-Açmıyorsa ve etkisi ≤3 ise P2'de değildir. Bu ölçüt, yol haritasının sessizce büyümesini
-engelleyen tek kuraldır.
+**W2-04 · A1a — Dış değişikliği yakala** · M · D1, M9
+- **Kapsam:** `service/FileService.java:69-74,296,310`, `AtomicFiles`
+- **Yapılacak:** Yüklemede `(mtime, boyut, içerik SHA-256)` saklanır; kaydetmeden hemen önce
+  tekrar okunur; çelişkide **üç seçenekli** diyalog: üzerine yaz / yeni ada kaydet / vazgeç.
+- **Bitti tanımı:** (1) Diskteki dosya yüklemeden sonra değişirse kaydetme **ya sorar ya
+  reddeder** — sessiz üzerine yazma yok (test). (2) "Yeni ada kaydet" `ExitDisposition`'ı
+  atlamaz. (3) Aynı saniye içinde yapılan değişiklik de yakalanıyor (hash, mtime'a bağımlı
+  değil).
+- **Doğrulama:** `mvn test -Dtest=FileServiceTest` (yeni `externalChange*` testleri).
+
+**W2-05 · A1b — Symlink'i koru** · S · D2
+- **Kapsam:** `AtomicFiles.java:54-74`
+- **Yapılacak:** Hedef `toRealPath()` ile çözülür; yazma gerçek hedefe, atomik taşıma hedefin
+  dizininde; `.bak` gerçek hedefin yanına.
+- **Bitti tanımı:** Symlink'li belge kaydedildikten sonra **hâlâ symlink** ve hedefi
+  güncellenmiş (bugün kusur: link yok oluyor).
+- **Doğrulama:** `mvn test -Dtest=AtomicFilesTest` (yeni `symlink*` testi) + `analysis.md`
+  §15.4'teki manuel deney.
+
+**W2-06 · A1c — Taslak yolu ve belge kilidi** · M · D3, D8
+- **Kapsam:** `RecoveryStore.java:333-344`, `InstanceLock`
+- **Yapılacak:** Taslak başlığındaki yol mutlaklık + kanoniklik + izinli kök açısından
+  doğrulanır; geçersizse kurtarma **hedefsiz** açılır (Farklı Kaydet'e zorlar). Belge düzeyinde
+  `FileLock`; `UNAVAILABLE` ise uyarı, sessiz devam yok.
+- **Bitti tanımı:** Geçersiz yol hedef olarak kabul edilmiyor (test); iki süreç aynı dosyayı
+  açtığında ikincisi uyarıyor (test, `ProcessCrashRecoveryTest` deseniyle fork).
+- **Doğrulama:** `mvn test -Dtest=RecoveryStoreTest,InstanceLockTest`.
+
+> **Kapı G2** (`analysis.md` §13.6/1 ve /4):
+> (a) Üzerine yazma güvenliği üç maddesi testli; (b) 10 MB'da istatistik yenilemesi < 5 ms
+> (CI'da < 50 ms) ve FX thread'inde G/Ç yok.
 
 ---
 
-## 12. İzleme ve Yeniden Planlama
+### W3 — "Editör yüzeyi" · ~9 iş günü
 
-| Tetikleyici | Eylem |
+**W3-01 · A4a — `EditorAction` komut katmanı** · M · M1, U13
+- **Kapsam:** yeni `ui/EditorAction`, `KeyboardShortcutHandler`, `ToolbarView`, `MainController`,
+  `ShortcutRows`, `ShortcutTable`
+- **Yapılacak:** 16 kısayol + araç çubuğu düğmeleri tek kaynaktan (kimlik + etiket anahtarı +
+  hızlandırıcı + çalıştırma). Kısayol listesi bu kaynaktan **üretilir** → U13 (liste ile
+  handler iki yönde uyuşmuyor) yapısal olarak imkânsız hâle gelir.
+- **Bitti tanımı:** (1) `resolve()` tablosu ve `ShortcutRows` aynı kaynaktan besleniyor; iki
+  yönlü uyuşmazlık testi yeşil. (2) Hiçbir eylem iki yerde tanımlı değil (`grep` kanıtı).
+- **Doğrulama:** `mvn test -Dtest=KeyboardShortcutHandlerTest,ShortcutRowsTest`.
+
+**W3-02 · A4b — Menü çubuğu** · M · E2
+- **Kapsam:** `MainStage`, yeni `ui/MainMenuBar`, `Messages`, 6 bundle
+- **Yapılacak:** Dosya / Düzen / Görünüm / Yardım. **`Yeni` ve `Farklı Kaydet` görünür olur**
+  (bugün 14 eylemin 2'si arayüzde yok). Etiketler bundle'dan, hızlandırıcılar komut katmanından.
+- **Bitti tanımı:** (1) Menüdeki her öğe bir `EditorAction`'a bağlı (test: menü ağacı ↔ komut
+  kümesi birebir). (2) Altı dilde menü etiketleri var (`MessagesTest` yeşil).
+- **Doğrulama:** `mvn test -Dtest=MainStageTest,MainControllerTest,MessagesTest`.
+
+**W3-03 · A4c — CLI / süreç argümanı** · S · E3
+- **Kapsam:** `JTypeWriterApp`/`FxApplication` (`getParameters()`), `package.sh` launcher
+- **Yapılacak:** `JTypeWriter <dosya>` belgeyi açar; çift tıklama yolu aynı kodu kullanır.
+  İkinci örnek devir **yapılmaz** (kilit reddeder, mevcut davranış).
+- **Bitti tanımı:** Argümanlı başlatmada dosya açılıyor; argüman yoksa karşılama; geçersiz yol
+  sessizce yutulmuyor.
+- **Doğrulama:** `scripts/smoke-appimage.sh --open-sample` (W1-01'e eklenir) +
+  `mvn test -Dtest=JTypeWriterAppTests`.
+
+**W3-04 · A4d — Sürükle-bırak** · S · E4
+- **Kapsam:** `MainStage`/`EditorArea` (`Dragboard`)
+- **Yapılacak:** `.txt`/`.md` bırakma; kirli belgede **mevcut çıkış matrisinden** geçer — yeni
+  kaydetme yolu icat edilmez.
+- **Bitti tanımı:** Kirli belgeye bırakma `ExitDisposition` üzerinden soruyor (test, saf model
+  düzeyinde).
+- **Doğrulama:** `mvn test -Dtest=ExitDispositionTest,MainStageTest`.
+
+**W3-05 · A2a — `FindModel` (saf model)** · M · E1
+- **Kapsam:** yeni `ui/FindModel` (JavaFX'siz)
+- **Yapılacak:** Eşleşme listesi, ileri/geri, büyük-küçük harf duyarlılığı, tümünü değiştir,
+  sarmalama; `TextCodec`/`SessionStats` gibi toolkit'siz ve testli.
+- **Bitti tanımı:** Model toolkit açmadan test ediliyor; boş desen, regex yok, taşan aralık,
+  değiştir-sonrası-kayma senaryoları testli.
+- **Doğrulama:** `mvn test -Dtest=FindModelTest` (yeni).
+
+**W3-06 · A2b — Arama/değiştirme paneli** · M · E1
+- **Kapsam:** yeni panel + `Ctrl+F` / `F3` / `Shift+F3` / `Ctrl+H` + menü öğeleri
+- **Yapılacak:** Panel araması FX thread'inde **tam metin taraması yapmaz** (W2-01/W2-02'nin
+  üstüne kurulur); YOLO açıkken "tümünü değiştir" **onay ister**.
+- **Bitti tanımı:** (1) 10 MB belgede arama UI'yı kilitlemiyor (ölçülen süre kaydedilir).
+  (2) YOLO etkileşimi testli (`YoloPolicy` ile aynı dil). (3) Aynı işlevler menüden de erişilir.
+- **Doğrulama:** `mvn test -Dtest=FindModelTest,YoloPolicyTest` + manuel 10 MB ölçümü.
+
+> **Kapı G3** (`analysis.md` §13.6/2 ve /3): `Ctrl+F` bulur, `F3`/`Shift+F3` gezer, `Ctrl+H`
+> bir/tümünü değiştirir; aynı işlevler menüden erişilir; arama 10 MB'da kilitlenmez; tüm
+> tarih/saat gösterimi UI dilini kullanır; bütün `Alert`'ler 768 px'e sığar (W0-01'den miras).
+
+---
+
+### W4 — "Cila, ses ve sürüm" · ~6 iş günü
+
+**W4-01 · D13 — Ayar şeması sürümü** · S · D13, D12
+- **Kapsam:** `AppSettings.java:67-81,300-308`
+- **Yapılacak:** Ayarlara `schemaVersion` eklenir; bilinmeyen/eksik alan göçü tanımlı; yazma
+  hatası sessiz kalmaz (`SecurityException` yakalanır ve kullanıcıya söylenir).
+- **Bitti tanımı:** Eski şema dosyası yeni sürümle açılıyor ve **veri kaybetmiyor** (test);
+  yazılamayan ayar kullanıcıya bildiriliyor.
+- **Doğrulama:** `mvn test -Dtest=AppSettingsTest` (yeni göç testleri).
+- **Neden ilk:** K6 — A7'nin eklediği her ayar bu kartı tetikler; önce yapılmazsa göç borcu
+  sessizce büyür.
+
+**W4-02 · A7a — Son dosyalar + karşılama opt-out** · M · E5, U7
+- **Kapsam:** `AppSettings`, `WelcomeDialog`, `FxApplication:70`, `MainMenuBar` (Dosya menüsü)
+- **Yapılacak:** En çok 10 son dosya (silinmişse sessizce düşer); karşılamada "bir daha
+  gösterme" (ayar olarak).
+- **Bitti tanımı:** Silinmiş dosya listede kalıcı hata üretmiyor (test); opt-out sonrası
+  karşılama açılmıyor (test, saf model).
+- **Doğrulama:** `mvn test -Dtest=AppSettingsTest,MainControllerTest`.
+
+**W4-03 · A7b — Minimum pencere genişliği** · S · U8
+- **Kapsam:** `MainStage.java:53-54`, `ToolbarFit`
+- **Yapılacak:** `setMinWidth`; araç çubuğu kırpılması biter.
+- **Bitti tanımı:** Minimum genişlikte hiçbir araç çubuğu öğesi kırpılmıyor (`ToolbarFit`
+  testiyle).
+- **Doğrulama:** `mvn test -Dtest=ToolbarFitTest,MainStageTest`.
+
+**W4-04 · A17 — Ses politikası** · S · U9
+- **Kapsam:** `ui/component/EditorKeyHandler.java:31-40`, `audio/TypewriterSound`,
+  `MainMenuBar` (Görünüm → Ses), `AppSettings`
+- **Yapılacak:** Ses yalnız **metin üreten** tuşlarda; ok/kısayol tuşları sessiz; ses düzeyi
+  ayarı; hızlı yazımda `stop()+play()` yerine kesmesiz çalma.
+- **Bitti tanımı:** (1) Ok tuşu ve kısayol ses çıkarmıyor (saf politika testi). (2) Düzey
+  ayarı kalıcı ve 0'da tam sessiz. (3) 10 tuş/sn hızında ses kesilmiyor (elle, kayıtla).
+- **Doğrulama:** `mvn test -Dtest=AudioAssetTest` + yeni `SoundPolicyTest`.
+
+**W4-05 — `v1.1.0` yayını** · S · B2
+- **Yapılacak:** W1-03'ün tekrarı; bu kez **pre-release işareti kaldırılır**.
+- **Bitti tanımı:** Release'te 6 varlık; notlar iki dilli; `SHA256SUMS` doğrulanıyor.
+- **Doğrulama:** W1-03 ile aynı API sorgusu.
+
+> **Kapı G4:** Tam suite yeşil, `verify-artifacts` 17/17, ikon `--check` 10 dosya,
+> `v1.1.0` yayında, §5'teki tüm kartlar `☑`.
+
+---
+
+## 6. İzleme Protokolü — "Bitti" Nasıl Anlaşılır
+
+### 6.1 Kartın bitti sayılma kuralları (her kart için geçerli)
+
+Bir kart ancak **altı koşul birden** sağlanınca `☑` olur:
+
+1. **Önce kırmızı test.** Bulgu kimliğini taşıyan ve düzeltme olmadan **başarısız olan** bir test
+   yazıldı (`analysis.md` §6.4 dersi: testi olmayan düzeltme geri gelir).
+2. **Suite yeşil, repo kökünden.** `mvn -B clean test` → 350 + eklenen testler, 0 hata.
+3. **Değişmezler korundu** (§6.3).
+4. **Yeni görünür metin varsa** 6 bundle + `Messages` erişimcisi aynı PR'da (`MessagesTest`).
+5. **Kullanıcıya görünen değişiklik varsa** `README.md` + `README-TR.md` aynı PR'da.
+6. **Kanıt satırı commit mesajında:** `Refs: W2-05 · Kanıt: mvn test -Dtest=AtomicFilesTest → 14/14`.
+   Kanıtı olmayan kart, kodu yazılmış olsa da `◐` (WIP) kalır.
+
+### 6.2 Durum işaretleri
+
+| İşaret | Anlamı |
 |---|---|
-| Bir kapı **bir kez** kaçırıldı | Dalga içinde kal; kartı böl, takvimi değil |
-| Bir kapı **iki** kaçırıldı | Kapsamı kes (§6 kesme sırası); yol haritası sürümünü artır |
-| İlk gerçek kullanıcı bildirimi geldi | §11 tablosunu yeniden sırala; P3 giriş koşullarını yeniden değerlendir |
-| §9 kararı Linux dışında çıktı | W1 ve W4'ü yeniden planla; A11'i P2'ye al |
-| Olgunluk endeksi G4'te < 3,55 | Hedef değil, **ölçüm** düzeltilir: hangi boyut eksik kaldıysa o boyutun işi öne alınır |
+| `☐` | Başlamadı |
+| `◐` | Başladı, kanıt yok |
+| `⛔` | Bloke — engel tek satırda yazılır (kim/ne bekleniyor) |
+| `☑` | Kanıtlı bitti (koşul 1–6 sağlandı) |
 
-**Olgunluk yeniden ölçümü:** her kapıda, `analysis.md` §11 tablosundaki beş boyut aynı tanımla
-yeniden puanlanır ve bu belgeye tarihli satır olarak eklenir. Puanlama, "hangi vaat artık
-koşulsuz doğru" sorusuna verilen cevapla yapılır — test sayısıyla değil.
+### 6.3 Her PR'da korunacak değişmezler (testler zorlar)
 
-**Kapı günlüğü.**
+| Değişmez | Zorlayan test | Bu yol haritasında risk |
+|---|---|---|
+| SPDX başlığı byte 0'da | `LicenseHeaderTest` | Yeni sınıflar (`FindModel`, `EditorAction`, `IoExecutor`) |
+| 6 bundle × aynı anahtar kümesi, iki yönlü erişim | `MessagesTest` | W0-01/02, W1-04, W3-02, W4 metinleri |
+| `THIRD-PARTY-NOTICES` bayt-ödeş + LF + 100 kolon | `PackagingNoticesTest` | Bağımlılık değişirse |
+| Sürüm notu iki dilli, `@VERSION@`/`@TAG@`, semver yok | `ReleaseNotesTest` | W1-03, W4-05 |
+| `upload-artifact` → `retention-days ≤ 7` | `ReleaseNotesTest` | W1-01, W1-02 |
+| İkon sihirli baytları (PNG/ICO) | `AppIconsTest` | Yalnız `--check` CI'ya taşınır (W0-04) |
+| Toolkit açılmayan test | tüm suite | `FindModel`, `SoundPolicy` saf kalmalı |
 
-| Tarih | Kapı | Kanıt | Sonuç |
-|---|---|---|---|
-| 2026-11-01 | **G0** | `git ls-files AGENTS.md` dolu; `mvn clean test` → 350 test, 0 hata; `scripts/verify-artifacts.sh` → 17/17 bayt karşılaştırması geçti | **geçildi** — betik ilk koşuda gerçek bir sapma buldu: `.deb` yükü `LICENSE`/`NOTICE`/`THIRD-PARTY-NOTICES`/`legal/` dosyalarını hiç taşımıyordu; `package.sh` yükü artık tamamlıyor |
+### 6.4 İzleme tablosu (kopyala, PR'larda güncelle)
 
----
-
-## 13. Ek — Bulgu İzlenebilirliği
-
-Hiçbir bulgu sessizce düşmesin diye: her bulgu kimliği bir karta veya gerekçeli bir ertelemeye
-bağlıdır.
-
-| Bulgu | Kart / durum | Bulgu | Kart / durum |
-|---|---|---|---|
-| D1 | W2.1 | E10 | §11.1 (W1'e kısmi binici) |
-| D2 | W2.2 | X1 | W2.5 |
-| D3 | W2.3 | X2 | W2.6 |
-| D4 | W3.7 | X3 | W2.5 (artımlı sayaç) |
-| D5 | W3.8 | X4 | W2.7 |
-| D6 | W3.8 | U1 | W2.8 |
-| D7 | W2.7 + W3.8 | U2 | W4.4 |
-| D8 | W2.4 | U3 | §11.1 |
-| D9 | W3.8 | U4 | §11.1 (§9 kararına bağlı) |
-| D10 | W3.8 | U5 | W3.9 |
-| D11 | W3.8 | U6, U9, U11, U12 | §11.1 / W3.9 (U12) |
-| D12 | §11.1 (W4 ayarıyla tetiklenir) | U7 | W4.2 |
-| D13 | §11.1 (W4.2 ile **aynı PR'da**) | U8 | W4.3 |
-| E1 | W3.5, W3.6 | U10 | A11 → §9 kararı |
-| E2 | W3.2 | B1 | W1.1 |
-| E3 | W3.3 | B2 | W1.2, W1.3, W4.5 |
-| E4 | W3.4 | B3 | §11.1 |
-| E5 | W4.1 | B4 | W1.4 (A10) |
-| E6 | §11.1 | B5, B6, B7, B8, B9, B10, B12 | §11.1 |
-| E7 | A12 → §11.1 | B11 | **kapalı** (analiz §9.8) |
-| E8, E9 | §11.1 | B13 | W0.1 |
-| M1 | W3.1 | M2 | P4 → §11.1 |
-| M3 | W2.8 (A5 ile tek gerçek `Alert` fabrikası) | M4 | A9 → §11.1 |
-| M5, M6, M8 | §11.1 | M7 | §11.1 (jlink/undo kararı) |
-| T6 | A9 → §11.1 | — | — |
+| ID | Kart | Bulgu | Efor | Bağımlılık | Durum | Kanıt |
+|---|---|---|---|---|---|---|
+| W0-01 | Dokuz `Alert` kelepçesi | U1, M3 | M | — | ☐ | |
+| W0-02 | Tarih/saat + ayırıcı yerelleştirmesi | U5, U12 | S | — | ☐ | |
+| W0-03 | Kontrast kapsamı | U3 | S | — | ☐ | |
+| W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ☐ | |
+| W1-01 | CI artefakt smoke | B1 | M | W0-04 | ☐ | |
+| W1-02 | Release dry-run | B2 | S | — | ☐ | |
+| W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ☐ | |
+| W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ☐ | |
+| W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ☐ | |
+| W2-02 | G/Ç executor | X1, X2 | M | W2-01 | ☐ | |
+| W2-03 | Bellek/boyut/hata yolu | X4, M10, D7 | M | W2-02 | ☐ | |
+| W2-04 | Dış değişiklik | D1, M9 | M | W2-02 | ☐ | |
+| W2-05 | Symlink korunumu | D2 | S | W2-04 | ☐ | |
+| W2-06 | Taslak yolu + belge kilidi | D3, D8 | M | W2-04 | ☐ | |
+| W3-01 | `EditorAction` katmanı | M1, U13 | M | W1-03 | ☐ | |
+| W3-02 | Menü çubuğu | E2 | M | W3-01 | ☐ | |
+| W3-03 | CLI argümanı | E3 | S | W3-01 | ☐ | |
+| W3-04 | Sürükle-bırak | E4 | S | W3-01 | ☐ | |
+| W3-05 | `FindModel` | E1 | M | W2-01, W3-01 | ☐ | |
+| W3-06 | Arama paneli | E1 | M | W3-05 | ☐ | |
+| W4-01 | Ayar şema sürümü | D13, D12 | S | — | ☐ | |
+| W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ☐ | |
+| W4-03 | Minimum genişlik | U8 | S | — | ☐ | |
+| W4-04 | Ses politikası | U9 | S | W3-02, W4-01 | ☐ | |
+| W4-05 | `v1.1.0` | B2 | S | hepsi | ☐ | |
 
 ---
 
-## 14. Tek Paragraf
+## 7. Çıkış Kapıları — Çalıştırılabilir Doğrulama
 
-Bu yol haritası, `analysis.md`'nin 12 aday işini Pareto kesme çizgisiyle **6 kapı işi + 3
-binici + 3 kesilen** olarak böler. Sıra, "önce kanıt, sonra yetenek, sonra güvence"
-mantığındadır: **W1** bir haftada yayınlanabilir bir ürün yaratır (A6, A10) ve ürünün en büyük
-riskini — hiç yayınlamamayı — ortadan kaldırır; **W2** veri güvenliği vaadini koşulsuz hale
-getirir (A1), donmayı bitirir (A3) ve diyalogları yerelleştirir (A5); **W3** ürünü "metin
-alanı"ndan "editör"e çevirir (A4 → A2) ve menü/arama/CLI aynı komut katmanından beslenir;
-**W4** cila ve `v1.1.0`dır. Toplam 19,5 net gün (~8 takvim haftası), olgunluk endeksi
-2,50 → ≥3,55; işlerin yarısı ve eforun %57'si beş kapının beşini kapatır. Yol haritası, karar
-verilmeden yazılabilecek tek açık soruyu (§9: ilk kullanıcı ve OS) varsayımla kapatır ve farklı
-cevapların takvime etkisini açıkça yazar.
+Her kapı, **tek komut kümesi** ve **kaydedilmiş çıktı** ile geçilir. Kapı geçilmeden sonraki
+dalga başlamaz; bu kural P1'in kısmi kapanışının tekrarını önler (`analysis.md` §3.2).
+
+### G0′ — P1 borcu kapandı · W0 sonu
+
+```bash
+cd /home/hyperpostulate/repositories/JTypeWriter
+mvn -B clean test                      # 350+ / 0 / 0
+grep -rn "new Alert" src/main/java     # yalnız DialogService
+grep -rn "HH:mm\|yyyy" src/main/java   # boş
+mvn test -Duser.language=de -Duser.country=DE
+```
+
+### G1 — Yayın var ve çalışıyor · W1 sonu
+
+```bash
+curl -s https://api.github.com/repos/hyperpostulate/JTypeWriter/releases \
+  | python3 -c 'import json,sys; print("\n".join(a["name"] for a in json.load(sys.stdin)[0]["assets"]))'
+# 5 varlık + SHA256SUMS
+```
++ CI `smoke` job logu: imaj açıldı, `.deb` kuruldu/kaldırıldı.
+
+### G2 — Veri ve akıcılık · W2 sonu
+
+```bash
+mvn test -Dtest='SessionStatsTest,StatsPerfHarness,FileServiceTest,AtomicFilesTest,RecoveryStoreTest,AutoSaveServiceTest'
+bash scripts/verify-artifacts.sh --skip-build     # 17/17
+```
++ `StatsPerfHarness` 10 MB çıktısı: **referansta < 5 ms**, CI'da < 50 ms.
+
+### G3 — Editör · W3 sonu
+
+```bash
+mvn test -Dtest='FindModelTest,KeyboardShortcutHandlerTest,ShortcutRowsTest,MainStageTest,DialogSizingTest,MessagesTest'
+```
++ elle: `Ctrl+F` → bul; `F3`/`Shift+F3` → gez; `Ctrl+H` → bir/tümünü değiştir; aynı işlevler
+menüde; 10 MB belgede arama süresi kaydedildi.
+
+### G4 — Sürüm · W4 sonu
+
+```bash
+mvn -B clean test
+bash scripts/verify-artifacts.sh --skip-build     # 17/17
+python3 scripts/generate-icons.py --check         # 10 dosya
+```
++ `v1.1.0` Release'i (6 varlık, iki dilli not).
+
+---
+
+## 8. Kapsam Dışı — Ne Yapılmayacak ve Neden
+
+| Öneri | Karar | Gerekçe |
+|---|---|---|
+| **Sekmeler / çoklu belge** | P3 | Tek belge romancı için tutarlı kimlik; P1'in çıkış/kirli/taslak matrisini ikiye katlar |
+| **Yazım denetimi** | P3 | Sözlük lisansı + büyük UI yüzeyi (XL); farklılaştırıcı değil, kanıtsız talep |
+| **Windows Authenticode imzası** | **P2'de yok, bütçe kararı** | SmartScreen **uyarır, engellemez**; ~1–2 gün sertifika + CI adımı. İlk 100 kullanıcı için kabul meşru |
+| **Otomatik güncelleme / telemetri** | P3 | Kurulu taban yokken anlamsız; gizlilik duruşuyla çelişir |
+| **Satır numaraları (E8), sarma anahtarı (E9)** | P3 | Komut katmanından sonra ucuzlar; bölüm bitirmeyi engellemiyor |
+| **Yazdırma / PDF (A12)** | P3 | Ayrı çıktı hattı; hiçbir P2 kapısını kapatmaz |
+| **jlink (A13) + JAR temizliği (A10)** | **P3, koşullu** | A13, M6 (yansımalı undo) çözülmeden riskli (K3). Kazanç gerçek (−74 MiB) ama **ambalaj kapısı değil**; indirme boyutu ilk sürümde şikâyet olursa P3'ün ilk işi |
+| **OS entegrasyonu / MIME (A14)** | **P3, kanala bağlı** | Yalnız **installer** kanalında mümkün; taşınabilir kanalda imkânsız (`analysis.md` §13.5). Kanal kararı verilmeden kart yazılmaz |
+| **`SECURITY.md`, `CHANGELOG`, tanılama (A15)** | P3 | Güven boyutunu besler ama kapı kapatmaz; yayın sonrası ilk turda ucuzlar |
+| **Test hijyeni: gerçek `~/.jtypewriter` (A9)** | **P3, tetikli** | `AGENTS.md` ihlali; ama kartlar zaten `-Duser.home=<temp>` ile koşuyor. **Tetik:** süit yerelde bir geliştiricinin taslağını silerse derhal |
+| **Kapsam ölçümü (JaCoCo) kapısı** | P3 | Suite kapı; yüzde metrik gürültü (`analysis.md` §11.3) |
+| **XDG taşıması (B7)** | P3 | Kurulu taban yokken riskli; macOS dalı düştü, yalnız `XDG_CONFIG_HOME`/`XDG_DATA_HOME` kaldı |
+| **ES/IT register, tipografik apostrof** | A5 yanında bedava gelirse alınır | Düşük etki |
+
+### 8.1 Tek açık insan kararı — ve neden hiçbir kartı bloke etmiyor
+
+`analysis.md` §13.5'teki **kanal ekseni** (installer / taşınabilir / ikisi) açıktır. Bu yol
+haritası **kanal-nötrdür**: `release-assets.sh` bugün ikisini de üretiyor, iki kanalın da
+varlıkları yayında olacak. Karar yalnız iki şeyi etkiler:
+
+1. **Sürüm notunda "ürün varsayılanı"** hangisi denileceği (W1-03 metni);
+2. **A14'ün** P3'te bir kart alıp almayacağı.
+
+**Karar verilmezse varsayılan statükodur** (iki kanal, varsayılan ilan edilmez) ve hiçbir kart
+gecikmez. Bu, Pareto'nun bu belgedeki **dördüncü** uygulamasıdır: karara bağlı olmayan işi
+karardan ayır.
+
+---
+
+## 9. Riskler ve Kesme Sırası
+
+### 9.1 Risk kaydı
+
+| Risk | Olasılık | Etki | Erken sinyal | Karşılık |
+|---|---|---|---|---|
+| CI smoke testi Xvfb/`xwininfo` kırılganlığı | Orta | W1 gecikir | `smoke` job'u 3 ardışık koşuda kırılır | Zaman tabanlı bekleme yerine **pencere sorgusu** + 60 s üst sınır; olmazsa Windows ayağında "süreç ayakta" ile sınırla |
+| Artımlı sayaç, tam tarama ile birebir uyuşmaz | Orta | G2 yanlış geçer | Property testinde tek karakter farkı | Sayaç yalnız `TextCodec`/`SessionStats` içinde; karşılaştırma testi **zorunlu** koşul |
+| A3 + A1 çakışması (`FileService` sözleşmesi) | Yüksek (paralel yazılırsa) | İş iki kez yazılır | Aynı PR'da iki kart | K4: **sıralı**, ayrı PR'lar |
+| `Alert` sarma, tema/ölçü nedeniyle 768 px'i aşar | Orta | G3 gecikir | DE/FR metin testi kırmızı | Metin kısaltma değil, **kelepçe + sarma**; gerekirse ayrıntı ikinci diyaloğa |
+| İlk yayında asset adı/assert uyuşmazlığı | Orta | W1 gecikir | `dry_run` kırmızı | W1-02 tam bunun için var |
+| Tek geliştirici + 6 dil çevirisi darboğazı | Yüksek | W3/W4 uzar | Kart başına >2 gün çeviri | Metinler **kart içinde** bitirilir, sona bırakılmaz; çeviri kalitesi P3'e devredilebilir (parite testi yine yeşil) |
+
+### 9.2 Kesme sırası (kapasite düşerse **bu sırayla** kesilir)
+
+1. **W4-04 (ses politikası, S)** — kapı yok; ürünün adındaki özellik ama eksikliği kimseyi
+   engellemez.
+2. **W4-03 (minimum genişlik, S)** — kapı yok; kozmetik kırpılma.
+3. **W4-02 (son dosyalar + opt-out, M)** — kapı yok; sürtünme azaltıcı.
+4. **W1-04 (taslak sertleştirme, M)** — kapı yok, **ama gizlilik gerekçesi var**: kesilirse
+   `README` ve yayın notuna "bilinen sınır: taslak taraması symlink takip edebilir" yazılır.
+
+**Kesilmeyenler:** W0–W3'ün tamamı. Bu dört dalga beş kapının beşini kapatır; buradan tek kart
+kesmek, "kapı geçildi" iddiasını yalancı yapar.
+
+---
+
+## 10. Efor, Takvim ve Kapasite
+
+| Dalga | Kart | İş günü (tahmin) | Kapı |
+|---|---:|---:|---|
+| W0 — P1 borcu | 4 | 4 | G0′ |
+| W1 — Yayın | 4 | 6 | G1 |
+| W2 — Veri + akıcılık | 6 | 9 | G2 |
+| W3 — Editör | 6 | 9 | G3 |
+| W4 — Cila + sürüm | 5 | 6 | G4 |
+| **Toplam** | **25** | **~34** | **5/5** |
+
+Kart sayısı ile puan farklı birimlerdir: §3.4'teki **21 puan**, `analysis.md` §13.1'in göreli
+efor birimidir (S=1/M=2/L=3); buradaki **25 kart** iş kalemidir. Sayıların ikisi de tutarlıdır,
+birbirine çevrilmez.
+
+> **Tahmin uyarısı:** İş günü sayıları **"çıkarıldı"** seviyesindedir (`analysis.md` §2.1) —
+> bu repoda tek bir kartın gerçek süresi ölçülmemiştir. Kartlar göreli büyüklüktür; takvim
+> iddiası değildir. Tek geliştirici varsayımıyla ~7 hafta. İki kişide kazanç sınırlıdır:
+> W2 içinde A1 ⟂ A3 ve W3 içinde A4 ⟶ A2 sıralıdır (K4, K1); paralellik yalnız
+> **W2'nin A3 kolu ↔ W3'ün A4 kolu** arasında gerçektir ve A2, A3 bitene kadar beklemede
+> kalır (K2).
+
+**Görünmeyen maliyetler** (`analysis.md` §13.4) bu tahmine **dahildir**: ~15–20 anahtar × 6 dil
+çeviri, README/README-TR çifti, her kart için test, bağımlılık değişiminde
+`THIRD-PARTY-NOTICES` + `verify-artifacts`, Windows'u yalnız CI'da görmenin gecikmesi.
+
+---
+
+## 11. Sonraki Faz İçin Devredilenler (P3'e giriş listesi)
+
+Aşağıdakiler **bilinçli** olarak P2 dışında bırakıldı ve P3 planlanırken ilk okunacak listedir:
+A13+A10 (jlink + JAR), A14 (OS entegrasyonu, kanala bağlı), A12 (yazdırma), A15 (destek yüzeyi),
+A9 (test hijyeni), B7 (XDG), M6 (yansımalı undo), M7 (sınırsız undo), B5/B6/B12 (yeniden
+üretilebilirlik), E6 (tercihler penceresi), E8/E9 (satır numarası, sarma), B10 (SBOM).
+
+**P3'ün ilk sorusu şu olmalı:** *P2'nin yayınladığı sürümü kaç kişi indirdi ve hangi kanaldan?*
+Cevap yoksa P3 de tahminle planlanır — P2'nin tüm varlık sebebi bu soruya cevap üretmektir.
+
+---
+
+## 12. Tek Paragraf
+
+JTypeWriter'ın P2'si, ürünün en pahalı kısmını (veri bütünlüğü) zaten çözmüş bir kod tabanına,
+**görünür ve kanıtlanabilir bir ürün** katmanı eklemektir: önce yayınlanmamış olmanın bedelini
+ödeyip `v1.0.0`'ı CI'da açılan bir artefaktla yayınlamak, sonra ölçülen tek darboğazı (10 MB'da
+saniyede 163,7 ms istatistik taraması) artımlı sayaçla silmek, sonra dosyaya kimlik verip sessiz
+üzerine yazmayı ve symlink kaybını bitirmek, sonra komut katmanı + menü + ara/değiştir ile
+"metin alanı"nı editöre çevirmek, ve P1'den devreden üç açığı (diyalog taşması, sabit tarih
+biçimi, paket smoke testi) ayrı bir kuyruk yapmadan bu işlerin içine gömmek. Altı iş, havuzun
+%45'i, **beş kapının beşi**; kalan 11 puan — jlink, MIME, yazdırma, imza, destek yüzeyi —
+gerekçesiyle kesilir, çünkü hiçbiri bir kapıyı kapatmaz ve kritik yolu uzatır. P2'nin başarı
+ölçütü olgunluk endeksi değil, §7'deki beş komut kümesinin kaydedilmiş çıktısıdır.

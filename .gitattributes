@@ -16,6 +16,5 @@
 
 *.png  binary
 *.ico  binary
-*.icns binary
 *.jar  binary
 *.wav  binary

@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/hyperpostulate/JTypeWriter/blob/main/pom.xml"><img src="https://img.shields.io/badge/Java-25-orange.svg" alt="Java 25"></a>
-  <img src="https://img.shields.io/badge/Platforms-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg" alt="Platforms">
+  <img src="https://img.shields.io/badge/Platforms-Linux%20%7C%20Windows-lightgrey.svg" alt="Platforms">
   <img src="https://img.shields.io/badge/Languages-6-blue.svg" alt="6 languages">
   <a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
   <a href="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml"><img src="https://github.com/hyperpostulate/JTypeWriter/actions/workflows/maven.yml/badge.svg" alt="Java CI"></a>
@@ -18,7 +18,7 @@
 
 <p align="center">English version: <a href="README.md">README.md</a></p>
 
-JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap yok, bulut yok, proje biçimi yok. Metnin, seçtiğin dosyada ve o dosyanın zaten sahip olduğu kodlamada kalır. Paketlenmiş uygulama kendi Java çalışma zamanını taşır, yani önce hiçbir şey kurmanız gerekmez; kaynaktan derleme veya fat JAR'ı çalıştırma JDK 25 ve Maven 3.8+ gerektirir. Linux, Windows ve macOS'ta çalışır ve arayüzü İngilizce, Türkçe, Almanca, Fransızca, İspanyolca ve İtalyanca konuşur.
+JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap yok, bulut yok, proje biçimi yok. Metnin, seçtiğin dosyada ve o dosyanın zaten sahip olduğu kodlamada kalır. Paketlenmiş uygulama kendi Java çalışma zamanını taşır, yani önce hiçbir şey kurmanız gerekmez; kaynaktan derleme veya fat JAR'ı çalıştırma JDK 25 ve Maven 3.8+ gerektirir. Linux ve Windows'ta çalışır ve arayüzü İngilizce, Türkçe, Almanca, Fransızca, İspanyolca ve İtalyanca konuşur.
 
 **Neler var?**
 
@@ -145,7 +145,7 @@ JTypeWriter'ın sakladığı her şey makinenizde kalır. Hesap yok, telemetri y
 
 ## Klavye Kısayolları
 
-Kısayollar Windows/Linux'ta `Ctrl`, macOS'ta `⌘` (Cmd) ile çalışır — macOS'ta düz `Ctrl` de kabul edilir. Numpad `+`, `-` ve `0` tuşları ana klavye karşılıklarının eşdeğeri olarak çalışır.
+Kısayollar Windows ve Linux'ta `Ctrl` ile çalışır. Numpad `+`, `-` ve `0` tuşları ana klavye karşılıklarının eşdeğeri olarak çalışır.
 
 | Kısayol | İşlem |
 |---------|-------|
@@ -207,7 +207,7 @@ CSS dosyaları `src/main/resources/css/` konumundadır:
 
 ### İndirme (son kullanıcılar)
 
-Kurulum paketini (`.deb`, `.msi`, `.dmg`) ya da taşınabilir `.tar.gz` dosyasını
+Kurulum paketini (Linux'ta `.deb`, Windows'ta `.msi`) ya da taşınabilir `.tar.gz` dosyasını
 GitHub Releases varlıklarından, doğrulamak için `SHA256SUMS` dosyasıyla birlikte
 indirin. İki kanal da gömülü çalışma zamanı taşır, yani hiçbiri Java kurulumu
 gerektirmez. Aşağıdaki `git clone` ve `mvn clean install` adımları geliştirici
@@ -231,7 +231,7 @@ mvn clean test                       # Tüm testleri çalıştır
 mvn clean package                    # Derleme + test + ince JAR + fat JAR
 ./scripts/package.sh                 # Derleme + yerel uygulama görüntüsü (releases/<os>/)
 ./scripts/package.sh --skip-build    # Son derlemeyi kullan, yalnızca yeniden sar
-./scripts/package.sh --installer     # Aynı + platform kurulum paketi (.deb / .msi / .dmg)
+./scripts/package.sh --installer     # Aynı + platform kurulum paketi (.deb / .msi)
 ./scripts/verify-artifacts.sh        # Taze derleme, ardından her kopyayı bayt bayt karşılaştır
 mvn test -Dtest=SessionStatsTest     # Tek test sınıfı
 mvn test -Dtest=FileServiceTest      # Tek test sınıfı
@@ -245,13 +245,13 @@ artefaktıdır, platformlar arası dağıtım değildir; `scripts/package.sh` ye
 gerekir - sürüm iş akışı bunu her işletim sistemi için bir kez çalıştırır. Geliştirme
 girişi `mvn javafx:run` komutudur. `scripts/package.sh`, fat JAR'ı `jpackage` ile gömülü
 çalışma zamanlı yerel bir uygulama görüntüsüne sarar; `--installer` seçeneği bu görüntüyü
-Linux, Windows ve macOS için platform kurulum paketine (`.deb`, `.msi`, `.dmg`) dönüştürür —
+Linux ve Windows için platform kurulum paketine (`.deb`, `.msi`) dönüştürür —
 CI iş akışının çalıştırdığı komut da budur. Her sürüm her platform için iki kanalı da
 yayımlar: kurulum paketi ve taşınabilir `.tar.gz`; hangisinin ürün varsayılanı olacağı hâlâ
 açık bir karardır, yani `--installer` desteklenen yollardan biridir, kararlaştırılmış olan
 değil. Uygulama sürümünün tek kaynağı `pom.xml`'dir:
 script sürümü üretilen artefaktten geri okur ve jpackage kurallarına karşı doğrular
-(örneğin macOS `0.x` paket sürümlerini reddeder).
+(0 ile başlayan sürümleri reddeder).
 
 `scripts/verify-artifacts.sh` bu döngünün diğer yarısını kapatır: depodaki yükü
 (`LICENSE`, `NOTICE`, `THIRD-PARTY-NOTICES`, `legal/`, fat JAR ve JAR'ın kendi
@@ -267,7 +267,7 @@ ve Maven'ın 3.8 veya üstü olmasını şart koşar, eksiği tek satırda söyl
 
 Başlatıcı, pencere ve görev çubuğu simgesi, görselin tek kaynağı olan
 `src/main/resources/icons/jtypewriter.svg` dosyasından üretilir: `scripts/generate-icons.py`
-PNG setini, Windows `.ico` ve macOS `.icns` dosyalarını yeniden oluşturur (`--check`
+PNG setini ve Windows `.ico` dosyasını yeniden oluşturur (`--check`
 güncelliklerini doğrular); `scripts/package.sh` platforma göre doğru biçimi seçip
 `jpackage`'a aktarır.
 
@@ -278,12 +278,12 @@ güncelliklerini doğrular); `scripts/package.sh` platforma göre doğru biçimi
 GitHub Actions iş akışları: `main` dalına her push ve pull request'te derleme ve test (`.github/workflows/maven.yml`), sürüm tag'inde yayın (`.github/workflows/release.yml`).
 
 - **Tetikleme**: `main` dalına her push ve pull request'te çalışır
-- **Ortam**: Ubuntu, Windows ve macOS (build matrisi)
+- **Ortam**: Ubuntu ve Windows (build matrisi)
 - **JDK**: Temurin 25
 - **Komut**: `mvn -B package` (derleme + testler), ardından `scripts/package.sh --skip-build --installer`
 - **Diller**: test paketi Türkçe ve Almanca sistem dillerinde de çalışır; böylece yerelleştirme regresyonları (ör. bir dilin sessizce sistem diline çözülmesi) gözden kaçamaz
-- **Artefaktlar**: her işletim sistemi için yerel uygulama görüntüsü ve platform kurulum paketi (`.deb` / `.msi` / `.dmg`)
-- **Sürümler**: `pom.xml` sürümüyle eşleşen bir `v*` tag'i itildiğinde üç platform da derlenip bir GitHub Release'e yüklenir; yanına `SHA256SUMS` dosyası eklenir, böylece ikililer birkaç gün sonra silinen Actions artefaktlarına bağlı kalmaz
+- **Artefaktlar**: her işletim sistemi için yerel uygulama görüntüsü ve platform kurulum paketi (`.deb` / `.msi`)
+- **Sürümler**: `pom.xml` sürümüyle eşleşen bir `v*` tag'i itildiğinde iki platform da derlenip bir GitHub Release'e yüklenir; yanına `SHA256SUMS` dosyası eklenir, böylece ikililer birkaç gün sonra silinen Actions artefaktlarına bağlı kalmaz
 
 ---
 
@@ -430,7 +430,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S), yeni belge için Ctrl+N ve numpad eşdeğerleri |
 | `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti) |
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
-| `AppIconsTest` | Classpath'teki ikon seti: her PNG bildirilen boyutta çözülüyor, `.ico`/`.icns` dosyaları beklenen sihirli baytlarla başlıyor (saf bayt kontrolü, toolkit yok) |
+| `AppIconsTest` | Classpath'teki ikon seti: her PNG bildirilen boyutta çözülüyor, `.ico` dosyası beklenen sihirli baytlarla başlıyor (saf bayt kontrolü, toolkit yok) |
 | `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması |
 | `StatsBarStateTest` | Kalıcı durum çubuğu boyutu: ayardan başlar, yeni kurulum orta boyutta başlar, her döngü adımı kalıcıdır, bozuk değer orta boyuta düşer, eşleme her iki enum'u iki yönde kapsar |
 | `FontSizeManagerTest` | Yazı boyutu kademeleri, kademede olmayan boyutun ayarı değiştirmeden listeye eklenmesi, Ctrl+± için kademe adımlama, desteklenen aralığa kısıtlama ve varsayılan boyuta kalıcı sıfırlama |

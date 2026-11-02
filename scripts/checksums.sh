@@ -62,7 +62,8 @@ fi
 if command -v sha256sum >/dev/null 2>&1; then
     SUM=(sha256sum)
 elif command -v shasum >/dev/null 2>&1; then
-    # macOS has no sha256sum; shasum -a 256 emits the same "<hex>  <name>" lines.
+    # Fallback for environments that ship Perl's shasum but not coreutils;
+    # it emits the same "<hex>  <name>" lines.
     SUM=(shasum -a 256)
 else
     echo "neither sha256sum nor shasum is available" >&2

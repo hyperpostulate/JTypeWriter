@@ -86,9 +86,6 @@ class AppIconsTest {
     void packagingAssetsArePresentWithTheirMagicBytes() throws IOException {
         assertArrayEquals(new byte[]{0, 0, 1, 0}, Arrays.copyOf(read("/icons/jtypewriter.ico"), 4),
                 "not an ICO: /icons/jtypewriter.ico");
-        assertArrayEquals("icns".getBytes(StandardCharsets.US_ASCII),
-                Arrays.copyOf(read("/icons/jtypewriter.icns"), 4),
-                "not an ICNS: /icons/jtypewriter.icns");
     }
 
     private static byte[] read(String name) throws IOException {

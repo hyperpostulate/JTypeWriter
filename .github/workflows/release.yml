@@ -2,7 +2,7 @@
 #
 # A `v*` tag is the one place where "the version we built" and "the version we
 # promised" can disagree, so prepare refuses to continue unless the tag is
-# exactly v<pom version>. Three OS builds then package installers and portable
+# exactly v<pom version>. Two OS builds then package installers and portable
 # archives, and a single publish job merges them, checksums the lot and uploads
 # the result to the Release itself. Uploading to the Release - not to Actions
 # artifacts - is what ends the 90-day expiry problem: the release
@@ -18,7 +18,7 @@ on:
   push:
     tags: [ "v*" ]
 
-# Reading the repository is enough for prepare and the three build legs. The
+# Reading the repository is enough for prepare and the two build legs. The
 # publish job alone gets contents: write below (GitHub has no step-level
 # permissions, so the write grant has to be scoped to a whole job).
 permissions:
@@ -43,7 +43,7 @@ jobs:
 
       # A release whose tag disagrees with the built version would be
       # unverifiable - the asset names say one thing and the jar says another -
-      # so this fails before three OS builds run.
+      # so this fails before both OS builds run.
       #
       # The first <version> element is the project version: this build has no
       # parent POM, so there is no parent <version> ahead of it to skip.
@@ -69,7 +69,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
 
@@ -109,7 +109,6 @@ jobs:
           case "${{ runner.os }}" in
             Linux)   os=linux ;;
             Windows) os=windows ;;
-            macOS)   os=mac ;;
             *) echo "unsupported runner.os '${{ runner.os }}'" >&2; exit 1 ;;
           esac
           case "${{ runner.arch }}" in
@@ -130,7 +129,7 @@ jobs:
             "$GITHUB_WORKSPACE/releases/${{ steps.platform.outputs.os }}" \
             "$GITHUB_WORKSPACE/dist"
 
-      # This is only the in-flight hop between the three OS legs and the publish
+      # This is only the in-flight hop between the OS legs and the publish
       # job: one day is plenty, and the Release asset is the durable copy, so a
       # 90-day expiry is no longer a thing that can happen.
       - name: Upload staged assets for the publish job
@@ -188,8 +187,6 @@ jobs:
             "JTypeWriter-$version-linux-x64.tar.gz"
             "JTypeWriter-$version-windows-x64.msi"
             "JTypeWriter-$version-windows-x64.tar.gz"
-            "JTypeWriter-$version-mac-arm64.dmg"
-            "JTypeWriter-$version-mac-arm64.tar.gz"
             "JTypeWriter-$version-source.tar.gz"
           )
           for asset in "${expected[@]}"; do

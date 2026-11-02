@@ -13,9 +13,9 @@
 # back from the artifact that was built, so nothing else can drift, and it is
 # validated against jpackage's rules before it is used.
 #
-# The launcher icon is per platform (PNG on Linux, .ico on Windows, .icns on
-# macOS), generated from src/main/resources/icons/jtypewriter.svg by
-# scripts/generate-icons.py and passed to jpackage for images and installers.
+# The launcher icon is per platform (PNG on Linux, .ico on Windows), generated
+# from src/main/resources/icons/jtypewriter.svg by scripts/generate-icons.py and
+# passed to jpackage for images and installers.
 #
 set -euo pipefail
 
@@ -76,8 +76,8 @@ fi
 APP_VERSION=$(basename "$FAT_JAR" | sed -e 's/^jtypewriter-//' -e 's/-jar-with-dependencies\.jar$//')
 
 # jpackage accepts one to three dot-separated integers whose first component is
-# greater than zero - macOS rejects 0.x bundle versions - so a -SNAPSHOT
-# version must fail here, with an explanation, instead of in the CI logs.
+# greater than zero, so a -SNAPSHOT version must fail here, with an explanation,
+# instead of in the CI logs.
 if ! printf '%s' "$APP_VERSION" | grep -Eq '^[1-9][0-9]*(\.[0-9]+){0,2}$'; then
     echo "version '$APP_VERSION' from pom.xml is not a valid jpackage app-version:" >&2
     echo "use one to three dot-separated integers with a non-zero first component (e.g. 1.0.0)" >&2
@@ -86,9 +86,8 @@ fi
 
 case "$(uname -s)" in
     Linux*)               PLATFORM="linux" ;;
-    Darwin*)              PLATFORM="mac" ;;
     MINGW*|MSYS*|CYGWIN*) PLATFORM="windows" ;;
-    *)                    echo "unsupported platform: $(uname -s)" >&2; exit 1 ;;
+    *)                    echo "unsupported platform: $(uname -s) (supported: Linux, Windows)" >&2; exit 1 ;;
 esac
 
 # jpackage takes a different icon container per platform, all rendered from the
@@ -97,12 +96,11 @@ esac
 case "$PLATFORM" in
     linux)   ICON="src/main/resources/icons/jtypewriter-512.png" ;;
     windows) ICON="src/main/resources/icons/jtypewriter.ico" ;;
-    mac)     ICON="src/main/resources/icons/jtypewriter.icns" ;;
 esac
 if [[ ! -f "$ICON" ]]; then
     echo "no $PLATFORM icon at '$ICON'" >&2
     echo "the canonical artwork is src/main/resources/icons/jtypewriter.svg - regenerate the" >&2
-    echo "PNG set, the Windows .ico and the macOS .icns with:" >&2
+    echo "PNG set and the Windows .ico with:" >&2
     echo "    ./scripts/generate-icons.py" >&2
     exit 1
 fi
@@ -112,8 +110,8 @@ STAGING="target/jpackage-input"
 
 # jpackage refuses to overwrite existing output; this directory is the script's
 # own build output, so it is always regenerated from scratch.
-rm -rf "$DEST/$APP_NAME" "$DEST/$APP_NAME.app"
-rm -f "$DEST/$APP_NAME"*.deb "$DEST/$APP_NAME"*.msi "$DEST/$APP_NAME"*.dmg
+rm -rf "$DEST/$APP_NAME"
+rm -f "$DEST/$APP_NAME"*.deb "$DEST/$APP_NAME"*.msi
 # Start from an empty input directory: with --skip-build a previous run's fat jar
 # would otherwise stay here and could be picked up instead of the current one.
 rm -rf "$STAGING"
@@ -141,12 +139,8 @@ echo "application image written to $DEST/ (version $APP_VERSION)"
 # jpackage's app-image bundler has no license support at all (--license-file is
 # fatal with --type app-image), so the license, the attribution notice and the
 # third-party notices with their license texts are added to the image by hand
-# and then asserted below. On macOS the image is a bundle, so its
-# Contents/Resources is the equivalent of the Linux/Windows image root.
-case "$PLATFORM" in
-    mac) LICENSE_TARGET="$DEST/$APP_NAME.app/Contents/Resources/LICENSE" ;;
-    *)   LICENSE_TARGET="$DEST/$APP_NAME/LICENSE" ;;
-esac
+# and then asserted below.
+LICENSE_TARGET="$DEST/$APP_NAME/LICENSE"
 cp "$LICENSE_FILE" "$LICENSE_TARGET"
 cp "$NOTICE_FILE" "$(dirname "$LICENSE_TARGET")/$NOTICE_FILE"
 cp "$THIRD_PARTY_FILE" "$(dirname "$LICENSE_TARGET")/$THIRD_PARTY_FILE"
@@ -405,12 +399,6 @@ if [[ "$INSTALLER" == "1" ]]; then
             # A real EULA page in the installer; deb uses the template instead.
             wrap_installer msi "$DEST/$APP_NAME" \
                 --win-menu --win-shortcut --win-dir-chooser \
-                --license-file "$LICENSE_FILE"
-            ;;
-        mac)
-            # dmg embeds the text as its EULA.
-            wrap_installer dmg "$DEST/$APP_NAME.app" \
-                --mac-package-identifier "org.mesutormanli.jtypewriter" \
                 --license-file "$LICENSE_FILE"
             ;;
     esac

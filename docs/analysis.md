@@ -1,15 +1,25 @@
-# JTypeWriter — Kapsamlı Analiz ve Ürünleştirme Değerlendirmesi (P2 Öncesi)
+# JTypeWriter — Kapsamlı Analiz ve Ürünleştirme Değerlendirmesi (P2 Girişi)
 
-> **Sürüm:** 3.1 · **Tarih:** 30 Ekim 2026 · **Kod tabanı:** `main` @ `95b386e`
-> **Kapsam:** P0 ve P1 kapanışının doğrulanması, mevcut ürün durumunun ölçülmesi, P2 için
-> karar girdileri. **Bu belge bir yol haritası değildir**; iş sıralaması, sahiplik ve takvim
-> ayrı bir `docs/product-roadmap.md` belgesinde üretilecektir.
-> **Yöntem:** Her bulgu kaynak koda veya ölçüme bağlanmıştır. Ölçülemeyen iddialar
-> "ölçülmedi" olarak işaretlenmiştir. Önceki analiz ve yol haritası `f5d00db` ile silindiği
-> için bulgu kimlikleri bu belgede **yeniden ve bağımsız** verilmiştir (D/E/X/U/B/M/T).
-> **Ölçüm ortamı:** Linux x64, sıcak önbellek, `DISPLAY=:0.0`; JDK 25.0.2 (Corretto),
-> Maven 3.9.12. Artefakt ölçümleri **30 Ekim 2026 tarihli taze build** üzerinde alındı:
-> `./scripts/package.sh --installer` + `scripts/release-assets.sh` (bkz. §9.1, §14).
+> **Sürüm:** 4.1 · **Tarih:** 2 Kasım 2026 · **Kod tabanı:** `main` @ `f32d3f8` (137 commit, ilk commit 2026-07-02)
+> **Kapsam:** P0, P1, P1.2 ve G0 kapanışının doğrulanması; mevcut ürün durumunun **yeniden ölçülmesi**;
+> P2 için karar girdileri. **Bu belge bir yol haritası değildir.** İş sıralaması, sahiplik, kapılar
+> ve takvim ayrı belgededir: `docs/product-roadmap.md` v2.0 (2 Kasım 2026) bu analizin §13'ünü
+> girdi olarak kullanır (§13 yalnız *aday havuzu* ve *bağımlılık kısıtları* verir, sıra vermez).
+> **Yöntem:** Her bulgu ya bu makinede alınmış bir ölçüme ya da `dosya:satır` düzeyinde okunmuş
+> koda bağlanmıştır. Ölçülemeyen iddialar açıkça "ölçülmedi" olarak işaretlenmiştir (§2.1).
+> **Önceki belgeyle ilişki:** v3.1 (`95b386e`, 30 Ekim 2026) bu belgenin atasıdır. İki belge
+> arasında yalnız dört commit vardır (`67a36a8`, `03c277c`, `f32d3f8`, `8a649ed`), bu yüzden
+> yapısal bulguların çoğu taşınmıştır; ama **her biri yeniden doğrulanmış**, performans iddiaları
+> ise ilk kez **ölçülmüştür** — ve ölçüm, v3.1'in en çok tekrarlanan performans iddiasını
+> çürütmüştür (§8.3). Bulgu kimlikleri (`D/E/X/U/B/M/T`) korunmuş, yeni bulgular eklendi,
+> çürütülenler `GEÇERSİZ` olarak işaretlenmiştir.
+> **Ölçüm ortamı:** Linux x64 (Ubuntu 26.04, ThinkPad), sıcak önbellek, `DISPLAY=:0.0`, X11;
+> JDK 25.0.2 (Corretto), Maven 3.9.12. Artefakt ölçümleri 2 Kasım 2026 tarihli **taze** build
+> üzerinde alındı (§10.1). Ölçüm komutları §15'tedir.
+> **v4.1 değişikliği:** macOS desteklenen platform kümesinden **tamamen çıkarıldı** (kod, CI,
+> paketleme, ikonlar, testler ve dokümantasyon). Gerekçe, kapsam ve düşen hükümler §2.4'te;
+> artefakt sayılarındaki küçük fark §10.1'de açıklanmıştır. Belgenin geri kalanı — bulgular,
+> ölçümler, skorlar — bu karardan **etkilenmemiştir**; yalnız macOS'a özgü kalemler düştü.
 
 ---
 
@@ -17,139 +27,264 @@
 
 ### 1.1 Tek cümle
 
-JTypeWriter bugün **güvenilir bir yazma motoru ve dürüst bir ambalajdır, henüz bir editör
-değildir**: metni kaybetmemek için tasarlanmış yollar gerçekten çalışıyor, ama bir romancının
-bir bölümü bitirmek için ihtiyaç duyduğu günlük döngünün yarısı (ara/değiştir, menü, komut
-satırından açma, yazdırma) hiç yok — ve ürün hiç yayınlanmadı.
+JTypeWriter bugün **veri kaybını engelleme konusunda gerçekten iyi, ama bir yazarın günlük
+döngüsünü tamamlayamayan, hiç yayınlanmamış bir masaüstü uygulamasıdır**: kaydetme yolu sağlam,
+kodlama koruması sağlam, çökme kurtarması sağlam; buna karşılık cümle arama, menü, komut
+satırından açma ve yazdırma yok — ve depoda tek bir tag, GitHub'da tek bir Release, tek bir
+yıldız yok.
 
-### 1.2 Ölçülen tablo
+### 1.2 Ölçülen tablo (hepsi bu makinede, bu kod tabanında)
 
 | Ölçüt | Değer | Kaynak |
 |---|---|---|
 | Dil / UI / test | Java 25, JavaFX 26.0.1, JUnit Jupiter 6.0.3, Mockito 5.23.0 | `pom.xml:52,62-64` |
 | Üretim kodu | **51 sınıf, 7.611 satır** | `find src/main/java` |
-| Test | **40 sınıf, 350 test** | `src/test/java` |
-| Yerelleştirme | **6 bundle × 90 anahtar**, EN taban | `src/main/resources/messages*.properties` |
-| Uygulama imajı | **145,6 MiB** (runtime 133,5 MiB = **%91,7**) | `releases/linux/JTypeWriter`, taze build |
-| Fat JAR | **10,7 MiB** (6.106 giriş) | aynı imaj, `lib/app` |
-| Taşınabilir `.tar.gz` | **59,3 MiB** (imajın %40,7'si) | `scripts/release-assets.sh` |
-| `.deb` | **47,4 MiB**, 12 runtime bağımlılığı | `scripts/package.sh --installer` |
-| Açılış (ana pencere) | **0,60–0,77 s**, karşılama kartı 1,88–2,23 s | 5 koşu, bu makine, taze profil |
-| Bellek (RSS) | **~274 MiB** (ps: 280.696–287.340 KiB) | aynı koşular |
-| Yayınlanmış sürüm | **0** (git tag yok, GitHub Release yok) | `git tag -l`, API |
-| CI | 3 OS × 3 locale koşusu, 350 test | `.github/workflows/maven.yml` |
+| Test kodu | **42 dosya, 40 test sınıfı, 350 test, 7.041 satır** (üretime oran **0,93**) | `grep -c @Test`, `find` |
+| Test sonucu | **350 koştu / 0 hata / 0 atlandı** | `mvn -B clean test` (bu makine) |
+| Yerelleştirme | **6 bundle × 90 anahtar**, EN taban, iki yönlü parite testli | `src/main/resources/messages*.properties` |
+| Uygulama imajı | **152.465.247 B = 145,4 MiB**, 125 dosya | `releases/linux/JTypeWriter` |
+| ├ çalışma zamanı | **139.967.672 B = 133,5 MiB = %91,7**, **52 modül** | `lib/runtime`, `release` dosyası |
+| └ uygulama JAR'ı | **11.009.822 B = 10,5 MiB**, 6.105 giriş, 91 uygulama sınıfı | `lib/app/*-jar-with-dependencies.jar` |
+| JAR açılmış boyut | 23.174.417 B | `unzip -l` toplamı |
+| `.deb` | **49.488.700 B = 47,2 MiB**, `Installed-Size` 149.140 KiB, **12** runtime bağımlılığı | `dpkg-deb -f` |
+| Açılış — ana pencere | **576–588 ms** (5 koşu) | X11 eşlemesi, taze profil |
+| Açılış — karşılama kartı | **1.616–1.668 ms** (5 koşu) | aynı koşular |
+| Bellek (RSS) | **296.880–303.720 KiB ≈ 290–297 MiB** | `ps -o rss`, karşılama açıldıktan sonra |
+| Kaydetme (10 MB, yerel NVMe) | **3,9 ms** (sıcak) / 7,1 ms (soğuk), fsync dahil | §8.2 ölçümü |
+| İstatistik yenilemesi (10 MB) | **163,7 ms — saniyede bir** | §8.3 ölçümü |
+| Depo disk çarpanı | belge + 3 yedek nesli = **4,00×**; kaydetme anında tepe ≈6× | §6.2 ölçümü |
+| Yayınlanmış sürüm | **0 tag, 0 Release, 0 yıldız, 0 fork, 0 issue** | `git tag -l`, GitHub API |
+| CI | 2 OS × 3 locale, 350 test, paket üretimi — **artefakt hiç çalıştırılmıyor** | `.github/workflows/maven.yml` |
+| TODOsuzluk / javadoc | **0** TODO/FIXME/XXX, **0** `@author`, **347** javadoc bloğu | `grep` |
 
 ### 1.3 En önemli on bulgu
 
-1. **D1 — Dış değişiklik algılama yok.** Yüklemede mtime/boyut saklanmıyor; kaydetme koşulsuz
-   yazıyor. `git checkout`, senkron istemcisi veya başka bir editörün değişikliği **sessizce
-   ezilir** (`FileService.loadFile` / `writeFile`).
-2. **E1 — Ara/Değiştir yok.** `Ctrl+F` yok, arama modeli yok, bundle'da tek bir arama anahtarı
-   yok. 300 KB'lık bir roman taslağında cümle bulmanın tek yolu gözle taramak.
-3. **B1/B2 — Ürün hiç yayınlanmadı ve CI artefaktı hiç çalıştırmıyor.** `v*` tag'i hiç
-   atılmamış; release hattı uçtan uca hiç koşmamış; üretilen imaj/deb yalnızca dosya varlığı
-   için doğrulanıyor, **açılmıyor** (`.github/workflows/maven.yml`, `scripts/package.sh`).
-4. **X1/X2 — G/Ç JavaFX thread'inde.** Açma/kaydetme `Files.readAllBytes` + `fsync` ile
-   doğrudan FX thread'inde; otomatik kayıt her 30 s'de tam metni kopyalayıp serileştiriyor ve
-   bu kopya **kirli kontrolünden önce** alınıyor (`AutoSaveService.attach/snapshot`).
-5. **U1 — Uyarı diyalogları taşıyor.** 9 `Alert` çağrısının hiçbiri yükseklik kelepçesi,
-   satır sarma veya yeniden boyutlandırma kullanmıyor; Almanca/Fransızca uzun metinler
-   768 px ekranı aşabilir (`DialogService`).
-6. **D2/D3 — "Bu hangi dosya?" modeli yok.** Symlink'li belge kaydedilince linkin kendisi
-   normal dosyayla değiştiriliyor (hedef hiç güncellenmiyor); taslak başlığındaki yol
-   doğrulanmadan `Path.of` ile kabul edilip sonraki kaydetmenin hedefi olabiliyor.
-7. **E2/E3 — OS'ten açılamıyor.** Menü çubuğu yok; `Application.getParameters()` hiç
-   okunmuyor, dosya ilişkilendirmesi/MIME yok. Çift tıklama veya "birlikte aç" çalışmaz.
-8. **B4 — 145 MiB paket, %91,7'si tam JDK.** jlink kullanılmıyor; 52 modül (compiler, javadoc,
-   jshell, jfr dahil) taşınıyor. Fat JAR'da yalnızca 71 KB'lık WAV için JavaFX Media, boş bir
-   `BorderPane` için FXML var.
-9. **P1 kapanışı kısmi.** Yedi çıkış kriterinden **2'si tam, 4'ü kısmi, 1'i açık**; P1'in
-   doğrulama diliminde planlanan **artefakt smoke testi** ve **`AGENTS.md`'nin sürüm
-   kontrolüne alınması** hiç başlamamış (§2.2–2.3).
-10. **Pazar teması kanıtsız.** 350 test ve titiz bir güvenlik hikâyesi var; yayınlanmış sürüm
-    olmadığı için ürünü kendisi yazmayan bir yazarın açtığına dair hiçbir kanıt yok. En büyük
-    risk listedeki boşluklar değil, bu.
+1. **D1 — Dış değişiklik algılama yok.** Yüklemede ne mtime, ne boyut, ne içerik özeti saklanıyor;
+   kaydetme koşulsuz yazıyor (`FileService.java:69-74`, `:310`). `git checkout`, senkron istemcisi
+   veya ikinci bir editörün yazdığı metin **uyarı vermeden** silinir. Ürünün "hiçbir şey kaybolmaz"
+   tezinin en doğrudan çürütücüsü.
+2. **D2 — Symlink'li belge kaydedilince link yok oluyor — artık kanıtlanmış.** Bu makinede
+   yapılan deneyde (`AtomicFiles.writeMoving`, 11 satır): kayıttan sonra `isSymbolicLink=false`,
+   link yolu yeni metni tutuyor, **gerçek hedef eski metinde kalıyor** ve iki dizinde de aynı adlı
+   iki dosya oluşuyor (§6.3). v3.1 bunu kod okumasıyla söylüyordu; artık ölçüm var.
+3. **X5 — Gerçek performans darboğazı otomatik kayıt değil, 1 Hz istatistik.** 10 MB'lık bir
+   belgede kaydetme 7 ms (fsync dahil), ama `StatsBar`'ın saniyede bir çalışan yenilemesi
+   **163,7 ms**. Yani saniyenin %16'sı, her saniye, FX thread'inde tam metin taramasına gidiyor —
+   30 saniyede ~4,9 s, yani otomatik kaydın (~43 ms) **115 katı** (§8.3). v3.1'in "kaydetme donar"
+   iddiası yerel diskte **yanlıştı**; doğru teşhis bu.
+4. **E1/E2/E3 — Günlük döngünün üç ayağı yok.** Ara/Değiştir (ne model, ne kısayol, ne anahtar),
+   menü çubuğu (Yeni ve Farklı Kaydet yalnız klavyede), komut satırından/OS'ten açma
+   (`Application.getParameters()` hiç çağrılmıyor, `Dragboard` yok, MIME ilişkilendirmesi yok).
+5. **B1/B2 — "Paketlendi" hiç "çalışıyor" olarak doğrulanmadı ve ürün hiç yayınlanmadı.**
+   CI üretilen imajı açmıyor, `.deb`'i kurmuyor (`maven.yml`); `git tag -l` boş, GitHub
+   Releases API `[]` döndürüyor. Release hattı uçtan uca **hiç koşmadı**.
+6. **D3 — Taslak başlığındaki yol doğrulanmıyor.** Base64'ten çözülen değer doğrudan `Path.of`
+   ile kabul ediliyor (`RecoveryStore.java:333-344`), sonra `FileService.restoreRecovered`
+   üzerinden **sonraki Ctrl+S'in hedefi** oluyor.
+7. **X1 — Mimarinin en zayıf ekseni hâlâ eşzamanlılık.** `src/main`'de `ExecutorService`,
+   `CompletableFuture`, `Task`, `Service`, `new Thread`: **sıfır**. Tek eşzamanlılık izi
+   `CrashHandler`'daki `Platform.runLater`. Açma, kaydetme, otomatik kayıt, kurtarma taraması ve
+   1 Hz istatistik, hepsi FX thread'inde (§5.4).
+8. **B4 — 145,4 MiB paketin %91,8'i tam JDK; jlink yok.** 52 modül taşınıyor (`jdk.compiler`,
+   `jdk.javadoc`, `jdk.jshell`, `jdk.jfr`, `jdk.jconsole`, `jdk.attach` dahil). Bu makinede
+   yapılan jlink denemesi gerekli 8 modülle **62.248.693 B (≈59 MiB)** verdi: kabaca **74 MiB**
+   tasarruf, hiçbir özellik kaybı olmadan (§10.2).
+9. **B14 — Tek yeniden üretilebilirlik garantisi CI'da koşmuyor.** `scripts/verify-artifacts.sh`
+   üç kopyayı bayt bayt karşılaştırıyor (17 karşılaştırma), ilk koşusunda gerçek bir kusur buldu
+   (`.deb` yükü lisans dosyalarını taşımıyordu) — ama **hiçbir workflow bu betiği çağırmıyor**
+   (§10.4). Aynı şekilde ikon `--check` de CI'da değil.
+10. **Pazar teması hâlâ kanıtsız ve bu, listedeki boşluklardan büyük risk.** 350 test, sıfır TODO,
+    347 javadoc bloğu, titiz bir lisans/ambalaj hikâyesi var; buna karşılık 0 yıldız, 0 Release,
+    0 indirme. Ürünü kendisi yazmayan bir yazarın açtığına dair **hiçbir kanıt yok** (§4.4).
 
 ### 1.4 Hüküm
 
-**Motor ≠ ürün.** P1, ürünün "amatör görünmesine" yol açan sinyalleri büyük ölçüde sildi;
-kritik veri kaybı sınıfı kapandı. Ama ürün şu an **dürüst bir demo**: vaat ettiği şeyi
-(kaybetmemek) tek yazarlı, düz dosyalı, sağlam dosya sistemi varsayımı altında yapıyor; ve
-yazarın asıl işini (bölüm yazmak) uçtan uca desteklemiyor.
+**Motor ≠ ürün, ve motor artık gerçekten iyi.** P0 ve P1, ürünün en pahalı ve en az görünen
+kısmını — veri bütünlüğü — büyük ölçüde çözdü: atomik yazma, dönen yedek, üç durumlu kilit,
+çıkış matrisi, kodlama matrisi, süreç öldürme testi. Bu, aynı ölçekteki masaüstü projelerde nadir
+bir tabandır ve P2'nin üzerine kurulacağı zemin budur.
 
-Skorlar (§11): **motor 3,6 · deneyim 2,2 · ambalaj 2,0 · güven 2,8 · pazara erişim 1,5.**
+Ama üç şey eksik ve üçü farklı katmanlarda:
+
+| Katman | Durum | Eksik |
+|---|---|---|
+| **Motor** | İyi (3,6/5) | Belge kimliği: dış değişiklik, symlink, taslak yolu (§6) |
+| **Deneyim** | Zayıf (2,2/5) | Ara/değiştir, menü, yazdırma, keşfedilebilirlik (§7) |
+| **Ambalaj + erişim** | Zayıf (2,1 / 1,5) | Yayın yok, artefakt çalıştırılmıyor, jlink yok, imza yok, OS entegrasyonu yok (§10) |
+
+Skorlar (§12): **motor 3,6 · deneyim 2,2 · ambalaj 2,1 · güven 2,9 · pazara erişim 1,5**;
+ağırlıklı endeks **2,53/5**.
+
+**P2'nin sorusu şu olmalı:** *"Bir romancı JTypeWriter'ı açtığı gün bir bölümü baştan sona yazıp
+kaydedebilir mi, ertesi gün aynı dosyaya güvenle dönebilir mi — ve bunu indirdiği ikili
+gerçekten yapabiliyor mu?"* Bugünkü cevap **hayır**: cümle arayamaz, dosyayı OS'ten açamaz,
+yazdıramaz, dışarıdan değişen dosyayı fark etmez ve indirecek bir sürüm yok.
 
 ---
 
-## 2. Yöntem, Kanıt Güvenilirliği ve P1 Kapanış Denetimi
+## 2. Yöntem, Kanıt Güvenilirliği ve Ölçüm Ortamı
+
 
 ### 2.1 Kanıt seviyeleri
 
-| Seviye | Ne demek | Bu belgede |
+| Seviye | Ne demek | Bu belgedeki bulgular |
 |---|---|---|
-| **Ölçüldü** | Bu makinede komut/araçla sayı veya süre alındı | Boyutlar, açılış, RSS, sınıf/test/anahtar sayıları |
-| **Koddan okundu** | Davranış kaynakta izlendi | D, E, X, U, M bulgularının tamamı |
-| **Çıkarıldı** | Koddan mantıksal sonuç, ölçüm yok | 10/50 MB senaryoları, Windows/macOS boyutları |
-| **Doğrulanamadı** | Kod garanti vermiyor, test yok | macOS `Cmd+Q` davranışı, render edilmiş CSS |
+| **Ölçüldü** | Bu makinede komut/araç çalıştırıldı, sayı veya süre alındı | Boyutlar, açılış, RSS, sınıf/test/anahtar sayıları, açma/kaydetme/istatistik süreleri, symlink deneyi, disk çarpanı, jlink denemesi, test sonucu, GitHub API |
+| **Koddan okundu** | Davranış kaynakta izlendi, `dosya:satır` var | D, E, X, U, M bulgularının çoğu |
+| **Çıkarıldı** | Koddan mantıksal sonuç, bu makinede ölçüm yok | 50 MB ve ağ dosya sistemi senaryoları, Windows artefakt boyutları, 1.000 taslaklı kurtarma dizini |
+| **Doğrulanamadı** | Kod garanti vermiyor, test yok | Render edilmiş CSS yerleşimi, gerçek Tab sırası |
 
-**Artefaktlar taze build'den ölçüldü.** 30 Ekim 2026'da `releases/` silinip
-`./scripts/package.sh --installer` ve `scripts/release-assets.sh` ile yeniden üretildi;
-imaj, imaj içindeki fat JAR, `.deb` payload'ı ve taşınabilir arşiv **aynı koşudan** geliyor.
-Önceki sürümdeki dört uyuşmazlık (imajdaki `NOTICE` 713 B / repo 1.338 B; `.deb` içindeki
-jar 11.164.155 B / imajdaki 11.202.493 B; jar'da 80 yerine 91 uygulama sınıfı; eksik
-`audio/PROVENANCE.md`) artık **yok**: `.deb` içindeki jar imajdaki jar ile bayt-özdeş
-(11.204.099 B, 91 sınıf), `NOTICE` iki tarafta da 1.338 B, `audio/PROVENANCE.md` jar'da.
-Bkz. §9.8'deki karşılaştırma tablosu.
+**Kural:** Bir sayı bu belgede varsa ya §15'teki bir komutla yeniden üretilebilir ya da
+`dosya:satır` olarak gösterilmiştir. "Ölçülmedi" etiketi bir eksiklik itirafıdır; tahminle
+doldurulmamıştır.
 
-### 2.2 P1 çıkış kriterleri denetimi
+### 2.2 Bu belgenin v3.1'den farkı
 
-| # | P1 kriteri | Durum | Kanıt / eksik |
-|---|---|---|---|
-| 1 | Varsayılan temada AA altı tek metin yok; test tüm kombinasyonları zorluyor | **Kısmi** | `ContrastRatioTest` CTA, hover, e-posta, tagline, `.stats-save` ve 5 vurgu rengini kapsıyor; ama `-toolbar-text`, düz popup satırları, `.about-email:hover` ve varsayılan editör metni **ölçülmüyor**. Kullanılmayan `-toolbar-text-muted` token'ı açık/sepya'da AA altıdır ve hiçbir test görmez. |
-| 2 | Açılışta odak editörde; hiçbir diyalog 768 px'i aşmıyor; 4 dilde kırpılma yok | **Kısmi** | Özel diyaloglar `DialogSizing` ile kelepçeli; **9 `Alert` çağrısı kelepçesiz, sarmasız, yeniden boyutlandırılamaz**. Odak aktarımı saf politika olarak testli, gerçek traversal değil. |
-| 3 | Kapatma isteği dışı çıkış, salt-okunur ev, disk dolu, `kill -9` — dördünde de kayıp yok | **Kapalı** | `ExitDisposition.CLEAR/PARK/KEEP` (`ExitDisposition.java:55-60`), `AutoSaveService.shutdown` (`:271-282`), `ProcessCrashRecoveryTest`. Artıklar: D9, D10. |
-| 4 | Hiçbir yolda sessiz kodlama değişimi yok | **Kapalı** | `restoreRecovered` legacy charset'i koruyor; `EncodingMatrixTest` (11 test) bayt-özdeş gidiş-dönüşü sabitliyor. |
-| 5 | 6 dilde argümanlı anahtarlar doğru; sayı/tarih UI diliyle uyumlu; ölü anahtar yok | **Kısmi** | Anahtar paritesi, `MessageFormat` ve sayı biçimi testli; **tarih/saat desenleri hâlâ sabit** (`dd.MM.yyyy`, `HH:mm`), ayırıcılar kodda (`": "`, `" - "`), tooltip'ler macOS'ta `Ctrl` diyor. |
-| 6 | `v*` tag'i checksum'lı Release üretiyor; her artefaktta lisanslar; POM metadata tam | **Kısmi** | Betikler ve `release.yml` var, POM metadata tam; `.deb` lisans belgesi ve jar/imaj payload'ı taze build'de doğrulandı; **hat hiç koşmadı**, tag yok, imza yok. |
-| 7 | `mvn clean test` + TR/DE + paket smoke testi yeşil | **Açık** | İlk ikisi yeşil; **CI'da paket smoke testi yok** — imaj CI'da açılmıyor, deb kurulmuyor. (Taze imaj bu makinede 5 kez elle başlatıldı; ölçüm §7.1.) |
-
-**Sonuç:** P1'in en zor kısmı (veri güvenliği + kodlama) gerçekten kapandı. Görünür kalite ve
-yayın tarafında ise "kapandı" iddiası **kapsam daraltılarak** doğru: kriter metni geniş,
-uygulama dar.
-
-### 2.3 P1'den devreden iki iş
-
-| İş | Durum | Neden P2'ye girmeden kapanmalı |
+| Konu | v3.1 (30 Ekim, `95b386e`) | v4.0 (1 Kasım, `f32d3f8`) |
 |---|---|---|
-| Üretilen artefaktı CI'da **aç** (app-image başlat, Linux'ta `.deb` kur/kaldır) | Yok | Bugün CI'da "paketlendi" ile "çalışıyor" arasındaki tek kanıt yok (elle doğrulama §9.8). Bir sonraki sürümde ilk gerçek regresyon burada yakalanır. |
-| `AGENTS.md`'yi sürüm kontrolüne al | Yok (`.gitignore:57`, `git ls-files` boş) | Ajan kuralları PR'da görünmüyor; ekip/otomasyon bilgisi makineye bağlı kalıyor. |
+| Kod tabanı | 4 commit geride | HEAD |
+| Test sonucu | "350 test yeşil" (CI'a atıf) | **Bu makinede koşuldu**: 350/0/0 |
+| Açılış süresi | 601–772 ms / 1.881–2.228 ms | **576–588 ms / 1.616–1.668 ms** (5 koşu, taze profil) |
+| RSS | ~274 MiB | **~297 MiB** (ölçüm daha yüksek; bkz. §8.1 not) |
+| Kaydetme maliyeti | "1 MB'da duraklama, 10 MB'da donma" *(çıkarım)* | **10 MB'da 7,1 ms** — iddia **çürütüldü** (§8.3) |
+| İstatistik maliyeti | "O(n), ölçülmedi" | **10 MB'da 163,7 ms/s** — iddia **doğrulandı ve ağırlaştı** |
+| Symlink (D2) | Kod okuması | **Deneyle kanıtlandı** (§6.3) |
+| Disk çarpanı | "belgenin ~5 katı olabilir" *(çıkarım)* | **Kalıcı durumda 4,00×, tepe ~6×** (§6.2) |
+| jlink kazancı | "P3'e ertelendi, ~50 MiB hedefi" *(tahmin)* | **8 modülle 59 MiB ölçüldü** (§10.2) |
+| Yeni bulgular | — | **B14** (verify-artifacts CI'da değil), **X5** (istatistik darboğazı), **B15** (ikon `--check` CI'da değil), **T7** (test sayısı ≠ yol kapsamı) |
+
+### 2.3 Ölçüm artefaktlarının tazeliği
+
+`releases/` ve `target/` sürüm kontrolünde **değil** (`.gitignore`), yani bir artefakt iddiası
+ancak üretildiği koşu kaydedilirse anlamlıdır. §10.1'deki tüm sayılar **2 Kasım 2026'da macOS
+kaldırıldıktan sonra alınmış taze bir build** kümesinden geliyor (1 Kasım kümesiyle farkı §10.1
+notunda tek tek gösterilmiştir); `scripts/verify-artifacts.sh` bu build üzerinde **17/17
+karşılaştırmayı geçti** (W0.2'nin kanıtı).
+
+**Kalan hijyen borcu:** `releases/` hâlâ `.gitignore`'da (§10.9). Bu tablodaki hiçbir sayı git
+tarafından korunmuyor; bir sonraki ölçüm §15'teki komutlarla baştan üretilmelidir.
+
+### 2.4 Kapsam kararı — macOS üründen kaldırıldı (2 Kasım 2026)
+
+Belgenin ilk hâli platform kümesini **Linux + Windows + macOS** varsayıyordu ve §13.5'teki
+karar sorusunu bu üç OS üzerinden kuruyordu. Bu varsayım artık **geçersizdir**: macOS
+desteklenen platform kümesinden **tamamen çıkarılmıştır**. Karar, §10.6b'nin analitik
+sonucunun doğrudan uygulanmasıdır — notarization bir teknik engel değil bir **bütçe**
+problemidir ve taşınabilir kanal onu çözmez; dolayısıyla macOS'u hedeflememek tek
+sıfır-maliyetli seçenektir.
+
+Kaldırma **kod, CI, paketleme ve dokümantasyon düzeyinde tamamlanmıştır**:
+
+| Katman | Değişiklik |
+|---|---|
+| `scripts/package.sh` | `Darwin*` platform dalı, `.icns` ikon dalı, `.app`/`Contents/Resources` lisans yolu, `dmg` installer dalı ve `.dmg` temizliği silindi. Desteklenmeyen platform artık açık hata verir |
+| `scripts/release-assets.sh` | `mac)` dalı (`JTypeWriter.app`, `*.dmg`) silindi; `<os>` kümesi `linux \| windows` |
+| `scripts/verify-artifacts.sh` | `Darwin*` algılama, `.app` imaj yolu ve `Contents/Resources` dalları silindi |
+| `scripts/generate-icons.py` | `ICNS_CHUNKS`, `build_icns()` ve `.icns` çıktısı silindi; `jtypewriter.icns` depodan çıkarıldı |
+| `AppIconsTest` | ICNS sihirli-bayt iddiası kaldırıldı (ICO iddiası duruyor) |
+| `KeyboardShortcutHandler` | macOS `Cmd` anlatan Javadoc düzeltildi; `isShortcutDown()` platform-nötr JavaFX API'si olduğu için kaldı |
+| `.github/workflows/*` | Matris `[ubuntu-latest, windows-latest]`; `release.yml`'den `macOS)` dalı ve iki `mac-arm64` beklenen-varlık satırı çıktı (beklenen varlık sayısı **7 → 5**) |
+| `docs/release-notes-template.md` | `.dmg` ve Gatekeeper referansları iki dilden de çıktı; Windows SmartScreen duruyor; iki dilli parite ve `@VERSION@`/`@TAG@` korundu |
+| `README.md`, `README-TR.md` | Platform rozeti, tanıtım cümlesi, kısayol notu, indirme/derleme bölümleri, ikon ve CI satırları güncellendi |
+| `scripts/checksums.sh` | `shasum` yedeği artık macOS gerekçesiyle değil, coreutils'siz ortam gerekçesiyle açıklanıyor |
+
+**Bu kararın belgeye etkisi — hangi hükümler düştü, hangileri daraldı:**
+
+| Öğe | Önce | Sonra |
+|---|---|---|
+| **B3** (imza yok) | macOS notarization + Windows Authenticode | Yalnız **Windows Authenticode/SmartScreen** kalır; notarization bütçesi tamamen düşer |
+| **U10** (macOS çıkış yolu) | Orta bulgu | **Kapsam dışı — geçersiz** (§9.6 karar kaydı) |
+| **U4** (tooltip `Ctrl` diyor) | macOS kullanıcısına yanlış tuş | **Etkisiz**; tooltip metni artık doğru (§9.4) |
+| **A11** (Cmd+Q doğrula) | Aday, skor 4,0 | **Havuzdan çıktı** |
+| **B7** (`~/.jtypewriter` her OS'te) | XDG + macOS Application Support | Yalnız **XDG** tartışması kalır |
+| **§13.5 kararı** | İki eksen: OS × kanal | OS ekseni **kapandı** (Linux + Windows); kanal ekseni açık kalır |
+| **§13.6 kapı 5** | "CI app image'ı başlatır, `.deb` kurar" | Değişmedi; ama artık iki OS doğrulanır, üç değil |
+| **§12 pazara erişim skoru** | 1,5 (notarization yok dahil) | Gerekçeden notarization çıkar; skor **değişmedi** (0 tag / 0 Release / 0 MIME hâlâ bağlayıcı) |
+
+Kaldırmanın **gizli faydası** ölçülebilir: `verify-artifacts.sh`'ın karşılaştırma kümesi
+küçülür, CI matrisi 9 suite koşusundan 6'ya iner (2 OS × 3 locale), ve "yerelde yalnız Linux
+görülür, macOS yalnız CI'da görülür" geri bildirim gecikmesi (§13.4) bir satır kısalır.
+Bedeli: macOS kullanıcısı ürünü hiç kullanamaz — bu bilinçli bir pazar feragatidir, kusur değil.
 
 ---
 
-## 3. Ürün Kimliği ve Pazar Konumu
+## 3. Faz Tarihçesi — Ne Kapandı, Ne Devretti
 
-### 3.1 Ne satıyor?
+Ürün bugüne kadar üç ürünleştirme fazı ve bir ön kapı geçirdi. Aşağıdaki tablo, her fazın
+**iddiasını** commit kanıtıyla eşleştiriyor; amaç tarih yazmak değil, **hangi borcun hangi
+fazda doğduğunu** görünür kılmak.
+
+### 3.1 Fazlar
+
+| Faz | Tema | Kanıt (commit) | Gerçekten kapanan | Kapanmayan / devreden |
+|---|---|---|---|---|
+| **P0** | "Güvenliği ve görünür kaliteyi kur" | `7f3a2e4`, `9e78478`, `f8f581a`, `37f38f0`, `02034d5` | Atomik kaydetme + dönen yedek, kurtarma taslakları, farklı kaydet üzerine yazma, kodlama katılığı, araç çubuğu sığdırma, tooltip'ler, odak halkaları, kalıcı görünüm, kayıt durumu, BOM katı çözme | Menü, arama, CLI, yazdırma (hiç başlamadı) |
+| **P1** | "Veri kaybı sınıfını kapat, amatör görünümü sil" | 12 commit, `PW-01`…`PW-32`, `f69fc6a` | Üç durumlu kilit, çıkış matrisi (`CLEAR/PARK/KEEP`), otomatik kayıt sağlığı, legacy kodlama koruması, yedek sırası, dinleyici izolasyonu, kontrast (genişletilmiş), diyalog düğmeleri, i18n paritesi, gerçek süreç öldürme testi, kodlama matrisi | `Alert` taşması, sabit tarih biçimi, **paket smoke testi** (PW-43 hiç başlamadı); devredilen macOS çıkış yolu 2 Kasım 2026'da kapsamla birlikte düştü (§2.4) |
+| **P1.2** | "Yayın bütünlüğü" | `PW-33`…`PW-40`, `PW-42`, `ba0d40c`, `f43c3d9`, `8a649ed` | Tag→Release workflow, `SHA256SUMS`, `THIRD-PARTY-NOTICES`, SPDX başlıkları (tüm `.java`), README'nin gerçekle hizalanması, gizlilik notu, enforcer, iki dilli sürüm notu şablonu, `licenses`+`NOTICE` her artefaktta | Release hattı **hiç koşmadı**; imza yok |
+| **G0** (W0) | "P2 ön koşulları" | `67a36a8`, `03c277c`, `f32d3f8` | `AGENTS.md` sürüm kontrolünde; `verify-artifacts.sh` (17/17); `.deb` yükü lisans dosyalarını taşıyor | — |
+| **P2 / W1–W4** | "Yayınla, editör ol, güvenceyi koşulsuz yap" | **commit yok** | **Başlamadı** | Tamamı |
+
+**Sonuç:** P0 ve P1 gerçek iş yaptı; özellikle P1'in veri güvenliği dilimi, ürünün en savunulabilir
+parçasıdır. Ama P2'nin ilk dalgası (W1: artefakt smoke testi + ilk yayın) **hiç başlamamıştır**.
+Bugünkü tablo, "ürünleştirme yapıldı" ile "ürün var" arasındaki farkın tam olarak bu dalgada
+olduğunu gösteriyor.
+
+### 3.2 P1'in kapanış denetimi (v3.1'den taşınan, yeniden doğrulanan)
+
+| # | P1 çıkış kriteri | Durum (1 Kasım) | Kanıt / eksik |
+|---|---|---|---|
+| 1 | Varsayılan temada AA altı tek metin yok | **Kısmi** | `ContrastRatioTest` 19 testle CTA, hover, e-posta, tagline, `.stats-save`, 5 vurgu rengini zorluyor; `-toolbar-text`, düz popup satırları, varsayılan editör metni **kapsam dışı** (§9.2) |
+| 2 | Açılışta odak editörde; hiçbir diyalog 768 px'i aşmıyor | **Kısmi** | Özel diyaloglar `DialogSizing` ile kelepçeli; **9 `Alert` kelepçesiz, sarmasız** (§9.3) |
+| 3 | Dört çıkış yolunda da kayıp yok | **Kapalı** | `ExitDisposition` + `AutoSaveService.shutdown` + `ProcessCrashRecoveryTest` |
+| 4 | Hiçbir yolda sessiz kodlama değişimi yok | **Kapalı** | `EncodingMatrixTest` (11 test), bayt-özdeş gidiş-dönüş |
+| 5 | 6 dilde argümanlı anahtarlar doğru; tarih/saat UI diliyle | **Kısmi** | Parite ve `MessageFormat` testli; **tarih/saat desenleri sabit** (§9.4) |
+| 6 | `v*` tag'i checksum'lı Release üretiyor | **Kısmi** | Betikler hazır, hat **hiç koşmadı**, tag yok, imza yok |
+| 7 | `mvn clean test` + TR/DE + **paket smoke testi** yeşil | **Açık** | İlk ikisi yeşil (350/0/0); **CI'da artefakt çalıştırma yok** (§10.4) |
+
+**Okunuşu:** P1'in en zor kısmı (veri güvenliği + kodlama) gerçekten kapandı. Görünür kalite ve
+yayın tarafında ise "kapandı" iddiası **kapsam daraltılarak** doğru: kriter metni geniş,
+uygulama dar. P2 planlanırken bu ayrım korunmalı — aksi halde aynı kısmi kapanış tekrarlanır.
+
+### 3.3 P2'ye devreden üç iş (hiç başlamamış)
+
+| İş | Durum | Neden P2'nin ilk dalgasında olmalı |
+|---|---|---|
+| Üretilen artefaktı CI'da **aç** (imaj başlat, `.deb` kur/kaldır) | Yok | Bugün "paketlendi" ile "çalışıyor" arasındaki tek kanıt yok; ilk gerçek regresyon burada yakalanır. v3.1'in W1.1'i hiç yazılmadı |
+| **İlk yayın** (`v1.0.0`) | Yok | `release.yml` uçtan uca hiç koşmadı; ilk sürümde sürpriz çıkma olasılığı yüksek (§10.4) |
+| `verify-artifacts.sh` + ikon `--check` CI'ya | Yok (**B14**, **B15**) | Yerelde çalışan bir garanti, CI'da koşmuyorsa bir sonraki PR'da sessizce çürür |
+
+---
+
+## 4. Ürün Kimliği, Pazar Konumu ve Talep Kanıtı
+
+
+### 4.1 Ne satıyor?
 
 Üç katman var ve üçü farklı olgunlukta:
 
 | Katman | İddia | Bugünkü gerçek |
 |---|---|---|
-| **Motor** | "Metnini kaybetmek çok zor" | Atomik yazma, dönen yedek, 30 s taslak, çıkış matrisi, kodlama koruması — **gerçek ve testli**. Ancak tek yazar / düz dosya / sağlam FS koşullu. |
-| **Deneyim** | "Sessiz, dikkat dağıtmayan yazma" | Tek `TextArea`, zorunlu satır sarma, araç çubuğu, durum çubuğu. Arama, menü, yazdırma yok. "Sessiz" ama **çıplak**. |
-| **Ambalaj** | "İndir, çalıştır; Java gerekmez" | 145 MiB imaj, imzasız, hiç yayınlanmamış, OS'ten açılamıyor. |
+| **Motor** | "Metnini kaybetmek çok zor" | Atomik yazma, dönen yedek, 30 s taslak, çıkış matrisi, kodlama koruması — **gerçek ve testli**. Ancak tek yazar / düz dosya / sağlam FS koşullu; dış değişiklik ve symlink açık (§6) |
+| **Deneyim** | "Sessiz, dikkat dağıtmayan yazma" | Tek `TextArea`, zorunlu satır sarma, araç çubuğu, durum çubuğu. Arama, menü, yazdırma yok. "Sessiz" ama **çıplak** |
+| **Ambalaj** | "İndir, çalıştır; Java gerekmez" | 145,4 MiB imaj, imzasız, **hiç yayınlanmamış**, OS'ten açılamıyor, jlink yok |
 
-Dolayısıyla ürünün **savunulabilir tek farklılaştırıcısı** daktilo sesi değil, **silme engeli +
-veri güvenliği** kombinasyonu. Ses bir tatlandırıcı; YOLO ve kurtarma bir ürün tezi.
+Ürünün **savunulabilir tek farklılaştırıcısı** daktilo sesi değil, **silme engeli + veri
+güvenliği** kombinasyonudur. Ses bir tatlandırıcı; YOLO ve kurtarma bir ürün tezi. Bu ayrım
+pazarlama cümlesinde de korunmalı: ses, ürünü "bir tür" yapar; veri güvenliği, ürünü "tercih
+edilir" yapar.
 
-### 3.2 Kimin için?
+### 4.2 Kimin için?
 
-- **Birincil:** Tek bir düz metin dosyasında roman/öykü yazan, bulut ve hesap istemeyen,
-  "ilk taslak" aşamasında geri silmeyi kapatmak isteyen yazar.
-- **İkincil:** Dikkat dağıtıcı olmayan, hafif bir yerel editör arayan Linux kullanıcısı.
-- **Üçüncül (henüz değil):** Kurumsal/atölye kullanımı — çoklu belge, yazım denetimi ve
-  iş birliği olmadan uygun değil.
+- **Birincil:** Tek bir düz metin dosyasında roman/öykü yazan, bulut ve hesap istemeyen, "ilk
+  taslak" aşamasında geri silmeyi kapatmak isteyen yazar.
+- **İkincil:** Dikkat dağıtıcı olmayan, hafif bir yerel editör arayan Linux/Windows kullanıcısı.
+- **Üçüncül (henüz değil):** Kurumsal/atölye kullanımı — çoklu belge, yazım denetimi ve iş
+  birliği olmadan uygun değil.
 
-### 3.3 Rekabet
+**Persona kanıtı yok.** Bu üç tanım koddan ve README'den çıkarılmıştır; gerçek bir kullanıcıyla
+görüşülmemiştir. §4.4'teki boşluk buradan başlıyor.
+
+### 4.3 Rekabet
 
 | Ürün | Güçlü yanı | JTypeWriter'ın ayrıştığı yer | JTypeWriter'ın kaybettiği yer |
 |---|---|---|---|
@@ -157,562 +292,926 @@ veri güvenliği** kombinasyonu. Ses bir tatlandırıcı; YOLO ve kurtarma bir �
 | Scrivener | Proje/klasör, taslak yönetimi | Tek dosya, öğrenme eğrisi yok | Yapı, dışa aktarma, araştırma panosu |
 | FocusWriter | Ücretsiz, tam ekran, odak | Silme engeli + kurtarma + istatistik | Tam ekran özelleştirme, günlük hedefler |
 | iA Writer / Typora | Tipografi, Markdown | Düz `.txt`, proje formatı yok | Pazarlama, imza, marka |
-| Not defteri / gedit | Her yerde var | YOLO, ses, kurtarma, otomatik kayıt | Hiçbiri — ama zaten yüklü |
+| Not defteri / gedit | Her yerde var, zaten yüklü | YOLO, ses, kurtarma, otomatik kayıt | Hiçbiri — ama zaten yüklü |
 
 **Konumlandırma cümlesi (öneri):** *"İlk taslağını yazarken yanlışlıkla silemeyeceğin, hesap
-istemeyen, tek düz metin dosyası."* Bu cümle bugünkü kodla **kısmen** doğru; "yanlışlıkla
-silemeyeceğin" doğru, "dosyanı kaybetmeyeceğin" koşullu.
+istemeyen, tek düz metin dosyası."* Bu cümle bugünkü kodla **kısmen** doğru: "yanlışlıkla
+silemeyeceğin" doğru, "dosyanı kaybetmeyeceğin" **koşullu** (§6.5).
 
-### 3.4 Tez ile gerçek arasındaki mesafe
+### 4.4 Talep kanıtı — en büyük boşluk
+
+| Gösterge | Değer | Kaynak |
+|---|---|---|
+| Git tag | **0** | `git tag -l` |
+| GitHub Release | **0** | GitHub API `/releases` |
+| Yıldız / çatal / izleyici | **0 / 0 / 0** | GitHub API `/repos` |
+| Açık issue | **0** | GitHub API |
+| Depo açılışı | 2026-07-02 | API `created_at` |
+| Son push | 2026-11-01 | API `pushed_at` |
+| Topluluk dosyası (CONTRIBUTING, CODE_OF_CONDUCT, issue/PR şablonu) | **yok** | `ls .github/` |
+| `SECURITY.md` / `CHANGELOG.md` | **yok** | depo kökü |
+
+Dört ayda 137 commit, 350 test, sıfır kullanıcı. Bu bir başarısızlık kanıtı değil — **hiç
+dağıtım yapılmadığı** için talep hiç test edilmedi. Ama analiz açısından kritik sonuç şu:
+**P2'nin en büyük riski, listede bir maddenin eksik olması değil, bir faz daha
+mükemmelleştirip yine yayınlamamaktır.** Bu risk, bulgu listesinin hiçbir satırında görünmez;
+bu yüzden §13'te aday havuzunun en üstünde duran iş "en yüksek etkili özellik" değil, **"kanıt
+üreten ilk hamle"**dir.
+
+### 4.5 Tez ile gerçek arasındaki mesafe
 
 Ürünün vaadi üç cümleye indirgenebilir; her biri bugün test edilebilir bir koşula bağlı:
 
 | Vaat | Koşul | Bugün |
 |---|---|---|
-| "Yazdığın metin kaybolmaz" | Tek yazar, düz dosya, sağlam dosya sistemi, çökme | ✅ Çoğu yol kapalı; **dış değişiklik ve symlink açık** |
-| "Yanlışlıkla silemezsin" | YOLO açık | ✅ `YoloPolicy` + `EditorArea.replaceText` testli |
+| "Yazdığın metin kaybolmaz" | Tek yazar, düz dosya, sağlam FS, çökme | ✅ Çoğu yol kapalı; **dış değişiklik (D1) ve symlink (D2) açık** |
+| "Yanlışlıkla silemezsin" | YOLO açık | ✅ `YoloPolicy` + editör yolu testli |
 | "Kaldığın yerden devam edersin" | Tek son dosya | ✅ Son dosya açılıyor; **son dosyalar listesi yok**, karşılama her açılışta |
-
-### 3.5 P2'nin sorusu
-
-P2'nin teması "daha çok özellik" değil, şu tek soru olmalı:
-
-> **Bir romancı, JTypeWriter'ı açtığı gün bir bölümü baştan sona yazıp kaydedebilir mi — ve
-> ertesi gün aynı dosyaya güvenle dönebilir mi?**
-
-Bugünkü cevap **hayır**: cümle arayamaz, dosyayı OS'ten açamaz, yazdıramaz ve dışarıdan
-değişen dosyayı fark etmez.
 
 ---
 
-## 4. Mimari Değerlendirme
+## 5. Mimari Değerlendirme
 
-### 4.1 Ölçülen şekil
 
-| Paket | Sınıf | Satır | Not |
-|---|---:|---:|---|
-| `service/` | 9 | 2.014 | Dosya, kurtarma, otomatik kayıt, diyalog |
-| `ui/component/` | 10 | 1.697 | Editör, araç çubuğu, durum çubuğu |
-| `ui/` | 13 | 1.414 | Denetleyici, sahne, diyaloglar |
-| kök | 9 | 1.320 | `AppGraph`, ayarlar, log, kilit, atomik dosya |
-| `locale/` | 3 | 557 | |
-| `ui/theme/` | 5 | 384 | |
-| `audio/` + `stats/` | 2 | 225 | |
-| **Toplam** | **51** | **7.611** | |
+### 5.1 Ölçülen şekil
 
-En büyük sınıflar: `ToolbarView` 662, `Messages` 468, `FileService` 401, `RecoveryStore` 400,
-`AppSettings` 394, `AutoSaveService` 352, `TextCodec` 287, `DialogService` 286.
+| Paket | Sınıf | Satır | Pay |
+|---|---:|---:|---:|
+| `service/` | 9 | 2.014 | %26,5 |
+| `ui/component/` | 10 | 1.697 | %22,3 |
+| `ui/` | 13 | 1.414 | %18,6 |
+| kök (`AppGraph`, `AppSettings`, `AppLogging`, `AtomicFiles`, `InstanceLock`, …) | 9 | 1.320 | %17,3 |
+| `locale/` | 3 | 557 | %7,3 |
+| `ui/theme/` | 5 | 384 | %5,0 |
+| `audio/` + `stats/` | 2 | 225 | %3,0 |
+| **Toplam** | **51** | **7.611** | **%100** |
 
-### 4.2 Güçlü yanlar
+En büyük on sınıf: `ToolbarView` 662, `Messages` 468, `FileService` 401, `RecoveryStore` 400,
+`AppSettings` 394, `AutoSaveService` 352, `TextCodec` 287, `DialogService` 286,
+`MainController` 259, `AppLogging` 248.
+
+**Yorum:** `ToolbarView`'un 662 satırı, komut katmanının yokluğunun doğrudan sonucudur (M1):
+her düğme, kendi kurulumu + tooltip'i + durum bağlaması + erişilebilirlik metniyle birlikte
+orada yaşıyor. Aynı şekilde `Messages` 468 satırı, 90 anahtarın × 6 dilin çeviri erişimcisi
+olmasından geliyor — sağlıklı, ama yeni anahtar maliyeti yüksek (§9.5).
+
+### 5.2 Güçlü yanlar (korunması gereken kültürel miras)
 
 - **Framework'süz kompozisyon kökü.** `AppGraph` alan sırası = bağımlılık sırası; dinleyiciler
-  kurucuda bağlanıyor. Yeni bir servis eklemek tek dosyada okunabilir bir iş.
+  kurucuda bağlanıyor. Yeni servis eklemek tek dosyada okunabilir bir iş. `AGENTS.md` bunu
+  açıkça kural yazmış.
 - **Saf mantık ayrımı gerçekten uygulanmış.** `YoloPolicy`, `StatsBarModel`, `ToolbarFit`,
-  `ExitDisposition`, `AutosaveHealth`, `DialogSizing`, `ShortcutRows`, `TextCodec` JavaFX'siz;
-  testler toolkit açmadan karar mantığını doğruluyor. Bu, projenin en değerli kültürel mirası.
+  `ExitDisposition`, `AutosaveHealth`, `DialogSizing`, `ShortcutRows`, `TextCodec`, `FontSizeManager`,
+  `ToolbarState` JavaFX'siz; 350 testin tamamı toolkit açmadan koşuyor. Bu, projenin en değerli
+  teknik kararı.
 - **Veri yolu tek ilkelden geçiyor.** Tüm yazmalar `AtomicFiles.writeMoving`; yedek
-  `BackupKeeper.prepare/install`; kodlama `TextCodec`. "Yeni bir yazma yolu" icat etmek zor.
-- **Test disiplini.** 350 test, 40 sınıf, `@TempDir`, root/POSIX varsayımları, TR/DE locale
-  koşuları, süreç öldürme testi. Bu ölçekte bir masaüstü uygulaması için nadir.
+  `BackupKeeper.prepare/install`; kodlama `TextCodec`. "Yeni bir yazma yolu" icat etmek
+  mimari olarak zor — ve `AGENTS.md` bunu yasak sayıyor.
+- **Test disiplini.** 7.041 test satırı / 7.611 üretim satırı (0,93); `@TempDir`, POSIX/root
+  varsayımları, TR/DE locale koşuları, gerçek süreç öldürme testi.
+- **Yorum kültürü.** 347 javadoc bloğu, 0 TODO/FIXME, 0 `@author`; yorumlar "ne" değil "neden
+  böyle değil" anlatıyor (`AtomicFiles.preserveAttributes`, `FileService.writeFile`).
 
-### 4.3 Yapısal borç
+### 5.3 Yapısal borç
 
 | ID | Borç | Etki | Kanıt |
 |---|---|---|---|
-| **M1** | **Komut katmanı yok.** Her eylem `KeyboardShortcutHandler` + `ToolbarView` + `MainController` üçlüsüne ayrı ayrı bağlanıyor; menü, CLI, arama, palet için ortak bir "Action" soyutlaması yok. | Menü/CLI/find her biri yeni kablolama demek; keşfedilebilirlik borcu kalıcılaşır | `KeyboardShortcutHandler.java:46-74`, `ToolbarView.java:134-138` |
-| **M2** | **Tek belge varsayımı kök hücrelerde.** `FileService` tek `currentFilePath/charset/bom`, `AppGraph` tek `EditorArea`, `MainWindow` tek sahne. | P4 (sekmeler) için `DocumentSession` refactor'u şart; P2'de yapılmamalı ama **P2 kararları bunu kilitlememeli** | `FileService.java:60-80`, `AppGraph.java:68` |
-| **M3** | **Diyalog tekrarı.** 9 `Alert` çağrısı aynı kurulumu tekrarlıyor; sarma/kelepçe/yeniden boyutlandırma yok. | U1'in doğrudan nedeni; her yeni diyalog aynı hatayı çoğaltır | `DialogService.java:96-263` |
-| **M4** | **`AppLogging` global statik.** Enjeksiyon seam'i yok; Surefire `user.home` vermiyor. | Testler gerçek `~/.jtypewriter/logs`'a yazıyor (T6); "asla gerçek eve dokunma" kuralı uygulanamaz | `AppLogging.java:37,153-164`; `pom.xml:145-149` |
-| **M5** | **Dinleyici sırası örtük.** Dil değişiminde `Messages.reload → ToolbarView → başlık` sırası alan sırasına bağlı; test kırılmıyor. | Yeniden sıralama sessiz regresyon üretir | `AppGraph.java:47-86`, `MainController` |
-| **M6** | **Yansıma ile undo temizliği.** `UndoHistoryReset` JavaFX iç alanlarına gidiyor; modül yolunda sessizce yetenek kaybı; dönüş değeri **kontrol edilmiyor**. | jlink/modül yolu engeli; belge sınırını aşan undo riski | `UndoHistoryReset.java:16-31,40-49`; `EditorArea.java:114` |
-| **M7** | **Undo geçmişi sınırsız.** JavaFX varsayılanı; büyük belgede bellek büyümesi. | 10 MB+ belgede ölçülmedi; risk | `EditorArea.java:121-132` |
-| **M8** | **Dispose sözleşmesi yok.** `StatsBar` timeline'ı, dinleyiciler kaldırılamıyor. | İkinci pencere/P4 için sızıntı | `StatsBar.java:105-113` |
+| **M1** | **Komut katmanı yok.** Her eylem `KeyboardShortcutHandler` + `ToolbarView` + `MainController` üçlüsüne ayrı ayrı bağlanıyor; menü, CLI, arama, palet için ortak "Action" soyutlaması yok | Menü/CLI/arama her biri yeni kablolama demek; keşfedilebilirlik borcu kalıcılaşır | `KeyboardShortcutHandler`, `ToolbarView`, `MainController` |
+| **M2** | **Tek belge varsayımı kök hücrelerde.** `FileService` tek `currentFilePath/charset/bom`; `AppGraph` tek `EditorArea`; `MainStage` tek sahne | Sekmeler (P4) için `DocumentSession` refactor'u şart; P2 kararları bunu **kilitlememeli** | `FileService.java:69-74` |
+| **M3** | **Diyalog tekrarı.** 9 `Alert` aynı kurulumu tekrarlıyor; sarma/kelepçe/yeniden boyutlandırma yok | U1'in doğrudan nedeni; her yeni diyalog hatayı çoğaltır | §9.3 |
+| **M4** | **`AppLogging` global statik.** `logger()` statik başlatıcılarda çağrılıyor; enjeksiyon seam'i yalnız test-görünürlüğünde (`openFileHandler(Path)`) | "Asla gerçek eve dokunma" kuralı uygulanamıyor; testler `~/.jtypewriter/logs`'a yazıyor | `AppLogging.java:37,153,210,223`; `pom.xml:145-149` |
+| **M5** | **Dinleyici sırası örtük.** Dil değişiminde `Messages.reload → ToolbarView → başlık` sırası alan sırasına bağlı | Yeniden sıralama sessiz regresyon üretir | `AppGraph` |
+| **M6** | **Yansıma ile undo temizliği.** `UndoHistoryReset` JavaFX iç alanlarına gidiyor; dönüş değeri kontrol edilmiyor | jlink/modül yolu engeli; belge sınırını aşan undo riski | `UndoHistoryReset`, `EditorArea` |
+| **M7** | **Undo geçmişi sınırsız.** JavaFX varsayılanı | 10 MB+ belgede bellek büyümesi; **ölçülmedi** | `EditorArea` |
+| **M8** | **Dispose sözleşmesi yok.** `StatsBar` timeline'ı ve dinleyiciler kaldırılamıyor | İkinci pencere/P4 için sızıntı | `StatsBar` |
+| **M9** | **Tek yazma ilkelinin etrafında doğrulama boşluğu.** `AtomicFiles` atomikliği garanti ediyor ama *hedefin ne olduğunu* (symlink, gerçek yol) hiç sormuyor | D2 tam olarak bu boşluktan doğuyor | `AtomicFiles.java:54-74` |
+| **M10** | **Boyut/sayı sınırı kavramı yok.** Ne belge boyutu, ne taslak sayısı, ne undo derinliği için sabit veya ayar var | Büyük girdi = tanımsız davranış (D4, D7, M7) | `FileService`, `RecoveryStore` |
 
-### 4.4 Threading — mimarinin en zayıf ekseni
+### 5.4 Threading — mimarinin en zayıf ekseni
 
-`src/main` içinde **tek bir** eşzamanlılık çağrısı var: `CrashHandler`'daki `Platform.runLater`.
-`Task`, `Service`, `ExecutorService`, `Thread`, `CompletableFuture` **hiç yok**.
+`src/main` içinde eşzamanlılık ilkelleri:
 
-Bunun sonuçları:
+| İlkel | Sayı | Yer |
+|---|---:|---|
+| `Platform.runLater` | 1 | `CrashHandler.java:54` |
+| `Thread.setDefaultUncaughtExceptionHandler` | 1 | `CrashHandler.java:42` |
+| `ExecutorService` / `Executors` | **0** | — |
+| `CompletableFuture` | **0** | — |
+| `javafx.concurrent.Task` / `Service` | **0** | — |
+| `new Thread` | **0** | — |
 
-- Açma: `Files.readAllBytes` + kod çözme + `setText` FX thread'inde (`FileService.loadFile`).
-- Kaydetme: encode + temp yazma + `fsync` + rename FX thread'inde (`FileService.writeFile`).
-- Otomatik kayıt: 30 s'de bir `editorArea.getText()` (tam kopya) + UTF-8 serileştirme + atomik
-  yazma + `fsync` FX thread'inde (`AutoSaveService.snapshot`).
-- Oturum geri yükleme: pencere gösterildikten **sonra**, senkron (`FxApplication.java:59-67`).
+Zamanlama yalnız `javafx.animation.Timeline` (`AutoSaveService.java:136`, `StatsBar.java:105`).
 
-1 MB'lık bir roman taslağında bu, her kayıtta hissedilir bir duraklama; 10 MB'da donma.
-Ürünün "kesintisiz yazma" vaadiyle doğrudan çelişen tek mimari eksen budur.
+Bunun sonuçları, hepsi FX thread'inde:
 
-### 4.5 Genişleme noktaları ve eksik komut katmanı
+- **Açma:** `Files.readAllBytes` + kod çözme + `setText` (`FileService.loadFile`).
+- **Kaydetme:** encode + temp yazma + `channel.force` + rename + dizin fsync (`FileService.writeFile`
+  → `AtomicFiles.writeMoving`).
+- **Otomatik kayıt:** 30 s'de bir tam metin kopyası + UTF-8 serileştirme + atomik yazma + fsync.
+- **Kurtarma taraması:** açılışta, `primaryStage.show()` **sonrasında**, senkron; her aday tam
+  okunuyor (`RecoveryStore.java:271`).
+- **İstatistik:** saniyede bir tam metin taraması (§8.3 — ölçülen en pahalı tekrar eden iş).
+
+**Ölçüm bunu nasıl düzeltiyor:** yerel NVMe'de kaydetme 10 MB'da 7 ms; yani "donma" iddiası
+abartılıydı. Gerçek maliyet dağılımı §8.3'te: tekrar eden işin %99'u istatistik yenilemesi.
+Bu, mimari kararı değiştirmiyor (G/Ç hâlâ FX thread'inde ve ağ dosya sisteminde aynı kod
+saniyeler sürebilir) ama **önceliği** değiştiriyor: önce ölçülen darboğaz, sonra teorik olan.
+
+### 5.5 Genişleme noktaları ve komut katmanının yokluğu
 
 Bugün yeni bir özellik eklemenin maliyeti:
 
 | Özellik | Gereken dosyalar | Neden pahalı |
 |---|---|---|
-| Ara/Değiştir | Yeni saf model + yeni UI paneli + `EditorArea` entegrasyonu + kısayol + 6 bundle | Ortak komut/eylem katmanı yok; YOLO ile etkileşim ayrıca tasarlanmalı |
+| Ara/Değiştir | Yeni saf model + yeni UI paneli + `EditorArea` entegrasyonu + kısayol + 6 bundle | Ortak komut katmanı yok; YOLO etkileşimi ayrıca tasarlanmalı |
 | Menü çubuğu | `ToolbarView`'daki her eylemin yeniden bağlanması + hızlandırıcı tablosu | Eylemler düğümlere gömülü, komut nesnesi yok |
-| CLI ile açma | `FxApplication` + `FileService` + tek örnek kilidi ile el sıkışma | İkinci örnek yolu belgeyi **devredemiyor**; sadece reddediyor |
+| CLI ile açma | `FxApplication` + `FileService` + tek örnek kilidi ile el sıkışma | İkinci örnek yolu belgeyi **devredemiyor**, sadece reddediyor |
 | Yazdırma | Yeni servis + sayfa düzeni + yazıcı diyaloğu | Metin modeli düz `TextArea`; sayfalama yok |
 
 **Mimari sonuç:** P2'ye girmeden önce **küçük bir komut/eylem katmanı** (M1) kurulursa menü,
-CLI, arama ve gelecekteki palet aynı yerden beslenir. Kurulmazsa her özellik kendi
-kablolamasını getirir ve keşfedilebilirlik borcu kalıcılaşır.
+CLI, arama ve gelecekteki palet aynı yerden beslenir. Kurulmazsa her özellik kendi kablolamasını
+getirir ve keşfedilebilirlik borcu kalıcılaşır.
 
 ---
 
-## 5. Veri Güvenliği — P1 Sonrası Durum
+## 6. Veri Güvenliği — P1 Sonrası Durum
 
-### 5.1 P1 ile kapanan yollar
+
+### 6.1 P1 ile kapanan yollar (yeniden doğrulandı)
 
 | Yol | Durum | Kanıt |
 |---|---|---|
-| Kilit "başka örnek var" ile "kilit kullanılamıyor"u ayırmıyordu | **Kapalı** — üç durumlu; yalnız `ALREADY_RUNNING` engeller | `InstanceLock.java:92-111`, `JTypeWriterApp.java:25-30` |
-| Kapatma isteği dışı her çıkış taslağı siliyordu | **Kapalı** — `CLEAR/PARK/KEEP` matrisi; yalnız yanıtlanmış kapatma siler | `ExitDisposition.java:55-60`, `AutoSaveService.java:271-282` |
+| Kilit "başka örnek var" ile "kilit kullanılamıyor"u ayırmıyordu | **Kapalı** — üç durumlu (`ACQUIRED/ALREADY_RUNNING/UNAVAILABLE`); yalnız `ALREADY_RUNNING` engeller | `InstanceLock.java:46-53,99-110`; `JTypeWriterApp.java:26-29` |
+| Kapatma isteği dışı her çıkış taslağı siliyordu | **Kapalı** — `CLEAR/PARK/KEEP`; yalnız yanıtlanmış kapatma siler | `ExitDisposition`, `AutoSaveService.java:275-282` |
 | Kurtarma sonrası legacy kodlama UTF-8'e düşüyordu | **Kapalı** — decode `null` ise Windows-1254 korunuyor | `FileService.restoreRecovered` |
-| Yedek hatası kaydı iptal ediyordu | **Kapalı** — önce yaz, sonra yedek kur; hata yalnız uyarı | `FileService.java:300-327`, `BackupKeeper.java:49-79` |
-| Başarılı kayıt dinleyici hatasıyla "başarısız" görünüyordu | **Kapalı** — dinleyiciler try dışında, tek tek izole | `FileService.java:342-349` |
+| Yedek hatası kaydı iptal ediyordu | **Kapalı** — önce yaz, sonra yedek kur; hata yalnız uyarı | `FileService.java:303-326`, `BackupKeeper.java:49-79` |
+| Başarılı kayıt dinleyici hatasıyla "başarısız" görünüyordu | **Kapalı** — dinleyiciler `try` dışında, tek tek izole | `FileService.java:342-349` |
 | `NaN`/`Infinity` pencere geometrisi | **Kapalı** — `Double.isFinite` + pozitiflik | `AppSettings.java:339-350` |
-| `AppLogging.init()` çökme güvensizdi | **Kapalı** — `initialized` en sonda, `RuntimeException` yakalanıyor | `AppLogging.java:60-125` |
+| `AppLogging.init()` çökme güvensizdi | **Kapalı** — `initialized` en sonda, `RuntimeException` yakalanıyor | `AppLogging.java:163,232` |
 | Bozuk ayar dosyası üzerine yazılıyordu | **Kapalı** — `.corrupt` karantinası | `AppSettings.java:236-270` |
 
-### 5.2 Kalan açıklar
+Bu liste, P0/P1'in gerçek kazancıdır ve P2 planlanırken **varsayılan olarak korunmalıdır**:
+her yeni veri yolu bu sekiz garantiyi bozmadan eklenmelidir.
+
+### 6.2 Kalan açıklar
 
 #### D1 — Dış değişiklik algılama yok — **Yüksek**
 
-`loadFile` yalnız içerik/kodlama/yol saklıyor; `(mtime, size)` veya içerik hash'i
-**saklanmıyor** (`FileService.loadFile`). `writeFile` hiçbir karşılaştırma yapmadan yazıyor
-(`FileService.java:275-351`). `getLastModifiedTime` yalnız taslak karşılaştırmasında geçiyor.
+`loadFile` yalnız içerik/kodlama/yol saklıyor: `currentFilePath`, `savedContent`, `currentContent`,
+`currentCharset`, `currentBom`, `dirty` (`FileService.java:69-74`). Ne `(mtime, size)` ne içerik
+özeti var; `src/main`'de `MessageDigest` hiç geçmiyor. `writeFile` koşulsuz yazıyor
+(`:310 AtomicFiles.writeMoving(path, bytes)`); tek karşılaştırma bellekteki
+`path.equals(currentFilePath) && content.equals(savedContent)` (`:296`) — bu bir **yedek
+rotasyonu** koruması, disk kontrolü değil.
 
-Sonuç: `git checkout`, Dropbox/Syncthing, başka bir editör veya ikinci bir örnek dosyayı
-değiştirdiyse kullanıcının **başkasının metni** sessizce kaybolur. Tek telafi 3 nesillik
-`.bak`; o da D10'a açık.
+Sonuç: `git checkout`, Dropbox/Syncthing, başka bir editör veya farklı `user.home` ile çalışan
+ikinci bir örnek dosyayı değiştirdiyse, kullanıcının **başkasının metni** sessizce kaybolur.
+Tek telafi 3 nesillik `.bak`; o da D10'a açık.
 
-Bu, ürünün "hiçbir şey kaybolmaz" tezinin en doğrudan çürütücüsü. Aynı zamanda P2'nin en
-yüksek getirili tek işi (§12.2/A1).
+Bu, ürünün "hiçbir şey kaybolmaz" tezinin en doğrudan çürütücüsüdür ve P2'nin en yüksek getirili
+tek işidir.
 
-#### D2 — Symlink'li belge kaydedilince link yok oluyor — **Yüksek**
+#### D2 — Symlink'li belge kaydedilince link yok oluyor — **Yüksek — ÖLÇÜLDÜ**
 
-`AtomicFiles.writeMoving` yolu mutlaklaştırıyor ama `toRealPath()` kullanmıyor; temp dosya
-linkin yanında oluşturulup `Files.move(..., REPLACE_EXISTING)` ile **linkin üzerine** taşınıyor
-(`AtomicFiles.java:54-74`). `~/notlar.txt -> /mnt/data/notlar.txt` durumunda gerçek hedef hiç
-güncellenmez; `.bak` da yanlış dizine yazılır.
+`AtomicFiles.writeMoving` yolu mutlaklaştırıyor ama `toRealPath()` kullanmıyor
+(`AtomicFiles.java:54`); temp dosya linkin yanında oluşturulup `Files.move(..., REPLACE_EXISTING,
+ATOMIC_MOVE)` ile **linkin üzerine** taşınıyor (`:71`).
+
+Bu makinede çalıştırılan deney (`~/link-parent/notes.txt -> ~/real/notes.txt`):
+
+```
+before: isSymlink=true  target=ORIGINAL TARGET CONTENT
+after : isSymlink=false
+after : link path now holds   = NEW CONTENT FROM EDITOR
+after : real target still holds = ORIGINAL TARGET CONTENT
+after : link-parent entries   = [notes.txt]
+after : real dir entries      = [notes.txt]
+rel   : isSymlink after save  = false      (göreli link de aynı)
+```
+
+Yani: gerçek hedef **hiç güncellenmiyor**, link kayboluyor, iki dizinde aynı adlı iki dosya
+kalıyor. Senkron klasörüne symlink ile bağlanan bir taslakta bu, "kaydettim" sanıp hiçbir yere
+yazmamak demek. `.bak` yedeği de yanlış dizine düşer.
 
 #### D3 — Taslak başlığındaki yol doğrulanmıyor — **Yüksek**
 
-`RecoveryStore` `original.path.b64` değerini Base64'ten çözüp doğrudan `Path.of` veriyor
-(`RecoveryStore.java:339`); mutlaklık, varlık, kanoniklik veya izin verilen kök kontrolü yok.
-Değer `FileService.restoreRecovered` üzerinden `currentFilePath` oluyor ve **sonraki Ctrl+S'in
-hedefi** haline geliyor. Kurtarma dizini kullanıcı tarafından yazılabilir; yedekten veya başka
-makineden gelen bir taslak, kaydetmeyi keyfi bir dosyaya yönlendirebilir.
+`RecoveryStore` `original.path` değerini Base64'ten çözüp doğrudan `Path.of` veriyor
+(`RecoveryStore.java:333-344`); mutlaklık, varlık, kanoniklik veya izinli kök kontrolü yok.
+Değer `FileService.restoreRecovered` (`:234,241`) üzerinden `currentFilePath` oluyor ve
+**sonraki Ctrl+S'in hedefi** hâline geliyor. Kurtarma dizini kullanıcı tarafından yazılabilir;
+başka makineden gelen bir taslak, kaydetmeyi keyfi bir dosyaya yönlendirebilir.
+
+Tek hafifletici: `AutoSaveService.draftPrecedesFile` (`:217-221`) yalnız dosya **daha yeniyse**
+yolu düşürüyor — bu bir tazelik kontrolü, yol doğrulaması değil; var olmayan veya keyfi yollar
+hâlâ kabul ediliyor.
 
 #### D4 — Taslak taraması symlink takip ediyor ve sınırsız — **Orta**
 
-`Files.list(dir).filter(Files::isRegularFile)` symlink'leri takip ediyor
-(`RecoveryStore.java:131-139`); her aday, en yenisi seçilmeden **tamamen** `readAllBytes` ile
-okunuyor (`:271`). Boyut/sayı sınırı yok → açılışta donma veya `OutOfMemoryError`; ayrıca
-açılış başına yalnızca **en yeni** taslak sunuluyor, N ertelenmiş taslak N yeniden başlatma
-ister.
+`Files.list(dir).filter(Files::isRegularFile)` symlink'leri takip ediyor (`RecoveryStore.java:131-139`);
+her aday, en yenisi seçilmeden **tamamen** `Files.readAllBytes` ile okunuyor (`:271`). Boyut/sayı
+sınırı yok → açılışta donma veya `OutOfMemoryError`. Ayrıca açılış başına yalnızca **en yeni**
+taslak sunuluyor (`:145-150`); N ertelenmiş taslak N yeniden başlatma ister.
 
 #### D5 — Park edilen taslaklar hiç toplanmıyor — **Orta**
 
-`pending-*.jtw` dosyalarını yaş/sayı/boyut sınırıyla silen hiçbir yol yok
-(`RecoveryStore`). Disk sınırsız büyür; kullanıcının **diğer belgelerinin metinleri** profilde
-süresiz kalır (gizlilik sorunu).
+`parked-*.jtw` dosyaları yaş/sayı/boyutla silinmiyor; yalnız kendisi seçilen taslak
+`Files.deleteIfExists` ile gidiyor (`:223`). Disk sınırsız büyür ve **kullanıcının diğer
+belgelerinin metinleri** profilde süresiz kalır (gizlilik sorunu).
 
 #### D6 — Atomik olmayan fallback doğrulanmıyor; temp süpürme yok — **Orta**
 
-`ATOMIC_MOVE` desteklenmediğinde `Files.move(REPLACE_EXISTING)`'e düşülüyor ve bu yolda
-boyut/hash doğrulaması yok (`AtomicFiles.java:67-69`). SMB/NFS'te süreç ölürse hedef yarım
-yazılmış olabilir. `SIGKILL` sonrası `jtw-*.tmp` hiç süpürülmüyor; `finally` içindeki
-`deleteIfExists` kendisi hata atarsa **asıl istisnayı maskeliyor**.
+`ATOMIC_MOVE` desteklenmediğinde `Files.move(temp, absolute, REPLACE_EXISTING)`'e düşülüyor ve
+bu yolda boyut/hash doğrulaması yok (`AtomicFiles.java:72-74`). SMB/NFS'te süreç ölürse hedef
+yarım yazılmış olabilir. `SIGKILL` sonrası `jtw-*.tmp` hiç süpürülmüyor; ayrıca `:77-79`
+`finally` içindeki `Files.deleteIfExists(temp)` hata atarsa **asıl istisnayı maskeliyor**
+(Java'da `finally`'de atılan istisna, `try`'daki istisnayı ezer).
 
-#### D7 — Disk alanı kontrolü yok; `OutOfMemoryError` kaçıyor — **Orta**
+#### D7 — Disk alanı kontrolü yok; `Error` kaydetme hata yolunu atlıyor — **Orta**
 
-Boş alan ön kontrolü yok. `readAllBytes` yükleme ve kurtarmada kullanılıyor; kaydetme yolu
-`IOException | RuntimeException` yakalıyor — bir `Error` **kaydetme hata yolunu atlar**.
-Tek kaydetmenin disk maliyeti hedef + temp + 3 yedek ile belgenin ~5 katına çıkabilir.
+Boş alan ön kontrolü yok (`getFreeSpace` hiç geçmiyor). Yükleme ve kurtarma `readAllBytes`
+kullanıyor. Kaydetme hataları yalnız `IOException | RuntimeException` yakalıyor
+(`FileService.java:311,332`; otomatik kayıtta `catch (Exception e)`, `AutoSaveService.java:317`)
+— bir `OutOfMemoryError`/`StackOverflowError` **kaydetme hata yolunu atlar** ve kullanıcıya
+hiçbir şey söylenmez.
+
+#### D14 — Disk çarpanı 4×, tepe ≈6× — **Orta — ÖLÇÜLDÜ**
+
+Bir belge altı kez kaydedildikten sonra dizin içeriği (1 MB'lık belge):
+
+```
+novel.txt     1.048.576 B
+novel.txt.bak 1.048.576 B
+novel.txt.bak.1 1.048.576 B
+novel.txt.bak.2 1.048.576 B
+total 4.194.304 B = 4.00x
+```
+
+Kalıcı durumda **4,00×** (`GENERATIONS = 3`, `BackupKeeper.java:35`). Kaydetme anında buna
+geçici staging kopyası + `jtw-*.tmp` eklenir → **tepe ≈6×**. 50 MB'lık bir belgeyi kaydetmek
+300 MB anlık alan ister; disk dolu senaryosu (D7) ile birleştiğinde bu, D10'un tetikleyicisidir.
+Hiçbir yerde kullanıcıya söylenmiyor.
 
 #### D8 — Belge düzeyinde kilit yok — **Orta**
 
-`InstanceLock` kullanıcı başına tek kilit (`InstanceLock.java:92-112`); belge üzerinde
-`FileLock` yok. Farklı `user.home` ile çalışan ikinci bir örnek veya kilit `UNAVAILABLE`
-durumundaki ikinci süreç aynı dosyayı yazabilir. D1 ile birlikte gerçek yarış senaryosu.
+`InstanceLock` kullanıcı başına tek kilit (`InstanceLock.java:79,98`); belge üzerinde `FileLock`
+yok. Farklı `user.home` ile çalışan ikinci bir örnek veya kilit `UNAVAILABLE` durumundaki ikinci
+süreç aynı dosyayı yazabilir. D1 ile birlikte gerçek yarış senaryosu.
 
 #### D9 — "Vazgeç" yolunda taslak silme hatası yutuluyor — **Düşük**
 
-`offerRecovery` içinde `RecoveryChoice.DISCARD` dalı `store.clear()` dönüşünü yok sayıyor
-(`AutoSaveService.java:201-203`); diğer temizleme yolları `DRAFT_DELETE` uyarısı üretirken bu
-yol yalnız log bırakıyor.
+`AutoSaveService.java:201-203`: `if (choice == RecoveryChoice.DISCARD) { draftFrozen = false; store.clear(); }`
+— dönüş değeri yok sayılıyor; diğer temizleme yolları `DRAFT_DELETE` uyarısı üretirken bu yol
+yalnız log bırakıyor.
 
 #### D10 — Yedek kurulumu en yeni nesli kaybedebilir — **Düşük**
 
 `BackupKeeper.install` önce `.bak.1→.bak.2`, `.bak→.bak.1` döndürüp sonra yeni kopyayı terfi
-ettiriyor; son taşıma başarısız olursa geçmiş kaymış, yeni nesil yok (`BackupKeeper.java:69-79`).
-`FileService` staged dosyayı siliyor (`:325`).
+ettiriyor (`:70-78`); son taşıma başarısız olursa geçmiş kaymış, yeni nesil yok. `FileService`
+staged dosyayı siliyor (`:325`) ve kaydı **başarılı** sayıyor — doğru karar, ama sessiz.
 
 #### D11 — `user.home` yoksa açılış NPE ile ölür — **Düşük olasılık / yüksek etki**
 
-`AppDirs.dataDir()` `Path.of(System.getProperty("user.home"), ...)` (`AppDirs.java:20`);
-`user.home` tanımsızsa `JTypeWriterApp` satır 25'te, crash handler kurulmadan NPE alınır.
-Sandbox/konteyner profillerinde gerçekleşebilir.
+`AppDirs.dataDir()` → `Path.of(System.getProperty("user.home"), ".jtypewriter")`
+(`AppDirs.java:20`); `JTypeWriterApp.java:25` bunu **ilk ifade** olarak çağırıyor — `Application.launch`
+(`:32`) ve `CrashHandler` kurulumundan önce. `user.home` tanımsızsa NPE. Sandbox/konteyner
+profillerinde gerçekleşebilir. (Loglama tarafı korumalı: `AppLogging.java:223-235`.)
 
 #### D12 — Ayar yazma hatası sessiz; `SecurityException` kaçıyor — **Orta**
 
-`AppSettings.save()` yalnız `IOException` yakalayıp WARNING'e indiriyor
-(`AppSettings.java:300-307`); `SecurityException` çağırana kaçar ve in-memory değer
-değişmişken UI eylemi kesilebilir. Kalıcı yazılamayan ayar dosyası arayüzde görünmüyor —
-her tercih her açılışta kaybolur.
+`AppSettings.save()` yalnız `IOException` yakalayıp WARNING'e indiriyor (`:300-308`);
+`SecurityException` çağırana kaçar ve in-memory değer değişmişken UI eylemi kesilebilir.
+Kalıcı yazılamayan ayar dosyası arayüzde görünmüyor — her tercih her açılışta kaybolur.
 
 #### D13 — Ayar şeması sürümü yok — **Orta (gelecek)**
 
-Bilinmeyen değer varsayılana düşüyor ama anahtar yeniden adlandırma/göç yok. P2'de eklenecek
-her yeni ayar (otomatik kayıt aralığı, son dosyalar, yazı tipi ailesi) bu borcu büyütür.
+15 anahtar var (`AppSettings.java:67-81`), hiçbirinde `schema`/`version` yok; bilinmeyen değer
+varsayılana düşüyor ama anahtar yeniden adlandırma/göç yok. P2'de eklenecek her yeni ayar
+(son dosyalar, "bir daha gösterme", yazı tipi ailesi, otomatik kayıt aralığı) bu borcu büyütür.
 
-### 5.3 Kullanıcıya görünen kayıp/bozulma tablosu
+### 6.3 Kullanıcıya görünen kayıp/bozulma tablosu
 
-| # | Senaryo | Önem |
-|---|---|---|
-| D1 | Senkron/git/başka editör değişikliği uyarısız ezilir | Yüksek |
-| D2 | Symlink'li belge kaydedilir; gerçek hedef sonsuza kadar eski kalır | Yüksek |
-| D3 | Taslak başlığı kaydetmeyi keyfi bir dosyaya yönlendirir | Yüksek |
-| D4 | Çok sayıda/büyük taslak açılışı kilitler veya OOM | Orta |
-| D5 | Diğer belgelerin taslak metinleri profilde süresiz kalır | Orta |
-| D6 | SMB/NFS'te yarım hedef; `jtw-*.tmp` artıkları | Orta |
-| D7 | Disk dolu → yedek döndürmesi en eski nesli kaybeder; OOM kaydı atlar | Orta |
-| D8 | İki süreç aynı belgeyi yazar; bir yazarın metni hiçbir yerde kalmaz | Orta |
-| D9 | "Vazgeç" sonrası silinemeyen taslak sessizce kalır | Düşük |
-| D10 | Yedek terfisi başarısız → en yeni yedek nesli yok | Düşük |
-| D11 | `user.home` yoksa uygulama açılmaz | Düşük |
-| D12 | Yazılamayan ayar dosyası → tercihler her açılışta kaybolur | Orta |
+| # | Senaryo | Önem | Kanıt türü |
+|---|---|---|---|
+| D1 | Senkron/git/başka editör değişikliği uyarısız ezilir | Yüksek | Kod |
+| D2 | Symlink'li belge kaydedilir; gerçek hedef sonsuza kadar eski kalır | Yüksek | **Ölçüm** |
+| D3 | Taslak başlığı kaydetmeyi keyfi bir dosyaya yönlendirir | Yüksek | Kod |
+| D14 | 50 MB belge kaydı ~300 MB anlık disk ister; kimse söylemez | Orta | **Ölçüm** |
+| D4 | Çok sayıda/büyük taslak açılışı kilitler veya OOM | Orta | Kod |
+| D5 | Diğer belgelerin taslak metinleri profilde süresiz kalır | Orta | Kod |
+| D6 | SMB/NFS'te yarım hedef; `jtw-*.tmp` artıkları; maskelenmiş istisna | Orta | Kod |
+| D7 | Disk dolu → kaydetme hata yolu atlanır; OOM sessiz | Orta | Kod |
+| D8 | İki süreç aynı belgeyi yazar; bir yazarın metni hiçbir yerde kalmaz | Orta | Kod |
+| D12 | Yazılamayan ayar dosyası → tercihler her açılışta kaybolur | Orta | Kod |
+| D9 | "Vazgeç" sonrası silinemeyen taslak sessizce kalır | Düşük | Kod |
+| D10 | Yedek terfisi başarısız → en yeni yedek nesli yok | Düşük | Kod |
+| D11 | `user.home` yoksa uygulama açılmaz | Düşük olasılık | Kod |
 
-### 5.4 Bu bölümün test boşlukları
+### 6.4 Bu bölümün test boşlukları
 
-Hiçbir test şunları kapsamıyor: dış değişiklik, symlink hedefi, hard link, taslak başlığında
-yol doğrulama, `pending-*.jtw` toplama, disk dolu, `OutOfMemoryError`, iki süreç aynı dosya,
-`ATOMIC_MOVE` desteklemeyen dosya sistemi, `DISCARD` sonrası başarısız silme, `install`
-sırasında yedek terfi hatası.
+Hiçbir test şunları kapsamıyor: dış değişiklik, symlink hedefi, hard link, taslak başlığında yol
+doğrulama, `parked-*.jtw` toplama, disk dolu, `OutOfMemoryError`, iki süreç aynı dosya,
+`ATOMIC_MOVE` desteklemeyen dosya sistemi, `DISCARD` sonrası başarısız silme, `install` sırasında
+yedek terfi hatası, disk çarpanı.
 
-### 5.5 Vaat koşulları
+Yani §6.2'deki **yedi** açığın hiçbiri kırmızıya çevrilebilir bir testle sabitlenmemiş. P2'de
+bir bulgu "kapandı" sayılacaksa, önce **onun senaryosunu üreten bir test** yazılmalı; bu, P1'in
+kısmi kapanışından çıkarılmış dersdir (§3.2).
 
-Özetle güvenlik hikâyesi şu koşullarda **doğru**:
+### 6.5 Vaat koşulları
+
+Güvenlik hikâyesi şu koşullarda **doğru**:
 
 1. Belgeyi yazan tek süreç var (D1, D8 kapalı değil).
 2. Belge symlink değil (D2).
 3. Kurtarma dizini güvenilir (D3).
 4. Dosya sistemi atomik rename destekliyor (D6).
-5. Diskte yer var ve belge belleğe sığıyor (D7).
+5. Diskte yer var ve belge belleğe sığıyor (D7, D14).
 
-Bir yazma aracı için bu koşulların **hiçbiri** kullanıcıya söylenmiyor. P2'nin "güven"
-işi, bu listenin ilk üç maddesini kapatmak olmalı.
+Bir yazma aracı için bu koşulların **hiçbiri** kullanıcıya söylenmiyor. P2'nin "güven" işi, bu
+listenin ilk üç maddesini kapatmak olmalı; dördüncü ve beşinci madde ise en azından **ölçülüp
+belgelenmeli**.
 
 ---
 
-## 6. Editör Yetkinliği
+## 7. Editör Yetkinliği — Günlük Döngü
 
-### 6.1 Var olanlar
 
-Tek düz metin belgesi; atomik kaydetme + dönen yedek; kodlama koruması (BOM, UTF-16 parite,
-Windows-1254 sorusu); YOLO modu; kelime/karakter/satır/tuş/süre/WPM; 3 tema; 6 metin rengi;
-10–48 px yazı boyutu merdiveni; 6 dil; tam ekran; araç çubuğunu gizleme; 30 s otomatik kayıt +
-çökme kurtarma; son dosya ve pencere geometrisi geri yükleme; daktilo sesi.
+### 7.1 Var olanlar
+
+Tek düz metin belgesi (`EditorArea extends TextArea`, `EditorArea.java:40`); atomik kaydetme +
+dönen yedek; kodlama koruması (BOM, UTF-16 parite, Windows-1254 sorusu); YOLO modu; kelime/
+karakter/satır/tuş/süre/WPM; 3 tema; 6 metin rengi; yazı boyutu merdiveni; 6 dil; tam ekran;
+araç çubuğunu gizleme; 30 s otomatik kayıt + çökme kurtarma; son dosya ve pencere geometrisi
+geri yükleme; daktilo sesi.
 
 Bu liste, **tek belgeli bir yazma aracı** için sağlam bir çekirdek. Eksik olan çekirdek değil,
 **günlük döngü**.
 
-### 6.2 Günlük döngü — dokuz adım
+### 7.2 Günlük döngü — dokuz adım
 
 | # | Romancının adımı | Bugün | Kanıt |
 |---|---|---|---|
-| 1 | Belgeyi OS'ten aç (çift tık / "birlikte aç") | **Yok** | CLI argümanı okunmuyor (E3), MIME/ilişkilendirme yok (E10) |
+| 1 | Belgeyi OS'ten aç (çift tık / "birlikte aç") | **Yok** | `getParameters()` hiç çağrılmıyor; `Dragboard` yok; MIME ilişkilendirmesi yok (E3, E4, E10) |
 | 2 | Yaz | **Var** | `EditorArea`, YOLO |
-| 3 | Bir cümleyi bul | **Yok** | Arama yok (E1) |
-| 4 | Bulduğunu değiştir | **Yok** | Değiştirme yok (E1) |
+| 3 | Bir cümleyi bul | **Yok** | Ne model, ne panel, ne `Ctrl+F`, ne tek bir bundle anahtarı (E1) |
+| 4 | Bulduğunu değiştir | **Yok** | Aynı (E1) |
 | 5 | Sahneyi kes/taşı | **Var** (YOLO kapalıyken) | JavaFX varsayılanları |
-| 6 | Kaydet | **Var**, ama FX thread'ini bloke eder | X1 |
-| 7 | Yazdır / PDF al | **Yok** | E7 |
-| 8 | Ertesi gün devam et | **Kısmi** — son dosya açılır; son dosyalar listesi yok, karşılama her açılışta | E5, U7 |
-| 9 | Sorun bildir | **Kısmi** — mail adresi + log yolu; tanılama paketi yok | B9 |
+| 6 | Kaydet | **Var ve hızlı** | 10 MB'da 7 ms (§8.2) |
+| 7 | Yazdır / PDF al | **Yok** | `PrinterJob` hiç geçmiyor (E7) |
+| 8 | Ertesi gün devam et | **Kısmi** | Son dosya açılıyor; **son dosyalar listesi yok**, karşılama her açılışta (E5, U7) |
+| 9 | Sorun bildir | **Kısmi** | Mail adresi + log yolu; tanılama paketi yok (§10.7) |
 
-Dokuz adımın **dördü yok**, biri kısmi, biri performans riskli. P2'nin gerekçesi bu tablodur.
+Dokuz adımın **dördü yok**, biri kısmi, biri kısmi-keşfedilemez. P2'nin gerekçesi bu tablodur —
+ve dikkat: adım 6 (kaydet) artık ölçümle "sorunsuz" sayıldığı için bu tablodaki ağırlık
+**tamamen yetenek eksikliğine** kaymıştır. v3.1 bu tabloya "biri performans riskli" notu
+düşüyordu; ölçüm o notu kaldırdı.
 
-### 6.3 Olmayanlar
+### 7.3 Olmayanlar
 
-| ID | Eksik | Etki | Not |
-|---|---|---|---|
-| **E1** | Ara / Değiştir (regex dahil değil) | **5** | En çok istenen; `Ctrl+F` yok, model yok, 6 dilde anahtar yok |
-| **E2** | Menü çubuğu | **4** | Tüm komutlar araç çubuğunda; **Yeni** ve **Farklı Kaydet** için görünür kontrol yok |
+| ID | Eksik | Etki | Kanıt (HEAD) |
+|---|---|---:|---|
+| **E1** | Ara / Değiştir | **5** | `KeyboardShortcutHandler.java:59-73`'te `F`/`H` yok; bundle'da `find`/`search`/`replace` anahtarı yok; `EditorArea.replaceText` (`:79`) YOLO ilkelidir, arama değil |
+| **E2** | Menü çubuğu | **4** | `MenuBar`/`new Menu(` hiç yok; tek menü `ContextMenu` (`EditorArea.java:141`). **Yeni** ve **Farklı Kaydet** yalnız `KeyboardShortcutHandler.java:94-100`'de |
 | **E3** | CLI ile dosya açma | **4** | `Application.getParameters()` hiç çağrılmıyor; ikinci örnek yolu devretmiyor |
-| **E4** | Sürükle-bırak | **2** | `Dragboard` yok |
-| **E5** | Son dosyalar | **3** | Yalnız `last.file` |
+| **E4** | Sürükle-bırak | **2** | `Dragboard`/`setOnDrag*`/`TransferMode` hiç yok |
+| **E5** | Son dosyalar | **3** | Yalnız `KEY_LAST_FILE = "last.file"` (`AppSettings.java:74`), liste anahtarı yok |
 | **E6** | Tercihler penceresi | **2** | Otomatik kayıt aralığı, yedek nesli, yazı tipi ailesi ayarlanamıyor |
 | **E7** | Yazdırma / PDF | **3** | `PrinterJob` yok |
-| **E8** | Satır numaraları | **3** | Düz `TextArea`; uzun taslakta yön kaybı |
-| **E9** | Satır sarma anahtarı, yazı tipi ailesi, satır sonu, sekme politikası | **2** | Sarma zorunlu açık (`EditorArea.java:48`) |
-| **E10** | Dosya ilişkilendirmesi / MIME / `.desktop` | **4** | Paketleme ile birlikte; OS entegrasyonunun önkoşulu |
+| **E8** | Satır numaraları | **3** | Düz `TextArea`; gutter yok; uzun taslakta yön kaybı |
+| **E9** | Sarma anahtarı, yazı tipi ailesi, satır sonu, sekme politikası | **2** | `EditorArea.java:48` `setWrapText(true)` sabit; aile CSS'te (`base.css:15`); satır sonu/sekme politikası hiç yok |
+| **E10** | Dosya ilişkilendirmesi / MIME / `.desktop` | **4** | `.deb` içinde `Categories=Unknown`, `MimeType=` boş (§10.6) |
 
-**Şiddetli olan üçlü:** E1, E2, E3. Bunlar "özellik" değil, bir metin editörünün **asgari
+**Şiddetli olan üçlü: E1, E2, E3.** Bunlar "özellik" değil, bir metin editörünün **asgari
 tabanı**. E1 olmadan uzun metin, E2 olmadan keşfedilebilirlik, E3 olmadan masaüstü varlığı yok.
 
-### 6.4 Keşfedilebilirlik
+### 7.4 Keşfedilebilirlik — ölçülen resim
 
-- Araç çubuğunda **5 düğme**: Aç, Kaydet, Geri Al, Yinele, Hakkında
-  (`ToolbarView.java:134-138`). **Yeni** ve **Farklı Kaydet** yalnız klavyede.
-- 16 kısayol var (README tablosuyla birebir), hepsi `KeyboardShortcutHandler`'da; karşılama kartı bunların bir kısmını
-  listeliyor. Menü olmadığı için **hiçbir komut hiyerarşisi** yok.
-- Araç çubuğu 900 px altında başlıkları değere indiriyor (`ToolbarFit`); pencere minimum
-  genişliği olmadığı için daha dar ekranda kırpılıyor (U8).
-- Sağ tık menüsü yalnız YOLO bağlamında var (`EditorArea.java:134-148`).
+**Araç çubuğu: 5 düğme + 6 combo.**
+
+| Düğme | Eylem | Tanım |
+|---|---|---|
+| Aç | `fileService.openFile` | `ToolbarView.java:134`, `:191-194` |
+| Kaydet | `fileService.saveFile` | `:135`, `:195-199` |
+| Geri Al | `editorArea.requestUndo` | `:136`, `:200-202` |
+| Yinele | `editorArea.requestRedo` | `:137`, `:203-205` |
+| Hakkında | `aboutDialog.show` | `:138`, `:206-208` |
+
+Combo'lar: tema, YOLO, ses, metin rengi, yazı boyutu, dil (`:140-189`). Sahnede bu sırayla
+(`:216-223`).
+
+**Klavye: 15 akor / 14 eylem** (`KeyboardShortcutHandler.java:59-73`):
+
+`Ctrl+T` (araç çubuğu) · `Ctrl+Shift+T` (tema) · `Ctrl+Z` (geri al) · `Ctrl+Y`, `Ctrl+Shift+Z`
+(yinele) · `Ctrl+Shift+Y` (YOLO) · `Ctrl+Shift+C` (renk) · `Ctrl+O`/`Ctrl+Shift+O` (aç) ·
+`Ctrl+N`/`Ctrl+Shift+N` (yeni) · `Ctrl+S` (kaydet) · `Ctrl+Shift+S` (farklı kaydet) ·
+`Ctrl+0`/`Ctrl+Num0` (boyut sıfırla) · `Ctrl++` (büyüt) · `Ctrl+-` (küçült) · `F11` (tam ekran).
+
+**Bulunan üç tutarsızlık:**
+
+1. **Araç çubuğunda olmayan ama klavyede olan iki eylem: Yeni ve Farklı Kaydet.** Yani bir
+   kullanıcı, arayüzü tarayarak "yeni bir belge nasıl açarım" sorusunun cevabını **bulamaz**.
+2. **Karşılama kartı 16 satır listeliyor, handler 15 akor tanıyor** (`messages.properties:24`).
+   Fazladan satır `Escape` (tam ekrandan çıkış) — ama o `KeyboardShortcutHandler`'da değil,
+   `MainStage.java:60`'ta. Buna karşılık handler'ın kabul ettiği `Ctrl+Shift+N`, `Ctrl+Shift+O`,
+   `Ctrl+Num0`, numpad `+/-` ve shift'li `F11` kartta **yok**. Yani liste ne eksik ne tam:
+   **iki yönde de yanlış**.
+3. **Menü olmadığı için hiçbir komut hiyerarşisi yok.** 14 eylem düz bir listeye, 5 düğmeye ve
+   6 combo'ya dağılmış durumda; "Dosya/Düzen/Görünüm" gibi bir zihinsel model yok.
+
+**Sonuç:** keşfedilebilirlik borcu **ölçüldü**: 14 eylemden **2'si** (%14) arayüzde hiç
+görünmüyor, kısayol listesi her iki yönde de handler'la uyuşmuyor. Bu, M1'in (komut katmanı yok)
+kullanıcıya görünen maliyetidir.
+
+### 7.5 Düz metin editörü olmanın sınırları
+
+Ürün bilinçli olarak "düz `.txt`, proje formatı yok" diyor ve bu doğru bir konumlanma. Ama
+bunun iki sonucu var ve ikisi de bugün ele alınmamış:
+
+1. **Biçim yok, yapı yok.** Bölüm başlığı, sahne ayırıcı, not için hiçbir işaretleme yok.
+   Scrivener'a karşı kaybedilen yer burasıdır ve P2'de **kapatılmamalıdır** (kapsam patlar);
+   ama kullanıcıya **açıkça söylenmelidir** (README bunu kısmen yapıyor).
+2. **Büyük tek dosya normaldir.** Bir roman tek `.txt`'te 300 KB–1 MB olur. Bu boyutta bugünkü
+   tek gerçek sorun istatistik yenilemesidir (§8.3), arama değil — çünkü arama yok. **Arama
+   eklendiğinde** maliyeti doğru tasarlanmalı: naif `indexOf` döngüsü 1 MB'da kabul edilebilir,
+   10 MB'da değil.
 
 ---
 
-## 7. Performans ve Ölçek
+## 8. Performans ve Ölçek
 
-### 7.1 Ölçümler
+
+Bu bölüm bu belgenin en çok değişen kısmıdır: v3.1 performansı **koddan çıkarıyordu**, burada
+**ölçülüyor**. Sonuç, v3.1'in ana performans iddiasını çürütüyor ve yerine daha keskin bir
+teşhis koyuyor.
+
+### 8.1 Açılış, bellek, artefakt
 
 | Ölçüt | Değer | Koşul |
 |---|---|---|
-| Ana pencere (X eşlemesi) | 601–772 ms | 5 koşu, sıcak önbellek, boş profil |
-| Karşılama kartı | 1.881–2.228 ms | aynı koşular |
-| RSS (karşılama açıldıktan sonra) | ~274 MiB (280.696–287.340 KiB) | aynı koşular |
-| İmaj | 145,6 MiB | Linux x64, taze build |
-| Runtime payı | 133,5 MiB (**%91,7**) | 52 modül |
-| Fat JAR | 10,7 MiB | 6.106 giriş |
+| Ana pencere (X eşlemesi) | **576, 582, 583, 585, 588 ms** | 5 koşu, taze profil (`-Duser.home=<tmp>`), sıcak önbellek |
+| Karşılama kartı | **1.616–1.668 ms** | aynı koşular, ilk modal pencere |
+| RSS (karşılama sonrası) | **296.880–303.720 KiB ≈ 290–297 MiB** | `ps -o rss` |
+| Sanal bellek | 13.461.504 KiB | `ps -o vsz` |
+| İmaj | 145,4 MiB | §10.1 |
 
-Her açılışta stderr'e şu uyarı düşüyor: `Unsupported JavaFX configuration: classes were
-loaded from 'unnamed module ...'`. Bu, classpath ile başlatmanın **bilinçli** sonucu
-(`JTypeWriterApp` javadoc'u); ama kullanıcıya/terminale sızan bir "polish" sinyali.
+**v3.1 ile karşılaştırma:** açılış **%5 daha hızlı** (601–772 → 576–588 ms), karşılama kartı
+**%14 daha hızlı** (1.881–2.228 → 1.616–1.668 ms), RSS **~23 MiB daha yüksek** (274 → ~297 MiB).
+Açılış düzelmesi iki W0 commit'iyle açıklanabilir; RSS artışı bu build'in ölçüm farkıdır ve
+**tek başına bir regresyon kanıtı değildir** (farklı JVM bayrakları, farklı font önbelleği).
+Yine de not: 350 testlik bir metin editörü için ~300 MiB taban bellek yüksektir; asgari bir
+bütçe (ör. boş belgede < 200 MiB) P2'de **tanımlanmalı**, ölçülmeli.
 
-### 7.2 Tuş başına maliyet
+Her açılışta stderr'e şu uyarı düşüyor:
 
-- `EditorKeyHandler` tuş başına yalnız sayaç artırıyor; `SessionStats.updateText` **O(1)**
-  referans ataması (`SessionStats.java:65-67`).
-- Kirli bayrak O(1); yalnız **aynı uzunluktaki** düzenlemelerde tam `String.equals`
-  (`FileService.java:106`).
-- `MainController` tuş başına başlık dizesi üretiyor ve kaydetme etiketini siliyor
-  (`MainController.java:216-222`). Küçük ama gereksiz alokasyon.
+```
+WARNING: Unsupported JavaFX configuration: classes were loaded from 'unnamed module @...'
+```
 
-**Sonuç:** tuş gecikmesi bugün iyi. Asıl risk tuş yolunda değil, **1 Hz istatistik** ve
-**30 s otomatik kayıt** yolunda.
+Bu, classpath ile başlatmanın **bilinçli** sonucu (`JTypeWriterApp` javadoc'u; JDK launcher'ı
+mutlu tutmak için `Application` alt sınıfı değil). Ama kullanıcıya/terminale sızan bir
+"polish" sinyali ve jlink'e geçildiğinde **kendiliğinden kaybolacak** bir gürültüdür.
 
-### 7.3 1 Hz istatistik
+### 8.2 Açma, kodlama, kaydetme — ölçüldü
 
-`StatsBar` saniyede bir `StatsBarModel.refresh` çağırıyor (`StatsBar.java:105-113`); bu,
-`SessionStats` üzerinden:
+`TextCodec.decode` / `TextCodec.encode` / `AtomicFiles.writeMoving` doğrudan çağrılarak
+(target/classes üzerinde, harness §15.3) ölçüldü. Kaydetme **fsync dahildir**
+(`channel.force(true)` + dizin fsync).
 
-- `trim().split("\\s+")` — kelime dizisi tahsisi (tam metin),
-- üç ayrı `replace(...)` — karakter sayısı için üç tam kopya,
-- `split("\n", -1)` — satır dizisi tahsisi.
+| Belge | Karakter | decode | encode | kaydet (soğuk) | kaydet (sıcak) |
+|---:|---:|---:|---:|---:|---:|
+| 0 MB | 0 | 13,5 ms* | 0,1 ms | 1,1 ms | 0,2 ms |
+| 1 MB | 1.048.582 | 14,1 ms | 13,0 ms | 1,4 ms | 0,6 ms |
+| 2 MB | 2.097.164 | 5,6 ms | 13,1 ms | 1,6 ms | 0,8 ms |
+| 10 MB | 10.485.820 | 23,9 ms | 36,0 ms | **7,1 ms** | **3,9 ms** |
 
-10 MB'lık bir belgede bu, saniyede onlarca MB geçici çöp demek. **Ölçülmedi**, ama karmaşıklık
-O(n) ve saniyede bir tekrar ediyor. Kabul edilebilir sınır, belge boyutuna göre tanımlanmalı.
+\* 0 MB satırındaki decode süresi JIT ısınmasıdır; ölçüm sırası gereği ilk çağrıdır.
 
-### 7.4 Otomatik kayıt
+**Üç sonuç:**
 
-`attach` içinde `new KeyFrame(..., e -> snapshot(editorArea.getText()))`
-(`AutoSaveService.java:136`). Argüman, `snapshot` içindeki kirli kontrolünden **önce**
-değerlendirildiği için **temiz belgede bile tam metin kopyası** alınıyor; odak kaybında da
-aynı (`:140-144`). Sonra `store.saveDraft` UTF-8'e serileştirip atomik yazıyor
-(`RecoveryStore.java:112-116,387-399`) ve `AtomicFiles` `fsync` yapıyor — hepsi FX thread'inde.
+1. **Yerel NVMe'de kaydetme hızlıdır.** 10 MB'lık bir belge 7,1 ms'de yazılıyor — fsync dahil.
+   v3.1'in "1 MB'da hissedilir duraklama, 10 MB'da donma" iddiası **yerel diskte yanlıştır** ve
+   bu belgede **GEÇERSİZ** sayılır. Kullanıcı bir kare bile görmez.
+2. **Asıl maliyet kodlamadır, yazma değil.** 10 MB'da encode 36 ms, yazma 7 ms: oran **5:1**.
+   Yani "G/Ç'yi thread'den çıkar" işi, ölçülen yükün yalnız **%16'sını** taşır. Geri kalanı CPU
+   işidir ve thread değiştirmek onu hızlandırmaz — azaltmak gerekir (§8.4).
+3. **Ağ dosya sistemleri hâlâ açık risktir.** Ölçüm yerel NVMe'de; SMB/NFS'te `channel.force`
+   saniyeler sürebilir ve o zaman FX thread'i gerçekten donar. Bu senaryo **ölçülmedi** ve
+   ölçülmeden "donma yok" denmemelidir.
 
-Yani 30 s'de bir: tam kopya + tam serileştirme + disk senkronizasyonu. 1 MB'da hissedilir,
-10 MB'da donma.
+### 8.3 Tekrar eden maliyet — gerçek darboğaz burada (X5)
 
-### 7.5 G/Ç ve bellek çarpanı
+Ürünün saniyede bir çalışan işi `StatsBar` yenilemesidir (`StatsBar.java:105-112`,
+`new KeyFrame(Duration.seconds(1), …)`). `StatsBarModel.refresh` altı getter çağırıyor
+(`StatsBarModel.java:86-99`), bunların dördü tam metin taraması:
 
-- Yükleme: `byte[]` → `String` → `TextArea` metni (en az 3 kopya).
-- Kaydetme: `String` → `CharBuffer` → `byte[]` → temp dosya → rename.
-- Otomatik kayıt: ek olarak `String` kopyası + `byte[]`.
-- Kurtarma taraması: her aday için tam `readAllBytes` (`RecoveryStore.java:271`).
+| Metot | Karmaşıklık | Ne yapıyor |
+|---|---|---|
+| `SessionStats.getWordCount` | O(n) | `currentText.trim().split("\\s+").length` — tam dizi tahsisi |
+| `getCharCountNoSpaces` | O(n) | `replace(" ","").replace("\n","").replace("\r","")` — **üç tam kopya** |
+| `getLineCount` | O(n) | `split("\n", -1).length` — tam dizi tahsisi |
+| `getCharCount` | O(1) | `currentText.length()` |
+| `getWpm`, `getSessionDuration` | O(1) | sayaçlar |
 
-Belge boyutunun 3–5 katı bellek ve disk geçici kullanımı mümkün. Boyut sınırı, uyarı veya
+Ölçülen bir yenileme maliyeti (dört O(n) getter, tek seferlik):
+
+| Belge | 1 yenileme | 10 yenileme | Saniyede FX thread payı |
+|---:|---:|---:|---:|
+| 0 MB | 0,0 ms | 0,0 ms | %0 |
+| 1 MB | 58,4 ms | 166,2 ms | **%5,8** |
+| 2 MB | 27,2 ms | 234,8 ms | %2,7 |
+| 10 MB | **163,7 ms** | 1.727,7 ms | **%16,4** |
+
+(1 MB satırındaki ilk ölçüm JIT ısınması içerir; 10 tekrarın ortalaması gerçek eğimi verir:
+1 MB ≈ 16,6 ms, 2 MB ≈ 23,5 ms, 10 MB ≈ 172,8 ms — yaklaşık doğrusal, O(n) doğrulandı.)
+
+**Karşılaştırma — 30 saniyelik pencere:**
+
+| İş | Sıklık | 10 MB'da 30 s'lik toplam |
+|---|---:|---:|
+| İstatistik yenilemesi | 1 Hz | **~4.910 ms** |
+| Otomatik kayıt (encode + yazma) | 1/30 Hz | ~43 ms (encode 36 + yazma 7) |
+| Kullanıcı kaydetmesi | elle | ~43 ms |
+
+**Sonuç:** Tekrar eden FX-thread yükünün **%99'u istatistik yenilemesidir.** 10 MB'lık bir
+taslakta yazarken saniyenin altıda biri sürekli olarak tam metin taramasına gidiyor; bu, tuş
+gecikmesini değil **kare atlamasını** üretir — yani "kesintisiz yazma" hissini bozan şey
+otomatik kayıt değil, **sayaçtır**. Bu, v3.1'in X2/X3 bulgusunu doğrular ama **önceliğini
+tersine çevirir**: sıra "önce otomatik kayıt" değil, "önce sayaç".
+
+Düzeltmenin maliyeti de ölçülmüş: artımlı sayaç (kelime/satır sayısını yalnız değişen bölgede
+güncellemek) O(n) taramayı tamamen kaldırır; iş, `SessionStats`'ın API'sini koruyup içini
+değiştirmektir — tek sınıf, 112 satır, JavaFX'siz, testli (`SessionStatsTest`, 12 test).
+
+### 8.4 Bellek ve disk çarpanı
+
+| Yol | Kopya sayısı (10 MB belge) |
+|---|---|
+| Yükleme | `byte[]` → `String` → `TextArea` metni: **≥3** |
+| Kaydetme | `String` → `CharBuffer` → `byte[]` → temp: **≥3** |
+| Otomatik kayıt | ek olarak `getText()` kopyası + `byte[]`: **+2** |
+| Kurtarma taraması | her aday için tam `readAllBytes` (`RecoveryStore.java:271`): **N × belge** |
+| Kalıcı disk | belge + 3 yedek = **4,00×** (ölçüldü, §6.2/D14); kaydetme anında tepe ≈**6×** |
+
+Belge boyutunun 3–6 katı geçici bellek ve disk kullanımı normaldir; boyut sınırı, uyarı veya
 ilerleme göstergesi yok.
 
-### 7.6 Ölçülmemiş senaryolar
+### 8.5 Otomatik kayıt — ölçülen ve ölçülmeyen
 
-| Senaryo | Durum |
-|---|---|
-| 1 MB belge: açma/kaydetme süresi | Ölçülmedi |
-| 10 MB belge: tuş gecikmesi, kaydetme donması | Ölçülmedi |
-| 50 MB belge: `readAllBytes`, OOM, undo belleği | Ölçülmedi |
-| 1.000 taslak dosyası olan kurtarma dizini | Ölçülmedi |
+`AutoSaveService.java:136`:
 
-P2'de performans iddiası kurulacaksa **önce bu dört ölçüm** alınmalı; bugünkü tek veri,
-mimarinin senkron olduğu ve karmaşıklığın O(n) olduğu.
+```java
+new Timeline(new KeyFrame(Duration.seconds(AUTOSAVE_SECONDS), e -> snapshot(editorArea.getText())))
+```
+
+Argüman `snapshot` gövdesinden **önce** değerlendirildiği için, kirli kontrolü
+(`:308 if (fileService.hasUnsavedChanges())`) çalışmadan **temiz belgede bile tam metin kopyası**
+alınıyor; odak kaybında da aynı (`:140-144`). `getText()` maliyeti toolkit gerektirdiği için
+**ölçülmedi**; ama tam bir `String` kopyası olduğu ve encode'un 10 MB'da 36 ms tuttuğu
+düşünülürse, bu yolun tamamı (kopya + encode + yazma) ~40–60 ms mertebesindedir ve 30 saniyede
+bir çalışır. Yani **kabul edilebilir** — yine de kirli kontrolünden önce alınması gereksiz bir
+kopyadır ve düzeltmesi tek satırdır.
+
+### 8.6 Ölçülmemiş senaryolar (P2'de iddia kurulacaksa önce ölçülmeli)
+
+| Senaryo | Durum | Neden önemli |
+|---|---|---|
+| 50 MB belge: açma, tuş gecikmesi, undo belleği, OOM | **Ölçülmedi** | `readAllBytes` + sınırsız undo (M7) burada çöker |
+| Ağ dosya sistemi (SMB/NFS) kaydetme | **Ölçülmedi** | §8.2'nin "hızlı" sonucu yalnız yerel disk için geçerli |
+| 1.000 taslak dosyalı kurtarma dizini | **Ölçülmedi** | D4 bugün açılışı kilitler |
+| `getText()` maliyeti (toolkit gerekir) | **Ölçülmedi** | §8.5'in tek eksik terimi |
+| Windows açılış ve RSS | **Ölçülmedi** | `jpackage` yalnız host platformu için paket yazar; macOS kapsam dışı (§2.4) |
+
+**Kural:** P2'de "hızlı/donmaz" iddiası kurulacaksa, önce bu beş satırın en az üçü ölçülmeli.
+Bugünkü tek sağlam veri: 10 MB'a kadar yerel diskte açma ~24 ms, kaydetme ~7 ms, istatistik
+~164 ms/s.
 
 ---
 
-## 8. UX, Erişilebilirlik ve i18n
+## 9. UX, Erişilebilirlik ve Yerelleştirme
 
-### 8.1 Kontrast kapsamı
 
-`ContrastRatioTest` gerçek CSS dosyalarını ayrıştırıp şunları zorluyor (eşikler 4,5:1 metin,
+### 9.1 Diyaloglar
+
+- **Tema aktarımı merkezî ve doğru:** `DialogStyling` her `Alert`'a uygulanıyor (PW-08'in
+  kazancı). Koyu/sepya temada beyaz kutu kalmıyor.
+- **Boyut kelepçesi yalnız iki özel sahnede:** `WelcomeDialog.java:108-109`,
+  `AboutDialog.java:138-139` (`DialogSizing.clampWidth/clampHeight`), `setResizable(true)`
+  `:121`/`:151`.
+- **9 `Alert`'ın hiçbirinde** `setResizable`, `setWrapText` veya yükseklik kelepçesi yok:
+
+| Çağrı | Ne var | Ne yok |
+|---|---|---|
+| `DialogService.java:96` (üzerine yaz) | title/header/content/owner | sarma, kelepçe, resize |
+| `:133` (kaydedilmemiş değişiklik) | aynı | aynı |
+| `:164` (kodlama yükseltme) | aynı | aynı |
+| `:187` (bozuk kodlama) | aynı | aynı |
+| `:202` (kodlama) | aynı | aynı |
+| `:230` (kurtarma) | aynı | aynı |
+| `:263` (hata) | aynı | aynı |
+| `CrashHandler.java:68` (çökme) | + tema | aynı |
+| `SingleInstanceWarning.java:28` (ikinci örnek) | + tema | aynı |
+
+**U1 hâlâ açık.** Almanca `encodingUpgradeContent` gibi uzun metinler 768 px ekranı aşabilir;
+`Alert` varsayılan olarak sarmaz ve yeniden boyutlandırılamaz. Ölçülmedi (toolkit gerekir) ama
+kod garanti vermiyor.
+
+### 9.2 Kontrast kapsamı — ölçülen
+
+`ContrastRatioTest` gerçek CSS dosyalarını ayrıştırıp şunları **zorluyor** (eşikler 4,5:1 metin,
 3:1 bileşen):
 
-- `.stats-label`/`.stats-clock`/`.stats-save`/`.stats-warning`,
-- odak halkası ve odaklı popup satırı,
-- karşılama CTA (dinlenme + hover), About e-postası, tagline,
-- 5 vurgu rengi × 3 tema,
-- yazı boyutu ≥ 13 px, popup hücresi = kapalı combo, geçersiz CSS özelliği yok.
+`-stats-text` · `-stats-save-text` · `-stats-warning-text` (hepsi `-toolbar-bg`'ye karşı) ·
+`-focus-ring` (`-toolbar-bg`, `-editor-bg`, `-toolbar-hover`'a karşı, 3:1) · `-focus-ring-text`
+(`-focus-ring`'e karşı) · `-welcome-button-text` (dinlenme + hover) · `-welcome-button-bg`
+(e-posta bağlantısı, `-welcome-bg`'ye karşı) · `-welcome-muted` (tagline) · **5 vurgu rengi × 3
+tema** · yapısal: `.stats-*` ≥13 px, popup hücresi = kapalı combo boyutu, yasak özellik yok,
+odak rengi saydam değil, koyu palet hex'leri sabitlenmiş.
 
-**Ölçülmeyenler:** `-toolbar-text` (düğme ve combo metni), düz popup satırları, seçili popup
-satırı, `.about-email:hover`, varsayılan editör metni (`TextColor.DEFAULT` bilinçli atlanıyor).
-Ayrıca `-toolbar-text-muted` tanımlı ama **hiçbir kuralda kullanılmıyor** ve açık/sepya
-temalarında AA altıdır; ölü token olduğu için test de görmüyor.
+**Ölçülmeyenler (U3):**
 
-### 8.2 Diyaloglar
+| Seçici / token | Neden önemli |
+|---|---|
+| `-toolbar-text` (`base.css:108,138,191,237`) | Düğme, combo ve popup satır metni — **arayüzün en çok okunan metni** |
+| düz popup satırları | Combo açıldığında okunan metin |
+| `.about-email:hover` (`base.css:486-488`) | Bağlantının hover hâli |
+| varsayılan editör metni (`light.css:45`, `dark.css:45`, `sepia.css:44`) | `TextColor.DEFAULT` bilinçli atlanıyor (`ContrastRatioTest.java:250-251`) — **belgenin kendisi** ölçülmüyor |
+| **`-toolbar-text-muted`** | Üç temada da **tanımlı** (`light/dark/sepia.css:10`) ve **hiçbir kuralda kullanılmıyor** — ölü token, bu yüzden test de görmüyor |
 
-- Tema aktarımı merkezî ve doğru: `DialogStyling.applyFromScene` her `Alert`'a uygulanıyor.
-- Boyut kelepçesi **yalnız özel sahnelere** uygulanıyor (`WelcomeDialog`, `AboutDialog`:
-  `DialogSizing`, kaydırma, yeniden boyutlandırma).
-- **9 `Alert`** (`DialogService` ×7, `CrashHandler`, `SingleInstanceWarning`) için
-  `setResizable`, `setWrapText` veya yükseklik kelepçesi **yok**. Almanca
-  `encodingUpgradeContent` gibi uzun metinler 768 px ekranı aşabilir — **U1**.
-- İki başlıkta `" - "` ayırıcısı kodda birleştiriliyor (`DialogService.java:189,204`).
-- Çökme diyaloğu ham `Throwable.toString()` basıyor (`CrashHandler.java:71`) → İngilizce JVM
-  metni UI diline karışıyor — **U11**.
+**Yorum:** Test, PW-44 ile genişletildi ve gerçekten iyi bir kapsama ulaştı; ama tam olarak
+**kullanıcının en çok baktığı iki yüzey** (araç çubuğu metni ve editör metni) kapsam dışı.
+Bu, "kontrast kapısı var" iddiasını koşullu yapar; P2'de kapatılması ucuz (aynı testin
+token listesine iki giriş).
 
-### 8.3 Klavye ve erişilebilirlik
+### 9.3 Klavye ve erişilebilirlik
 
-- Erişilebilir ad: yalnız 6 combo için `setAccessibleText` + 1 `COMBO_BOX` rolü
-  (`ToolbarView.java:399-404,539`). Editör, durum çubuğu, düğmeler, karşılama/Hakkında
-  düğmeleri **adsız** — **U6**.
-- Durum çubuğu yazı boyutu **yalnız fare çift tıklamasıyla** değişiyor
-  (`StatsBar.java:98-103`) — **U2**. Klavyeyle büyütme yok.
-- Odak aktarımı saf politika olarak var ve testli (`MainController.handOffFocusToEditor`),
-  ama gerçek Tab sırası/traversal doğrulanmıyor.
-- `viewOrder` ile görsel sıra sabitlenmiş; JavaFX bunu odak için **garanti etmiyor**
-  (README bunu dürüstçe yazıyor).
+- **Erişilebilir ad: yalnız 6 combo.** `setAccessibleText` 6 kez (`ToolbarView.java:399-404`),
+  `setAccessibleRole(COMBO_BOX)` 1 kez (`:539`). Editör, durum çubuğu etiketleri, 5 araç çubuğu
+  düğmesi, karşılama/Hakkında düğmeleri ve Hakkında bağlantısı **adsız** (U6). Düğmelerin
+  görünür metni var, ama ekran okuyucu için rol/ad eşlemesi yok.
+- **Yazı boyutu — düzeltilmiş bulgu.** v3.1 "yazı boyutu yalnız fare çift tıklamasıyla değişiyor"
+  diyordu. **Doğrusu:** editör yazı boyutunun **klavye yolu var** —
+  `KeyboardShortcutHandler.java:101-103` (`Ctrl+0`, `Ctrl++`, `Ctrl+-`) ve combo
+  (`ToolbarView.java:174-181`). Yalnız **durum çubuğunun** boyutu (SMALL/MEDIUM/LARGE) farenin
+  çift tıklamasına bağlı (`StatsBar.java:98-103`). Yani **U2 daraltıldı**: etki 3 → 1.
+- Odak aktarımı saf politika olarak var ve testli; gerçek Tab sırası doğrulanmıyor.
+- `viewOrder` ile görsel sıra sabitlenmiş; JavaFX bunu odak için garanti etmiyor.
 - Mnemonic yok; tüm erişim Tab ve kısayollara bağlı.
+- **Pencere minimum genişliği yok.** `src/main`'de `setMinWidth/setMinHeight` hiç geçmiyor;
+  `MainStage.java:53-54` yalnız kayıtlı genişlik/yükseklik veriyor. 900 px altında araç çubuğu
+  kırpılıyor (U8) — README bunu dürüstçe yazıyor.
 
-### 8.4 Platform kısaltma gösterimi
-
-`KeyboardShortcutHandler` macOS'ta `isShortcutDown()` (Cmd) **ve** Ctrl kabul ediyor
-(`:76-83`), ama araç çubuğu tooltip'leri sabit `"Ctrl+O"…` (`ToolbarView.java:84-91`), karşılama
-kartı da 6 dilde `Ctrl+...` yazıyor. macOS kullanıcısına yanlış tuş söyleniyor — **U4**.
-
-### 8.5 Yerelleştirme borcu
+### 9.4 Platform kısaltma gösterimi ve yerelleştirme borcu
 
 | Sorun | Kanıt | Etki |
 |---|---|---|
-| Sabit `dd.MM.yyyy` ve `HH:mm:ss` | `StatsBarModel.java:51-52` | FR/EN kullanıcısı kendi biçimini görmez — **U5** |
+| Tooltip'ler sabit `Ctrl` yazıyor | `ToolbarView.java:84-91` (`"Ctrl+O"`…) | Desteklenen iki platformda da doğru; **U4 macOS kaldırılmasıyla etkisizleşti** (§2.4) |
+| Sabit `dd.MM.yyyy` / `HH:mm:ss` | `StatsBarModel.java:51-52` | FR/EN kullanıcısı kendi biçimini görmez — **U5** |
 | Sabit `HH:mm` kaydetme etiketi | `MainController.java:33` | aynı |
-| `": "` ve `" - "` ayırıcıları kodda | `ToolbarFit.java:93`, `MainController.java:184` | düşük |
-| ES/IT bundle'larında formal/informal karışıklığı | `messages_es`, `messages_it` | düşük |
-| Çökme başlıkları İngilizce | `CrashHandler.java:43`, `FxApplication.java:77` | düşük-orta |
-| `MessageFormat` apostrofları kaçırılmış | 6 bundle | tipografik `’` hiç görünmüyor; kabul edilebilir |
+| `": "` ve `" - "` ayırıcıları kodda | `ToolbarFit.java:93`, `MainController.java:184`, `DialogService.java:189,204` | düşük (RTL dillerinde orta) — **U12** |
+| Çökme metinleri İngilizce | `CrashHandler.java:43` (`"Uncaught exception in "`), `FxApplication.java:77` (`"Startup failed"`), ham `Throwable.toString()` `:71` | İngilizce JVM metni UI diline karışıyor — **U11** |
+| Karşılama kartı her açılışta, opt-out yok | `FxApplication.java:70` | Günlük kullanıcı için sürtünme — **U7** |
 
-**İyi olan:** anahtar paritesi iki yönlü testli; sayı biçimi UI dilini kullanıyor; TR/DE locale
-koşuları CI'da; ölü anahtar yok; argümanlı anahtarlar 6 dilde biçimleniyor.
+**İyi olan:** 6 bundle × 90 anahtar, **iki yönlü parite testli**; her anahtar `Messages.java`'dan
+erişilebilir (0 ölü, 0 sarkan); sayı biçimi UI dilini kullanıyor; TR/DE locale koşuları CI'da.
+Bu, P1'in gerçek kazancı ve P2'de korunması gerekiyor.
 
-### 8.6 İlk açılış ve pencere
+**Yeni anahtar maliyeti:** 90 anahtar × 6 dil = 540 çeviri satırı; her yeni özellik (arama, menü,
+yazdırma, son dosyalar) ortalama 10–20 anahtar getirecek → 60–120 yeni çeviri. Bu, P2'nin
+**gizli efor kalemidir** ve yol haritasında görünmez (bkz. §13.4).
 
-- Karşılama kartı **her açılışta** gösteriliyor (`FxApplication.java:70`); "bir daha gösterme"
-  ayarı yok — **U7**. İlk kullanıcı için iyi, günlük kullanıcı için sürtünme.
-- Pencere **minimum genişlik yok**; 900 px altında araç çubuğu kırpılabiliyor — **U8**.
-  README bunu açıkça yazıyor.
-- Geometri geri yükleme ekran dışı konumlara karşı korumalı ve testli (`MainStage`).
-- Tam ekran geri yükleme, `Escape` ile çıkış, `F11` — çalışıyor.
-- İlk odak: modal karşılama kapandıktan sonra editöre veriliyor; kartın **içindeki** ilk odak
-  doğrulanmadı (toolkit testi yok).
+### 9.5 Ses politikası
 
-### 8.7 Ses
-
-- Her `KEY_PRESSED` için, yalnız modifier'lar hariç (`EditorKeyHandler.java:31-35`). Yani ok
-  tuşları, Home/End, F tuşları, Caps Lock ve **Ctrl+S gibi kısayol akorları** da ses çıkarıyor.
-  İstatistik sayacı ise `KEY_TYPED` ile ayrı sayıyor → ses ile sayaç çelişebilir — **U9**.
-- Ses seviyesi sabit `0.5`, UI'da yalnız aç/kapat var (`TypewriterSound.java:45-46`).
-- Hızlı yazımda `stop()+play()` her tuşta klibi yeniden başlatıyor → takılma hissi.
+- Ses her **modifier olmayan** `KEY_PRESSED`'da çalıyor (`EditorKeyHandler.java:31-34`): ok
+  tuşları, Home/End, F tuşları, Caps Lock ve **`Ctrl+S` gibi akorlar** da tıkırdıyor.
+- Sayaç yalnız **`KEY_TYPED` ve karakter var** olduğunda artıyor (`:37-40`).
+- Yani **ses ile sayaç ayrı olaylara bağlı** ve çelişebiliyor (U9). Kullanıcı "1000 tuş yazdım"
+  sanırken sayaç daha az gösterir; ya da gezinti tuşlarına tıklama sesi gelir.
+- Ses seviyesi sabit `0.5` (`TypewriterSound.java:45-46`), private `final`, setter yok; yalnız
+  aç/kapat var.
+- Hızlı yazımda `stop()+play()` klibi her tuşta yeniden başlatıyor → takılma hissi.
 - Ses hatası sessizce WARN'a düşüyor; kullanıcı sese ne olduğunu bilmiyor.
 
-### 8.8 macOS
+Bu, ürünün **adında olan** özellik (`JTypeWriter`) ve politika hataları doğrudan fark edilir;
+U9'un etkisi 2 değil **3** olarak okunmalı.
 
-Kodda `QuitHandler`, `SystemMenuBar`, AWT `Desktop` (mail hariç) veya Dock entegrasyonu yok.
-Kapatma yalnız `stage.setOnCloseRequest` + `Application.stop()` üzerinden. **macOS `Cmd+Q`
-davranışı kodla garanti edilmiyor**; test de yok. Bu, P2'de doğrulanması gereken bir
-belirsizliktir (U10) — ve P1'in "hiçbir çıkış taslağı silmez" garantisinin platform ayağıdır.
+### 9.6 macOS — kapsam dışı (karar kaydı)
+
+macOS **desteklenen platform değildir** (§2.4). Bu bölüm, kaldırılan bir hedefin bıraktığı
+teknik borcu kaydetmek için duruyor:
+
+- Kodda `QuitHandler`, `SystemMenuBar`, Dock entegrasyonu yok; AWT `Desktop` yalnız e-posta
+  için (`AboutDialog.java:80`).
+- Kapatma yalnız `stage.setOnCloseRequest` + `Application.stop()`
+  (`MainStage.java:83-89`, `FxApplication.java:107-113`). **macOS `Cmd+Q` davranışı kodla
+  garanti edilmiyordu** ve testi yoktu — bu, P1'in "hiçbir çıkış taslağı silmez" garantisinin
+  macOS ayağının kanıtsız kalması demekti (**U10**).
+
+Kaldırma bu borcu **çözmedi, sildi**: artık doğrulanacak bir macOS çıkış yolu yok. Aynı şey
+macOS'a özgü diğer iddialar için de geçerlidir (Dock, `~/.jtypewriter` yerine
+`Application Support`, `.app` paket yerleşimi). Bir gün macOS yeniden gündeme gelirse bu
+bölüm, o fazın başlangıç borç listesidir — ve §10.6b'deki kapı analizi hâlâ geçerlidir.
 
 ---
 
-## 9. Paketleme, Dağıtım ve Destek
+## 10. Paketleme, Dağıtım ve Destek
 
-### 9.1 Artefakt envanteri (taze build, Linux x64)
+
+### 10.1 Artefakt envanteri (taze build, Linux x64, 2 Kasım 2026)
+
+> **Sayılar neden 1 Kasım'a göre biraz küçük?** macOS kaldırılırken `jtypewriter.icns`
+> (221.892 B ham) depodan çıkarıldı, yani fat JAR'dan da düştü: imaj 152.660.043 →
+> **152.465.247 B**, JAR 11.204.618 → **11.009.822 B** (her ikisinde −194.796 B), `.deb`
+> 49.686.050 → **49.488.700 B**, jar girişi 6.106 → **6.105**. Fark tam olarak tek bir ikon
+> dosyasının JAR içindeki sıkıştırılmış katkısıdır; runtime boyutu (§10.2) değişmedi.
 
 | Artefakt | Boyut | Not |
 |---|---:|---|
-| `JTypeWriter/` app image | **145,6 MiB** (152.660.043 B) | 125 dosya |
-| ├ `lib/runtime` | 133,5 MiB (139.967.672 B) | **%91,7**; 52 modül |
-| └ `lib/app` | 10,7 MiB (11.204.099 B) | tek fat JAR, 6.106 giriş |
-| `jtypewriter_1.0.0_amd64.deb` | **47,4 MiB** (49.663.034 B) | 12 runtime bağımlılığı |
-| `JTypeWriter-1.0.0-linux-x64.tar.gz` | **59,3 MiB** (62.188.431 B) | imajın %40,7'si |
-| Kaynak arşivi | 0,68 MiB (711.297 B) | `git archive` |
+| `JTypeWriter/` app image | **152.465.247 B = 145,4 MiB** | 125 dosya |
+| ├ `lib/runtime` | **139.967.672 B = 133,5 MiB = %91,7** | **52 modül** |
+| └ `lib/app` (tek fat JAR) | **11.009.822 B = 10,5 MiB** | 6.105 giriş, 91 uygulama sınıfı |
+| `jtypewriter_1.0.0_amd64.deb` | **49.488.700 B = 47,2 MiB** | `Installed-Size` 149.140 KiB, **12** bağımlılık |
+| JAR açılmış toplam | 23.174.417 B | sıkıştırma oranı ≈2,1× |
 
-Ölçüm: 30 Ekim 2026, temiz `releases/` üzerine `./scripts/package.sh --installer`, ardından
-`bash scripts/release-assets.sh 1.0.0 linux x64 releases/linux <out>` (`.deb` ve `.tar.gz`'nin
-normalize adlarını üreten yol budur; `package.sh` yalnız jpackage çıktısını yazar).
-`du -sb` ile bayt, `du -h --apparent-size` ile MiB doğrulandı.
+`dpkg-deb -f`: `Depends: libasound2t64, libc6, libx11-6, libxau6, libxcb1, libxdmcp6, libxext6,
+libxi6, libxrender1, libxtst6, xdg-utils, zlib1g`.
 
-İmajda `bin/java` yok (jpackage başlatıcısı), bu iyi. Ama `modules` dosyası tek başına
-86,4 MiB (90.567.712 B); `jdk.compiler`, `jdk.javadoc`, `jdk.jshell`, `jdk.jfr`,
-`jdk.jdwp.agent` gibi uygulamanın kullanmadığı modüller taşınıyor. **jlink yok.**
+İmajda `bin/java` yok (jpackage başlatıcısı) — doğru. Ama `lib/runtime/lib/modules` tek başına
+**90.567.712 B (86,4 MiB)** ve taşınan modül listesi uygulamanın kullanmadıklarını içeriyor:
 
-> **Kapsam notu:** Windows ve macOS artefaktları bu makinede üretilemez — `jpackage`
-> yalnız kendi platformu için paket yazar (`AGENTS.md`). Bu iki platformun ölçümü CI'da
-> `maven.yml` matrisinin (3 OS) çıktısına bağlıdır; bu belgede **yerel build yoktur** ve
-> Windows/macOS boyutları hâlâ "çıkarıldı" seviyesindedir (§2.1).
+```
+jdk.compiler  jdk.javadoc  jdk.jshell  jdk.jfr  jdk.jconsole  jdk.attach
+jdk.jdi  jdk.jdwp.agent  jdk.internal.ed  jdk.internal.le  jdk.httpserver
+jdk.incubator.vector  jdk.sctp  jdk.accessibility  ...
+```
 
-### 9.2 Runtime ağırlığı ve ölü ağırlık
+Bir metin editörü için gereken modül kümesi `java.base`, `java.desktop`, `java.logging`,
+`java.xml` (JavaFX CSS/XML), `java.prefs`, `java.datatransfer`, `java.scripting`,
+`jdk.unsupported` mertebesindedir.
 
-- JavaFX Media: 72 sınıf / 170.997 B + `libgstreamer-lite.so` 2.308.048 B + 9
-  `libavplugin*.so` (toplam 470.976 B) + `libjfxmedia.so` 574.824 B; uygulamada yalnızca
-  71.204 B'lik `keystroke.wav` için kullanılıyor.
-- JavaFX FXML: 41 sınıf / 129.523 B; `fxml/main.fxml` yalnızca boş bir `BorderPane`.
-- İkisinin çıkarılması fat JAR'ı küçültür; jpackage imajında büyük kazanç **jlink** ile gelir.
+> **Kapsam notu:** Windows artefaktı bu makinede üretilemez — `jpackage` yalnız kendi
+> platformu için paket yazar (`AGENTS.md`). Bu platformun boyutu CI matrisinin (2 OS) çıktısına
+> bağlıdır; bu belgede **yerel build yoktur** ve o boyut "çıkarıldı" seviyesindedir. macOS
+> kapsam dışıdır (§2.4).
 
-### 9.3 CI kapıları ve eksik smoke test
+### 10.2 jlink — bu kez tahmin değil, ölçüm
+
+v3.1 "145 → ~50 MiB" diyordu (çıkarım). Bu makinede gerekli 8 modülle denendi:
+
+```bash
+jlink --add-modules java.base,java.desktop,java.logging,java.xml,java.prefs,
+      java.datatransfer,java.scripting,jdk.unsupported \
+      --strip-debug --no-header-files --no-man-pages --compress=zip-6 --output rt
+```
+
+Sonuç: **62.248.693 B ≈ 59 MiB** (JDK 25.0.2'nin kendi `jmods`'undan).
+
+| Senaryo | Runtime | İmaj | Kazanç |
+|---|---:|---:|---:|
+| Bugün | 133,5 MiB | 145,4 MiB | — |
+| jlink (8 modül, ölçüldü) | ~59 MiB | **~71 MiB** | **~74 MiB / %51** |
+
+JavaFX kendi modüllerini/jar'larını getirdiği için ek modül gerekmiyor. **Sonuç:** jlink,
+ürünün indirme boyutunu **yarıya** indirir ve bu, ölçülmüş bir gerçektir; "P3'e ertelendi"
+kararı artık bir *ölçüm* değil bir *öncelik* kararıdır. Teknik engel yok; tek engel
+`UndoHistoryReset`'in yansıma tabanlı undo temizliğinin modül yolunda sessizce çalışmaması
+(M6) — yani jlink, M6'yı **önkoşul** yapar.
+
+### 10.3 Ölü ağırlık — JAR içinde
+
+Fat JAR 11,2 MiB; içinde:
+
+| Bileşen | Boyut | Kullanım |
+|---|---:|---|
+| JavaFX Media sınıfları (75 giriş) | 173.704 B | yalnız **71.204 B'lik** `keystroke.wav` için |
+| Media native: `libjfxmedia`, `libgstreamer-lite`, 9× `libavplugin*` | **3.353.648 B** | aynı |
+| JavaFX FXML sınıfları (79 giriş) | 238.188 B | `fxml/main.fxml` **boş bir `BorderPane`** (280 B) |
+
+Toplam **≈3,77 MiB = JAR'ın %34'ü**, iki bağımlılık (`javafx-media`, `javafx-fxml`, `pom.xml:73-82`)
+yüzünden taşınıyor. Ses `javax.sound.sampled`'a, FXML yükleme düz Java'ya çevrilirse JAR ~7,4 MiB'e
+iner ve `THIRD-PARTY-NOTICES`'tan GStreamer/KISS FFT/FFmpeg-plugin bölümleri **çıkabilir**
+(lisans yükü azalır).
+
+### 10.4 CI kapıları ve eksik smoke test
 
 | Kapı | Var? | Not |
 |---|---|---|
-| Enforcer (JDK 25, Maven 3.8) | ✅ | `validate` aşamasında |
-| 350 test × 3 OS | ✅ | |
-| TR/DE locale koşusu | ✅ | 3 kez suite |
-| Lisans/üçüncü taraf bildirimleri | ✅ | `PackagingNoticesTest` + `package.sh` |
-| Sürüm/tag eşleşmesi | ✅ | `release.yml` `prepare` işi |
-| **Artefaktı çalıştırma** | ❌ | CI'da imaj açılmıyor, deb kurulmuyor (elle doğrulama §9.8) |
-| Kod imzalama / notarization | ❌ | |
-| Kapsam ölçümü (JaCoCo) | ❌ | |
-| Statik analiz / SBOM / zafiyet taraması | ❌ | |
-| Maven bağımlılık güncellemesi (Dependabot) | ❌ | Yalnız `github-actions` |
+| Enforcer (JDK 25, Maven 3.8) | ✅ | `pom.xml:114-131` |
+| 350 test × 2 OS | ✅ | `maven.yml:48` |
+| TR/DE locale koşusu (3× suite) | ✅ | `maven.yml:66,68` |
+| Lisans/telif bildirimleri | ✅ | `PackagingNoticesTest` + `package.sh` |
+| Sürüm/tag eşleşmesi | ✅ | `release.yml:55` |
+| Retention ≤ 7 gün | ✅ | `ReleaseNotesTest` |
+| **Artefaktı çalıştırma** | ❌ **B1** | CI'da imaj açılmıyor, `.deb` kurulmuyor |
+| **`verify-artifacts.sh`** | ❌ **B14** | Yerelde 17/17 geçiyor; hiçbir workflow çağırmıyor |
+| **İkon `--check`** | ❌ **B15** | `scripts/generate-icons.py --check` CI'da değil (PW-41 kapandı sayılmış, ama sadece W0'da *belgelendi*) |
+| Kod imzalama (Windows Authenticode) | ❌ B3 | Yok; macOS notarization'ı kapsamla birlikte düştü (§2.4) |
+| Kapsam ölçümü (JaCoCo) | ❌ | Bilinçli (§11.3) |
+| SBOM / zafiyet taraması | ❌ | — |
+| Maven bağımlılık güncellemesi | ❌ | Dependabot yalnız `github-actions` |
 
-### 9.4 Sürüm, imza, güncelleme
+**B14 neden ayrı bir bulgu:** W0.2'nin tüm değeri, "üç kopya bayt bayt aynı" garantisinin **her
+PR'da** koşmasındadır. Yerelde elle çalışan bir betik, bir sonraki `package.sh` değişikliğinde
+sessizce çürür ve o gün kimse fark etmez. Betik ilk koşusunda **gerçek bir kusur buldu**
+(`.deb` yükü `LICENSE`/`NOTICE`/`THIRD-PARTY-NOTICES`/`legal/` taşımıyordu) — bu, kapının ne
+kadar gerekli olduğunun kanıtı.
 
-- `pom.xml` tek sürüm kaynağı; tag `v<version>` olmalı; `package.sh` jpackage kurallarına
-  uymayan sürümü reddediyor. Doğru tasarım.
-- **Hiç tag atılmamış, hiç Release yok.** Yani release hattı hiç uçtan uca çalışmadı; ilk
-  sürümde sürpriz çıkma olasılığı yüksek.
-- İmza/notarization yok; release notu bunu dürüstçe yazıyor. Windows SmartScreen ve macOS
-  Gatekeeper ilk açılışta uyaracak.
-- Güncelleme denetimi yok (gizlilik tercihiyle tutarlı); kullanıcı yeni sürümü kendisi bulmalı.
-- Yeniden üretilebilirlik: `outputTimestamp` var; ama jpackage dosya mtime'larını
-  normalleştirmiyor, çift build karşılaştırması yok → **doğrulanmadı**.
+### 10.5 Sürüm, imza, güncelleme
 
-### 9.5 Platform veri yolu ve masaüstü entegrasyonu
+- `pom.xml` tek sürüm kaynağı (**1.0.0**); tag `v<version>` olmalı; `package.sh:81-85` jpackage
+  kurallarına uymayan sürümü reddediyor (`^[1-9][0-9]*(\.[0-9]+){0,2}$`); `release.yml:55` ayrıca
+  `^[0-9]+\.[0-9]+\.[0-9]+$` istiyor. Doğru tasarım.
+- **Hiç tag atılmamış, hiç Release yok.** Release hattı uçtan uca hiç çalışmadı.
+- Release hattı kendi içinde tutarlı ve dikkatli: `prepare` tag↔pom doğrulaması, 2 OS build,
+  `release-assets.sh` ile normalize adlar, `checksums.sh` ile `SHA256SUMS`, **5 varlık + tek
+  `SHA256SUMS`** assert'i, iki dilli şablon, `--verify-tag`. Yani hat **iyi tasarlanmış, hiç
+  koşmamış**. (macOS kaldırılmadan önce 3 OS ve 7 varlık bekleniyordu; §2.4.)
+- İmza yok; `docs/release-notes-template.md` bunu dürüstçe yazıyor. Windows SmartScreen ilk
+  açılışta uyaracak. macOS Gatekeeper uyarısı, platformla birlikte belgeden çıktı.
+- Güncelleme denetimi yok (gizlilik duruşuyla tutarlı).
+- Yeniden üretilebilirlik: `outputTimestamp` var (`pom.xml:61`), `verify-artifacts.sh` üç kopyayı
+  karşılaştırıyor; ama çift build'in bayt-özdeşliği (jpackage mtime normalizasyonu) **doğrulanmadı**.
 
-- `AppDirs` tüm OS'lerde `~/.jtypewriter` kullanıyor (`AppDirs.java:20`); XDG ve macOS
-  `Application Support` değil — **B7**. Kanal kararı verilmeden taşınması riskli, ama P3'te
-  kaçınılmaz.
-- Yerel `.deb`'de `.desktop` dosyası `Categories=Unknown`, `MimeType=` boş, ikon mutlak yol;
-  hicolor ikon seti, MIME XML, dosya ilişkilendirmesi yok — **B8**. (30 Ekim 2026 taze
-  build'inde doğrulandı: `/opt/jtypewriter/lib/jtypewriter-JTypeWriter.desktop`.)
-- App image'da `.desktop` yok; MSI menü/kısayol seçicisi var; DMG yalnız uygulama paketi.
+### 10.6 Masaüstü entegrasyonu
 
-### 9.6 Destek yüzeyi
+`.deb` içindeki `.desktop` (`/opt/jtypewriter/lib/jtypewriter-JTypeWriter.desktop`):
+
+```
+Categories=Unknown
+MimeType=
+Icon=/opt/jtypewriter/lib/JTypeWriter.png
+Exec=/opt/jtypewriter/bin/JTypeWriter
+Type=Application
+Terminal=false
+```
+
+`--linux-app-category "Office"` (`package.sh:390`) yalnız `.deb` `Section:` alanına gidiyor,
+`.desktop`'a değil. hicolor ikon seti, MIME XML, dosya ilişkilendirmesi yok. Yani **ürün
+"uygulamalar" menüsünde "Diğer" altında, aranabilir bir tür olmadan** duruyor. Bu, E10'un
+kullanıcıya görünen yüzü.
+
+Ayrıca `AppDirs` tüm OS'lerde `~/.jtypewriter` kullanıyor (`AppDirs.java:20`); XDG değil (B7).
+macOS `Application Support` dalı, platformla birlikte tartışmadan çıktı (§2.4); geriye yalnız
+Linux'ta `XDG_CONFIG_HOME`/`XDG_DATA_HOME` sorusu kaldı.
+
+### 10.6b Kanal ekseni — "kurulan" mı, "çalıştırılan" mı?
+
+`release-assets.sh` bugün her platform için **iki** kanal üretiyor: installer (`.deb`/`.msi`)
+ve taşınabilir `.tar.gz`. Bugüne kadarki hiçbir belge bu iki kanalı bir karar ekseni olarak
+tartışmadı; hep "hangi OS" sorusu soruldu. Oysa kanal, iki bağımsız sonucu belirliyor.
+
+**Birinci sonuç: OS güven kapısı kanaldan bağımsızdır.** Notarization/SmartScreen, paketleme
+biçiminin değil **ikilinin ve indirme kaynağının** özelliğidir:
+
+| Platform | Kapı | Tetikleyici | Taşınabilir kanal çözer mi? |
+|---|---|---|---|
+| macOS *(kapsam dışı)* | Gatekeeper + `com.apple.quarantine` | Dosya **indirildiği** anda işaretlenir — `.dmg`, `.zip`, `.tar.gz` ayırmaz | **Hayır.** `.app` yine karantinalı açılır; Developer ID imzası + notarization + staple gerekir |
+| Windows | SmartScreen + Mark-of-the-Web | İndirilen arşivden çıkan `.exe` MOTW'u miras alır | **Hayır.** Authenticode imza olmadan uyarı çıkar |
+| Linux | — | `dpkg`/`tar` imza kapısı sormaz | Zaten yok |
+
+macOS'ta taşınabilir kanal kapıyı kaldırmaz, **kullanıcıyı daha kötü bir diyaloğa** sokar:
+`.dmg` sürüklemek yerine arşiv açılır, ardından "uygulama hasarlı, çöp kutusuna taşı" mesajı
+gelir ve `xattr -d com.apple.quarantine` gerekir. Notarize edilmiş bir `.app`'te bu adım yoktur.
+Ayrıca `notarytool` yalnız `.zip`, `.dmg`, `.pkg` kabul eder — **`.tar.gz` gönderilemez**; yani
+taşınabilir kanal notarization'ı atlatmaz, onu `.app` üzerinde yapıp staple'lamayı zorunlu kılar.
+
+**Sonuç:** "notarization problemi" bir teknik engel değil, bir **bütçe** problemidir
+($99/yıl + sertifika + CI secret'ları + ~1,5–2 hafta). Taşınabilirlik bu bütçeyi düşürmez.
+Düşüren tek karar, macOS'u **hedeflememektir** — ve bu karar **2 Kasım 2026'da verilmiştir**
+(§2.4). Aşağıdaki macOS satırları artık bir seçenek değil, kararın gerekçesidir.
+
+**İkinci sonuç: taşınabilirliğin gerçek kazancı başka yerdedir — ve ölçülebilir.**
+
+| Kazanç | Neden gerçek |
+|---|---|
+| **Installer'a özgü hata sınıfı düşer** | `03c277c`'de düzeltilen kusur tam bu sınıftandı: jpackage'ın `.deb` paketleyicisi kök dizindeki `LICENSE`/`NOTICE`/`THIRD-PARTY-NOTICES`/`legal/` dosyalarını sessizce düşürüyordu. MSI kısayol seçicisi, DMG yerleşimi, `fakeroot`, `Installed-Size` yeniden hesabı, `.desktop` gömme — hepsi kendi hata modunu getiriyor |
+| **Sistem değiştirmeme dürüstlüğü** | Registry yok, root yok, kaldırma sorunu yok — tek dosya yazan bir editör için doğru duruş |
+| **"Eski sürüm kurulu" destek yükü yok** | — |
+| **Doğrulanacak kopya sayısı azalır** | `verify-artifacts.sh`'ın 17 karşılaştırmasının 6'sı `.deb`'e ait (5 yasal dosya + jar) |
+
+**Bedeli de ölçülebilir:**
+
+| Bedel | Etki |
+|---|---|
+| **Dosya ilişkilendirmesi (E10) imkansızlaşır** | `.desktop`/MIME kaydı olmadığı için "çift tıkla aç" yapısal olarak engellenir — yani P2'nin "OS'ten aç" hedefi taşınabilir kanalda **tek başına** gerçekleşemez |
+| **Linux'ta daha büyük** | Ölçülen: `.deb` 47,2 MiB vs `.tar.gz` 59,3 MiB — taşınabilir ~%25 daha büyük (çift sıkıştırma yok) |
+| **Keşfedilebilirlik** | Uygulamalar menüsünde görünmez; kullanıcı `bin/JTypeWriter`'ı kendisi bulmalı |
+| **Güncelleme tamamen manuel** | Kurulu taban yokken sorun değil; ilk 100 kullanıcıda olur |
+
+**Analitik hüküm:** kanal seçimi, notarization kararını **değiştirmez**; onu iki bağımsız eksene
+böler (OS × kanal). Linux'ta iki kanal da bedava ve kapısızdır, bu yüzden ikisini birlikte
+yayınlamak maliyet farkı küçük bir kazançtır. Windows'ta taşınabilirlik SmartScreen'i çözmez;
+imza çözer — bu bir bütçe kararıdır. macOS'ta taşınabilirlik **en kötü** kanaldı: ya imzala +
+notarize et, ya hedefleme — ve ürün ikincisini seçti (§2.4). Taşınabilirliğin gerçek değeri,
+W1'i kısaltan installer-bakım kesintisidir — ürünün "kurulmuyor" olması değil.
+
+### 10.7 Destek yüzeyi
 
 | Beklenen | Durum |
 |---|---|
 | `SECURITY.md` | ❌ |
-| Issue / PR şablonları | ❌ |
 | `CHANGELOG.md` | ❌ |
+| `CONTRIBUTING.md` / `CODE_OF_CONDUCT.md` | ❌ |
+| Issue / PR şablonları | ❌ |
 | Kurulum/kaldırma/sorun giderme belgesi | ❌ (yalnız README) |
 | "Log klasörünü aç" | ❌ (yalnız mailto) |
 | Tanılama paketi (log + ayar + sürüm) | ❌ |
@@ -720,337 +1219,494 @@ normalize adlarını üreten yol budur; `package.sh` yalnız jpackage çıktıs�
 | Uygulama içi sürüm | ✅ About |
 
 Bir kullanıcı hata bildireceğinde elinde yalnızca bir e-posta adresi ve bir dizin yolu var.
-Bu, ilk 100 kullanıcıda destek maliyetini doğrudan artırır.
+Bu, ilk 100 kullanıcıda destek maliyetini doğrudan artırır — ve ilk 100 kullanıcı P2'nin
+hedefi olduğu için bu bir "P3 cilası" değildir.
 
-### 9.7 Tedarik zinciri
+### 10.8 Lisans ve ticari model
 
-- Action'lar commit SHA'sına pinli, `permissions: contents: read`, `persist-credentials: false`
-  — olgun.
-- Dependabot yalnız action'ları güncelliyor; **Maven bağımlılıkları için giriş yok**.
-- SBOM, imza, provenance attestation yok.
-
-### 9.8 Artefakt tazeliği — taze build doğrulaması
-
-`releases/` ve `target/` git'te izlenmiyor, yani bir artefakt iddiası ancak üretildiği koşu
-kaydedilirse anlamlıdır. 30 Ekim 2026'da `releases/linux/` silinip yeniden üretildi ve
-imaj ↔ `.deb` ↔ repo üçlüsü karşılaştırıldı:
-
-| Kontrol | Önceki (bayat) değer | Taze build | Durum |
-|---|---|---|---|
-| İmajdaki `NOTICE` | 713 B | **1.338 B** = repo | ✅ eşit |
-| İmajdaki `THIRD-PARTY-NOTICES` | — | **6.220 B** = repo | ✅ eşit |
-| `.deb` içindeki fat JAR | 11.164.155 B | **11.204.099 B** = imajdaki jar | ✅ bayt-özdeş |
-| Jar'daki uygulama sınıfı | 80 | **91** (imaj ve `.deb` aynı) | ✅ eşit |
-| Jar'daki `audio/PROVENANCE.md` | yok | **var** (1.227 B) | ✅ |
-| `.deb` `Depends` | 13 | **12** | ✅ ölçüldü |
-| `.deb` copyright belgesi | doğrulanmamış | `package.sh` doğruladı (`Apache-2.0` + runtime stanza) | ✅ |
-
-Ek olarak taze imaj bu makinede **5 kez başlatıldı** (boş `user.home`, `DISPLAY=:0.0`): her
-koşuda ana pencere ve karşılama kartı açıldı; ölçüm alındıktan sonra süreç sonlandırıldı ve
-boş profil silindi. §7.1'deki süreler bu koşulardan. Bu, CI'daki eksik smoke testinin (B1)
-yerini tutmaz — ama "paketlendi" ile "açılıyor" arasındaki iddia artık bu build için ölçülmüş
-durumda.
-
-**Kalan hijyen borcu:** `releases/` hâlâ `.gitignore`'da, yani bu tablodaki hiçbir sayı git
-tarafından korunmuyor; bir sonraki ölçüm §14'teki iki komutla baştan üretilmeli.
-
-### 9.9 Lisans ve ticari model
-
-- Lisans **Apache-2.0** (GPLv3'ten geçilmiş); patent grant ve değişiklik özgürlüğü var,
-  copyleft yok. Üçüncü taraf bileşenler ayrı lisanslarla taşınıyor (JavaFX GPLv2+CE,
-  GStreamer Lite LGPL-2.1-or-later) ve bu, dağıtımda doğru şekilde beyan edilmiş.
-- **Ticari model tanımlı değil:** fiyat, web sitesi, EULA, ticari destek, bağış bağlantısı
-  veya marka politikası repoda yok. Apache-2.0, üçüncü bir tarafın ürünü markasız kopyalayıp
-  satmasını engellemez; marka tescili/politikası olmadan bu bir iş riskidir.
-- Katkı modeli de tanımsız: `CONTRIBUTING.md`, CLA/DCO, kod sahipliği yok. Tek geliştirici
+- Lisans **Apache-2.0** (GPLv3'ten geçilmiş); patent grant ve değişiklik özgürlüğü var, copyleft
+  yok. Üçüncü taraf bileşenler ayrı lisanslarla taşınıyor ve bu, dağıtımda doğru beyan edilmiş:
+  JavaFX `GPL-2.0-only WITH Classpath-exception-2.0`, GStreamer Lite `LGPL-2.1-or-later`,
+  KISS FFT `BSD-3-Clause`, GCC runtime `GPL-3.0-or-later WITH GCC-exception-3.1`, IJG JPEG.
+- **Ticari model tanımlı değil:** fiyat, web sitesi, EULA, ticari destek, marka politikası yok.
+  Apache-2.0, üçüncü bir tarafın ürünü markasız kopyalayıp satmasını engellemez.
+- Katkı modeli tanımsız: `CONTRIBUTING.md`, CLA/DCO, kod sahipliği yok. Tek geliştirici
   varsayımı hem yol haritasının hem destek yükünün gerçek sınırı.
 
-P2 bunu çözmek zorunda değil; ama §12.5'teki "ilk kullanıcı" kararı verilirken lisans/ticari
-modelin **açıkça ertelendiği** bilinmeli — aksi halde dağıtım ve imza yatırımı geri dönüşsüz
-bir varsayıma dayanır.
+P2 bunu çözmek zorunda değil; ama "ilk kullanıcı" kararı verilirken lisans/ticari modelin
+**açıkça ertelendiği** bilinmeli — aksi halde dağıtım ve imza yatırımı geri dönüşsüz bir
+varsayıma dayanır.
+
+### 10.9 Hijyen borçları
+
+| Borç | Etki |
+|---|---|
+| `releases/` ve `target/` `.gitignore`'da | Ölçülen hiçbir artefakt sayısı git tarafından korunmuyor (§2.3) |
+| `.idea/` çalışma dizininde, izlenmiyor | zararsız ama gürültü |
+| `docs/` yalnız bu analiz, yol haritası ve sürüm notu şablonunu içeriyor | analiz/yol haritası belgeleri geçmişte iki kez silindi (`f5d00db`, `d7bf8da`); P2'de bu belgelerin **kalıcı** olması bir kültür kararı |
+
+> **Not:** Bu belgeden önce `docs/analysis.md` ve `docs/product-roadmap.md` sürüm kontrolünden
+> çıkarılmıştı (`f5d00db` "the analysis and roadmap are spent") ve ikinci kez çalışma ağacında
+> silinmiş durumda. Aynı belgenin üçüncü kez silinmemesi için, bu analiz **bulgu kimlikleri ve
+> ölçüm protokolüyle** birlikte yazıldı: silinse bile §15 tek komutla aynı sayıları üretir.
 
 ---
 
-## 10. Test ve Kalite Güvencesi
+## 11. Test ve Kalite Güvencesi
 
-### 10.1 Ölçülen şekil
+### 11.1 Ölçülen şekil
 
-- **40 test sınıfı, 350 test**, 3 OS × 3 locale.
-- "Toolkit açma yok" kuralı gerçekten uygulanmış: hiçbir test `Platform.startup`,
-  `Application.launch` veya Monocle kullanmıyor.
-- JavaFX'e dokunan testler yalnız veri tipleri (`KeyCode`, `Rectangle2D`, `ButtonType`) veya
-  bayt düzeyi (`AppIconsTest`).
-- Toolkit'siz ölçüm için AWT metin ölçümü (`ToolbarFit`), saf geometri (`DialogSizing`).
+| Ölçüt | Değer |
+|---|---|
+| Test dosyası | **42** (40 test sınıfı + 2 yardımcı: `CrashHarness`, `ContrastRatio`) |
+| `@Test` | **350** |
+| Test satırı | **7.041** (üretim 7.611 → oran **0,93**) |
+| Bu makinedeki koşu | **350 koştu / 0 hata / 0 atlandı** (`mvn -B clean test`) |
+| Toolkit açan test | **0** (`Platform.startup`, `Application.launch`, Monocle hiç yok) |
+| CI | 2 OS × 3 locale (EN/TR/DE) = 6 suite koşusu |
+| Kapsam ölçümü | **yok** |
 
-### 10.2 Gerçekten iyi kapsanan alanlar
+Test sınıfları (grep'lenmiş `@Test` sayılarıyla): `FileServiceTest` 36 · `RecoveryStoreTest` 19 ·
+`ContrastRatioTest` 19 · `AppSettingsTest` 17 · `TextCodecTest` 16 · `AutoSaveServiceTest` 15 ·
+`AppLoggingTest` 13 · `FontSizeManagerTest` 13 · `MessagesTest` 12 · `SessionStatsTest` 12 ·
+`ToolbarFitTest` 12 · `EncodingMatrixTest` 11 · `StatsBarModelTest` 11 · `KeyboardShortcutHandlerTest` 11 ·
+`DialogSizingTest` 8 · `BackupKeeperTest` 7 · `ShortcutRowsTest` 7 · `ToolbarOptionListsTest` 7 ·
+`MainControllerTest` 7 · `AtomicFilesTest` 6 · `DialogServiceTest` 6 · `AutosaveHealthTest` 6 ·
+`PackagingNoticesTest` 6 · `DialogButtonsTest` 6 · `DialogStylingTest` 6 · `AppIconsTest` 6 ·
+`MainStageTest` 6 · `AudioAssetTest` 5 · `InstanceLockTest` 5 · `YoloPolicyTest` 5 ·
+`StatsBarStateTest` 5 · `AppVersionTest` 4 · `ThemeCycleTest` 4 · `ExitDispositionTest` 4 ·
+`ReleaseNotesTest` 4 · `LicenseHeaderTest` 3 · `LanguageTest` 3 · `ToolbarStateTest` 3 ·
+`ProcessCrashRecoveryTest` 3 · `JTypeWriterAppTests` 1.
 
-Kodlama matrisi (11 test, bayt-özdeş), kurtarma yaşam döngüsü, çıkış matrisi, otomatik kayıt
-sağlığı, yedek rotasyonu, atomik yazma, ayar karantinası, i18n paritesi ve biçimlendirme,
-kontrast matematiği, araç çubuğu taşma politikası, kısayol çözümleme, süreç öldürme.
+### 11.2 Gerçekten iyi kapsanan alanlar
 
-### 10.3 Toolkit duvarı
+Kodlama matrisi (11 test, bayt-ödeş), kurtarma yaşam döngüsü (19), dosya servisi (36), çıkış
+matrisi, otomatik kayıt sağlığı, yedek rotasyonu, atomik yazma, ayar karantinası, i18n paritesi
+ve biçimlendirme, kontrast matematiği (19), araç çubuğu taşma politikası, kısayol çözümleme,
+süreç öldürme (gerçek `destroyForcibly`).
 
-Şunlar **hiç test edilmiyor** ve edilemez (mevcut mimaride):
+**Bu, 7,6 bin satırlık bir masaüstü uygulaması için olağanüstü iyidir** ve ürünün en güvenilir
+varlığıdır. P2'nin hiçbir işi bu disiplini gevşetmemelidir.
+
+### 11.3 Toolkit duvarı — mimarinin bilinçli bedeli
+
+Şunlar **hiç test edilmiyor** ve mevcut mimaride edilemez:
 
 - gerçek diyalog yerleşimi/taşması (U1),
-- odak ve Tab sırası,
+- odak ve Tab sırası, karşılama kartının iç odağı,
 - render edilmiş CSS (kontrast yalnız hex matematiği),
-- ses politikası (hangi tuş ses çıkarır),
-- ilk karenin görünümü, karşılama kartının iç odağı,
-- gerçek menü/araç çubuğu etkileşimi.
+- ses politikası (hangi tuş ses çıkarır — U9 tam olarak bu yüzden kaçtı),
+- ilk karenin görünümü, menü/araç çubuğu etkileşimi,
+- `getText()` maliyeti (§8.5).
 
-Bu duvar, "her UI kararını saf sınıfa çıkar" kültürünün bedeli. P2'de ara/değiştir gibi
-özellikler bu yüzden **saf model + ince UI** olarak tasarlanmalı; aksi halde ya testsiz kalır
-ya da toolkit testi için kural delinir.
+Bu duvar, "her UI kararını saf sınıfa çıkar" kültürünün bedelidir. P2'de ara/değiştir gibi
+özellikler bu yüzden **saf model + ince UI** olarak tasarlanmalı; aksi halde ya testsiz kalır ya
+da toolkit kuralı delinir. `AGENTS.md` bu kuralı açıkça yazıyor ve 350 testin tamamı buna uyuyor.
 
-### 10.4 Zayıf veya yanlış güven veren testler
+### 11.4 Zayıf veya yanlış güven veren testler
 
 | Test | Sorun |
 |---|---|
-| `ProcessCrashRecoveryTest` | Yalnız Linux; GUI değil servis grafiği fork ediliyor. Doğru kapsam, ama Windows/macOS çökme yolu doğrulanmıyor. |
-| `DialogSizingTest` | Yalnız özel diyalogların kelepçe matematiği; `Alert`'lar kapsam dışı. |
-| `AppSettingsTest` | `SecurityException` ve gerçek `save()` hatası yok. |
-| `ToolbarFitTest` | Kabul testleri ölçülen etiketlerle; gerçek render yok. |
-| `ContrastRatioTest` | Token çiftleri doğru, ama kapsam §8.1'deki seçicilerle sınırlı. |
+| `ProcessCrashRecoveryTest` | Yalnız Linux; GUI değil servis grafiği fork ediliyor. Doğru kapsam, ama Windows çökme yolu doğrulanmıyor |
+| `DialogSizingTest` | Yalnız iki özel diyaloğun kelepçe matematiği; **9 `Alert` kapsam dışı** |
+| `AppSettingsTest` | `SecurityException` ve gerçek `save()` hatası yok (D12) |
+| `ToolbarFitTest` | Kabul testleri ölçülen etiketlerle; gerçek render yok |
+| `ContrastRatioTest` | Token çiftleri doğru, kapsam §9.2'deki seçicilerle sınırlı |
+| `AtomicFilesTest` | 6 test; **symlink, fallback, temp süpürme, `finally` maskeleme yok** (D2, D6) |
+| `MessagesTest` | Parite ve erişilebilirlik zorlanıyor; **çeviri kalitesi** ölçülmüyor |
 
-### 10.5 Altyapı boşlukları
+### 11.5 Altyapı boşlukları
 
-- Kapsam ölçümü yok → "350 test" hacim verir, **hangi yolların** koştuğunu vermez.
-- Statik analiz/format yok (bilinçli); lisans ve sözleşme kuralları testle korunuyor.
-- Artefakt düzeyi test yok (B1).
-- Testler gerçek `~/.jtypewriter`'a yazıyor (M4/T6) → kural ihlali, temiz CI'da görünmez.
+- **Kapsam ölçümü yok.** "350 test" hacim verir, *hangi yolların* koştuğunu vermez. Örneğin
+  `FileServiceTest` 36 testle en büyük sınıf, ama `writeFile`'ın `Error` yakalamayan hata yolu
+  (D7) hiç koşmuyor. **T7: test sayısı yol kapsamı değildir.**
+- **Statik analiz/format yok** (bilinçli, `AGENTS.md`). Sözleşme kuralları testle korunuyor —
+  ama *kod kokusu* korunmuyor (ör. `AtomicFiles`'taki `finally` maskeleme).
+- **Artefakt düzeyi test yok** (B1, B14).
+- **Testler gerçek `~/.jtypewriter`'a yazıyor** (M4/T6). Bu makinede doğrulandı:
+  `AppLoggingTest` koşusundan sonra `~/.jtypewriter/logs/jtypewriter-*.log` büyüdü.
+  `AGENTS.md`'nin "asla gerçek eve dokunma" kuralı **ihlal ediliyor** ve temiz CI'da görünmüyor
+  (çünkü orada ev dizini zaten geçici).
+
+### 11.6 Değişmezler (invariant) ve onları koruyan testler
+
+| Değişmez | Test | Ne zorluyor |
+|---|---|---|
+| SPDX bloğu dosyanın 0. baytında | `LicenseHeaderTest` (3) | Her `src/**/*.java` ve kanonik SVG |
+| i18n anahtar paritesi | `MessagesTest.everyBundleTranslatesTheSameKeys` | 6 bundle'ın anahtar kümesi = EN |
+| Ölü/sarkan anahtar yok | `MessagesTest.everyKey…` | `Messages.java`'dan taranan küme = bundle kümesi |
+| Üçüncü taraf bildirimleri | `PackagingNoticesTest` (6) | `META-INF` kopyası repoyla bayt-ödeş, SPDX kimlikleri, ZWSP/CR yok, ≤100 kolon |
+| Sürüm notu iki dilli | `ReleaseNotesTest` (4) | `## English` önce, `## Türkçe` var, `@VERSION@`/`@TAG@`, literal semver yok |
+| Retention ≤ 7 | `ReleaseNotesTest` | Her `upload-artifact` adımında `retention-days` 1–7 |
+| Diyalog düğmeleri | `DialogButtonsTest` (6) | Her özel düğmede `ButtonData` |
+| İkon kaynağı | `AppIconsTest` (6) | PNG/ICO baytları SVG'den üretilmiş |
+| Toolkit açılmaz | (kural, test değil) | Hiçbir test `Platform.startup` çağırmıyor |
+
+Bu tablo, "kaliteyi plugin değil test korur" kararının somut karşılığıdır ve P2'de yeni
+değişmezler (ör. "her `Alert` `DialogSizing`'den geçer") buraya **test olarak** eklenmelidir.
 
 ---
 
-## 11. Olgunluk Skorları
+## 12. Olgunluk Skorları
 
-| Boyut | Skor | Gerekçe | Önceki |
-|---|---:|---|---:|
-| **Motor** | **3,6** | Veri yolu tek ilkelden geçiyor, kodlama/çıkış/kurtarma gerçekten testli. Ama güvenlik vaadi tek yazar + düz dosya + sağlam FS koşullu (D1/D2/D3/D6). | 3,8 |
-| **Deneyim** | **2,2** | Ara/değiştir, menü, yazdırma yok; uzun diyalog taşması ve sabit tarih biçimi 6 dilin 3'ünde görünür kusur. "Sessiz" ama çıplak. | 2,5 |
-| **Ambalaj** | **2,0** | Artefaktlar üretiliyor, lisanslı ve taze build'de doğrulandı; ama CI'da hiç çalıştırılmadı, hiç yayınlanmadı, imza yok, jlink yok. | 2,0 |
-| **Güven** | **2,8** | SPDX, üçüncü taraf bildirimleri, SHA pinleme, çıkış matrisi gerçek altyapı. Ama yayınlanmış sürüm, `SECURITY.md`, smoke test ve imza yok. | — |
-| **Pazara erişim** | **1,5** | Hiç Release yok, dosya ilişkilendirmesi yok, CLI yok, notarization yok: ürün bulunsa bile OS'ten açılamıyor. | — |
+| Boyut | Ağırlık | Skor | Gerekçe | v3.1 |
+|---|---:|---:|---|---:|
+| **Motor** | 0,25 | **3,6** | Veri yolu tek ilkelden geçiyor; kodlama/çıkış/kurtarma gerçekten testli; kaydetme ölçümle hızlı (10 MB → 7 ms). Ama güvenlik vaadi tek yazar + düz dosya + sağlam FS koşullu (D1/D2/D3/D6) ve symlink kusuru **kanıtlandı** | 3,6 |
+| **Deneyim** | 0,25 | **2,2** | Ara/değiştir, menü, yazdırma yok; 14 eylemin 2'si arayüzde görünmüyor; `Alert` taşması ve sabit tarih biçimi 6 dilin 3'ünde görünür kusur. "Sessiz" ama çıplak | 2,2 |
+| **Ambalaj** | 0,20 | **2,1** | Artefaktlar üretiliyor, lisanslı, üç kopya bayt-ödeş (`verify-artifacts` 17/17); jlink kazancı **ölçüldü** (~74 MiB). Ama artefakt hiç çalıştırılmadı, hiç yayınlanmadı, imza yok, JAR'ın %34'ü ölü ağırlık | 2,0 |
+| **Güven** | 0,15 | **2,9** | SPDX, üçüncü taraf bildirimleri, SHA pinleme, çıkış matrisi, 350 test/0 TODO gerçek altyapı. Ama yayın yok, `SECURITY.md` yok, smoke test yok, imza yok, testler gerçek eve yazıyor | 2,8 |
+| **Pazara erişim** | 0,15 | **1,5** | 0 tag / 0 Release / 0 yıldız; `Categories=Unknown`, MIME yok, CLI yok: ürün bulunsa bile OS'ten açılamıyor. macOS'un düşmesi notarization kalemini sildi ama bulunabilirlik hiç değişmedi | 1,5 |
+| **Endeks** | 1,00 | **2,53** | `0,25·3,6 + 0,25·2,2 + 0,20·2,1 + 0,15·2,9 + 0,15·1,5` | 2,50 |
 
-### 11.1 Neden "motor ≠ ürün"
+### 12.1 Neden "motor ≠ ürün"
 
-Motor skoru, "veri bozulmasın" tasarımının kalitesini ölçüyor ve 3,6 hak ediyor. Ürün skoru
-ise kullanıcının **işini bitirip bitiremediğini** ölçüyor: ara/değiştir olmadan uzun metin,
-menü olmadan keşfedilebilirlik, yayın olmadan erişim yok. Bu yüzden deneyim ve erişim
-skorları motorun çok altında.
+Motor skoru, "veri bozulmasın" tasarımının kalitesini ölçüyor ve 3,6 hak ediyor — hatta
+ölçümler onu **destekledi** (kaydetme hızlı, kodlama bayt-ödeş, çökme kurtarması gerçek süreç
+öldürmeyle testli). Ürün skoru ise kullanıcının **işini bitirip bitirmediğini** ölçüyor:
+ara/değiştir olmadan uzun metin, menü olmadan keşfedilebilirlik, yayın olmadan erişim yok.
 
-**Önceki skorlara göre düşüşler bilgi kaybı değil, ölçümün dürüstleşmesi:** P1'in kapattığı
-yollar gerçek, ama dış değişiklik/symlink gibi vaadi koşullu kılan yollar artık görünür
-durumda; skorlar bu koşulları yansıtıyor.
+### 12.2 Skorların sınırı (dürüstlük notu)
+
+Bu skorlar **beş boyutlu, ağırlıklı, tek kişilik bir yargıdır**; istatistik değildir. Ağırlıklar
+ürün tezinin sırasına göre seçildi (motor + deneyim = ürünün kendisi; ambalaj = çalıştırabilir
+misin; güven + erişim = bulup güvenebilir misin). Farklı bir ağırlık kümesi endeksi ±0,25
+oynatabilir. Skorların değeri mutlak seviyede değil, **fazlar arası harekette** ve **hangi
+boyutun eksik kaldığını** göstermesindedir. Yol haritası bu yüzden hedefi endeksle değil,
+**yanlışlanabilir çıkış kriterleriyle** tanımlamalıdır.
+
+### 12.3 Neden ambalaj ve güven v3.1'den çok az yükseldi
+
+W0 üç kart kapattı (`AGENTS.md` izleniyor, `verify-artifacts.sh`, `.deb` lisans yükü) ve bunlar
+gerçek kazanç. Ama ambalajın asıl sorunu — **artefaktın çalıştığının kanıtlanmaması ve hiç
+yayınlanmaması** — W1'in işidir ve hiç başlamamıştır. Bir kapıyı kapatan iş, o kapının
+*değişmezini* yükseltir; W0 kapıları kapı değil, **kapıların ön koşullarıydı**. Bu ayrım
+yol haritasında korunmalı, aksi halde "üç kart bitti, skor artmalı" yanılgısı doğar.
 
 ---
 
-## 12. Go / No-Go ve P2 Girdileri
+## 13. P2 Girdileri — Aday Havuzu ve Kısıtlar
 
-### 12.1 Hüküm
+> **Bu bir plan değildir.** Sıra, sahiplik, dalga ve takvim `docs/product-roadmap.md` v2.0'da
+> üretilmiştir. Buradaki skor **göreli öncelik göstergesidir**; bağımlılık kısıtları ise
+> bağlayıcıdır, çünkü yanlış sıra işi iki kez yazdırır.
 
-- **`1.0` için hazır değil.** Ürün, kullanıcının günlük döngüsünü tamamlamıyor ve hiç
-  yayınlanmamış.
-- **Ama P2 için sağlam bir taban var.** Kritik veri kaybı sınıfı kapalı; mimari test
-  edilebilir; ambalaj dürüst.
-- **P2'nin tanımı:** *"Bir romancı bir bölümü bitirebilir"* + *"indirdiği ikili gerçekten
-  açılır"*. Yeni platform değil, **editör olma** ve **ilk gerçek sürüm**.
+### 13.1 Aday havuzu
 
-### 12.2 P2 kapsam adayları
-
-> Bu bir **aday havuzudur**, sıralı bir plan değildir. Skor yalnız göreli öncelik
-> göstergesidir; nihai sıra, bağımlılıklar ve takvim yol haritasında belirlenecek.
-> Formül: `(Etki × Güven) / Efor`; Efor S=1, M=2, L=3, XL=5.
+Formül: `(Etki × Güven) / Efor`; Etki 1–5, Güven 1–3, Efor S=1 / M=2 / L=3 / XL=5.
 
 | ID | İş | Bulgular | Etki | Güven | Efor | Skor |
 |---|---|---|---:|---:|---:|---:|
-| **A1** | Belge kimliği: dış değişiklik algılama + symlink'e yazma + taslak yolu doğrulama | D1, D2, D3, D8 | 5 | 2 | L | 3,3 |
-| **A2** | Ara / Değiştir (saf arama modeli + YOLO etkileşimi + Ctrl+F/H) | E1 | 5 | 3 | L | **5,0** |
-| **A3** | G/Ç'yi FX thread'inden çıkar; otomatik kayıt maliyetini düşür | X1, X2, X4 | 4 | 2 | M | 4,0 |
-| **A4** | Komut katmanı + menü çubuğu + CLI ile açma + sürükle-bırak | E2, E3, E4, M1 | 4 | 2 | M | 4,0 |
-| **A5** | Diyalog taşması + tarih/saat ve ayırıcı yerelleşmesi | U1, U5 | 3 | 3 | M | 4,5 |
-| **A6** | İlk gerçek sürüm + CI artefakt smoke testi | B1, B2 | 5 | 3 | M | **7,5** |
-| **A7** | Yazar ergonomisi: son dosyalar, "bir daha gösterme", min genişlik, klavyeyle yazı boyutu | E5, U7, U8, U2 | 3 | 3 | M | 4,5 |
-| **A8** | Taslak yaşam döngüsü + disk/boyut sınırları + hata maskeleme | D4, D5, D6, D7, D9 | 3 | 3 | M | 4,5 |
+| **A1** | Belge kimliği: dış değişiklik + symlink'e doğru yazma + taslak yolu doğrulama + belge kilidi | D1, D2, D3, D8 | 5 | 2 | L | 3,3 |
+| **A2** | Ara / Değiştir (saf model + YOLO etkileşimi + `Ctrl+F`/`F3`/`Ctrl+H`) | E1 | 5 | 3 | L | **5,0** |
+| **A3** | Tekrar eden FX-thread yükünü kaldır: **artımlı istatistik sayaçları** + G/Ç'yi executor'a taşı | X5, X1, X2, X3, X4 | 4 | 3 | M | **6,0** |
+| **A4** | Komut katmanı + menü çubuğu + CLI/süreç argümanı + sürükle-bırak | E2, E3, E4, M1 | 4 | 2 | M | 4,0 |
+| **A5** | Diyalog taşması (9 `Alert`) + tarih/saat ve ayırıcı yerelleştirmesi | U1, U5, U12 | 3 | 3 | M | 4,5 |
+| **A6** | İlk gerçek sürüm + CI artefakt smoke testi | B1, B2, B14 | 5 | 3 | M | **7,5** |
+| **A7** | Yazar ergonomisi: son dosyalar, "bir daha gösterme", min pencere genişliği, kısayol listesinin dürüstlüğü | E5, U7, U8, U13 | 3 | 3 | M | 4,5 |
+| **A8** | Taslak yaşam döngüsü: symlink takibi yok, boyut/sayı sınırı, `parked-*` temizliği, disk çarpanı, hata maskeleme | D4, D5, D6, D7, D9, D10, D11, D14 | 3 | 3 | M | 4,5 |
 | **A9** | Test hijyeni: `AppLogging` enjeksiyonu, gerçek eve yazmayı bitir | M4, T6 | 2 | 3 | M | 3,0 |
-| **A10** | JAR temizliği: JavaFX Media/FXML çıkar | B4 | 2 | 3 | S | 6,0 |
-| **A11** | macOS çıkış yolunu doğrula (Cmd+Q → kaydetme sor.) | U10 | 4 | 1 | S | 4,0 |
+| **A10** | JAR temizliği: sesi `javax.sound`'a taşı, JavaFX Media + FXML'i çıkar | B4 | 2 | 3 | S | 6,0 |
 | **A12** | Yazdırma / PDF | E7 | 3 | 2 | M | 3,0 |
+| **A13** | jlink ile runtime budama (ölçüldü: −74 MiB) — **M6'yı önkoşul yapar** | B4, M6 | 3 | 2 | M | 3,0 |
+| **A14** | OS entegrasyonu: `.desktop` kategorisi/MIME, dosya ilişkilendirmesi, hicolor ikon | E10, B8 | 3 | 2 | M | 3,0 |
+| **A15** | Destek yüzeyi: `SECURITY.md`, `CHANGELOG.md`, issue/PR şablonu, tanılama paketi | B9 | 2 | 3 | M | 3,0 |
+| **A16** | Kontrast kapsamını kapat: `-toolbar-text`, popup satırları, editör metni, ölü token | U3 | 2 | 3 | S | 6,0 |
+| **A17** | Ses politikası: ses ve sayaç aynı olaya bağlansın, seviye ayarı, kesme yerine yeniden başlatma | U9 | 3 | 2 | S | 6,0 |
 
-**Bağımlılık notları:**
+### 13.2 Bağlayıcı kısıtlar (bunlar tercih değil)
 
-- A2 ve A4, A4'ün komut katmanına bağlıysa **tek seferde** yapılmalı; ayrı yapılırsa arama
-  iki kez kablolanır.
-- A1, A8 ile aynı "belge/taslak yaşam döngüsü" modelini paylaşır; A1 önce gelirse A8 küçülür.
-- A3, A2'den önce yapılmalı: arama büyük belgede UI'yı kilitlememeli.
-- A6, diğerlerinden bağımsız ve **en yüksek skorlu**; ilk sürüm çıkmadan diğer işlerin
-  doğrulanması mümkün değil.
+| # | Kısıt | Neden |
+|---|---|---|
+| K1 | **A2, A4'ün komut katmanından sonra** | Aksi halde arama iki kez kablolanır (M1) |
+| K2 | **A2, A3'ün sayaç işinden sonra** | Arama sonuçları da tam metin taramasıdır; naif döngü 10 MB'da UI'yı kilitler (§7.5) |
+| K3 | **A13 (jlink), M6'nın (yansımalı undo) çözümünden sonra** | Modül yolunda `UndoHistoryReset` sessizce yetenek kaybeder |
+| K4 | **A1, A3 ile aynı dosyalara dokunur** (`FileService` sözleşmesi): biri önce bitmeli, paralel yazılmamalı | İki yazar aynı sözleşmeyi değiştirirse çakışma |
+| K5 | **A6 diğer her şeyden önce** | Kanıt zemini; yayınlanmamış üründe diğer her iş tahmindir (§4.4) |
+| K6 | **Her yeni ayar (A7) `D13`'ü (ayar şema sürümü) aynı PR'da tetikler** | Yoksa göç borcu sessizce büyür |
+| K7 | **Her yeni görünür metin 6 bundle + `Messages` erişimcisi** | `MessagesTest` aksi halde kırmızı |
 
-### 12.3 P2 dışı bırakılması önerilenler
+### 13.3 P2 dışı bırakılması önerilenler
 
 | Öneri | Gerekçe |
 |---|---|
-| **Sekmeler / çoklu belge** | Tek belge, romancı için tutarlı bir kimlik; P1'in stabilize ettiği çıkış/kirli/taslak matrisini ikiye katlar. P4 işi. |
-| **Yazım denetimi** | Sözlük lisansı + büyük UI yüzeyi (XL); farklılaştırıcı değil. Kullanıcı kanıtı olmadan girilmemeli. |
-| **jlink ile runtime budama** | 145 MiB → ~50 MiB iyi bir kazanç ama ilk kullanıcıyı engellemiyor. Ölçüm ve karar P3. (Media/FXML temizliği A10 olarak kalabilir.) |
-| **Kod imzalama / notarization** | **Koşullu**: ilk kullanıcı ve OS kararına bağlı (§12.5). macOS/Windows hedefleniyorsa P2'ye girer ve A6'yı değiştirir. |
-| **Otomatik güncelleme / telemetri** | Yayınlanmış kurulu taban yokken anlamsız; gizlilik duruşuyla da çelişir. |
-| **Satır numaraları, sarma anahtarı, girinti politikası** | A4'ün komut katmanından sonra ucuzlar; bölüm bitirmeyi engellemiyor. |
-| **Dışa aktarma (HTML/DOCX), dosya ilişkilendirmesi** | P3; yazdırma (A12) ile aynı çıktı hattını paylaşır. |
-| **Kapsam ölçümü (JaCoCo) kapısı** | Bu projede test suite'i kapı; yüzde metrik burada gürültü. |
-| **XDG / macOS Application Support taşıması** | Kanal kararı ve kurulu taban olmadan riskli; P3. |
-| **ES/IT register temizliği, tipografik apostrof** | Düşük etki; A5'in yanında bedava gelirse alınır. |
+| **Sekmeler / çoklu belge** | Tek belge romancı için tutarlı bir kimlik; P1'in stabilize ettiği çıkış/kirli/taslak matrisini ikiye katlar. `DocumentSession` refactor'u ayrı bir faz |
+| **Yazım denetimi** | Sözlük lisansı + büyük UI yüzeyi (XL); farklılaştırıcı değil; kanıtsız talep |
+| **Kod imzalama / notarization** | macOS kapsam dışı olduğu için **notarization kalemi tamamen düştü** (§2.4). Geriye yalnız Windows Authenticode kalır: SmartScreen uyarısını kabul etmek meşru bir P2 tercihidir, çünkü kapı **engellemez**, uyarır |
+| **Otomatik güncelleme / telemetri** | Yayınlanmış kurulu taban yokken anlamsız; gizlilik duruşuyla çelişir |
+| **Satır numaraları (E8), sarma anahtarı (E9)** | A4'ün komut katmanından sonra ucuzlar; bölüm bitirmeyi engellemiyor |
+| **Dışa aktarma (HTML/DOCX)** | A12 (yazdırma) ile aynı çıktı hattını paylaşır; sonraki faz |
+| **Kapsam ölçümü (JaCoCo) kapısı** | Bu projede suite kapı; yüzde metrik gürültü. **Ama** `T7` için tek seferlik bir ölçüm yararlı olur |
+| **XDG taşıması (B7)** | macOS dalı düştü (§2.4); geriye yalnız `XDG_CONFIG_HOME`/`XDG_DATA_HOME` kalıyor ve kurulu taban olmadan riskli |
+| **ES/IT register temizliği, tipografik apostrof** | Düşük etki; A5'in yanında bedava gelirse alınır |
 
-### 12.4 Üç bahis ve en büyük risk
+### 13.4 Yol haritasında görünmeyen maliyetler
 
-**En yüksek getirili üç bahis:**
+P2 planlanırken **efor tahminlerine eklenmesi gereken** ama hiçbir bulgu satırında durmayan
+kalemler:
 
-1. **A1 — Belge kimliği ve dış değişiklik.** Ürünün tek savunulabilir farklılaştırıcısını
-   koşullu olmaktan çıkarır. Bir romancının fark edeceği tek "vay" anı burada.
-2. **A2 + A4 — Arama ve komut yüzeyi.** "Sesli bir metin alanı" ile "editör" arasındaki fark;
-   aynı zamanda gelecekteki her eylemin bağlanacağı yer.
-3. **A6 — Gerçekten yayınla.** Listenin en yüksek bilgi/efor oranı; diğer her şey gerçek
-   kullanıcı görülene kadar tahmin.
+| Kalem | Neden |
+|---|---|
+| **Çeviri yükü** | A2 + A4 + A5 + A7 ortalama 15–20 anahtar/dil → **~90–120 yeni çeviri satırı** ve 6 dilde kalite kontrolü |
+| **Belge yükü** | README + README-TR birlikte (her kullanıcıya görünen değişiklikte), sürüm notu şablonu, `AGENTS.md` |
+| **Test yükü** | Her bulgu için onu kırmızıya çeviren test (§6.4 dersi); A1 tek başına 4 senaryo |
+| **Artefakt doğrulama** | Her bağımlılık değişiminde `THIRD-PARTY-NOTICES` + `verify-artifacts` + taze build |
+| **İki OS doğrulaması** | Yerelde yalnız Linux; Windows yalnız CI'da görülür — geri bildirim döngüsü saatler. macOS'un düşmesi bu kalemi 3 satırdan 2'ye indirdi (§2.4) |
 
-**En büyük ürün riski: pazar temasının kanıtsız olması.** 350 test ve titiz bir güvenlik
-hikâyesi var, ama yayınlanmış sürüm olmadığı için ürünü kendisi yazmayan bir yazarın açtığına
-dair kanıt yok. P2'nin en büyük riski
-listede bir maddenin eksik olması değil, **bir yıl daha mükemmelleştirip hiç yayınlamamak**.
+### 13.5 Yol haritasından önce insanın vermesi gereken karar — OS ekseni kapandı, kanal ekseni açık
 
-### 12.5 Yol haritasından önce insanın vermesi gereken tek karar
+> **İlk benimseyen kullanıcı kim — ve hangi kanaldan?**
 
-> **İlk benimseyen kullanıcı kim ve hangi işletim sisteminde?**
+§10.6b platformu ve kanalı iki eksen olarak ayırmıştı. **OS ekseni 2 Kasım 2026'da
+kapanmıştır** (§2.4): desteklenen platform kümesi **Linux x64 + Windows x64**'tür; macOS
+yoktur. Geriye tek açık eksen kalır:
 
-Bu tek cevap şunları belirler:
+| Kanal | Sonucu | Maliyet |
+|---|---|---|
+| **Installer** (`.deb`, `.msi`) | `.desktop`/menü/MIME entegrasyonunu (E10, A14) **mümkün kılar**; installer-only hata sınıfını getirir | `package.sh` ikisini de zaten üretiyor; bakım yükü bu sınıfta |
+| **Taşınabilir** (`.tar.gz`) | Installer işini ve o hata sınıfını keser, W1'i kısaltır; **E10'u tek başına imkansız kılar** | Linux'ta ölçülen ~%25 daha büyük artefakt (§10.6b) |
+| **İkisi birlikte** *(bugünkü durum)* | İki kanal da yayınlanır; varsayılan açık kalır | Neredeyse sıfır ek maliyet — `release-assets.sh` zaten ikisini üretiyor |
 
-- macOS/Windows hedefleniyorsa **kod imzalama/notarization bütçesi** P2'ye girer ve A6'nın
-  kapsamını değiştirir ("artefakt yayınla" → "sertifika al, imzala, yayınla").
-- Linux hedefleniyorsa `.deb` + `.tar.gz` yeterli; imza ertelenebilir.
-- Dağıtım kanalı (taşınabilir / installer) kararı bu cevaba bağlı olarak P3'te ADR'ye dönüşür.
+Kararın yol haritasına etkisi:
+
+- **Windows Authenticode imzası zorunlu değildir.** SmartScreen uyarır, engellemez; ilk 100
+  kullanıcı için uyarıyı kabul etmek meşru bir tercihtir. İmza bir **bütçe** kararıdır ve
+  notarization'ın aksine takvimi ~1,5–2 hafta büyütmez (sertifika ~1–2 gün + CI adımı).
+- **macOS'a ilişkin hiçbir bütçe yoktur** — ne Developer ID, ne `notarytool`, ne staple, ne CI
+  secret'ı, ne A11. Bu, P2 takviminden ölçülebilir bir kalem sildi (§2.4).
+- Yalnız taşınabilir kanal seçilirse **A14 (masaüstü entegrasyonu) kapsamdan düşer** ve
+  "OS'ten aç" hedefi (§13.6/2'nin bir parçası) gerçekleşemez — bu, bilinçli bir feragat olarak
+  yazılmalıdır, sessizce düşmemelidir.
 
 Bu karar verilmeden yazılacak bir yol haritası, kodun ifade edemediği tek kısıtı tahmin etmiş
 olur.
 
-### 12.6 P2 için yanlışlanabilir çıkış kapısı (öneri)
+### 13.6 P2 için yanlışlanabilir çıkış kapıları (öneri)
 
-1. **Üzerine yazma güvenliği:** Yüklemeden sonra diskte değişen bir dosyaya kaydetmek ya
-   sorar ya reddeder; symlink'li belge kaydedildikten sonra **hâlâ symlink**'tir. Testli.
-2. **Asgari döngü:** `Ctrl+F` bulur, `F3`/`Shift+F3` gezer, `Ctrl+H` bir/tümünü değiştirir;
-   aynı işlevler menüden de erişilebilir; arama modeli toolkit'siz testli.
+1. **Üzerine yazma güvenliği:** Yüklemeden sonra diskte değişen bir dosyaya kaydetmek ya sorar
+   ya reddeder; symlink'li belge kaydedildikten sonra **hâlâ symlink**'tir ve hedefi güncellenmiştir;
+   geçersiz taslak yolu hedef olarak kabul edilmez. Hepsi testli.
+2. **Asgari döngü:** `Ctrl+F` bulur, `F3`/`Shift+F3` gezer, `Ctrl+H` bir/tümünü değiştirir; aynı
+   işlevler menüden de erişilebilir; arama modeli toolkit'siz testli; **arama 10 MB'da UI'yı
+   kilitlemez** (ölçülmüş süre sınırı ile).
 3. **Yerel ayar sığması:** En uzun DE/FR metinleriyle her `Alert` 768 px'e sığar (kelepçe +
    sarma + yeniden boyutlandırma); tüm tarih/saat gösterimi UI dilini kullanır.
-4. **Donma yok:** 2 MB'lık bir belge açılır, kaydedilir ve otomatik kaydedilirken FX thread'inde
-   dosya G/Ç'si veya `fsync` yoktur; `getText()` kirli kontrolünden önce kopyalanmaz.
-5. **Sürüm var ve çalışıyor:** `v0.x` GitHub Releases'te yayınlanmıştır; CI, yayından önce
-   app image'ı başlatıp `.deb`'i kurup kaldırmıştır.
+4. **Yazarken donma yok — ölçülmüş:** 10 MB'lık belgede saniyede bir çalışan istatistik
+   yenilemesi **< 5 ms** (bugün 163,7 ms); FX thread'inde dosya G/Ç'si veya `fsync` yok;
+   `getText()` kirli kontrolünden önce kopyalanmaz.
+5. **Sürüm var ve çalışıyor:** `v1.x` GitHub Releases'te yayınlanmıştır; CI, yayından **önce**
+   app image'ı başlatıp `.deb`'i kurup kaldırmıştır; `verify-artifacts.sh` CI'da koşmuştur;
+   `SHA256SUMS` yayındadır.
 
 ---
 
-## 13. Bulgu Dizini
+## 14. Bulgu Dizini
 
-**Dağılım:** 0 kritik · 8 yüksek · 39 orta · 12 düşük (+1 kapanan: B11).
+**Dağılım:** 0 kritik · **8 yüksek · 50 orta · 10 açık düşük** (+2 kapandı: B11, B13; +1 kapsam
+dışı: U10).
+v3.1'e göre değişim: **B14**, **B15**, **B16**, **X5**, **D14**, **M9**, **M10**, **T7**, **U13**, **B6**
+eklendi; **D2** kod okumasından deneye, **D14** ve **jlink** tahminden ölçüme taşındı; **U2**
+daraltıldı; "10 MB'da kaydetme donar" iddiası **geçersiz** sayıldı. B11 ve B13 kapandı. macOS'un
+üründen kaldırılmasıyla **U10 kapsam dışına** düştü ve U4 etkisizleşti (§2.4).
 
 ### Yüksek
 
-| ID | Bulgu | Kanıt |
-|---|---|---|
-| D1 | Dış değişiklik algılama yok; sessiz üzerine yazma | `FileService.loadFile/writeFile` |
-| D2 | Symlink'li belgede linkin kendisi değişiyor | `AtomicFiles.java:54-74` |
-| D3 | Taslak başlığındaki yol doğrulanmıyor | `RecoveryStore.java:339` |
-| E1 | Ara/Değiştir yok | `src/main` taraması; bundle'lar |
-| X1 | Dosya G/Ç'si FX thread'inde | `FileService`, `AutoSaveService` |
-| B1 | CI artefaktı çalıştırmıyor | `.github/workflows/maven.yml` |
-| B2 | Hiç sürüm yayınlanmadı; hat denenmedi | `git tag -l` boş |
-| U1 | `Alert` diyalogları kelepçesiz/sarmasız | `DialogService.java:96-263` |
+| ID | Bulgu | Kanıt | Doğrulama |
+|---|---|---|---|
+| **D1** | Dış değişiklik algılama yok; sessiz üzerine yazma | `FileService.java:69-74,296,310` | Kod |
+| **D2** | Symlink'li belgede link yok oluyor, hedef güncellenmiyor | `AtomicFiles.java:54-74` | **Deney** |
+| **D3** | Taslak başlığındaki yol doğrulanmıyor | `RecoveryStore.java:333-344` | Kod |
+| **E1** | Ara/Değiştir yok | `KeyboardShortcutHandler.java:59-73`; bundle | Kod |
+| **X1** | Dosya G/Ç'si FX thread'inde; eşzamanlılık ilkeli yok | §5.4 (0 executor) | Kod |
+| **B1** | CI artefaktı çalıştırmıyor | `maven.yml` | Kod |
+| **B2** | Hiç sürüm yayınlanmadı; hat denenmedi | `git tag -l` boş; API `/releases` = `[]` | **Ölçüm** |
+| **U1** | 9 `Alert` kelepçesiz/sarmasız/yeniden boyutlandırılamaz | §9.1 | Kod |
 
 ### Orta
 
 | ID | Bulgu | Kanıt |
 |---|---|---|
-| D4 | Taslak taraması symlink takip ediyor, sınırsız okuma, yalnız en yeni | `RecoveryStore.java:131-139,271` |
-| D5 | `pending-*.jtw` toplanmıyor | `RecoveryStore` |
-| D6 | Atomik olmayan fallback doğrulanmıyor; temp süpürme yok; istisna maskeleniyor | `AtomicFiles.java:67-80` |
-| D7 | Disk kontrolü yok; OOM kaydı atlıyor | `FileService`, `RecoveryStore` |
-| D8 | Belge düzeyinde kilit yok | `InstanceLock` |
-| D12 | Ayar yazma hatası sessiz; `SecurityException` kaçıyor | `AppSettings.java:300-307` |
-| D13 | Ayar şeması sürümü yok | `AppSettings.java:67-81` |
-| E2 | Menü çubuğu yok; Yeni/Farklı Kaydet görünmez | `ToolbarView.java:134-138` |
-| E3 | CLI ile dosya açma yok | `Application.getParameters()` yok |
-| E7 | Yazdırma/PDF yok | `PrinterJob` yok |
-| E8 | Satır numaraları yok | düz `TextArea` |
-| E10 | Dosya ilişkilendirmesi/MIME yok | paketleme + `main.fxml` |
-| X2 | Otomatik kayıt kirli kontrolünden önce tam kopya alıyor | `AutoSaveService.java:136-144` |
-| X3 | 1 Hz istatistik O(n), çoklu tam kopya | `SessionStats.java:69-85` |
-| X4 | `readAllBytes` bellek çarpanı, boyut sınırı yok | `FileService.java:191` |
-| U3 | Toolbar/popup/editör kontrastı ölçülmüyor; ölü AA-altı token | `ContrastRatioTest`, `css/*` |
-| U4 | macOS'ta tooltip `Ctrl` diyor | `ToolbarView.java:84-91` |
-| U5 | Sabit tarih/saat biçimi | `StatsBarModel.java:51-52` |
-| U6 | Erişilebilir adlar yalnız 6 combo'da | `ToolbarView.java:399-404` |
-| U7 | Karşılama her açılışta, opt-out yok | `FxApplication.java:70` |
-| U8 | Minimum pencere genişliği yok | `MainStage` |
-| U9 | Ses politikası: ok/kısayol tuşları da ses çıkarıyor; seviye yok | `EditorKeyHandler.java:31-35` |
-| U10 | macOS çıkış yolu garantisi yok | `MainStage`, `FxApplication` |
-| B3 | İmza/notarization yok | `release.yml` |
-| B4 | jlink yok; media/FXML ölü ağırlık | `pom.xml:73-82`, imaj |
-| B5 | Yeniden üretilebilirlik doğrulanmadı | `pom.xml:61`, jpackage mtime |
-| B7 | `~/.jtypewriter` tüm OS'lerde | `AppDirs.java:20` |
-| B8 | Masaüstü entegrasyonu eksik (`Categories=Unknown`, MIME yok) | yerel `.deb` |
-| B9 | Destek yüzeyi yok (`SECURITY.md`, şablon, tanılama) | repoda yok |
-| B10 | Dependabot yalnız action'lar; SBOM/zafiyet taraması yok | `.github/dependabot.yml` |
-| M1 | Komut/eylem katmanı yok | `KeyboardShortcutHandler`, `ToolbarView` |
-| M2 | Tek belge varsayımı kök hücrelerde | `FileService`, `AppGraph` |
-| M3 | 9 `Alert` tekrarı | `DialogService` |
-| M4 | `AppLogging` global statik, enjeksiyon yok | `AppLogging.java:37,153-164` |
-| M5 | Dinleyici sırası örtük | `AppGraph.java:47-86` |
-| M6 | `UndoHistoryReset` yansıma + dönüş değeri yok sayılıyor | `EditorArea.java:114` |
-| M7 | Undo geçmişi sınırsız | JavaFX varsayılanı |
-| M8 | Dispose sözleşmesi yok | `StatsBar` timeline |
-| T6 | Testler gerçek `~/.jtypewriter`'a yazıyor | `pom.xml:145-149` |
+| **D4** | Taslak taraması symlink takip ediyor, sınırsız okuma, yalnız en yeni | `RecoveryStore.java:131-139,145,271` |
+| **D5** | `parked-*.jtw` toplanmıyor (yaş/sayı/boyut) | `RecoveryStore` |
+| **D6** | Atomik olmayan fallback doğrulanmıyor; temp süpürme yok; `finally` istisnayı maskeliyor | `AtomicFiles.java:72-79` |
+| **D7** | Disk kontrolü yok; `Error` kaydetme hata yolunu atlıyor | `FileService.java:311,332`; `AutoSaveService.java:317` |
+| **D8** | Belge düzeyinde kilit yok | `InstanceLock` |
+| **D12** | Ayar yazma hatası sessiz; `SecurityException` kaçıyor | `AppSettings.java:300-308` |
+| **D13** | Ayar şeması sürümü yok | `AppSettings.java:67-81` |
+| **D14** | Disk çarpanı 4,00× (tepe ≈6×); kullanıcıya söylenmiyor | **Ölçüm** |
+| **E2** | Menü çubuğu yok; Yeni/Farklı Kaydet arayüzde görünmüyor | `ToolbarView.java:134-138` |
+| **E3** | CLI/süreç argümanıyla açma yok | `getParameters()` yok |
+| **E4** | Sürükle-bırak yok | `Dragboard` yok |
+| **E7** | Yazdırma/PDF yok | `PrinterJob` yok |
+| **E8** | Satır numaraları yok | düz `TextArea` |
+| **E10** | Dosya ilişkilendirmesi/MIME `.desktop` yok | §10.6 |
+| **X2** | Otomatik kayıt kirli kontrolünden önce tam kopya alıyor | `AutoSaveService.java:136,140-144` |
+| **X3** | 1 Hz istatistik O(n), üç tam kopya | `SessionStats.java:71,79,84` |
+| **X4** | `readAllBytes` bellek çarpanı, boyut sınırı yok | `FileService.loadFile`; `RecoveryStore.java:271` |
+| **X5** | Tekrar eden FX yükünün %99'u istatistik: 10 MB'da 163,7 ms/s | **Ölçüm** |
+| **U3** | `-toolbar-text`, popup satırları, editör metni ölçülmüyor; `-toolbar-text-muted` ölü | `ContrastRatioTest`; `*.css:10` |
+| **U4** | Tooltip'ler sabit `Ctrl` yazıyor *(etkisiz: macOS kapsam dışı)* | `ToolbarView.java:84-91` |
+| **U5** | Sabit tarih/saat biçimi | `StatsBarModel.java:51-52`; `MainController.java:33` |
+| **U6** | Erişilebilir adlar yalnız 6 combo'da | `ToolbarView.java:399-404,539` |
+| **U7** | Karşılama her açılışta, opt-out yok | `FxApplication.java:70` |
+| **U8** | Minimum pencere genişliği yok | `MainStage.java:53-54` |
+| **U9** | Ses politikası: ok/kısayol tuşları da ses çıkarıyor; seviye yok | `EditorKeyHandler.java:31-40` |
+| **U10** | *(kapsam dışı)* macOS çıkış yolu garantisi yok — platformla birlikte düştü | `MainStage`, `FxApplication` |
+| **U11** | Çökme metinleri İngilizce | `CrashHandler.java:43,71`; `FxApplication.java:77` |
+| **U12** | `": "` / `" - "` ayırıcıları kodda | `ToolbarFit.java:93`; `MainController.java:184` |
+| **U13** | Kısayol listesi handler'la iki yönde uyuşmuyor | §7.4 |
+| **B3** | Windows Authenticode imzası yok *(notarization kalemi kapsamla düştü)* | `release.yml`, `package.sh` |
+| **B4** | jlink yok; JAR'ın %34'ü ölü ağırlık (Media+FXML) | §10.2, §10.3 |
+| **B5** | Yeniden üretilebilirlik (çift build) doğrulanmadı | `pom.xml:61` |
+| **B7** | `~/.jtypewriter` tüm OS'lerde | `AppDirs.java:20` |
+| **B8** | Masaüstü entegrasyonu eksik (`Categories=Unknown`, MIME yok) | §10.6 |
+| **B9** | Destek yüzeyi yok (`SECURITY.md`, şablon, tanılama) | §10.7 |
+| **B10** | Dependabot yalnız action'lar; SBOM/zafiyet taraması yok | `.github/dependabot.yml` |
+| **B16** | Kanal ekseni (kurulan vs taşınabilir) hiç analiz edilmemişti; taşınabilirlik OS güven kapısını çözmez, E10'u tek başına imkansız kılar | §10.6b |
+| **B14** | `verify-artifacts.sh` CI'da koşmuyor | `.github/`, `scripts/` |
+| **B15** | İkon `--check` CI'da değil | `generate-icons.py`, `.github/` |
+| **M1** | Komut/eylem katmanı yok | `KeyboardShortcutHandler`, `ToolbarView` |
+| **M2** | Tek belge varsayımı kök hücrelerde | `FileService.java:69-74` |
+| **M3** | 9 `Alert` tekrarı | §9.1 |
+| **M4** | `AppLogging` global statik; enjeksiyon yok | `AppLogging.java:37,153`; `pom.xml:145-149` |
+| **M5** | Dinleyici sırası örtük | `AppGraph` |
+| **M6** | `UndoHistoryReset` yansıma; dönüş değeri yok sayılıyor | `EditorArea`; `UndoHistoryReset` |
+| **M7** | Undo geçmişi sınırsız | JavaFX varsayılanı |
+| **M8** | Dispose sözleşmesi yok | `StatsBar` |
+| **M9** | `AtomicFiles` hedefin *kimliğini* sormuyor | `AtomicFiles.java:54` |
+| **M10** | Boyut/sayı sınırı kavramı yok | §8.4 |
+| **T6** | Testler gerçek `~/.jtypewriter`'a yazıyor | `pom.xml:145-149`; §11.5 |
+| **T7** | Kapsam ölçümü yok; test sayısı yol kapsamı değil | §11.5 |
 
 ### Düşük
 
 | ID | Bulgu |
 |---|---|
-| D9 | "Vazgeç" sonrası başarısız taslak silme yutuluyor |
-| D10 | Yedek terfisi başarısızsa en yeni nesil kayboluyor |
-| D11 | `user.home` yoksa açılış NPE |
-| E4 | Sürükle-bırak yok |
-| E5 | Son dosyalar yok |
-| E6 | Tercihler penceresi yok |
-| E9 | Sarma anahtarı/yazı tipi ailesi/satır sonu yok |
-| U11 | Çökme diyaloğu ham `Throwable` basıyor |
-| U12 | `" - "`/`": "` ayırıcıları ve register karışıklığı |
-| B6 | Güncelleme denetimi yok (bilinçli) |
-| B12 | Kapsam/statik analiz yok (kısmen bilinçli) |
-| B13 | `AGENTS.md` sürüm kontrolünde değil |
+| **D9** | "Vazgeç" sonrası başarısız taslak silme yutuluyor |
+| **D10** | Yedek terfisi başarısız → en yeni nesil yok |
+| **D11** | `user.home` yoksa açılış NPE ile ölür |
+| **E5** | Son dosyalar listesi yok (tek `last.file`) |
+| **E6** | Tercihler penceresi yok |
+| **E9** | Sarma/yazı tipi ailesi/satır sonu/sekme politikası sabit |
+| **U2** | Durum çubuğu boyutu yalnız fare çift tıklamasıyla *(daraltıldı: editörün klavye yolu var)* |
+| **B6** | Çift build bayt-özdeşliği doğrulanmadı |
+| **B12** | Yeniden üretilebilirlik/attestation yok |
+| **B13** | *(kapandı)* `AGENTS.md` artık sürüm kontrolünde |
+| **M11** | `releases/` ve `target/` git'te değil: ölçümler korunmuyor |
+| **B11** | *(kapandı)* `.deb` lisans yükü düzeltildi (`03c277c`) |
 
-**B11 — kapandı (30 Ekim 2026).** Yerel artefaktların bayatlığı giderildi: `releases/linux/`
-taze build ile yeniden üretildi, imaj ↔ `.deb` ↔ repo payload'ı bayt düzeyinde eşleşiyor
-(§9.8).
+### 14.1 v3.1'e göre değişen hükümler
+
+| Bulgu | v3.1 | v4.0 | Neden |
+|---|---|---|---|
+| "Kaydetme 10 MB'da donar" | İddia (çıkarım) | **GEÇERSİZ** | 7,1 ms ölçüldü (§8.2) |
+| **X5** | — | **Yeni, yüksek öncelikli** | 163,7 ms/s ölçüldü; gerçek darboğaz |
+| **U2** | Etki 3 (yalnız fare) | Etki 1 | Editörün klavye yolu var |
+| **B14, B15** | — | **Yeni** | W0 kanıtı CI'da koşmuyor |
+| **D14** | "~5×" tahmini | **Ölçüldü: 4,00× kalıcı, ≈6× tepe** | §6.2 |
+| **B4 / jlink** | "~50 MiB hedefi" tahmini | **Ölçüldü: 59 MiB runtime, ~71 MiB imaj** | §10.2 |
+| **D2** | Kod okuması | **Deneyle kanıtlandı** | §6.2 |
+| **M4** | "Enjeksiyon seam'i yok" | Kısmen yanlış: test-görünürlüğünde seam var (`openFileHandler(Path)`) | §5.3 |
+| **T7** | — | **Yeni** | Kapsam ölçümü yok; "350 test" yol kapsamı vermiyor |
 
 ---
 
-## 14. Ek — Ölçüm Yöntemi
+## 15. Ölçüm Protokolü (yeniden üretilebilirlik)
 
-| Ölçüm | Komut / kaynak |
-|---|---|
-| Sınıf ve satır sayısı | `find src/main/java -name '*.java' \| wc -l`; paket başına `wc -l` (51 / 7.611) |
-| Test sayısı | `grep -rho '@Test' src/test/java \| wc -l` (350); `@Test` içeren sınıf: 40 |
-| Bundle anahtarları | `grep -cE '^[a-zA-Z][a-zA-Z0-9]*=' src/main/resources/messages*.properties` (her biri 90) |
-| Artefakt boyutları | `du -sb` / `du -h --apparent-size releases/linux/...`; `stat -c %s`; `.deb` için `dpkg-deb -x` + `unzip -l` |
-| Açılış / RSS | `scripts/package.sh --installer` imajı **boş `user.home`** ile 5 kez başlatıldı; ana pencere ve karşılama kartının X ağacına girişi `xwininfo -root -tree` ile 10 ms aralıkla yoklanıp `date +%s%N` ile zaman damgalandı; RSS karşılama açıldıktan sonra `ps -o rss=` |
-| Runtime modülleri | İmajdaki `lib/runtime/release` ve `modules` dosyası; 52 modül |
-| Tag/Release | `git tag -l` (boş); GitHub Releases API (`[]`) |
-| CI kapıları | `.github/workflows/maven.yml`, `release.yml`, `scripts/package.sh` |
-| Kontrast | `ContrastRatioTest` + `css/*.css` token çiftleri |
+Bu belgedeki her sayı aşağıdaki komutlarla yeniden üretilebilir. Amaç, belge silinse bile
+ölçümün kaybolmamasıdır (§10.9).
 
-**Yeniden üretim:** Bu belgedeki tüm artefakt sayıları 30 Ekim 2026 taze build'inden
-(`./scripts/package.sh --installer` + `scripts/release-assets.sh`) alınmıştır ve imaj ↔ `.deb`
-↔ repo payload'ı aynı koşuda doğrulanmıştır (§9.8). Aynı ölçümü tekrarlamak için:
+### 15.1 Kod tabanı ve test
 
 ```bash
-rm -rf releases/linux && ./scripts/package.sh --installer
-bash scripts/release-assets.sh 1.0.0 linux x64 releases/linux dist
-du -sb releases/linux/JTypeWriter releases/linux/JTypeWriter/lib/runtime dist/*
-dpkg-deb -x dist/JTypeWriter-1.0.0-linux-x64.deb /tmp/jtw-deb   # payload karşılaştırması
+cd /home/hyperpostulate/repositories/JTypeWriter
+git log --oneline | wc -l                      # commit
+find src/main/java -name '*.java' | wc -l      # 51 sınıf
+find src/main/java -name '*.java' -exec cat {} + | wc -l   # 7611 satır
+find src/test/java -name '*.java' | wc -l      # 42 dosya
+grep -rho '@Test' src/test/java | wc -l        # 350
+for f in src/main/resources/messages*.properties; do
+  echo -n "$f "; grep -cE '^[a-zA-Z0-9_.]+=' "$f"; done   # 6 × 90
+mvn -B clean test                              # 350/0/0  (repo kökünden)
 ```
+
+### 15.2 Artefakt
+
+```bash
+du -sb releases/linux/JTypeWriter releases/linux/JTypeWriter/lib/runtime \
+      releases/linux/JTypeWriter/lib/app releases/linux/*.deb
+find releases/linux/JTypeWriter -type f | wc -l          # 125
+unzip -l releases/linux/JTypeWriter/lib/app/*.jar | tail -2   # 6105 giriş
+dpkg-deb -f releases/linux/*.deb Depends Package Version Installed-Size
+cat releases/linux/JTypeWriter/lib/runtime/release | tr ' ' '\n' | grep -c '^[a-z]'  # modül
+du -sb releases/linux/JTypeWriter/lib/runtime/lib/modules
+bash scripts/verify-artifacts.sh --skip-build   # 17/17
+```
+
+### 15.3 Performans (harness)
+
+`target/classes` üzerinde, fsync dahil:
+
+```java
+var bytes = text.getBytes(UTF_8);
+long t0 = System.nanoTime(); TextCodec.decode(bytes);              long t1 = System.nanoTime();
+byte[] enc = TextCodec.encode(text, UTF_8, false);                 long t2 = System.nanoTime();
+AtomicFiles.writeMoving(file, enc);                                long t3 = System.nanoTime();
+st.updateText(text);
+st.getWordCount(); st.getCharCount(); st.getCharCountNoSpaces(); st.getLineCount();
+```
+
+`javac -cp target/classes` + `java -cp target/classes:<out>`. §8.2 ve §8.3 tabloları bu şekilde
+üretildi.
+
+### 15.4 Açılış, bellek, symlink, disk çarpanı
+
+```bash
+# açılış + RSS: taze profil, X11 eşlemesi beklenir
+H=$(mktemp -d); JAVA_TOOL_OPTIONS="-Duser.home=$H" DISPLAY=:0.0 \
+  releases/linux/JTypeWriter/bin/JTypeWriter & pid=$!
+until xwininfo -root -tree | grep -q '"JTypeWriter"'; do sleep 0.05; done
+ps -o rss= -p $pid
+
+# symlink: hedef korunuyor mu (D2)
+ln -s /tmp/real/notes.txt /tmp/link/notes.txt
+# AtomicFiles.writeMoving(link, bytes) → Files.isSymbolicLink(link) == false  ⇒ kusur
+
+# disk çarpanı: 6 kayıt sonrası dizin toplamı / belge boyu == 4,00 (D14)
+```
+
+### 15.5 jlink kazancı
+
+```bash
+jlink --add-modules java.base,java.desktop,java.logging,java.xml,java.prefs,\
+java.datatransfer,java.scripting,jdk.unsupported --strip-debug --no-header-files \
+--no-man-pages --compress=zip-6 --output rt && du -sb rt   # 62.248.693 B ≈ 59 MiB
+```
+
+### 15.6 Bilinen ölçüm sınırları
+
+| Sınır | Etki |
+|---|---|
+| Tek makine (Linux x64, NVMe, X11) | Açılış/kaydetme süreleri başka donanımda değişir; ağ FS ölçülmedi |
+| `getText()` toolkit gerektirir | Otomatik kaydın kopya maliyeti ölçülmedi (§8.5) |
+| `jpackage` yalnız host platformu | Windows artefakt boyutları bu belgede yok; macOS kapsam dışı (§2.4) |
+| RSS tek koşu kümesinden | ±%5 oynayabilir; mutlak değil eğilim okunmalı |
+| Kontrast testi hex matematiği | Render edilmiş CSS doğrulanmıyor |
+
+---
+
+## 16. Tek Paragraf
+
+JTypeWriter, dört ayda 137 commit ve 350 testle, bir metin editörünün **en pahalı ve en az
+görünen** kısmını — veri bütünlüğünü — gerçekten çözmüş durumda: atomik yazma, dönen yedek,
+üç durumlu kilit, çıkış matrisi, kodlama matrisi, gerçek süreç öldürmeyle doğrulanmış kurtarma.
+Bu belge o tabanı doğruladı, ölçtü ve **abartılı bir iddiayı** düzeltti: kaydetme 10 MB'da
+donmuyor, 7 ms sürüyor; asıl tekrar eden yük saniyede bir çalışan ve 10 MB'da 163,7 ms tutan
+istatistik yenilemesidir — yani ürünü yavaşlatan şey G/Ç değil, sayaç. Buna karşılık üç şey
+eksik ve üçü farklı katmanda: **güven** (dış değişiklik sessizce eziliyor, symlink'li belge
+kaydedilince gerçek hedef hiç güncellenmiyor — bu artık kanıtlı), **deneyim** (ara/değiştir,
+menü, yazdırma yok; 14 eylemin 2'si arayüzde hiç görünmüyor) ve **erişim** (0 tag, 0 Release,
+0 yıldız; CI ürettiği artefaktı hiç açmıyor; 145,4 MiB'lik paketin jlink ile ~71 MiB'e
+inebileceği ölçüldü ama uygulanmadı). Ağırlıklı olgunluk endeksi **2,53/5**. P2'nin sorusu
+"daha çok özellik" değil: *bir romancı bir bölümü bitirip ertesi gün aynı dosyaya güvenle
+dönebilir mi — ve indirdiği ikili bunu gerçekten yapıyor mu?* Bugünkü cevap hayır; ama zemin,
+bu soruya bir fazda "evet" denebilecek kadar sağlam.
