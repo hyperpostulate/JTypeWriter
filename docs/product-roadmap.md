@@ -495,7 +495,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `☑` olur:
 
 | ID | Kart | Bulgu | Efor | Bağımlılık | Durum | Kanıt |
 |---|---|---|---|---|---|---|
-| W0-01 | Dokuz `Alert` kelepçesi | U1, M3 | M | — | ☐ | |
+| W0-01 | Dokuz `Alert` kelepçesi | U1, M3 | M | — | ☑ | `mvn test -Dtest=DialogSizingTest,DialogServiceTest` → 18/18; `grep -rn "new Alert" src/main/java` → yalnız `DialogService`; `mvn -B clean test` → 354/354 |
 | W0-02 | Tarih/saat + ayırıcı yerelleştirmesi | U5, U12 | S | — | ☐ | |
 | W0-03 | Kontrast kapsamı | U3 | S | — | ☐ | |
 | W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ☐ | |

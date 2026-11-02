@@ -39,6 +39,23 @@ public final class DialogSizing {
     /** Smallest width the clamp will produce; see {@link #MIN_HEIGHT}. */
     public static final double MIN_WIDTH = 420;
 
+    /**
+     * Preferred width of an {@link javafx.scene.control.Alert}.
+     *
+     * <p>Wide enough for a German or French sentence to read in a couple of
+     * wrapped lines, narrow enough that a 768 px-wide display still keeps the
+     * screen margin on both sides.
+     */
+    public static final double ALERT_PREFERRED_WIDTH = 560;
+
+    /**
+     * Horizontal chrome a {@code DialogPane} adds around its content: the
+     * pane's own padding, the header panel's inset and the button bar's
+     * border. Subtracting it from {@link #alertWidth(double)} gives the width
+     * a wrapped content or header label may actually occupy.
+     */
+    public static final double ALERT_CHROME_WIDTH = 64;
+
     private DialogSizing() {
     }
 
@@ -57,5 +74,28 @@ public final class DialogSizing {
     /** Width counterpart of {@link #clampHeight}; same margin and floor logic. */
     public static double clampWidth(double preferred, double visualWidth) {
         return Math.max(MIN_WIDTH, Math.min(preferred, visualWidth - 2 * SCREEN_MARGIN));
+    }
+
+    /**
+     * Preferred width of an Alert fitted to the display.
+     *
+     * <p>Alerts used to size themselves from their text with no upper bound, so
+     * a long German or French sentence could push the dialog - and its buttons -
+     * past the edge of a narrow screen. This keeps the width at
+     * {@link #ALERT_PREFERRED_WIDTH} wherever the display allows it and clamps
+     * it to the visual bounds otherwise.
+     */
+    public static double alertWidth(double visualWidth) {
+        return clampWidth(ALERT_PREFERRED_WIDTH, visualWidth);
+    }
+
+    /**
+     * Width a wrapped Alert content or header label may occupy inside a dialog
+     * of {@code alertWidth} pixels. The result stays positive because
+     * {@link #alertWidth(double)} never returns less than {@link #MIN_WIDTH},
+     * which is far above {@link #ALERT_CHROME_WIDTH}.
+     */
+    public static double alertContentWidth(double alertWidth) {
+        return alertWidth - ALERT_CHROME_WIDTH;
     }
 }

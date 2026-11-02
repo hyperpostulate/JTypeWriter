@@ -76,7 +76,7 @@ public final class AppGraph {
             fileService, themeManager, textColorManager, fontSizeManager,
             toolbarState, messages, localeManager, aboutDialog);
     public final StatsBar statsBar = new StatsBar(sessionStats, messages, statsBarState, localeManager);
-    public final CrashHandler crashHandler = new CrashHandler(messages, () -> this.stage);
+    public final CrashHandler crashHandler = new CrashHandler(dialogService, messages, () -> this.stage);
 
     // --- top level assembly ------------------------------------------------
     public final MainController mainController = new MainController(

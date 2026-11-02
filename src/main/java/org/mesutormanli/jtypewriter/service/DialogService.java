@@ -6,11 +6,16 @@
 package org.mesutormanli.jtypewriter.service;
 
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.DialogPane;
+import javafx.scene.control.Label;
 import javafx.stage.FileChooser;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.ui.DialogButtons;
+import org.mesutormanli.jtypewriter.ui.DialogSizing;
 import org.mesutormanli.jtypewriter.ui.DialogStyling;
 
 import java.io.File;
@@ -22,6 +27,17 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Optional;
 
+/**
+ * Every user-facing {@link Alert} of the application, plus the file choosers.
+ *
+ * <p>The single construction site is deliberate: alerts used to be built in
+ * {@code SingleInstanceWarning} and {@code CrashHandler} too, and each copy
+ * missed part of the preparation (theme, owner, screen clamp, text wrap), so
+ * the same dialog could look and behave differently depending on which code
+ * path opened it. {@link #prepare(Alert, Stage)} now runs for all of them, and
+ * the source-scan test in {@code DialogServiceTest} keeps any other alert
+ * construction from appearing in the sources.
+ */
 public class DialogService {
 
     /** Extension added when the user types an extension-less file name. */
@@ -97,13 +113,12 @@ public class DialogService {
         alert.setTitle(messages.overwriteTitle());
         alert.setHeaderText(messages.overwriteHeader());
         alert.setContentText(messages.overwriteContent(target.getName()));
-        initOwner(alert, stage);
 
         var overwriteButton = DialogButtons.primary(messages.overwriteConfirm());
         var cancelButton = DialogButtons.cancel(messages.overwriteCancel());
         alert.getButtonTypes().setAll(overwriteButton, cancelButton);
 
-        var result = alert.showAndWait();
+        var result = show(alert, stage);
         return result.isPresent() && result.get() == overwriteButton;
     }
 
@@ -134,7 +149,6 @@ public class DialogService {
         alert.setTitle(messages.unsavedTitle());
         alert.setHeaderText(messages.unsavedHeader());
         alert.setContentText(messages.unsavedContent());
-        initOwner(alert, stage);
 
         var saveButton = DialogButtons.primary(messages.unsavedSave());
         var discardButton = DialogButtons.alternative(messages.unsavedDiscard());
@@ -142,7 +156,7 @@ public class DialogService {
 
         alert.getButtonTypes().setAll(saveButton, discardButton, cancelButton);
 
-        var result = alert.showAndWait();
+        var result = show(alert, stage);
         if (result.isEmpty()) return SaveChoice.CANCEL;
 
         if (result.get() == saveButton) return SaveChoice.SAVE;
@@ -165,13 +179,12 @@ public class DialogService {
         alert.setTitle(messages.encodingUpgradeTitle());
         alert.setHeaderText(messages.encodingUpgradeHeader());
         alert.setContentText(messages.encodingUpgradeContent(charset.displayName()));
-        initOwner(alert, stage);
 
         var utf8Button = DialogButtons.primary(messages.encodingUpgradeSave());
         var cancelButton = DialogButtons.cancel(messages.encodingUpgradeCancel());
         alert.getButtonTypes().setAll(utf8Button, cancelButton);
 
-        var result = alert.showAndWait();
+        var result = show(alert, stage);
         return result.isPresent() && result.get() == utf8Button;
     }
 
@@ -188,13 +201,12 @@ public class DialogService {
         alert.setTitle(messages.encodingMalformedTitle());
         alert.setHeaderText(messages.encodingMalformedHeader() + " - " + file.getFileName());
         alert.setContentText(messages.encodingMalformedContent(declared.displayName()));
-        initOwner(alert, stage);
 
         var openButton = DialogButtons.primary(messages.encodingMalformedOpen());
         var cancelButton = DialogButtons.cancel(messages.encodingMalformedCancel());
         alert.getButtonTypes().setAll(openButton, cancelButton);
 
-        var result = alert.showAndWait();
+        var result = show(alert, stage);
         return result.isPresent() && result.get() == openButton;
     }
 
@@ -203,7 +215,6 @@ public class DialogService {
         alert.setTitle(messages.encodingTitle());
         alert.setHeaderText(messages.encodingHeader() + " - " + file.getFileName());
         alert.setContentText(messages.encodingContent());
-        initOwner(alert, stage);
 
         // UTF-8 is the default because it is the lossless choice: it round-trips
         // every character already in the buffer, while Windows-1254 can only
@@ -213,7 +224,7 @@ public class DialogService {
         var cancelButton = DialogButtons.cancel(messages.encodingCancel());
         alert.getButtonTypes().setAll(turkishButton, utf8Button, cancelButton);
 
-        var result = alert.showAndWait();
+        var result = show(alert, stage);
         if (result.isEmpty()) return EncodingChoice.CANCEL;
 
         if (result.get() == turkishButton) return EncodingChoice.WINDOWS1254;
@@ -231,7 +242,6 @@ public class DialogService {
         alert.setTitle(messages.recoveryTitle());
         alert.setHeaderText(messages.recoveryHeader());
         alert.setContentText(messages.recoveryContent(format(savedAt)));
-        initOwner(alert, stage);
 
         var restoreButton = DialogButtons.primary(messages.recoveryYes());
         var discardButton = DialogButtons.alternative(messages.recoveryNo());
@@ -242,7 +252,7 @@ public class DialogService {
         var laterButton = DialogButtons.cancel(messages.recoveryLater());
         alert.getButtonTypes().setAll(restoreButton, discardButton, laterButton);
 
-        var result = alert.showAndWait();
+        var result = show(alert, stage);
         int selected = result.map(alert.getButtonTypes()::indexOf).orElse(-1);
         return choiceFor(selected);
     }
@@ -264,19 +274,77 @@ public class DialogService {
         alert.setTitle(messages.errorTitle());
         alert.setHeaderText(header);
         alert.setContentText(content);
-        initOwner(alert, owner);
-        alert.showAndWait();
+        show(alert, owner);
     }
 
-    /** Owns the dialog to its stage so it can never hide behind the main window. */
-    private static void initOwner(Alert alert, Stage stage) {
-        if (stage != null) {
-            alert.initOwner(stage);
+    /**
+     * Shows a themed warning. Used by the single-instance guard, which has no
+     * main scene to copy stylesheets from; {@link #prepare(Alert, Stage)}
+     * therefore paints the pane from the classpath with the persisted theme
+     * when the owner (or its scene) is missing.
+     */
+    public void showWarning(Stage owner, String title, String header, String content) {
+        var alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle(title);
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        show(alert, owner);
+    }
+
+    /**
+     * The one path every Alert takes to the screen.
+     *
+     * <p>Preparation happens here, never at the call sites: the owner is set
+     * (so the dialog cannot hide behind the main window), the pane is themed,
+     * the window is made resizable and clamped into the screen's visual bounds,
+     * and the header/content labels wrap inside
+     * {@link DialogSizing#alertContentWidth(double)}. A long German or French
+     * sentence therefore wraps instead of widening the dialog into a
+     * horizontal scrollbar on a 768 px display.
+     */
+    private Optional<ButtonType> show(Alert alert, Stage owner) {
+        prepare(alert, owner);
+        return alert.showAndWait();
+    }
+
+    private void prepare(Alert alert, Stage owner) {
+        if (owner != null) {
+            alert.initOwner(owner);
         }
-        // One call covers every alert above: the pane only gets themed when the
-        // scene stylesheets reach it, never on its own.
-        DialogStyling.applyFromScene(
-                alert.getDialogPane(), stage == null ? null : stage.getScene());
+
+        var pane = alert.getDialogPane();
+        // Modena already wraps the labels it creates; setting the wrap on the
+        // looked-up labels keeps the guarantee explicit and survives a future
+        // JavaFX that stops doing it, while the max width keeps a single very
+        // long token (a path, a URL in an error message) from forcing the pane
+        // wider than the clamp below.
+        var visual = Screen.getPrimary().getVisualBounds();
+        var width = DialogSizing.alertWidth(visual.getWidth());
+        var contentWidth = DialogSizing.alertContentWidth(width);
+        pane.setPrefWidth(width);
+        pane.setMaxHeight(DialogSizing.clampHeight(Double.MAX_VALUE, visual.getHeight()));
+        alert.setResizable(true);
+
+        if (owner != null && owner.getScene() != null) {
+            DialogStyling.applyFromScene(pane, owner.getScene());
+        } else {
+            DialogStyling.applyTheme(pane, settings.getTheme());
+        }
+
+        wrap(pane, ".content.label", contentWidth);
+        wrap(pane, ".header-panel .label", contentWidth);
+    }
+
+    /**
+     * Turns the pane's header/content label into a wrapped one capped at
+     * {@code maxWidth}. Missing labels are skipped rather than fatal: an alert
+     * without header text simply has none.
+     */
+    private static void wrap(DialogPane pane, String selector, double maxWidth) {
+        if (pane.lookup(selector) instanceof Label label) {
+            label.setWrapText(true);
+            label.setMaxWidth(maxWidth);
+        }
     }
 
     private static String format(Instant instant) {

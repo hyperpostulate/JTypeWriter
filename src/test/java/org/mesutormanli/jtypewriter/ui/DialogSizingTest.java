@@ -75,6 +75,31 @@ class DialogSizingTest {
         assertEquals(expected, DialogSizing.clampWidth(preferred, visual), DELTA);
     }
 
+    /**
+     * An Alert must fit a 768 px-wide screen once the shared margin is taken
+     * off both sides - the same rule the welcome/About cards already follow.
+     */
+    @Test
+    void alertWidthFitsA768PixelWideScreenInsideTheSharedMargin() {
+        var onSmallestSupportedScreen = DialogSizing.alertWidth(768);
+        var onDesktop = DialogSizing.alertWidth(1920);
+
+        assertTrue(onSmallestSupportedScreen <= 768 - 2 * DialogSizing.SCREEN_MARGIN,
+                "an alert would overflow a 768 px-wide display");
+        assertEquals(DialogSizing.ALERT_PREFERRED_WIDTH, onDesktop, DELTA);
+    }
+
+    /** The wrapped labels must fit the dialog with its chrome subtracted. */
+    @Test
+    void alertContentColumnLeavesRoomForTheDialogChrome() {
+        var dialogWidth = DialogSizing.alertWidth(768);
+        var contentWidth = DialogSizing.alertContentWidth(dialogWidth);
+
+        assertEquals(dialogWidth - DialogSizing.ALERT_CHROME_WIDTH, contentWidth, DELTA);
+        assertTrue(contentWidth > 0, "the content column must stay usable");
+        assertTrue(contentWidth < dialogWidth, "the content cannot be wider than its dialog");
+    }
+
     @Test
     void bothDialogsUseTheSharedScrollStyleClass() {
         for (var source : new String[]{"WelcomeDialog.java", "AboutDialog.java"}) {

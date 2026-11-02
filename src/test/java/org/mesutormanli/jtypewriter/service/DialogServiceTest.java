@@ -13,7 +13,13 @@ import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -93,6 +99,72 @@ class DialogServiceTest {
             assertFalse(tagline.isBlank(), "blank app tagline in " + language);
             assertTrue(tagline.length() > 40, "tagline should be a sentence in " + language);
         }
+    }
+
+    /**
+     * The single-alert-home invariant of W0-01: no other class may construct an
+     * {@code Alert}, because a second construction site is a second chance to
+     * forget the theme, the owner, the screen clamp or the text wrap. Verified
+     * by scanning the sources, the same way {@code DialogSizingTest} checks the
+     * shared scroll class; a live Alert needs a toolkit, which this suite must
+     * never start.
+     */
+    @Test
+    void noClassOutsideDialogServiceConstructsAnAlert() {
+        var offenders = new ArrayList<String>();
+        try (Stream<Path> sources = Files.walk(Path.of("src", "main", "java"))) {
+            for (var path : sources.filter(p -> p.toString().endsWith(".java")).toList()) {
+                if (!path.getFileName().toString().equals("DialogService.java")
+                        && Files.readString(path, StandardCharsets.UTF_8).contains("new Alert(")) {
+                    offenders.add(path.toString());
+                }
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot scan the main sources", e);
+        }
+
+        assertTrue(offenders.isEmpty(),
+                "these files build their own Alert instead of going through DialogService: " + offenders);
+    }
+
+    /**
+     * Every Alert built here must take the shared preparation path (theme,
+     * clamp, wrap) instead of calling {@code showAndWait} itself. Counting the
+     * construction sites against the calls into {@code show(...)} catches a new
+     * dialog added without the clamp.
+     */
+    @Test
+    void everyAlertInDialogServiceIsShownThroughTheSharedPath() {
+        var source = readSource("DialogService.java");
+
+        assertEquals(count(source, "new Alert("), count(source, "show(alert,"),
+                "an Alert is constructed but shown without prepare()");
+        assertTrue(source.contains("DialogSizing.alertWidth("),
+                "the alert width is not clamped to the screen");
+        assertTrue(source.contains("DialogSizing.alertContentWidth("),
+                "the wrapped labels are not bounded");
+        assertTrue(source.contains("setWrapText(true)"),
+                "alert text is not wrapped");
+        assertTrue(source.contains("setResizable(true)"),
+                "a clamped alert must stay resizable");
+    }
+
+    private static String readSource(String name) {
+        var path = Path.of("src", "main", "java", "org", "mesutormanli", "jtypewriter",
+                "service", name);
+        try {
+            return Files.readString(path, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot read " + path.toAbsolutePath(), e);
+        }
+    }
+
+    private static int count(String haystack, String needle) {
+        int found = 0;
+        for (int at = haystack.indexOf(needle); at >= 0; at = haystack.indexOf(needle, at + needle.length())) {
+            found++;
+        }
+        return found;
     }
 
     private Messages messagesFor(Language language) {

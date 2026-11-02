@@ -6,12 +6,11 @@
 package org.mesutormanli.jtypewriter.ui;
 
 import javafx.application.Platform;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.AppDirs;
 import org.mesutormanli.jtypewriter.AppLogging;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.service.DialogService;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -28,11 +27,13 @@ public class CrashHandler {
 
     private static final Logger LOG = AppLogging.logger(CrashHandler.class);
 
+    private final DialogService dialogService;
     private final Messages messages;
     private final Supplier<Stage> owner;
     private final AtomicBoolean dialogShowing = new AtomicBoolean();
 
-    public CrashHandler(Messages messages, Supplier<Stage> owner) {
+    public CrashHandler(DialogService dialogService, Messages messages, Supplier<Stage> owner) {
+        this.dialogService = dialogService;
         this.messages = messages;
         this.owner = owner;
     }
@@ -65,19 +66,12 @@ public class CrashHandler {
             return;
         }
         try {
-            var alert = new Alert(Alert.AlertType.ERROR, "", ButtonType.OK);
-            alert.setTitle(messages.errorTitle());
-            alert.setHeaderText(context);
-            alert.setContentText(error + "\n\n" + messages.errorLogged(AppDirs.logsDir().toString()));
-            var stage = owner.get();
-            if (stage != null) {
-                alert.initOwner(stage);
-            }
-            // The owner supplier can hand back a stage before its scene exists
-            // early in startup; applyFromScene tolerates the null scene.
-            DialogStyling.applyFromScene(
-                    alert.getDialogPane(), stage == null ? null : stage.getScene());
-            alert.showAndWait();
+            // DialogService owns the alert: it themes the pane, clamps it to the
+            // screen and wraps the text. The owner supplier can hand back a
+            // stage before its scene exists early in startup, and prepare()
+            // then falls back to the persisted theme.
+            dialogService.showError(owner.get(), context,
+                    error + "\n\n" + messages.errorLogged(AppDirs.logsDir().toString()));
         } finally {
             dialogShowing.set(false);
         }
