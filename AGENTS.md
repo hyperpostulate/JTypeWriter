@@ -82,7 +82,6 @@ suite is the gate, and it enforces several non-code invariants below.
   `TextCodec`), then unit-test those. Follow it instead of testing nodes.
 - `service/` is JavaFX-free; user-facing `FileChooser`/`Alert` work is isolated in
   `DialogService`, which tests mock. `FileService` also owns unsaved-change flow.
-- `UndoHistoryReset` intentionally reflects into JavaFX internals (no API exists).
 - Concurrency/state where it matters: `FileService` listeners live in a `CopyOnWriteArrayList`;
   enum-based state models (`ExitDisposition`, `AutosaveHealth.Problem`) encode exit/autosave
   rules. Read a class Javadoc before changing its policy — data-safety semantics (atomic

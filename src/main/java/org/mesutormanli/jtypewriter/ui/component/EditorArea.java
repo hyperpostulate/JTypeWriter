@@ -102,16 +102,28 @@ public class EditorArea extends TextArea {
      * <p>Every document load - opening a file, session restore, a recovered
      * draft and a new document - must go through this method, so the undo stack
      * can never cross a document boundary (Ctrl+Z must not restore the previous
-     * document's text). {@code setText} alone leaves JavaFX's history intact
-     * (JDK-8090123); it is still used here because it intentionally bypasses the
-     * YOLO-mode funnel, so loading is never blocked while drafting.</p>
+     * document's text). {@code setText} is still what does both jobs: it
+     * bypasses the YOLO-mode funnel, so loading is never blocked while drafting,
+     * and {@code TextInputControl.TextProperty.doSet} clears the undo manager
+     * itself, because a programmatic text set means the control may be reused
+     * for another document.</p>
+     *
+     * <p>That reset used to be done here by reflection, by setting the private
+     * {@code undoChange} field to {@code null}. The field is not a record but a
+     * cursor into a linked list, initialised to the sentinel
+     * {@code undoChangeHead} and dereferenced - never null-checked - by
+     * {@code updateContent} on the next edit. Nulling it therefore turned the
+     * first keystroke after every document load into an
+     * {@code NullPointerException} inside JavaFX, and the next {@code setText}
+     * into another one in {@code resetUndoRedoState}. The framework already
+     * performed this exact reset, so the reflection was removed rather than
+     * corrected: there is no API to reach for, and nothing left to reach for.</p>
      */
     public void setDocument(String text) {
         setText(text);
         deselect();
         positionCaret(0);
         setScrollTop(0);
-        UndoHistoryReset.reset(this);
     }
 
     /**
