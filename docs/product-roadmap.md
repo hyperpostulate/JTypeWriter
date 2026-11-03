@@ -19,7 +19,7 @@
 donmayı bitir (A3), sonra dosyaya kimlik ver (A1), sonra komut yüzeyini kur (A4), sonra
 ara/değiştir'i ekle (A2), ve P1'den devreden diyalog/yerel biçim borcunu kapat (A5) — bu sırayla;
 P1'in kalan üç açığı (U1 taşma, U5 sabit tarih, B1/B14/B15 paket kanıtı) bu kümenin **içine**
-yerleştirilmiştir, ayrı bir kuyruk oluşturmaz.
+yerleştirilmiştir, ayrı bir kuyruk oluşturmaz — üçü de kapatıldı (W0-01…W0-04, W1-01).
 
 ### 1.2 Bu belgenin taban belgeden devraldığı üç karar
 
@@ -152,14 +152,14 @@ kapıyı beklerken boş kapasiteye biner. **P2, 20 puanda biter (D13 ile 21).**
 çıkıyor. Hiçbiri ayrı bir "borç dalgası" oluşturmuyor; her biri zaten gerekli bir karta
 **gömülmüştür**. Bu tablo, o gömülmenin denetlenebilir kaydıdır.
 
-| P1 açığı | Bulgu | Durum (2 Kas 2026) | Hangi kartta kapanır | Kapanış kanıtı |
+| P1 açığı | Bulgu | Durum (4 Kas 2026) | Hangi kartta kapanır | Kapanış kanıtı |
 |---|---|---|---|---|
-| **9 `Alert` kelepçesiz/sarmasız** (kriter 2) | U1, M3 | Açık | **W0-01** | DE/FR en uzun metinle 768 px sığma testi; `DialogSizing` tek yol |
-| **Sabit tarih/saat biçimi** (kriter 5) | U5, U12 | Kısmi | **W0-02** | Tüm biçimler `LocaleManager` üzerinden; TR/DE locale koşusunda farklı çıktı |
-| **Kontrast kapsamı eksik** (kriter 1) | U3 | Kısmi | **W0-03** | `ContrastRatioTest` 19 → 23; araç çubuğu metni, düz popup satırı ve varsayılan editör metni de AA sınırında |
+| **9 `Alert` kelepçesiz/sarmasız** (kriter 2) | U1, M3 | **Kapalı** | **W0-01** | `DialogSizing` tek yol; `DialogSizingTest` + `DialogServiceTest` yeşil, `new Alert` çağrıları sarmalanmış (W0-01 `✅`) |
+| **Sabit tarih/saat biçimi** (kriter 5) | U5, U12 | **Kapalı** | **W0-02** | Tüm biçimler `LocaleManager` üzerinden; `StatsBarModelTest` + `MessagesTest` yeşil ve suite TR/DE sistem dillerinde de koşuyor (W0-02 `✅`) |
+| **Kontrast kapsamı eksik** (kriter 1) | U3 | **Kapalı** | **W0-03** | `ContrastRatioTest` 23/23; `-toolbar-text-muted` üç temadan da silindi (W0-03 `✅`) |
 | **CI artefaktı çalıştırmıyor** (kriter 7 / PW-43) | B1 | **Kapalı** | **W1-01** | `smoke` job'u iki OS'te yeşil ([run 41711024985](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41711024985)): Ubuntu'da imaj Xvfb altında açıldı, `.deb` kuruldu/açıldı/kaldırıldı ve `dpkg -l` temiz döndü; Windows'ta launcher ayakta kaldı |
-| **`verify-artifacts.sh` CI'da değil** | B14 | Açık | **W0-04** | Linux ayağında `verify-artifacts.sh --skip-build` (paketlemeden sonra) yeşil: 17/17; kasıtlı bozma (`.deb`'den `NOTICE` silindi) 1/17 → exit 1 |
-| **İkon `--check` CI'da değil** | B15 | Açık | **W0-04** | Her iki ayakta `generate-icons.py --check` (derlemeden önce) yeşil: 11 dosya; düzenlenmiş SVG / elle değiştirilmiş PNG / eksik dosya exit 1 |
+| **`verify-artifacts.sh` CI'da değil** | B14 | **Kapalı** | **W0-04** | CI'da gerçekten koşuyor: [run 41732440723](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41732440723) ubuntu ayağında `Verify packaged artifacts match the repository` **success** (17/17); kasıtlı bozma (`.deb`'den `NOTICE` silindi) yerelde 1/17 → exit 1. `CiGatesTest` kapıyı pinliyor |
+| **İkon `--check` CI'da değil** | B15 | **Kapalı** | **W0-04** | Aynı koşuda her iki ayakta `Verify icon assets match the canonical artwork` **success**: 11 dosya; düzenlenmiş SVG / elle değiştirilmiş PNG / eksik dosya exit 1. `CiGatesTest` kapıyı pinliyor |
 | **Sürüm yok / hat koşmadı** (kriter 6) | B2 | **Kapalı** | **W1-02, W1-03** | [run 41729981210](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41729981210): `v1.0.0` yayında, **6 varlık** (5 + `SHA256SUMS`); beşi indirilip `sha256sum -c SHA256SUMS` ile doğrulandı → 5/5 OK; not iki dilli ve ölçülen boyutlarla üretildi. Hat artık hipotez değil: iki kuru koşu + bir gerçek yayın |
 
 **Kural:** Bu tablodaki hiçbir satır "P2 sırasında bir ara" diye bırakılmaz. Her satırın bir kart
