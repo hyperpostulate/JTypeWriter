@@ -233,6 +233,7 @@ mvn clean package                    # Build + tests + thin JAR + fat JAR
 ./scripts/package.sh --skip-build    # Reuse the last build, only re-wrap it
 ./scripts/package.sh --installer     # Same, plus the platform installer (.deb / .msi)
 ./scripts/verify-artifacts.sh        # Fresh build, then compare every shipped copy byte for byte
+./scripts/smoke-appimage.sh --skip-build  # Start the built image; install, launch and remove the .deb
 mvn test -Dtest=SessionStatsTest     # Run a single test class
 mvn test -Dtest=FileServiceTest      # Run a single test class
 ```
@@ -261,6 +262,15 @@ native image and in the installer, byte for byte, in one command. The `.deb`
 payload is unpacked with `dpkg-deb` and compared the same way, because
 `jpackage`'s deb bundler drops the image-root files and `scripts/package.sh`
 completes the payload afterwards.
+
+`scripts/smoke-appimage.sh` proves what the file comparison cannot: that the
+artifacts actually run. On Linux it starts the application image under a
+throwaway `user.home` (`Xvfb` when no display is available), waits for the main
+window with `xwininfo` instead of sleeping, then installs the `.deb`, starts the
+installed launcher and purges the package again; on Windows it starts the image
+and requires the jpackage launcher to stay alive. The CI `smoke` job runs it on
+both legs against the artifact the build job produced, so "packaged" is no
+longer shipped untested.
 
 A wrong toolchain stops the build before it starts: `maven-enforcer-plugin` runs
 at the `validate` phase, requires a JDK at least as new as `java.version` in
@@ -291,7 +301,7 @@ GitHub Actions workflows: build and test on every push and pull request to `main
 - **Environment**: Ubuntu and Windows (build matrix)
 - **JDK**: Temurin 25
 - **Command**: `mvn -B package` (build + tests), then `scripts/package.sh --skip-build --installer`
-- **Gates**: `scripts/generate-icons.py --check` runs before the build on both OS legs: it compares every icon's hash with `icons.manifest`, so a committed asset that no longer matches the canonical artwork fails in a minute rather than shipping. It verifies hashes rather than re-rasterising on purpose - ImageMagick encodes the same pixels to different bytes on different builds, so a byte or pixel comparison in CI would compare toolchains, not artwork. `scripts/verify-artifacts.sh --skip-build` runs after packaging (Linux leg, because it unpacks the `.deb` with `dpkg-deb`) and re-proves the byte-for-byte comparison between the repository payload, the application image and the installer payload
+- **Gates**: `scripts/generate-icons.py --check` runs before the build on both OS legs: it compares every icon's hash with `icons.manifest`, so a committed asset that no longer matches the canonical artwork fails in a minute rather than shipping. It verifies hashes rather than re-rasterising on purpose - ImageMagick encodes the same pixels to different bytes on different builds, so a byte or pixel comparison in CI would compare toolchains, not artwork. `scripts/verify-artifacts.sh --skip-build` runs after packaging (Linux leg, because it unpacks the `.deb` with `dpkg-deb`) and re-proves the byte-for-byte comparison between the repository payload, the application image and the installer payload. A separate `smoke` job then consumes the packaged artifact and runs `scripts/smoke-appimage.sh --skip-build` on both OS legs: Linux starts the image under Xvfb and installs, launches and purges the `.deb`; Windows requires the launcher to stay alive
 - **Locales**: the test suite also runs under Turkish and German system locales, so i18n regressions (e.g. a language that silently resolves to the system language) cannot slip through
 - **Artifacts**: native application image plus a platform installer (`.deb` / `.msi`) per OS
 - **Releases**: pushing a `v*` tag that matches the `pom.xml` version builds both platforms and publishes them to a GitHub Release together with a `SHA256SUMS` file, so the binaries no longer live in Actions artifacts that expire after a few days

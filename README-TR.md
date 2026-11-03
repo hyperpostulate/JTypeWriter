@@ -233,6 +233,7 @@ mvn clean package                    # Derleme + test + ince JAR + fat JAR
 ./scripts/package.sh --skip-build    # Son derlemeyi kullan, yalnızca yeniden sar
 ./scripts/package.sh --installer     # Aynı + platform kurulum paketi (.deb / .msi)
 ./scripts/verify-artifacts.sh        # Taze derleme, ardından her kopyayı bayt bayt karşılaştır
+./scripts/smoke-appimage.sh --skip-build  # Derlenen imajı başlat; .deb paketini kur, çalıştır ve kaldır
 mvn test -Dtest=SessionStatsTest     # Tek test sınıfı
 mvn test -Dtest=FileServiceTest      # Tek test sınıfı
 ```
@@ -259,6 +260,15 @@ script sürümü üretilen artefaktten geri okur ve jpackage kurallarına karş�
 tek komutta bayt bayt karşılaştırır. `.deb` yükü `dpkg-deb` ile açılıp aynı
 şekilde karşılaştırılır; çünkü `jpackage`'ın deb paketleyicisi imaj kökündeki
 dosyaları düşürür ve `scripts/package.sh` yükü sonradan tamamlar.
+
+`scripts/smoke-appimage.sh` dosya karşılaştırmasının kanıtlayamadığını kanıtlar:
+artefaktların gerçekten çalıştığını. Linux'ta uygulama imajını boş bir `user.home` ile
+(`DISPLAY` yoksa `Xvfb` altında) başlatır, ana pencereyi sabit bir uyku yerine `xwininfo`
+ile bekler, ardından `.deb` paketini kurar, kurulu başlatıcıyı çalıştırır ve paketi
+yeniden kaldırır; Windows'ta imajı başlatır ve jpackage başlatıcısının ayakta kalmasını
+şart koşar. CI'daki `smoke` işi bunu iki işletim sistemi ayağında, derleme işinin
+ürettiği artefakt üzerinde çalıştırır; böylece "paketlendi" artık test edilmeden
+gönderilmez.
 
 Yanlış araç zinciri derlemeyi başlamadan durdurur: `maven-enforcer-plugin` `validate`
 aşamasında çalışır, JDK'nın `pom.xml`'deki `java.version` değerinden (25) eski olmamasını
@@ -288,7 +298,7 @@ GitHub Actions iş akışları: `main` dalına her push ve pull request'te derle
 - **Ortam**: Ubuntu ve Windows (build matrisi)
 - **JDK**: Temurin 25
 - **Komut**: `mvn -B package` (derleme + testler), ardından `scripts/package.sh --skip-build --installer`
-- **Kapılar**: `scripts/generate-icons.py --check` iki işletim sistemi ayağında da derlemeden önce koşar: her simgenin özetini `icons.manifest` ile karşılaştırır, böylece kanonik görselle artık eşleşmeyen bir varlık on dakika sonra değil bir dakika içinde kırmızı olur. Bilerek yeniden rasterleştirmez: ImageMagick aynı pikselleri farklı derlemelerde farklı baytlara kodlar, yani CI'da bayt ya da piksel karşılaştırması görseli değil araç zincirini karşılaştırırdı. `scripts/verify-artifacts.sh --skip-build` paketlemeden sonra koşar (Linux ayağı, çünkü `.deb` paketini `dpkg-deb` ile açar) ve depo yükü, uygulama görüntüsü ile kurulum paketi arasındaki bayt bayt karşılaştırmayı yeniden kanıtlar
+- **Kapılar**: `scripts/generate-icons.py --check` iki işletim sistemi ayağında da derlemeden önce koşar: her simgenin özetini `icons.manifest` ile karşılaştırır, böylece kanonik görselle artık eşleşmeyen bir varlık on dakika sonra değil bir dakika içinde kırmızı olur. Bilerek yeniden rasterleştirmez: ImageMagick aynı pikselleri farklı derlemelerde farklı baytlara kodlar, yani CI'da bayt ya da piksel karşılaştırması görseli değil araç zincirini karşılaştırırdı. `scripts/verify-artifacts.sh --skip-build` paketlemeden sonra koşar (Linux ayağı, çünkü `.deb` paketini `dpkg-deb` ile açar) ve depo yükü, uygulama görüntüsü ile kurulum paketi arasındaki bayt bayt karşılaştırmayı yeniden kanıtlar. Ayrı bir `smoke` işi paketlenen artefaktı indirip `scripts/smoke-appimage.sh --skip-build` betiğini iki işletim sistemi ayağında çalıştırır: Linux imajı Xvfb altında başlatır, `.deb` paketini kurar, çalıştırır ve kaldırır; Windows başlatıcının ayakta kalmasını şart koşar
 - **Diller**: test paketi Türkçe ve Almanca sistem dillerinde de çalışır; böylece yerelleştirme regresyonları (ör. bir dilin sessizce sistem diline çözülmesi) gözden kaçamaz
 - **Artefaktlar**: her işletim sistemi için yerel uygulama görüntüsü ve platform kurulum paketi (`.deb` / `.msi`)
 - **Sürümler**: `pom.xml` sürümüyle eşleşen bir `v*` tag'i itildiğinde iki platform da derlenip bir GitHub Release'e yüklenir; yanına `SHA256SUMS` dosyası eklenir, böylece ikililer birkaç gün sonra silinen Actions artefaktlarına bağlı kalmaz
