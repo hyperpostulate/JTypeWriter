@@ -31,6 +31,16 @@ relative paths and fail if Surefire's CWD is elsewhere.
 There is no lint, formatter or typecheck plugin (no Checkstyle/Spotless, by design). The test
 suite is the gate, and it enforces several non-code invariants below.
 
+## Git
+
+- **The agent commits; the user pushes.** Finish a unit of work with a local commit and stop
+  there — never `git push`, never add or change a remote, and don't ask whether to push: the
+  push is the user's call and happens on their schedule, not yours.
+- One roadmap card or one self-contained change per commit, with a body that explains *why*
+  and a `Refs: <card> · Kanıt: ...` evidence line where a roadmap card exists.
+- Leave the tree clean after committing; `target/`, `releases/` and `scripts/__pycache__/` are
+  generated and never belong in a commit.
+
 ## Invariants enforced by tests (not by plugins)
 
 - Every `.java` file under `src/` begins with the SPDX block at byte 0, before `package`:
