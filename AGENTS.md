@@ -13,7 +13,7 @@ platforms on purpose.
 
 - JDK 25 + Maven 3.8+ are hard requirements (`maven-enforcer-plugin` at `validate`, floor
   derived from `java.version`). There is deliberately no Maven wrapper — don't add one.
-- `mvn clean test` — full suite (~350 tests, no toolkit, no display needed).
+- `mvn clean test` — full suite (~365 tests, no toolkit, no display needed).
 - `mvn test -Dtest=FileServiceTest` / `-Dtest=FileServiceTest#methodName` — focused run.
 - `mvn clean package` — tests + thin JAR + `jar-with-dependencies`. The fat JAR bundles
   JavaFX natives from the build machine, so it runs only on the OS it was built on.
@@ -23,7 +23,9 @@ platforms on purpose.
 - `./scripts/verify-artifacts.sh [--skip-build]` — fresh build then a byte-for-byte comparison
   of repo payload ↔ application image ↔ `.deb` payload (jars, legal texts, jar entries).
 - CI runs `mvn -B package` then `scripts/package.sh --skip-build --installer`, then re-runs
-  the suite under `tr-TR` and `de-DE`.
+  the suite under `tr-TR` and `de-DE`. `generate-icons.py --check` runs before the build on the
+  Windows leg and `verify-artifacts.sh --skip-build` after packaging on the Linux leg; both are
+  pinned by `CiGatesTest`, so moving or dropping a gate fails the suite.
 
 Run Maven from the repo root: several tests read `src/`, `docs/` and `.github/` through
 relative paths and fail if Surefire's CWD is elsewhere.
