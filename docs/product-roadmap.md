@@ -288,6 +288,23 @@ yayınlamak.** Yayınlanana kadar diğer bütün işler tahmindir (`analysis.md`
   `ReleaseNotesTest` sözleşmeyi kilitliyor (3 yeni test: dispatch + guard'lar, elle yayımlama
   reddi, tam 5 varlık), `retention-days ≤ 7` kontrolü yeni yüklemeyi de kapsıyor.
 
+- **Kuru koşunun bulduğu ikinci kusur (4 Kas 2026):** Ubuntu ayağı yeşilken Windows ayağı
+  `Stage normalised release assets` adımında kırmızıydı:
+  `tar (child): Cannot connect to D: resolve failed`. Sebep yol değil, **iki dilbilgisinin
+  çakışması**: GNU tar arşiv argümanında `host:path` biçimini uzak kopya sanıyor ve Windows sürücü
+  harfi tam o biçimde — `D:\a\...` yazılmadan önce `D` host'u olarak okunuyor. Kusur
+  `release-assets.sh`'teydi ve **hiçbir yerel koşuda görünmüyordu**, çünkü mutlak bir yolda
+  iki noktadan önce eğik çizgi bulunuyor ve tar o yolu yerel sayıyor; hata yalnız `D:` ile
+  başlayan göreli biçimde tetikleniyor (bu yüzden Linux'ta `release-assets.sh` defalarca
+  sorunsuz koştu).
+  Düzeltme: `to_tar_path` — iki nokta içeren her yol, `cygpath -u` varsa POSIX biçimine çevriliyor
+  (`/d/a/...`, iki nokta kalmıyor); Linux'ta `cygpath` yok, satır aynen koşuyor, yani tek
+  uygulama kalıyor. Yeni `ReleaseAssetsScriptTest` (2 test) kusuru POSIX'te yeniden üretiyor:
+  sahte `cygpath` + `D:` ile başlayan göreli yollarla arşiv üretiliyor; dönüşüm kaldırıldığında
+  test **birebir aynı CI hatasıyla** ("Cannot connect to D") kırmızıya dönüyor. Bu, W1-02'nin
+  neden var olduğunun en somut kanıtı: hat hiç koşmamış olsaydı bu kusur ilk gerçek tag'de,
+  yayın ortasında çıkacaktı.
+
 **W1-03 · A6c — İlk yayın `v1.0.0` (pre-release)** · S · B2
 - **Kapsam:** tag + `docs/release-notes-template.md` (yalnız doldurulur, yapısı değişmez)
 - **Yapılacak:** `v1.0.0` etiketi; iki dilli not; "erken erişim" işareti; imza yokluğu dürüstçe
@@ -538,7 +555,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W0-03 | Kontrast kapsamı | U3 | S | — | ✅ | `mvn test -Dtest=ContrastRatioTest` → 23/23; `-toolbar-text-muted` üç temadan da silindi, `everyThemeTokenIsActuallyReadByBaseCss` ölü token'ı yakalıyor; `mvn -B clean test` → 361/361; `mvn -B test -Duser.language=de -Duser.country=DE` → 361/361 |
 | W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ✅ | `bash scripts/verify-artifacts.sh` → 17/17 (linux, 1.0.0); kasıtlı bozma (`.deb`'den `NOTICE` silindi) → 1/17, exit 1, sonra `package.sh --skip-build --installer` ile geri alındı → 17/17; `python3 scripts/generate-icons.py --check` → 11 dosya (manifest dahil), düzenlenmiş SVG / değiştirilmiş PNG / eksik PNG → exit 1, `--render` → piksel özdeş, palet değişikliği %0,33 → exit 1, ImageMagick'siz `PATH`'te `--check` yeşil; `mvn test -Dtest=CiGatesTest` → 5/5; `mvn -B clean test` → 366/366 |
 | W1-01 | CI artefakt smoke | B1 | M | W0-04 | ✅ | CI [run 41711024985](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41711024985): `Smoke test packaged app (ubuntu-latest)` ve `(windows-latest)` **success** (imaj açıldı, `.deb` kuruldu/çalıştırıldı/kaldırıldı, `dpkg -l` temiz); ilk koşu `7e474c1` Ubuntu'da `xdg-desktop-menu` exit 3 → dpkg abort ile kırmızıydı, `25ca53e` bunu `package.sh`'te onardı; `mvn -B clean test` → 368/368 (CiGatesTest 7/7, `needs: build` kaldırılınca kırmızı); `verify-artifacts.sh --skip-build` → 17/17; `smoke-appimage.sh --skip-build` yerelde imajı 2 s'de pencereyle açtı |
-| W1-02 | Release dry-run | B2 | S | — | ◐ | `prepare` betiği dört senaryoda yerelde koşuldu: tag push eşleşen → `publish=true`; `v0.9.9` → exit 1; dispatch `dry_run=true` → `publish=false`; dispatch `dry_run=false` → exit 1 (iki derleme başlamadan). `git archive $GITHUB_SHA` + `checksums.sh` çalışıyor; sürüm notu `@VERSION@`/`@TAG@` doluyor, iki başlık yerinde; `ReleaseNotesTest` → 7/7 (3 yeni test), `mvn -B clean test` → 371/371. **Eksik: yeşil `dry_run` koşusu** — elle tetiklenmeli (push sonrası Actions → Release → Run workflow), `git tag -l` boş kalmalı |
+| W1-02 | Release dry-run | B2 | S | — | ◐ | Kuru koşu **çalıştı ve iki gerçek kusur buldu**; Ubuntu ayağı yeşil, Windows ayağı `Stage normalised release assets`'ta kırmızı: `tar (child): Cannot connect to D` — GNU tar `D:\a\...` yolunu `host:path` sandı. `release-assets.sh`'e `to_tar_path` eklendi (cygpath ile POSIX biçimi); kusur `ReleaseAssetsScriptTest` ile POSIX'te yeniden üretiliyor: dönüşüm kaldırılınca test aynı hatayla kırmızı, düzeltmeyle yeşil. Yerel: `prepare` dört senaryoda doğru (`push`+eşleşen → `publish=true`; `v0.9.9` → exit 1; dispatch `true` → `publish=false`; dispatch `false` → exit 1); `mvn -B clean test` → 373/373; `ReleaseNotesTest` 7/7, `ReleaseAssetsScriptTest` 2/2. **Eksik: yeşil kuru koşu** — düzeltme push edilip yeniden tetiklenmeli, `git tag -l` boş kalmalı |
 | W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ☐ | |
 | W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ☐ | |
 | W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ☐ | |

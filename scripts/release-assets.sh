@@ -100,10 +100,32 @@ PORTABLE_ASSET="$OUT_DIR/JTypeWriter-$VERSION-$OS-$ARCH.tar.gz"
 
 cp -- "${installers[0]}" "$INSTALLER_ASSET"
 
+# GNU tar reads a colon in an argument as "remote host:path", and a Windows
+# drive letter is precisely that shape: `D:\a\...` is taken for host `D`, so on
+# the Windows runner this line used to die with "Cannot connect to D" before a
+# single byte was written. Every path handed to tar therefore goes through
+# cygpath, which turns a drive path into the POSIX form MSYS tar understands
+# (`/d/a/...`, no colon left to misread).
+#
+# Only paths that actually contain a colon are converted, and only when cygpath
+# exists - on Linux there is nothing to convert, so the same line runs unchanged
+# and the script stays one implementation rather than two.
+to_tar_path() {
+    local path="$1"
+    if [[ "$path" == *:* ]] && command -v cygpath >/dev/null 2>&1; then
+        cygpath -u "$path"
+    else
+        printf '%s' "$path"
+    fi
+}
+
+TAR_SOURCE=$(to_tar_path "$RELEASES_DIR")
+TAR_ARCHIVE=$(to_tar_path "$PORTABLE_ASSET")
+
 # -C keeps exactly one top-level directory in the archive, and the relative name
 # (not an absolute path) is what makes the same tarball safe to unpack anywhere.
 # GNU tar, bsdtar and the tar Git Bash ships on Windows all accept this form.
-tar -czf "$PORTABLE_ASSET" -C "$RELEASES_DIR" -- "$IMAGE"
+tar -czf "$TAR_ARCHIVE" -C "$TAR_SOURCE" -- "$IMAGE"
 
 echo "installer asset:  $INSTALLER_ASSET"
 echo "portable archive: $PORTABLE_ASSET"
