@@ -2,9 +2,16 @@ JTypeWriter @VERSION@, built from tag `@TAG@`.
 
 ## English
 
+**Early access.** This is the first published build of JTypeWriter, and it is a
+pre-release: usable, but the feature set can still change between releases.
+
 Supported platforms: **Linux x64 and Windows x64**. Both channels are published
 for each of them: the installer (`.deb`, `.msi`) and a portable `.tar.gz`. Which
 one becomes the product default is still an open decision; neither is deprecated.
+
+Sizes of the files in this release, measured on the assets themselves:
+
+@ASSET_SIZES@
 
 The installers are **not code-signed**. Windows SmartScreen will warn on first
 launch.
@@ -29,10 +36,18 @@ archive next to the binaries is the exact tree the release was built from.
 
 JTypeWriter @VERSION@, `@TAG@` etiketinden derlendi.
 
+**Erken erişim.** Bu, JTypeWriter'ın yayımlanan ilk derlemesidir ve bir ön
+sürümdür: kullanılabilir, ancak özellik kümesi sürümler arasında hâlâ
+değişebilir.
+
 Desteklenen platformlar: **Linux x64 ve Windows x64**. Her biri için iki kanal da
 yayınlanır: kurulum paketi (`.deb`, `.msi`) ve taşınabilir `.tar.gz`. Hangisinin
 ürün varsayılanı olacağı hâlâ açık bir karardır; ikisi de kullanımdan kaldırılmış
 değildir.
+
+Bu sürümdeki dosyaların boyutları, varlıkların kendisinde ölçüldü:
+
+@ASSET_SIZES@
 
 Kurulum paketleri **kod imzalı değildir**. Windows SmartScreen ilk açılışta uyarı
 gösterir.

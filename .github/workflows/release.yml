@@ -262,15 +262,49 @@ jobs:
       # as a checked-in template makes that pairing reviewable (a diff shows both
       # halves) instead of hiding it inside an inline block.
       #
-      # The template carries @VERSION@ and @TAG@ placeholders; the checks below
-      # make a half-rendered note impossible to publish.
+      # The template carries @VERSION@, @TAG@ and @ASSET_SIZES@ placeholders; the
+      # checks below make a half-rendered note impossible to publish.
       - name: Write release notes
         shell: bash
         run: |
+          # Download sizes are measured from the very files being published, in
+          # the job that assembled them, instead of being typed into the
+          # template. A hand-written number is a second source of truth that
+          # drifts by the next release - and it cannot be written honestly at
+          # all for the platform the note is not being prepared on: the Windows
+          # assets have never been measurable on the Linux machine this template
+          # is edited from. Measuring here also means the note says what the
+          # reader is about to download, not what some earlier build weighed.
+          #
+          # LC_ALL=C keeps the decimal separator a dot on every runner, so the
+          # rendered note is byte-identical for the same inputs.
+          export LC_ALL=C
+          {
+            for asset in dist/*; do
+              name=${asset##*/}
+              [[ "$name" == "SHA256SUMS" ]] && continue
+              bytes=$(stat -c %s "$asset")
+              mib=$(awk -v b="$bytes" 'BEGIN { printf "%.1f", b / 1048576 }')
+              printf -- '- `%s` — %s MiB\n' "$name" "$mib"
+            done
+          } > "$RUNNER_TEMP/asset-sizes.md"
+
           sed \
             -e "s/@VERSION@/${{ needs.prepare.outputs.version }}/g" \
             -e "s/@TAG@/${{ needs.prepare.outputs.tag }}/g" \
-            docs/release-notes-template.md > "$RUNNER_TEMP/release-notes.md"
+            docs/release-notes-template.md > "$RUNNER_TEMP/release-notes.raw"
+
+          # Both language halves carry the same size list, so every occurrence
+          # of the placeholder is replaced. The list is reopened per occurrence
+          # because getline consumes it.
+          awk -v sizes="$RUNNER_TEMP/asset-sizes.md" '
+            /@ASSET_SIZES@/ {
+              while ((getline line < sizes) > 0) print line
+              close(sizes)
+              next
+            }
+            { print }
+          ' "$RUNNER_TEMP/release-notes.raw" > "$RUNNER_TEMP/release-notes.md"
 
           if grep -n '@[A-Z][A-Z_]*@' "$RUNNER_TEMP/release-notes.md"; then
             echo "unsubstituted placeholder in the release notes above" >&2

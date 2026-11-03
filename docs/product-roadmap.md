@@ -320,6 +320,25 @@ yayınlamak.** Yayınlanana kadar diğer bütün işler tahmindir (`analysis.md`
   doldurulmuş; `SHA256SUMS` doğrulanabiliyor.
 - **Doğrulama:** `curl -s https://api.github.com/repos/hyperpostulate/JTypeWriter/releases |
   jq '.[0].assets[].name'` → 6 satır. (`gh` bu makinede kurulu değil.)
+- **Uygulama notu (4 Kas 2026):** Not artık kartın istediği üç noktayı da karşılıyor; boyutlar
+  ise elle yazılmıyor.
+  (a) Her iki dilde **erken erişim** işareti: "pre-release: usable, but the feature set can
+  still change".
+  (b) **Ölçülen indirme boyutları**: şablon `@ASSET_SIZES@` yer tutucusunu taşıyor ve
+  `release.yml` onu `dist/` içindeki gerçek dosyalardan üretiyor (`stat -c %s` → MiB,
+  `LC_ALL=C` ile ondalık ayırıcı sabit). İki sebep: Windows varlıkları Windows runner'da
+  üretilir ve bu makinede **hiç ölçülemedi** (`analysis.md` §134 bu boşluğu zaten kaydediyor;
+  uydurulmuş bir sayı notu yalancı yapardı), ayrıca elle yazılan bir sayı bir sonraki sürümde
+  sessizce yanlış olur. Aynı liste iki yarıda da basılıyor (yer tutucu her görüldüğünde dosya
+  yeniden okunuyor), yani hiçbir dil indirme boyutunu saklamıyor.
+  (c) İmza yokluğu cümlesi korundu; zaten dürüsttü.
+  `ReleaseNotesTest` 7 → 8 test: iki dilde erken erişim işareti, iki yarımda yer tutucu,
+  `release.yml`'in boyutu ölçtüğü ve MiB'e çevirdiği, ölçümün "yer tutucu kaldı" kontrolünden
+  **önce** koştuğu. Mutasyonla doğrulandı: ikinci yer tutucu silinince ve `stat` satırı
+  kaldırılınca test kırmızı. Yerel render sahte bir `dist/` ile koşuldu: iki başlık yerinde,
+  yer tutucu kalmıyor, beş varlık MiB cinsinden listeleniyor.
+- **Kalan adım:** `v1.0.0` tag'inin itilmesi (kullanıcı) ve ardından Release'te 6 varlığın
+  doğrulanması; tag push'u yapılmadan kart kapanmaz.
 
 **W1-04 · A8a — Taslak tarayıcısını sertleştir** · M · D4, D5, D14
 - **Kapsam:** `service/RecoveryStore.java:131-139,145,271`, `service/BackupKeeper.java`
@@ -563,7 +582,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ✅ | `bash scripts/verify-artifacts.sh` → 17/17 (linux, 1.0.0); kasıtlı bozma (`.deb`'den `NOTICE` silindi) → 1/17, exit 1, sonra `package.sh --skip-build --installer` ile geri alındı → 17/17; `python3 scripts/generate-icons.py --check` → 11 dosya (manifest dahil), düzenlenmiş SVG / değiştirilmiş PNG / eksik PNG → exit 1, `--render` → piksel özdeş, palet değişikliği %0,33 → exit 1, ImageMagick'siz `PATH`'te `--check` yeşil; `mvn test -Dtest=CiGatesTest` → 5/5; `mvn -B clean test` → 366/366 |
 | W1-01 | CI artefakt smoke | B1 | M | W0-04 | ✅ | CI [run 41711024985](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41711024985): `Smoke test packaged app (ubuntu-latest)` ve `(windows-latest)` **success** (imaj açıldı, `.deb` kuruldu/çalıştırıldı/kaldırıldı, `dpkg -l` temiz); ilk koşu `7e474c1` Ubuntu'da `xdg-desktop-menu` exit 3 → dpkg abort ile kırmızıydı, `25ca53e` bunu `package.sh`'te onardı; `mvn -B clean test` → 368/368 (CiGatesTest 7/7, `needs: build` kaldırılınca kırmızı); `verify-artifacts.sh --skip-build` → 17/17; `smoke-appimage.sh --skip-build` yerelde imajı 2 s'de pencereyle açtı |
 | W1-02 | Release dry-run | B2 | S | — | ✅ | Kuru koşu yeşil: [run 41725168564](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41725168564) — 4/4 job success (`Assemble and publish` içinde `Create the GitHub Release` **skipped**, `Upload the dry-run release bundle` success); artefakt `JTypeWriter-release-dry-run-1.0.0` (7 gün, 229,7 MB); `Verify the expected assets are present` yeşil → tam 5 varlık; `git tag -l` boş, Release sayısı 0 → kuru koşu yayımlamıyor. Hat iki gerçek kusur buldu ve ikisi de onarıldı: (a) `xdg-desktop-menu`/dpkg (W1-01), (b) GNU tar'ın `D:` yolunu `host:path` sanması (`release-assets.sh` `to_tar_path` + `ReleaseAssetsScriptTest`). Yerel: `prepare` dört senaryoda doğru (`v0.9.9` → exit 1, dispatch `dry_run=false` → exit 1); `mvn -B clean test` → 373/373 |
-| W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ☐ | |
+| W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ◐ | Not hazır: iki dilde **erken erişim** işareti, imza yokluğu cümlesi (zaten vardı) ve **ölçülen indirme boyutları**. Boyutlar elle yazılmadı: şablonda `@ASSET_SIZES@`, `release.yml` onu `dist/` içindeki dosyalardan `stat -c %s` → MiB (`LC_ALL=C`) ile üretiyor — Windows varlıkları bu makinede ölçülemiyor, elle yazılan sayı da bir sonraki sürümde yanlış olur. `ReleaseNotesTest` 8/8 (yeni test mutasyonla doğrulandı: ikinci yer tutucu veya `stat` kaldırılınca kırmızı); sahte `dist/` ile yerel render iki başlığı ve beş varlık boyutunu üretti, yer tutucu kalmadı. **Eksik: `v1.0.0` tag push'u (kullanıcı)** — sonrası: `curl …/releases | jq '.[0].assets[].name'` → 6 satır ve `sha256sum -c SHA256SUMS` doğrulaması |
 | W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ☐ | |
 | W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ☐ | |
 | W2-02 | G/Ç executor | X1, X2 | M | W2-01 | ☐ | |

@@ -114,6 +114,50 @@ class ReleaseNotesTest {
     }
 
     /**
+     * Two things a reader needs before running an unknown binary: that this is
+     * an early build, and how much they are about to download. Both were
+     * missing from the note, and the second one cannot be written by hand
+     * honestly - the Windows assets are produced on a Windows runner and have
+     * never been measurable from the Linux machine the template is edited on.
+     *
+     * <p>The sizes are therefore rendered from the assembled files themselves,
+     * which also keeps them from drifting: a number typed into the template is
+     * a second source of truth that is wrong one release later. This test pins
+     * both halves of that arrangement - the marker in both languages, the
+     * placeholder in both halves, and the measurement in the release job.</p>
+     */
+    @Test
+    void theNoteMarksEarlyAccessAndMeasuresTheDownloadSizes() throws IOException {
+        var template = Files.readString(TEMPLATE, StandardCharsets.UTF_8);
+        var split = template.indexOf("## Türkçe");
+        assertTrue(split > 0, TEMPLATE + " has no '## Türkçe' section");
+        var english = template.substring(0, split);
+        var turkish = template.substring(split);
+
+        assertTrue(english.contains("Early access"),
+                "the English half does not mark the release as early access");
+        assertTrue(turkish.contains("Erken erişim"),
+                "the Turkish half does not mark the release as early access");
+
+        var first = template.indexOf("@ASSET_SIZES@");
+        assertTrue(first >= 0, TEMPLATE + " has no @ASSET_SIZES@ placeholder; a hand-written "
+                + "size is wrong for the platform it was not measured on");
+        assertTrue(template.indexOf("@ASSET_SIZES@", first + 1) >= 0,
+                "only one half carries the size list, so one language hides the download size");
+
+        var release = Files.readString(RELEASE_WORKFLOW, StandardCharsets.UTF_8);
+        assertTrue(release.contains("@ASSET_SIZES@"),
+                "release.yml never fills @ASSET_SIZES@, so the note would ship the placeholder");
+        assertTrue(release.contains("stat -c %s"),
+                "release.yml does not measure the published files, so the sizes are not measured");
+        assertTrue(release.contains("1048576"),
+                "release.yml does not convert bytes to MiB; a raw byte count is not a usable size");
+        assertTrue(release.indexOf("stat -c %s") < release.indexOf("unsubstituted placeholder"),
+                "the sizes must be rendered before the leftover-placeholder check, or every "
+                        + "release fails on a placeholder the job itself was supposed to fill");
+    }
+
+    /**
      * A release pipeline nobody has ever run is a hypothesis, and a tag is the
      * least convenient moment to find out that an asset name, the note
      * rendering or the two-OS merge was wrong. The dry run exists to convert
