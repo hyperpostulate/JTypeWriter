@@ -126,4 +126,30 @@ class BackupKeeperTest {
         assertEquals("v0", Files.readString(older));
         assertFalse(Files.exists(BackupKeeper.backupPath(target, 2)));
     }
+
+    /**
+     * The disk cost told to the user is derived, not typed. A dialog that says
+     * "4 times" while the rotation keeps five generations is a claim the user
+     * can check and find false - and this notice is shown once, so the mistake
+     * can never correct itself.
+     */
+    @Test
+    void theDiskFootprintFollowsTheRotationCount() {
+        assertEquals(1 + BackupKeeper.generations(), StorageFootprint.persistentCopies(),
+                "the document plus one copy per rotated generation");
+    }
+
+    /**
+     * The peak adds the two transient copies a save needs: the staging file
+     * that becomes {@code .bak}, and the {@code jtw-*.tmp} that
+     * {@code AtomicFiles} fsyncs before renaming it into place. Four persisted
+     * plus two transient is the measured six.
+     */
+    @Test
+    void thePeakFootprintAddsTheStagingAndTempCopies() {
+        assertEquals(StorageFootprint.persistentCopies() + 2, StorageFootprint.peakCopies());
+        assertEquals(4, StorageFootprint.persistentCopies(),
+                "3 generations plus the document itself");
+        assertEquals(6, StorageFootprint.peakCopies());
+    }
 }

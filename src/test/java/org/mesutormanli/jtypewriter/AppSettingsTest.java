@@ -71,6 +71,22 @@ class AppSettingsTest {
         assertFalse(reloaded.isSoundEnabled());
     }
 
+    /**
+     * The disk-cost notice is shown once and then never again, so the flag has
+     * to survive a restart: losing it would turn a one-time explanation into a
+     * nag on every launch, and keeping it in memory only would do exactly that.
+     */
+    @Test
+    void theStorageNoticeIsShownOnlyOnce(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        var settings = new AppSettings(file);
+        assertFalse(settings.isStorageNoticeShown(), "a fresh install has not been told yet");
+
+        settings.setStorageNoticeShown(true);
+
+        assertTrue(new AppSettings(file).isStorageNoticeShown());
+    }
+
     @Test
     void remembersTheLastDocumentAndItsDirectory(@TempDir Path dir) throws IOException {
         var file = dir.resolve("settings.properties");

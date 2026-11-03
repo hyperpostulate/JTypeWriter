@@ -369,6 +369,21 @@ yayınlamak.** Yayınlanana kadar diğer bütün işler tahmindir (`analysis.md`
 - **Neden W1'de:** Yayın öncesi gizlilik hijyeni — keyfî bir dosya yoluna işaret eden symlink'in
   içeriği kullanıcıya "kurtarılmış taslak" olarak sunulmamalı. Bir kapı kapatmaz, ama **yayın
   öncesi** olması gerekçelidir.
+- **Uygulama (4 Kas 2026):** İki yeni saf sınıf: `RecoveryRetention` (yaş 30 gün, 10 dosya,
+  64 MiB; yalnız park edilmiş dosyalar aday) ve `StorageFootprint` (`1 + BackupKeeper.generations()`
+  kalıcı, `+2` geçici → 4×/6×). `RecoveryStore` taraması `NOFOLLOW_LINKS` ile symlink'i hiç
+  okumuyor (WARNING), `readAllBytes` yerine `readBounded` (önce boyut, sonra `readNBytes`);
+  `MAX_DRAFT_BYTES = 64 MiB` üstü **kesilmiyor, atlanıyor** — baştan eksik bir "kurtarma"nın
+  sonra aslın üzerine kaydedilmesi, kurtarma görünen bir veri kaybıdır. Temizlik taramadan
+  **önce** koşuyor, yoksa süresi dolmuş dosya yine okunurdu. Kartın `parked-*` dediği dosyalar
+  kodda `pending-*` (park edilen slot adı); `draft-*` başka bir çalışan örneğe ait olabildiği
+  için yaş kuralı ona hiç dokunmuyor. Disk çarpanı ilk **başarılı kayıtta** bir kez gösteriliyor
+  (`notice.storage.shown`, `DialogService.showStorageFootprintNotice`); sayılar dialogda yazılı
+  değil `BackupKeeper.generations()`'tan türetiliyor, çünkü bir kez gösterilen ve yanlış olan
+  bir sayıyı kullanıcı düzeltemez. Testler: `RecoveryStoreTest` 19→25, `BackupKeeperTest` 7→9,
+  `AppSettingsTest` 17→18. Üç güvenlik kuralı da mutasyonla doğrulandı: `NOFOLLOW_LINKS`
+  kaldırılınca symlink testi, `MAX_DRAFT_BYTES` 200 MiB yapılınca büyük-taslak testi, temizlik
+  kapatılınca yaş testi kırmızı. `mvn -B clean test` → **384/384**.
 
 > **Kapı G1:** GitHub'da bir Release var; CI o Release'in imajını **açtı**, `.deb`'i **kurup
 > kaldırdı**; `verify-artifacts` ve ikon `--check` CI'da yeşil; `SHA256SUMS` doğrulanıyor.
@@ -600,7 +615,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W1-01 | CI artefakt smoke | B1 | M | W0-04 | ✅ | CI [run 41711024985](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41711024985): `Smoke test packaged app (ubuntu-latest)` ve `(windows-latest)` **success** (imaj açıldı, `.deb` kuruldu/çalıştırıldı/kaldırıldı, `dpkg -l` temiz); ilk koşu `7e474c1` Ubuntu'da `xdg-desktop-menu` exit 3 → dpkg abort ile kırmızıydı, `25ca53e` bunu `package.sh`'te onardı; `mvn -B clean test` → 368/368 (CiGatesTest 7/7, `needs: build` kaldırılınca kırmızı); `verify-artifacts.sh --skip-build` → 17/17; `smoke-appimage.sh --skip-build` yerelde imajı 2 s'de pencereyle açtı |
 | W1-02 | Release dry-run | B2 | S | — | ✅ | Kuru koşu yeşil: [run 41725168564](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41725168564) — 4/4 job success (`Assemble and publish` içinde `Create the GitHub Release` **skipped**, `Upload the dry-run release bundle` success); artefakt `JTypeWriter-release-dry-run-1.0.0` (7 gün, 229,7 MB); `Verify the expected assets are present` yeşil → tam 5 varlık; `git tag -l` boş, Release sayısı 0 → kuru koşu yayımlamıyor. Hat iki gerçek kusur buldu ve ikisi de onarıldı: (a) `xdg-desktop-menu`/dpkg (W1-01), (b) GNU tar'ın `D:` yolunu `host:path` sanması (`release-assets.sh` `to_tar_path` + `ReleaseAssetsScriptTest`). Yerel: `prepare` dört senaryoda doğru (`v0.9.9` → exit 1, dispatch `dry_run=false` → exit 1); `mvn -B clean test` → 373/373 |
 | W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ✅ | Yayın yapıldı: [run 41729981210](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41729981210) (4/4 job), Release'te **6 varlık** — 5 ikili/kaynak + `SHA256SUMS`; beşi indirilip `sha256sum -c SHA256SUMS` → **5/5 OK**. Not iki dilli ve ölçülen boyutlarla (`47.7/59.8/57.0/55.4/0.6 MiB`, `@ASSET_SIZES@` gerçek dosyalardan doldu), erken erişim işareti iki yarıda. Kapanış bir kusur daha buldu: GitHub sürümü `prerelease=false` ile Latest etiketledi, not ise pre-release diyordu → `release.yml` `gh release create` artık `--prerelease` taşıyor (`ReleaseNotesTest` 9/9, mutasyonla doğrulandı); mevcut `v1.0.0` de elle pre-release işaretlendi → `GET /releases` `prerelease=true`, yani yayındaki sürüm ile notu aynı şeyi söylüyor |
-| W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ☐ | |
+| W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ✅ | `mvn test -Dtest=RecoveryStoreTest,BackupKeeperTest` → 25/25 + 9/9; symlink taslağı okunmuyor, 100 MB taslak taramayı bloke etmiyor (sparse dosya, sınırlı okuma), `pending-*` 30 gün sonra siliniyor; dördü de mutasyonla kırmızıya döndü; `mvn -B clean test` → 384/384 |
 | W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ☐ | |
 | W2-02 | G/Ç executor | X1, X2 | M | W2-01 | ☐ | |
 | W2-03 | Bellek/boyut/hata yolu | X4, M10, D7 | M | W2-02 | ☐ | |

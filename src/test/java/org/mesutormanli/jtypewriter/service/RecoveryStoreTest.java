@@ -15,7 +15,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Duration;
 import java.time.Instant;
+import java.nio.file.attribute.FileTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -347,6 +349,131 @@ class RecoveryStoreTest {
         assertTrue(stored.contains(base64(original.toAbsolutePath().toString())));
     }
 
+    /**
+     * A recovery directory is a directory the user never looks at, and a file
+     * name in it decided what the product offered as "your recovered draft".
+     * A link pointing at anything - a key file, a document the user never
+     * opened - must not be read at all: following it would show that content to
+     * the user and, worse, let a clean exit adopt it into the slot.
+     */
+    @Test
+    void aSymlinkedDraftIsNotReadEvenWhenItsTargetLooksLikeADraft(@TempDir Path dir) throws IOException {
+        assumeSymlinksCanBeCreated(dir);
+        var payload = Files.createDirectories(dir.resolve("elsewhere")).resolve("secret.jtw");
+        Files.write(payload, rawDraft("saved.at=" + Instant.now() + "\noriginal.path.b64=", "baska bir dosyanin icerigi"));
+        var link = dir.resolve("draft-" + java.util.UUID.randomUUID() + ".jtw");
+        Files.createSymbolicLink(link, payload);
+
+        assertTrue(store(dir).loadDraft().isEmpty(),
+                "a link is not a recovery draft; its target must never be read");
+        assertTrue(Files.exists(payload), "the target is not ours to delete");
+    }
+
+    /**
+     * 100 MB in the recovery directory used to be read straight into memory, on
+     * the startup thread, before the window was even up. The file here is a
+     * valid draft that is merely too large, and it is newer than the small one:
+     * if the size guard ever stops working, this draft wins and the test says so
+     * by content, not by timing.
+     */
+    @Test
+    void anOversizedDraftIsSkippedInsteadOfWinningTheScan(@TempDir Path dir) throws IOException {
+        var small = store(dir);
+        small.saveDraft("gercek taslak", null);
+
+        var huge = dir.resolve("draft-" + java.util.UUID.randomUUID() + ".jtw");
+        Files.write(huge, rawDraft("saved.at=" + Instant.now() + "\noriginal.path.b64=", "dev dosya"));
+        try (var raf = new java.io.RandomAccessFile(huge.toFile(), "rw")) {
+            raf.setLength(100L * 1024 * 1024); // sparse: instant, but 100 MB to read
+        }
+
+        var draft = small.loadDraft().orElseThrow();
+
+        assertEquals("gercek taslak", draft.content());
+        assertEquals(100L * 1024 * 1024, Files.size(huge),
+                "the oversized file is left alone, not truncated or deleted");
+    }
+
+    /**
+     * Parking is one-way storage: nothing rewrites a {@code pending-*} file, so
+     * without an age rule the directory grows for the lifetime of the
+     * installation. A month-old postponed draft is housekeeping, not history.
+     */
+    @Test
+    void aParkedDraftOlderThanTheRetentionWindowIsExpired(@TempDir Path dir) throws IOException {
+        var store = store(dir);
+        store.saveDraft("ertelenen metin", null);
+        assertTrue(store.park());
+        var parked = parkedFiles(dir).get(0);
+        Files.setLastModifiedTime(parked, FileTime.from(
+                Instant.now().minus(RecoveryRetention.MAX_AGE).minus(Duration.ofDays(1))));
+
+        store.saveDraft("yeni canli taslak", null);
+        assertEquals("yeni canli taslak", store.loadDraft().orElseThrow().content());
+
+        assertTrue(parkedFiles(dir).isEmpty(),
+                "a draft postponed longer than the retention window is not offered again");
+    }
+
+    /**
+     * The other half of that rule: a {@code draft-*} slot may belong to a second
+     * instance that is running right now, so age must never touch it. Two old
+     * active drafts are written; the loser of the scan must still be on disk.
+     */
+    @Test
+    void anOldActiveDraftOfAnotherSessionIsNeverExpired(@TempDir Path dir) throws IOException {
+        var older = dir.resolve("draft-" + java.util.UUID.randomUUID() + ".jtw");
+        var newer = dir.resolve("draft-" + java.util.UUID.randomUUID() + ".jtw");
+        Files.write(older, rawDraft("saved.at=" + Instant.now() + "\noriginal.path.b64=", "oturum A"));
+        Files.write(newer, rawDraft("saved.at=" + Instant.now() + "\noriginal.path.b64=", "oturum B"));
+        Files.setLastModifiedTime(older, FileTime.from(Instant.now().minus(Duration.ofDays(90))));
+        Files.setLastModifiedTime(newer, FileTime.from(Instant.now().minus(Duration.ofDays(60))));
+
+        store(dir).loadDraft();
+
+        assertEquals(2, draftFiles(dir).size(),
+                "the winner was adopted into this session's slot; the other slot is still there");
+        assertTrue(Files.exists(older),
+                "a draft another instance may still be writing is never expired, however old");
+    }
+
+    /** Age is only the first rule: a burst of answers must not fill the folder either. */
+    @Test
+    void theParkedSetIsBoundedByCount(@TempDir Path dir) {
+        var now = Instant.parse("2026-11-04T00:00:00Z");
+        var entries = new java.util.ArrayList<RecoveryRetention.Entry>();
+        for (var i = 0; i < RecoveryRetention.MAX_FILES + 2; i++) {
+            entries.add(new RecoveryRetention.Entry(
+                    dir.resolve("pending-" + i + ".jtw"), now.minusSeconds(i), 1024));
+        }
+
+        var expired = RecoveryRetention.expired(entries, now);
+
+        assertEquals(2, expired.size(), "the two oldest are beyond the count budget: " + expired);
+        assertEquals(dir.resolve("pending-" + (RecoveryRetention.MAX_FILES + 1) + ".jtw"), expired.get(0),
+                "expired files are reported oldest first");
+    }
+
+    /**
+     * The size budget stops accumulation but must never delete the only
+     * candidate: a single draft larger than the whole budget is kept, because
+     * turning housekeeping into the loss of the file the user would have been
+     * offered is worse than the disk it costs.
+     */
+    @Test
+    void theSizeBudgetKeepsTheNewestDraftEvenWhenItAloneExceedsIt(@TempDir Path dir) {
+        var now = Instant.parse("2026-11-04T00:00:00Z");
+        var newest = dir.resolve("pending-newest.jtw");
+        var second = dir.resolve("pending-second.jtw");
+        var entries = List.of(
+                new RecoveryRetention.Entry(newest, now, RecoveryRetention.MAX_TOTAL_BYTES + 1),
+                new RecoveryRetention.Entry(second, now.minusSeconds(60), 1024));
+
+        var expired = RecoveryRetention.expired(entries, now);
+
+        assertEquals(List.of(second), expired, "the budget stops at the newest entry");
+    }
+
     /** Files that make up the on-disk draft set. */
     private static List<Path> draftFiles(Path dir) throws IOException {
         return jtwFiles(dir, "draft-");
@@ -364,6 +491,20 @@ class RecoveryStoreTest {
                     .filter(file -> file.getFileName().toString().endsWith(".jtw"))
                     .sorted()
                     .toList();
+        }
+    }
+
+    private static RecoveryStore store(Path dir) {
+        return new RecoveryStore(dir);
+    }
+
+    private static void assumeSymlinksCanBeCreated(Path dir) {
+        var probe = dir.resolve("symlink-probe");
+        try {
+            Files.createSymbolicLink(probe, dir);
+            Files.deleteIfExists(probe);
+        } catch (IOException | UnsupportedOperationException e) {
+            org.junit.jupiter.api.Assumptions.abort("this filesystem cannot create symlinks: " + e);
         }
     }
 

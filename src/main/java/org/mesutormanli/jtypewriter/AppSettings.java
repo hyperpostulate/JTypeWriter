@@ -71,6 +71,7 @@ public final class AppSettings {
     private static final String KEY_SOUND = "sound.enabled";
     private static final String KEY_TOOLBAR_VISIBLE = "toolbar.visible";
     private static final String KEY_STATS_SIZE = "stats.size";
+    private static final String KEY_STORAGE_NOTICE = "notice.storage.shown";
     private static final String KEY_LAST_FILE = "last.file";
     private static final String KEY_LAST_DIR = "last.directory";
     private static final String KEY_WINDOW_MAXIMIZED = "window.maximized";
@@ -156,6 +157,22 @@ public final class AppSettings {
 
     public void setStatsBarSize(StatsBarSize size) {
         set(KEY_STATS_SIZE, size.name());
+    }
+
+    /**
+     * Whether the user has already been told what saving costs on disk: the
+     * document plus the backup generations the keeper rotates
+     * ({@link org.mesutormanli.jtypewriter.service.StorageFootprint} owns the
+     * numbers). The notice is informational, so repeating it every launch would
+     * be nagging; not showing it at all leaves the user to discover the
+     * footprint when a disk fills up mid-save.
+     */
+    public boolean isStorageNoticeShown() {
+        return getBool(KEY_STORAGE_NOTICE, false);
+    }
+
+    public void setStorageNoticeShown(boolean shown) {
+        set(KEY_STORAGE_NOTICE, String.valueOf(shown));
     }
 
     // --- session restore --------------------------------------------------

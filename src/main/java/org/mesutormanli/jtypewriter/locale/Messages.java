@@ -347,6 +347,36 @@ public class Messages {
         return bundle.getString("recoveryLater");
     }
 
+    /**
+     * The one-time notice about the disk cost of saving. Both multipliers are
+     * arguments rather than numbers inside the text: {@code BackupKeeper} owns
+     * how many generations are kept, so a translation that spelled out "4"
+     * would be a second source of truth - and this notice is shown once, so a
+     * wrong number could never be corrected by the user noticing later.
+     */
+    public String storageFootprintTitle() {
+        return bundle.getString("storageFootprintTitle");
+    }
+
+    public String storageFootprintHeader() {
+        return bundle.getString("storageFootprintHeader");
+    }
+
+    public String storageFootprintContent(int persistentCopies, int peakCopies) {
+        return format("storageFootprintContent", persistentCopies, peakCopies);
+    }
+
+    /**
+     * The notice's only button. Spelled out in the bundle rather than left to
+     * JavaFX's default {@code ButtonType.OK}: its label follows the <em>system</em>
+     * locale, so an English UI on a Turkish machine would mix "Tamam" into an
+     * otherwise English sentence - the same trap the bundle lookup avoids by
+     * pinning {@code Locale.ROOT}.
+     */
+    public String storageFootprintOk() {
+        return bundle.getString("storageFootprintOk");
+    }
+
     public String encodingTitle() {
         return bundle.getString("encodingTitle");
     }

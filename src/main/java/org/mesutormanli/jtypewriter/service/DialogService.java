@@ -271,6 +271,27 @@ public class DialogService {
         };
     }
 
+    /**
+     * Shows the disk-cost notice once, after the first successful save.
+     *
+     * <p>Placed at the first save rather than at startup on purpose: that is
+     * the moment the copies actually appear, so the sentence explains something
+     * the user can see in their folder instead of predicting it. It is modal and
+     * informational - it has no decision to make, and the caller marks it shown
+     * regardless of how the window is closed.</p>
+     */
+    public void showStorageFootprintNotice(Stage stage, int persistentCopies, int peakCopies) {
+        var alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(messages.storageFootprintTitle());
+        alert.setHeaderText(messages.storageFootprintHeader());
+        alert.setContentText(messages.storageFootprintContent(persistentCopies, peakCopies));
+        // The button text comes from the bundle for the same reason every other
+        // dialog builds its buttons by hand: JavaFX's default OK label is
+        // localised from the system locale, not from the chosen UI language.
+        alert.getButtonTypes().setAll(DialogButtons.primary(messages.storageFootprintOk()));
+        show(alert, stage);
+    }
+
     public void showError(Stage owner, String header, String content) {
         var alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(messages.errorTitle());

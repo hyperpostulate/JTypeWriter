@@ -13,6 +13,7 @@ import org.mesutormanli.jtypewriter.service.AutoSaveService;
 import org.mesutormanli.jtypewriter.service.DialogService;
 import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.service.RecoveryStore;
+import org.mesutormanli.jtypewriter.service.StorageFootprint;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
 import org.mesutormanli.jtypewriter.ui.AboutDialog;
 import org.mesutormanli.jtypewriter.ui.CrashHandler;
@@ -100,6 +101,7 @@ public final class AppGraph {
             @Override
             public void onSaved(java.nio.file.Path file) {
                 settings.rememberFile(file);
+                announceStorageFootprintOnce();
             }
 
             @Override
@@ -112,5 +114,32 @@ public final class AppGraph {
     /** Remembers the main window so dialogs can be owned by it (crash reports). */
     public void setStage(Stage stage) {
         this.stage = stage;
+    }
+
+    /**
+     * Tells the user once what a saved document costs on disk.
+     *
+     * <p>Hooked to the first successful save rather than to startup: that is
+     * when the backup generations actually appear next to the document, so the
+     * sentence describes something the user can go and look at. The flag is
+     * written <em>after</em> the dialog returns: if showing it fails, the next
+     * save tries again instead of the claim being lost without ever having been
+     * made.</p>
+     *
+     * <p>No stage means no window to own the alert - possible in headless tests
+     * and before {@code setStage}. Skipping is right there: the notice is not
+     * worth an exception on a save path.</p>
+     */
+    private void announceStorageFootprintOnce() {
+        if (settings.isStorageNoticeShown()) {
+            return;
+        }
+        var owner = stage;
+        if (owner == null) {
+            return;
+        }
+        dialogService.showStorageFootprintNotice(
+                owner, StorageFootprint.persistentCopies(), StorageFootprint.peakCopies());
+        settings.setStorageNoticeShown(true);
     }
 }

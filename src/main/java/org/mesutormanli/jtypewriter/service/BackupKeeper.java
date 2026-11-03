@@ -34,6 +34,17 @@ public final class BackupKeeper {
 
     private static final int GENERATIONS = 3;
 
+    /**
+     * How many previous versions are kept, i.e. how many {@code .bak.N} files
+     * a rotated history holds. Public because the disk cost the user is told
+     * about ({@link StorageFootprint}) is this number plus one, and a count
+     * typed into a dialog is exactly the kind of claim that goes stale when the
+     * rotation changes.
+     */
+    public static int generations() {
+        return GENERATIONS;
+    }
+
     /** A staged copy of a document's previous content, ready to become {@code .bak}. */
     public record PreparedBackup(Path target, Path staged) {
     }

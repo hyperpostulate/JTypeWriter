@@ -16,6 +16,7 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
@@ -23,8 +24,10 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,6 +64,28 @@ import java.util.logging.Logger;
  * is logged. Invalid UTF-8 is read with replacement characters instead of
  * being dropped. A single unreadable candidate never hides the others; the
  * newest surviving draft wins.</p>
+ *
+ * <p>Two exceptions to "never discards", both deliberate and both logged at
+ * {@code WARNING}, because the alternatives are worse:</p>
+ * <ul>
+ *   <li><b>Symlinks are not drafts.</b> The scan filters with
+ *       {@code NOFOLLOW_LINKS}, so a {@code draft-*.jtw} that is really a link
+ *       to an arbitrary file (a key material file, a document the user never
+ *       opened) is not read at all. Reading it would present someone else's
+ *       content to the user as "your recovered draft" - the one place where a
+ *       file name in a directory the user does not watch can decide what the
+ *       product shows them.</li>
+ *   <li><b>Oversized files are skipped.</b> A draft is a copy of the whole
+ *       document, so a file above {@link #MAX_DRAFT_BYTES} was not written by
+ *       this application and would be read into memory at startup for nothing.
+ *       Offering a truncated prefix instead would be worse than skipping: a
+ *       restored document that looks complete but is not, and can then be saved
+ *       over the original, is a data-safety hazard disguised as a recovery.</li>
+ * </ul>
+ *
+ * <p>Housekeeping: parked files are expired by age, count and total size on
+ * every scan ({@link RecoveryRetention}). Only {@code pending-*.jtw} is touched
+ * - a {@code draft-*.jtw} may belong to a second instance that is running.</p>
  *
  * <p>Adoption: the store has one slot, so when the newest draft belongs to
  * another session's file, loading copies it into this session's file and
@@ -100,6 +125,16 @@ public class RecoveryStore {
     private static final String KEY_SAVED_AT = "saved.at";
     private static final String KEY_ORIGINAL_PATH = "original.path.b64";
 
+    /**
+     * Upper bound for a file this class is willing to read into memory. A draft
+     * is a verbatim copy of a document that was open in an editor, so 64 MiB is
+     * already far beyond a document a person types; anything larger is a stray
+     * file that would otherwise be read at startup, on the UI thread, before
+     * the window has finished appearing. See the class Javadoc for why skipping
+     * beats offering a truncated prefix.
+     */
+    static final int MAX_DRAFT_BYTES = 64 * 1024 * 1024;
+
     private final Path dir;
     private final Path ownFile;
 
@@ -127,19 +162,34 @@ public class RecoveryStore {
             return Optional.empty();
         }
 
-        var candidates = new ArrayList<Candidate>();
-        try (var entries = Files.list(dir)) {
-            entries.filter(Files::isRegularFile)
-                    .filter(RecoveryStore::isDraftFile)
-                    .forEach(file -> {
-                        var candidate = parse(file);
-                        if (candidate != null) {
-                            candidates.add(candidate);
-                        }
-                    });
+        List<Path> entries;
+        try (var listing = Files.list(dir)) {
+            entries = listing.toList();
         } catch (IOException e) {
             LOG.log(Level.FINE, "cannot list recovery drafts in " + dir, e);
             return Optional.empty();
+        }
+
+        // Housekeeping runs before the scan so an expired draft is never even
+        // read: expiring a file and then offering it would be the same as not
+        // expiring it at all.
+        var expired = expiredParked(entries);
+        var candidates = new ArrayList<Candidate>();
+        for (var file : entries) {
+            var name = file.getFileName().toString();
+            if (!isDraftFile(name) || expired.contains(file)) {
+                continue;
+            }
+            // NOFOLLOW_LINKS: a link is not a draft. Reading through it would
+            // offer an arbitrary file's content as recovered text.
+            if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                LOG.log(Level.WARNING, "ignoring recovery entry that is not a regular file: " + file);
+                continue;
+            }
+            var candidate = parse(file);
+            if (candidate != null) {
+                candidates.add(candidate);
+            }
         }
 
         var winner = newest(candidates);
@@ -148,6 +198,45 @@ public class RecoveryStore {
         }
         adoptIfForeign(winner);
         return Optional.of(winner.draft());
+    }
+
+    /**
+     * Deletes the parked drafts {@link RecoveryRetention} no longer keeps and
+     * returns their paths. Never fatal: housekeeping that fails only means the
+     * next start tries again, and a directory it cannot delete from must not
+     * turn into a startup failure.
+     */
+    private Set<Path> expiredParked(List<Path> entries) {
+        var parked = new ArrayList<RecoveryRetention.Entry>();
+        for (var file : entries) {
+            if (isDraftFile(file.getFileName().toString())
+                    && file.getFileName().toString().startsWith(PARKED_PREFIX)
+                    && Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                parked.add(parkedEntry(file));
+            }
+        }
+        var expired = new LinkedHashSet<Path>();
+        for (var file : RecoveryRetention.expired(parked, Instant.now())) {
+            try {
+                Files.deleteIfExists(file);
+                expired.add(file); // known to be gone, whether or not it ever existed
+                LOG.log(Level.INFO, "expired parked recovery draft " + file);
+            } catch (IOException | SecurityException e) {
+                LOG.log(Level.FINE, "could not expire parked recovery draft " + file, e);
+            }
+        }
+        return expired;
+    }
+
+    /** A parked file's age comes from its mtime: nothing has rewritten it since. */
+    private static RecoveryRetention.Entry parkedEntry(Path file) {
+        long size;
+        try {
+            size = Files.size(file);
+        } catch (IOException e) {
+            size = 0; // unknown size: age and count still bound the set
+        }
+        return new RecoveryRetention.Entry(file, lastModified(file), size);
     }
 
     /**
@@ -227,7 +316,10 @@ public class RecoveryStore {
     }
 
     private static boolean isDraftFile(Path file) {
-        var name = file.getFileName().toString();
+        return isDraftFile(file.getFileName().toString());
+    }
+
+    private static boolean isDraftFile(String name) {
         return (name.startsWith(FILE_PREFIX) || name.startsWith(PARKED_PREFIX))
                 && name.endsWith(FILE_SUFFIX);
     }
@@ -264,14 +356,18 @@ public class RecoveryStore {
      * metadata falls back to the file's last-modified time or {@code null}.
      *
      * @return the parsed candidate, or {@code null} when the file cannot be read
+     *         or is larger than {@link #MAX_DRAFT_BYTES}
      */
     private Candidate parse(Path file) {
         byte[] bytes;
         try {
-            bytes = Files.readAllBytes(file);
+            bytes = readBounded(file);
         } catch (IOException e) {
             LOG.log(Level.WARNING, "skipping unreadable recovery draft " + file, e);
             return null;
+        }
+        if (bytes == null) {
+            return null; // oversized; readBounded has already warned
         }
         var modified = lastModified(file);
 
@@ -353,8 +449,35 @@ public class RecoveryStore {
         return -1;
     }
 
-    private static boolean startsWithMagic(byte[] bytes) {
-        return bytes.length >= MAGIC_BYTES.length
+    /**
+     * Reads a draft, refusing anything above {@link #MAX_DRAFT_BYTES}.
+     *
+     * <p>The size check comes first, so an enormous file is never opened at
+     * all; the bounded read after it covers a file that grows between the check
+     * and the read, and keeps a lying or racing sparse file from turning into an
+     * {@code OutOfMemoryError} on the startup thread.</p>
+     *
+     * @return the bytes, or {@code null} when the file is too large
+     */
+    private static byte[] readBounded(Path file) throws IOException {
+        var size = Files.size(file);
+        if (size > MAX_DRAFT_BYTES) {
+            LOG.log(Level.WARNING, "skipping recovery draft larger than " + MAX_DRAFT_BYTES
+                    + " bytes (" + size + "): " + file);
+            return null;
+        }
+        try (var in = Files.newInputStream(file)) {
+            var bytes = in.readNBytes(MAX_DRAFT_BYTES + 1);
+            if (bytes.length > MAX_DRAFT_BYTES) {
+                LOG.log(Level.WARNING, "skipping recovery draft larger than " + MAX_DRAFT_BYTES
+                        + " bytes, read from: " + file);
+                return null;
+            }
+            return bytes;
+        }
+    }
+
+    private static boolean startsWithMagic(byte[] bytes) {        return bytes.length >= MAGIC_BYTES.length
                 && Arrays.equals(bytes, 0, MAGIC_BYTES.length, MAGIC_BYTES, 0, MAGIC_BYTES.length);
     }
 
