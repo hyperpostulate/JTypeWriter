@@ -157,7 +157,7 @@ kapıyı beklerken boş kapasiteye biner. **P2, 20 puanda biter (D13 ile 21).**
 | **9 `Alert` kelepçesiz/sarmasız** (kriter 2) | U1, M3 | Açık | **W0-01** | DE/FR en uzun metinle 768 px sığma testi; `DialogSizing` tek yol |
 | **Sabit tarih/saat biçimi** (kriter 5) | U5, U12 | Kısmi | **W0-02** | Tüm biçimler `LocaleManager` üzerinden; TR/DE locale koşusunda farklı çıktı |
 | **Kontrast kapsamı eksik** (kriter 1) | U3 | Kısmi | **W0-03** | `ContrastRatioTest` 19 → 23; araç çubuğu metni, düz popup satırı ve varsayılan editör metni de AA sınırında |
-| **CI artefaktı çalıştırmıyor** (kriter 7 / PW-43) | B1 | Açık | **W1-01** | CI'da imaj başlar, `.deb` kurulur/kaldırılır |
+| **CI artefaktı çalıştırmıyor** (kriter 7 / PW-43) | B1 | **Kapalı** | **W1-01** | `smoke` job'u iki OS'te yeşil ([run 41711024985](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41711024985)): Ubuntu'da imaj Xvfb altında açıldı, `.deb` kuruldu/açıldı/kaldırıldı ve `dpkg -l` temiz döndü; Windows'ta launcher ayakta kaldı |
 | **`verify-artifacts.sh` CI'da değil** | B14 | Açık | **W0-04** | Linux ayağında `verify-artifacts.sh --skip-build` (paketlemeden sonra) yeşil: 17/17; kasıtlı bozma (`.deb`'den `NOTICE` silindi) 1/17 → exit 1 |
 | **İkon `--check` CI'da değil** | B15 | Açık | **W0-04** | Her iki ayakta `generate-icons.py --check` (derlemeden önce) yeşil: 11 dosya; düzenlenmiş SVG / elle değiştirilmiş PNG / eksik dosya exit 1 |
 | **Sürüm yok / hat koşmadı** (kriter 6) | B2 | Kısmi | **W1-02, W1-03** | GitHub Release + 6 varlık |
@@ -246,6 +246,25 @@ yayınlamak.** Yayınlanana kadar diğer bütün işler tahmindir (`analysis.md`
   boş dönüyor (kaldırma gerçekten oldu).
 - **Doğrulama:** CI run URL'i + yerel çalıştırma çıktısı.
 - **Not:** `retention-days ≤ 7` zorunlu (`ReleaseNotesTest`).
+- **Uygulama notu (3 Kas 2026):** `smoke` job'u build job'unun **yüklediği** artefaktı indirip
+  `smoke-appimage.sh --skip-build` çalıştırır; ikinci kez paketlemek "paketleme aynı runner'da
+  iki kez tekrarlanabiliyor"u kanıtlardı, "indirilen artefakt çalışıyor"u değil. Zip artefaktları
+  Unix dosya kiplerini düşürdüğü için başlatıcı ve runtime'ın spawn ettiği parçalar için hedefli
+  bir `chmod` adımı var; blanket `chmod` yok, çünkü hiç çalıştırılabilir olmayan bir başlatıcı
+  yine kırmızı olmalı. Pencere sorgusu `"JTypeWriter - "` önekiyle eşleşiyor: yalnız uygulama adı
+  arandığında, yeniden kullanılan bir geliştirici ekranındaki tarayıcı/IDE penceresi (yolunda
+  proje adı geçtiği için) uygulama açılmadan "pencere bulundu" diyordu.
+- **İlk CI koşusunun bulduğu kusur (3 Kas 2026):** Ubuntu ayağı `dpkg -i`'de kırmızıya döndü.
+  Sebep uygulama değil, `jpackage`'ın ürettiği `postinst`/`prerm`: `set -e` altında
+  `xdg-desktop-menu`'yu korumasız çağırıyorlar ve XDG menü dizini yazılabilir olmayan her makinede
+  (CI runner, sunucu, container) `exit 3` alıp dpkg işlemini düşürüyor, paketi yarım
+  yapılandırılmış bırakıyorlar. Yani normal kullanıcı da headless/minimal kurulumda aynı duvara
+  çarpardı. `package.sh` bu iki betiğe yalnız `xdg-desktop-menu` satırları için `|| true` ekliyor
+  (`relax_desktop_menu_registration`): çağrılar silinmediği için masaüstünde menü kaydı aynen
+  sürüyor, yorum satırları atlanıyor ve ikinci rebuild suffix'i çoğaltmıyor. `CiGatesTest` bunu
+  ve `smoke` job'unun `needs: build` + `--skip-build` sözleşmesini kilitliyor.
+  `--open-sample` bayrağı bu karta **eklenmedi**: argümanlı açılış W3-03'te geliyor, bayrak da
+  onunla birlikte.
 
 **W1-02 · A6b — Release hattını yayından önce kurut** · S · B2
 - **Kapsam:** `.github/workflows/release.yml`
@@ -504,7 +523,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W0-02 | Tarih/saat + ayırıcı yerelleştirmesi | U5, U12 | S | — | ✅ | `mvn test -Dtest=StatsBarModelTest,MessagesTest` → 25/25; `grep -rn "HH:mm\|yyyy" src/main/java` → boş; `mvn -B clean test` → 357/357; `mvn -B test -Duser.language=de -Duser.country=DE` → 357/357 |
 | W0-03 | Kontrast kapsamı | U3 | S | — | ✅ | `mvn test -Dtest=ContrastRatioTest` → 23/23; `-toolbar-text-muted` üç temadan da silindi, `everyThemeTokenIsActuallyReadByBaseCss` ölü token'ı yakalıyor; `mvn -B clean test` → 361/361; `mvn -B test -Duser.language=de -Duser.country=DE` → 361/361 |
 | W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ✅ | `bash scripts/verify-artifacts.sh` → 17/17 (linux, 1.0.0); kasıtlı bozma (`.deb`'den `NOTICE` silindi) → 1/17, exit 1, sonra `package.sh --skip-build --installer` ile geri alındı → 17/17; `python3 scripts/generate-icons.py --check` → 11 dosya (manifest dahil), düzenlenmiş SVG / değiştirilmiş PNG / eksik PNG → exit 1, `--render` → piksel özdeş, palet değişikliği %0,33 → exit 1, ImageMagick'siz `PATH`'te `--check` yeşil; `mvn test -Dtest=CiGatesTest` → 5/5; `mvn -B clean test` → 366/366 |
-| W1-01 | CI artefakt smoke | B1 | M | W0-04 | ◐ | `scripts/smoke-appimage.sh --skip-build` → imaj 2 s'de pencere buldu, temiz kapandı; boş `user.home` + `JAVA_TOOL_OPTIONS` ile gerçek `~/.jtypewriter` dizinine dokunulmadı; `.deb` kur/kaldır yerelde parolasız sudo olmadığı için atlandı; `mvn -B clean test` → 368/368; `CiGatesTest` → 7/7. **CI ilk koşusu Ubuntu'da kırmızı**: `jpackage`'ın ürettiği `postinst`/`prerm`, `set -e` altında `xdg-desktop-menu`'yu korumasız çağırıyor; XDG menü dizini yazılabilir olmayan runner'da `exit 3` → `dpkg -i` aborts. `package.sh` artık `relax_desktop_menu_registration` ile iki betiğe `|| true` ekliyor (çağrı silinmiyor, masaüstünde kayıt aynen sürüyor); `CiGatesTest` bunu kilitliyor ve `xdg-desktop-menu` sahte `exit 3` ile taklit edilerek kanıtlandı: düzeltilmemiş betik `exit=3`, düzeltilmiş `exit=0`. `verify-artifacts --skip-build` → 17/17; Windows ayağı CI'da yeşildi — **Ubuntu ayağının yeniden koşusu bekleniyor** |
+| W1-01 | CI artefakt smoke | B1 | M | W0-04 | ✅ | CI [run 41711024985](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41711024985): `Smoke test packaged app (ubuntu-latest)` ve `(windows-latest)` **success** (imaj açıldı, `.deb` kuruldu/çalıştırıldı/kaldırıldı, `dpkg -l` temiz); ilk koşu `7e474c1` Ubuntu'da `xdg-desktop-menu` exit 3 → dpkg abort ile kırmızıydı, `25ca53e` bunu `package.sh`'te onardı; `mvn -B clean test` → 368/368 (CiGatesTest 7/7, `needs: build` kaldırılınca kırmızı); `verify-artifacts.sh --skip-build` → 17/17; `smoke-appimage.sh --skip-build` yerelde imajı 2 s'de pencereyle açtı |
 | W1-02 | Release dry-run | B2 | S | — | ☐ | |
 | W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ☐ | |
 | W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ☐ | |
