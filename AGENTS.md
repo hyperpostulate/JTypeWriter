@@ -22,10 +22,16 @@ platforms on purpose.
   `releases/<os>/`; host-platform only, needs jpackage (+ fakeroot for `.deb` on Linux).
 - `./scripts/verify-artifacts.sh [--skip-build]` — fresh build then a byte-for-byte comparison
   of repo payload ↔ application image ↔ `.deb` payload (jars, legal texts, jar entries).
+- `./scripts/smoke-appimage.sh [--skip-build] [--skip-deb]` — starts the packaged app (Xvfb +
+  `xwininfo` on Linux, "launcher stays alive" on Windows) and, on Linux with root or
+  passwordless sudo, installs, launches and purges the `.deb`. Skips the install half with a
+  note when neither is available.
 - CI runs `mvn -B package` then `scripts/package.sh --skip-build --installer`, then re-runs
   the suite under `tr-TR` and `de-DE`. `generate-icons.py --check` runs before the build on
-  both legs and `verify-artifacts.sh --skip-build` after packaging on the Linux leg; both are
-  pinned by `CiGatesTest`, so moving or dropping a gate fails the suite.
+  both legs and `verify-artifacts.sh --skip-build` after packaging on the Linux leg; those two
+  are pinned by `CiGatesTest`, so moving or dropping a gate fails the suite. A separate `smoke`
+  job downloads the uploaded artifact and runs `smoke-appimage.sh --skip-build` on both legs —
+  it is pinned there too, including its `needs: build` dependency and `--skip-build`.
 
 Run Maven from the repo root: several tests read `src/`, `docs/` and `.github/` through
 relative paths and fail if Surefire's CWD is elsewhere.

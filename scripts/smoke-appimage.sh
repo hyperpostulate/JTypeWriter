@@ -215,7 +215,17 @@ smoke_linux_deb() {
     fi
 
     note "installing $deb"
-    $SUDO dpkg -i "$deb" >/dev/null
+    local install_log="$WORK/dpkg-install.log"
+    if ! $SUDO dpkg -i "$deb" >"$install_log" 2>&1; then
+        # A failed install leaves dpkg's database holding a half-configured
+        # package, and every later `dpkg -i` then refuses to proceed. Undo that
+        # before reporting, so one red run does not poison the machine (or a
+        # reused CI runner) for the next one.
+        $SUDO dpkg --purge --force-all jtypewriter >/dev/null 2>&1 || true
+        echo "---- dpkg -i output ----" >&2
+        cat "$install_log" >&2
+        fail "installing $deb failed"
+    fi
     local status
     status=$(dpkg-query -W -f='${Status}' jtypewriter 2>/dev/null || true)
     [[ "$status" == "install ok installed" ]] \
@@ -233,7 +243,12 @@ smoke_linux_deb() {
     note "installed application started and stopped cleanly"
 
     note "purging the package"
-    $SUDO dpkg --purge jtypewriter >/dev/null
+    local purge_log="$WORK/dpkg-purge.log"
+    if ! $SUDO dpkg --purge jtypewriter >"$purge_log" 2>&1; then
+        echo "---- dpkg --purge output ----" >&2
+        cat "$purge_log" >&2
+        fail "purging jtypewriter failed"
+    fi
     if dpkg -l 2>/dev/null | grep -q 'jtypewriter'; then
         fail "jtypewriter still appears in 'dpkg -l' after purge"
     fi

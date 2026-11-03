@@ -188,6 +188,31 @@ wrap_installer() {
     echo "installer written to $DEST/ ($type)"
 }
 
+# jpackage's deb bundler registers the menu entry from the maintainer scripts,
+# and it does so unguarded: postinst runs `xdg-desktop-menu install` under
+# `set -e`, so on any machine without a writable XDG menu directory - a CI
+# runner, a server, a container, a headless box - the call exits 3 and aborts
+# the whole dpkg transaction, leaving jtypewriter in a half-configured state
+# that later `dpkg -i` runs refuse to clean up. prerm has the same call behind
+# an ownership test, which does not make it any more tolerant.
+#
+# Registering a desktop menu entry is a desktop nicety, not a condition of the
+# package being installed, so the calls are made best-effort here. This is the
+# only edit made to jpackage's own maintainer scripts and it deliberately adds
+# `|| true` rather than deleting the calls: on a real desktop the entry is
+# still installed and removed exactly as before.
+relax_desktop_menu_registration() {
+    local work="$1"
+    local script
+    for script in "$work/DEBIAN/postinst" "$work/DEBIAN/prerm"; do
+        [[ -f "$script" ]] || continue
+        # Comment lines are skipped so the explanation above cannot be rewritten
+        # into a command; `|| true` is only appended once, so a rebuilt package
+        # that is patched twice cannot grow into `|| true || true`.
+        sed -i -E '/^[[:space:]]*#/!{/xdg-desktop-menu/{/\|\| true$/!s/[[:space:]]*$/ || true/}}' "$script"
+    done
+}
+
 # jpackage's deb bundler copies bin/, lib/ and its own share/doc/ into the
 # payload, but silently drops every file the app-image has at its root - so
 # LICENSE, NOTICE, THIRD-PARTY-NOTICES and legal/ never reach the installer even
@@ -196,10 +221,11 @@ wrap_installer() {
 # is completed here rather than left to the image alone.
 #
 # The deb is unpacked with dpkg-deb -R (which keeps DEBIAN/ intact), the legal
-# files are copied in, md5sums and Installed-Size are regenerated because the
-# payload grew, and the package is rebuilt. --root-owner-group keeps the files
-# root:root without needing fakeroot. dpkg-deb is already required to verify the
-# copyright document below, so this adds no new dependency.
+# files are copied in, the menu registration is made headless-safe, md5sums and
+# Installed-Size are regenerated because the payload grew, and the package is
+# rebuilt. --root-owner-group keeps the files root:root without needing
+# fakeroot. dpkg-deb is already required to verify the copyright document
+# below, so this adds no new dependency.
 complete_deb_payload() {
     local deb="$1"
     local work out
@@ -227,6 +253,8 @@ complete_deb_payload() {
     # should be world-readable, not group-writable.
     chmod 644 "$payload/$LICENSE_FILE" "$payload/$NOTICE_FILE" "$payload/$THIRD_PARTY_FILE"
     chmod 644 "$payload/$LEGAL_DIR"/*
+
+    relax_desktop_menu_registration "$work"
 
     # dpkg-deb trusts an existing md5sums file and would otherwise install files
     # the package database knows nothing about.
