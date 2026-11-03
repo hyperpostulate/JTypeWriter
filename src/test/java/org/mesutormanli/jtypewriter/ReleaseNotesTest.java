@@ -113,6 +113,86 @@ class ReleaseNotesTest {
         }
     }
 
+    /**
+     * A release pipeline nobody has ever run is a hypothesis, and a tag is the
+     * least convenient moment to find out that an asset name, the note
+     * rendering or the two-OS merge was wrong. The dry run exists to convert
+     * that hypothesis into evidence: it must be dispatchable by hand, and the
+     * publication step must be unreachable without a tag.
+     */
+    @Test
+    void theReleaseWorkflowCanDryRunWithoutPublishing() throws IOException {
+        var release = Files.readString(RELEASE_WORKFLOW, StandardCharsets.UTF_8);
+
+        assertTrue(release.contains("workflow_dispatch:"),
+                "release.yml cannot be run by hand, so the pipeline can only be tried by tagging");
+        assertTrue(release.contains("dry_run:"),
+                "release.yml has no dry_run input, so a manual run has nothing to say about publishing");
+
+        var publish = stepContaining(release, release.indexOf("gh release create"));
+        assertTrue(publish.contains("if:") && publish.contains("publish == 'true'"),
+                "the publish step is not guarded, so a manual run could create a Release:\n" + publish);
+
+        var upload = stepContaining(release, release.indexOf("JTypeWriter-release-dry-run-"));
+        assertTrue(upload.contains("publish != 'true'"),
+                "the dry-run bundle is not limited to a dry run:\n" + upload);
+        assertTrue(upload.contains("retention-days:"),
+                "the dry-run bundle is uploaded without a retention limit:\n" + upload);
+    }
+
+    /**
+     * A tag push is the only trigger that makes the provenance claim true, so a
+     * manual run that asks to publish must be refused rather than quietly
+     * published from a branch tip. The refusal has to be in prepare - before
+     * two OS builds spend ten minutes on an artifact that could never be
+     * uploaded.
+     */
+    @Test
+    void aManualRunCannotPublish() throws IOException {
+        var release = Files.readString(RELEASE_WORKFLOW, StandardCharsets.UTF_8);
+
+        assertTrue(release.contains("a manual run cannot publish"),
+                "release.yml does not refuse a manual run that asked to publish");
+        assertTrue(release.contains("tag '$GITHUB_REF_NAME' does not match pom.xml version"),
+                "release.yml no longer rejects a tag that disagrees with pom.xml");
+    }
+
+    /**
+     * The expected-asset list is the assertion that catches a silently missing
+     * Windows file. It must stay exactly the five shippable assets - the
+     * application image is not one of them, it is archived into the portable
+     * {@code .tar.gz} - because a sixth entry nobody produces would make every
+     * release red, and a dropped entry would stop the check from noticing.
+     */
+    @Test
+    void theReleaseWorkflowAssertsTheFiveAssets() throws IOException {
+        var release = Files.readString(RELEASE_WORKFLOW, StandardCharsets.UTF_8);
+        var start = release.indexOf("expected=(");
+        var end = release.indexOf(")", start);
+
+        assertTrue(start >= 0 && end > start, "release.yml has no expected-asset list");
+        var entries = release.substring(start + "expected=(".length(), end).lines()
+                .map(String::strip)
+                .filter(line -> line.startsWith("\""))
+                .toList();
+
+        assertTrue(entries.size() == 5,
+                "the expected-asset list has " + entries.size() + " entries, not 5: " + entries);
+        for (var suffix : List.of("-linux-x64.deb", "-linux-x64.tar.gz",
+                "-windows-x64.msi", "-windows-x64.tar.gz", "-source.tar.gz")) {
+            assertTrue(entries.stream().anyMatch(entry -> entry.contains(suffix)),
+                    "the expected-asset list is missing the " + suffix + " asset: " + entries);
+        }
+    }
+
+    /** The step block around {@code offset}: from its own {@code - name:} onwards. */
+    private static String stepContaining(String workflow, int offset) {
+        assertTrue(offset >= 0, "the workflow no longer contains the step this test looks for");
+        var start = workflow.lastIndexOf("- name:", offset);
+        var end = workflow.indexOf("\n      - ", offset);
+        return end < 0 ? workflow.substring(start) : workflow.substring(start, end);
+    }
+
     private static Integer retentionAfter(List<String> lines, int uploadLine) {
         for (var i = uploadLine + 1; i < lines.size(); i++) {
             var line = lines.get(i);

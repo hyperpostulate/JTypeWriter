@@ -273,6 +273,20 @@ yayınlamak.** Yayınlanana kadar diğer bütün işler tahmindir (`analysis.md`
 - **Bitti tanımı:** (1) `dry_run` koşusu uçtan uca yeşil. (2) Tag↔pom uyuşmazlığı hâlâ
   reddediliyor. (3) Beklenen varlık assert'i **5 varlık** ile eşleşiyor (macOS sonrası, §1.2).
 - **Doğrulama:** `dry_run` run URL'i; `git tag -l` hâlâ boş.
+- **Uygulama notu (3 Kas 2026):** `dry_run` varsayılanı `true`; `prepare` artık `publish`
+  çıktısını üretiyor (`push` → `true`, `workflow_dispatch` → `false`) ve elle başlatılan bir
+  koşuda `dry_run=false` istenirse iki OS derlemesi başlamadan reddediyor. Sebep, dosyanın
+  başındaki asıl iddia: dal ucundan üretilen bir sürüm `$GITHUB_REF_NAME`'den yeniden üretilemez,
+  yani elle yayımlama "kanıtlanabilir sürüm" iddiasını bozar. Yayımlama adımı silinmedi,
+  `publish == 'true'` koşuluna bağlandı; kuru koşuda yerine `dist/` yükleniyor
+  (`JTypeWriter-release-dry-run-<version>`, `retention-days: 7`).
+  İki küçük tasarım kararı: (a) kaynak arşivi artık `$GITHUB_SHA`'dan kesiliyor, çünkü kuru
+  koşuda tag henüz yok; gerçek yolda tag push'u o SHA'yı tag'lenmiş commit yaptığı için içerik
+  aynı ve tek kod yolu kalıyor. (b) `@TAG@` yerine `prepare.tag` çıktısı kullanılıyor, böylece
+  kuru koşunun notu da gerçek notla aynı biçimde üretiliyor. Varlık assert'i yayın/kuru-koşu
+  ayrımından **önce** duruyor: kuru koşunun kanıtlaması gereken şeylerden biri de odur.
+  `ReleaseNotesTest` sözleşmeyi kilitliyor (3 yeni test: dispatch + guard'lar, elle yayımlama
+  reddi, tam 5 varlık), `retention-days ≤ 7` kontrolü yeni yüklemeyi de kapsıyor.
 
 **W1-03 · A6c — İlk yayın `v1.0.0` (pre-release)** · S · B2
 - **Kapsam:** tag + `docs/release-notes-template.md` (yalnız doldurulur, yapısı değişmez)
@@ -524,7 +538,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W0-03 | Kontrast kapsamı | U3 | S | — | ✅ | `mvn test -Dtest=ContrastRatioTest` → 23/23; `-toolbar-text-muted` üç temadan da silindi, `everyThemeTokenIsActuallyReadByBaseCss` ölü token'ı yakalıyor; `mvn -B clean test` → 361/361; `mvn -B test -Duser.language=de -Duser.country=DE` → 361/361 |
 | W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ✅ | `bash scripts/verify-artifacts.sh` → 17/17 (linux, 1.0.0); kasıtlı bozma (`.deb`'den `NOTICE` silindi) → 1/17, exit 1, sonra `package.sh --skip-build --installer` ile geri alındı → 17/17; `python3 scripts/generate-icons.py --check` → 11 dosya (manifest dahil), düzenlenmiş SVG / değiştirilmiş PNG / eksik PNG → exit 1, `--render` → piksel özdeş, palet değişikliği %0,33 → exit 1, ImageMagick'siz `PATH`'te `--check` yeşil; `mvn test -Dtest=CiGatesTest` → 5/5; `mvn -B clean test` → 366/366 |
 | W1-01 | CI artefakt smoke | B1 | M | W0-04 | ✅ | CI [run 41711024985](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41711024985): `Smoke test packaged app (ubuntu-latest)` ve `(windows-latest)` **success** (imaj açıldı, `.deb` kuruldu/çalıştırıldı/kaldırıldı, `dpkg -l` temiz); ilk koşu `7e474c1` Ubuntu'da `xdg-desktop-menu` exit 3 → dpkg abort ile kırmızıydı, `25ca53e` bunu `package.sh`'te onardı; `mvn -B clean test` → 368/368 (CiGatesTest 7/7, `needs: build` kaldırılınca kırmızı); `verify-artifacts.sh --skip-build` → 17/17; `smoke-appimage.sh --skip-build` yerelde imajı 2 s'de pencereyle açtı |
-| W1-02 | Release dry-run | B2 | S | — | ☐ | |
+| W1-02 | Release dry-run | B2 | S | — | ◐ | `prepare` betiği dört senaryoda yerelde koşuldu: tag push eşleşen → `publish=true`; `v0.9.9` → exit 1; dispatch `dry_run=true` → `publish=false`; dispatch `dry_run=false` → exit 1 (iki derleme başlamadan). `git archive $GITHUB_SHA` + `checksums.sh` çalışıyor; sürüm notu `@VERSION@`/`@TAG@` doluyor, iki başlık yerinde; `ReleaseNotesTest` → 7/7 (3 yeni test), `mvn -B clean test` → 371/371. **Eksik: yeşil `dry_run` koşusu** — elle tetiklenmeli (push sonrası Actions → Release → Run workflow), `git tag -l` boş kalmalı |
 | W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ☐ | |
 | W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ☐ | |
 | W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ☐ | |

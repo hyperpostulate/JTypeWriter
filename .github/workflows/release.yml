@@ -8,15 +8,32 @@
 # artifacts - is what ends the 90-day expiry problem: the release
 # is the durable copy, the artifact upload between jobs lives for one day.
 #
-# On purpose there is no workflow_dispatch here: a manual run has no tag, and
-# a release built from a branch tip could never be reproduced from $GITHUB_REF_NAME.
-# Tag pushes are the only trigger that makes the provenance claim true.
+# The pipeline can also be run by hand, as a dry run: every step that produces
+# the release - prepare, both OS builds, the asset/source/checksum assembly, the
+# five-asset assertion and the release-note rendering - runs exactly as it will
+# on the real day, and only the publication itself is replaced by an artifact
+# upload. That is the difference between "the release workflow is well designed"
+# and "the release workflow has run": before the first tag, every step of it was
+# a hypothesis, and a tag is the least convenient moment to discover that the
+# asset names, the note rendering or the missing Windows file were wrong.
+#
+# A manual run can never publish, and that is deliberate rather than a missing
+# feature. A release built from a branch tip could not be reproduced from
+# $GITHUB_REF_NAME, which is the whole provenance claim a tag makes; so the
+# `dry_run` input defaults to true and asking for false is refused in prepare
+# with an explanation instead of failing later at `--verify-tag`.
 
 name: Release
 
 on:
   push:
     tags: [ "v*" ]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: build and assemble everything, publish nothing'
+        type: boolean
+        default: true
 
 # Reading the repository is enough for prepare and the two build legs. The
 # publish job alone gets contents: write below (GitHub has no step-level
@@ -26,11 +43,13 @@ permissions:
 
 jobs:
   prepare:
-    name: Check tag against the build version
+    name: Check the version and decide between publish and dry run
     runs-on: ubuntu-latest
 
     outputs:
       version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      publish: ${{ steps.version.outputs.publish }}
 
     steps:
       # Every action is pinned to a full commit SHA: a mutable tag can be
@@ -43,25 +62,47 @@ jobs:
 
       # A release whose tag disagrees with the built version would be
       # unverifiable - the asset names say one thing and the jar says another -
-      # so this fails before both OS builds run.
+      # so this fails before both OS builds run. A dry run skips the comparison
+      # because there is no tag to compare against, but it still refuses any
+      # version jpackage or the release-asset naming could not carry.
       #
       # The first <version> element is the project version: this build has no
       # parent POM, so there is no parent <version> ahead of it to skip.
-      - name: Read the project version and verify the tag
+      - name: Read the project version and decide publish vs dry run
         id: version
         shell: bash
+        env:
+          DRY_RUN_INPUT: ${{ inputs.dry_run }}
         run: |
           version=$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' pom.xml | head -n 1)
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "could not read a release version from pom.xml (got '$version')" >&2
             exit 1
           fi
-          if [[ "$GITHUB_REF_NAME" != "v$version" ]]; then
-            echo "tag '$GITHUB_REF_NAME' does not match pom.xml version '$version'" >&2
-            echo "a release built from this tag would not be reproducible - tag v$version instead" >&2
-            exit 1
+          tag="v$version"
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            if [[ "$GITHUB_REF_NAME" != "$tag" ]]; then
+              echo "tag '$GITHUB_REF_NAME' does not match pom.xml version '$version'" >&2
+              echo "a release built from this tag would not be reproducible - tag $tag instead" >&2
+              exit 1
+            fi
+            publish=true
+            echo "tag $tag accepted; this run publishes"
+          else
+            # Only a tag push carries the provenance a release claims. A manual
+            # run that asked to publish is refused here, before two OS builds
+            # spend ten minutes on something that could never be uploaded.
+            if [[ "${DRY_RUN_INPUT:-true}" != "true" ]]; then
+              echo "a manual run cannot publish: only a tag push can" >&2
+              echo "push $tag to release $version, or re-run this workflow with dry_run=true" >&2
+              exit 1
+            fi
+            publish=false
+            echo "manual run: dry run for $tag, nothing will be published"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build & package (${{ matrix.os }})
@@ -141,11 +182,11 @@ jobs:
           retention-days: 1
 
   release:
-    name: Publish GitHub Release
+    name: Assemble and publish (or stage a dry run)
     needs: [prepare, build]
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # only this job creates the Release
+      contents: write   # only this job creates the Release; a dry run never uses it
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -163,6 +204,11 @@ jobs:
 
       # Apache-2.0 makes a source offer optional, but a checksummed
       # source archive next to the binaries removes the question entirely.
+      #
+      # The archive is cut from $GITHUB_SHA rather than from a tag name so that a
+      # dry run - where the tag does not exist yet - runs the same line as the
+      # real release. On the real path the tag push made this SHA the tagged
+      # commit, so the contents are identical either way.
       - name: Add the source archive
         shell: bash
         run: |
@@ -170,14 +216,16 @@ jobs:
             --format=tar.gz \
             --prefix="JTypeWriter-${{ needs.prepare.outputs.version }}/" \
             -o "dist/JTypeWriter-${{ needs.prepare.outputs.version }}-source.tar.gz" \
-            "$GITHUB_REF_NAME"
+            "$GITHUB_SHA"
 
       - name: Generate checksums
         shell: bash
         run: bash scripts/checksums.sh dist
 
       # A silently missing Windows asset is exactly the bug this job exists to
-      # prevent, so the listing is asserted, not assumed.
+      # prevent, so the listing is asserted, not assumed. It runs before the
+      # publish/dry-run split on purpose: the assertion is one of the things the
+      # dry run exists to prove, so it must be able to fail there.
       - name: Verify the expected assets are present
         shell: bash
         run: |
@@ -221,7 +269,7 @@ jobs:
         run: |
           sed \
             -e "s/@VERSION@/${{ needs.prepare.outputs.version }}/g" \
-            -e "s/@TAG@/$GITHUB_REF_NAME/g" \
+            -e "s/@TAG@/${{ needs.prepare.outputs.tag }}/g" \
             docs/release-notes-template.md > "$RUNNER_TEMP/release-notes.md"
 
           if grep -n '@[A-Z][A-Z_]*@' "$RUNNER_TEMP/release-notes.md"; then
@@ -241,7 +289,12 @@ jobs:
       # dependency (and no third-party action) in the job that holds the write
       # token. --verify-tag matters because a tag that only exists locally would
       # otherwise get a Release pointing at a commit nobody can fetch.
+      #
+      # Guarded rather than removed: the publish path must exist for a tag push
+      # and must not be reachable from a manual run, and the guard is the only
+      # thing that makes that true.
       - name: Create the GitHub Release
+        if: needs.prepare.outputs.publish == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -250,3 +303,36 @@ jobs:
             --verify-tag \
             --title "JTypeWriter ${{ needs.prepare.outputs.version }}" \
             --notes-file "$RUNNER_TEMP/release-notes.md"
+
+      # The dry run keeps exactly what the release would have uploaded, so the
+      # assembled set can be downloaded and inspected instead of described.
+      - name: Upload the dry-run release bundle
+        if: needs.prepare.outputs.publish != 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: JTypeWriter-release-dry-run-${{ needs.prepare.outputs.version }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Say what happened
+        shell: bash
+        run: |
+          if [[ "${{ needs.prepare.outputs.publish }}" == "true" ]]; then
+            echo "published ${{ needs.prepare.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### Dry run - nothing was published"
+              echo
+              echo "Every step of the release ran for \`${{ needs.prepare.outputs.tag }}\`;"
+              echo "the assembled assets are attached to this run as"
+              echo "\`JTypeWriter-release-dry-run-${{ needs.prepare.outputs.version }}\`."
+              echo "No tag was created and no Release exists for this version."
+              echo
+              echo "<details><summary>Rendered release notes</summary>"
+              echo
+              cat "$RUNNER_TEMP/release-notes.md"
+              echo
+              echo "</details>"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
