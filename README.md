@@ -269,11 +269,17 @@ instead of failing later with a compiler error about `release 25`.
 
 The launcher, window and taskbar icon is generated from the single source of the
 artwork, `src/main/resources/icons/jtypewriter.svg`: `scripts/generate-icons.py`
-regenerates the PNG set plus the Windows `.ico` (`--check` verifies
-they are current), and `scripts/package.sh` picks the right format per platform.
-The script accepts either ImageMagick 7's `magick` driver or the legacy
-`convert` of version 6, so it runs unchanged on a developer machine and on a CI
-runner whose distribution still packages ImageMagick 6.
+regenerates the PNG set plus the Windows `.ico` together with
+`icons.manifest`, and `scripts/package.sh` picks the right format per platform.
+`--check` compares every asset's hash against the manifest, which catches the
+one failure that matters - the artwork was edited and nobody re-ran the
+script - on any machine, because it needs no rasteriser. `--render` is the
+stronger, machine-local proof: it re-rasterises the SVG and compares pixels with
+the committed assets (a perfect match is 0.00% difference, and it still fails on
+a deliberate palette tweak at 0.33%). The script accepts either ImageMagick 7's
+`magick` driver or the legacy `convert` of version 6, so regenerating works on a
+developer machine and on a runner whose distribution still packages ImageMagick
+6.
 
 ---
 
@@ -285,7 +291,7 @@ GitHub Actions workflows: build and test on every push and pull request to `main
 - **Environment**: Ubuntu and Windows (build matrix)
 - **JDK**: Temurin 25
 - **Command**: `mvn -B package` (build + tests), then `scripts/package.sh --skip-build --installer`
-- **Gates**: `scripts/generate-icons.py --check` runs before the build, so a committed icon that no longer matches the canonical SVG fails in a minute rather than shipping; `scripts/verify-artifacts.sh --skip-build` runs after packaging and re-proves the byte-for-byte comparison between the repository payload, the application image and the installer payload. The icon gate runs on the Windows leg only (the assets were rendered by ImageMagick 7's built-in renderer, which that runner image ships), the artifact gate on the Linux leg only (it unpacks the `.deb` with `dpkg-deb`)
+- **Gates**: `scripts/generate-icons.py --check` runs before the build on both OS legs: it compares every icon's hash with `icons.manifest`, so a committed asset that no longer matches the canonical artwork fails in a minute rather than shipping. It verifies hashes rather than re-rasterising on purpose - ImageMagick encodes the same pixels to different bytes on different builds, so a byte or pixel comparison in CI would compare toolchains, not artwork. `scripts/verify-artifacts.sh --skip-build` runs after packaging (Linux leg, because it unpacks the `.deb` with `dpkg-deb`) and re-proves the byte-for-byte comparison between the repository payload, the application image and the installer payload
 - **Locales**: the test suite also runs under Turkish and German system locales, so i18n regressions (e.g. a language that silently resolves to the system language) cannot slip through
 - **Artifacts**: native application image plus a platform installer (`.deb` / `.msi`) per OS
 - **Releases**: pushing a `v*` tag that matches the `pom.xml` version builds both platforms and publishes them to a GitHub Release together with a `SHA256SUMS` file, so the binaries no longer live in Actions artifacts that expire after a few days
@@ -451,7 +457,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `ToolbarFitTest` | Toolbar overflow policy: how the captioned row is measured (buttons, dropdowns, spacer, chrome) with injected metrics, the FULL→COMPACT switch and its 40 px hysteresis, plus acceptance tests proving German and French are not clipped at 1280 px and that the collapsed row fits 900 px in all six languages |
 | `PackagingNoticesTest` | The packaging contract: `META-INF/THIRD-PARTY-NOTICES` and both license texts are on the classpath, the notice names every bundled component with its real SPDX id, states that FFmpeg is not distributed, stays LF-only within 100 columns, and is byte-identical to the checked-in file so a stale build output cannot pass |
 | `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text, the autosave warning, the toolbar text, a plain popup row or the default editor text drops below AA or 13 px (or a theme declares a token `base.css` never reads), the focus ring drops below 3:1, highlighted popup-row text drops below AA, the popup cell font size drifts from the closed combo's, the focus colour becomes transparent again, or a non-existent JavaFX CSS property (`-fx-letter-spacing`, `-fx-transition`) returns |
-| `CiGatesTest` | The CI gate contract: the workflow really invokes the icon freshness check and the artifact verification, the icon check runs before the build, the artifact check runs after packaging, and that artifact gate stays on the Linux leg (it unpacks the `.deb`) |
+| `CiGatesTest` | The CI gate contract: the workflow really invokes the icon freshness check and the artifact verification, the icon check runs before the build and on both OS legs without re-rasterising, the artifact check runs after packaging, and that artifact gate stays on the Linux leg (it unpacks the `.deb`) |
 
 ---
 

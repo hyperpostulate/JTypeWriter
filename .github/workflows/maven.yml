@@ -45,22 +45,22 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # The icon assets are committed binaries, so nothing in the build notices
-      # when they stop matching the canonical SVG - the artwork would keep
-      # looking right on the machine that regenerated it and ship stale
-      # everywhere else. This is the gate, on every push and every PR.
+      # The icon assets are committed binaries rendered from
+      # src/main/resources/icons/jtypewriter.svg, so nothing else in the build
+      # notices when they stop matching the artwork - a stale set looks right on
+      # the machine that made it and ships everywhere else. --check compares
+      # every asset's hash against the one recorded in icons.manifest, which
+      # needs neither ImageMagick nor a display, so this runs on both legs and
+      # before the build: red in a minute instead of after the package step.
       #
-      # Windows leg only, and that is not an oversight: the check compares
-      # rendered bytes, and the bytes depend on the rasteriser. The assets were
-      # rendered by ImageMagick 7's internal MSVG renderer, which the Windows
-      # runner image ships (7.1.2-x). The ubuntu runner image ships no
-      # ImageMagick at all, and its apt package is 6.9.x, whose SVG path
-      # delegates to rsvg-convert - a different renderer that produces
-      # different pixels, so the gate there would report a false failure on
-      # assets that are perfectly in date. The interpreter is resolved because
-      # the two runners disagree on whether it is called python or python3.
+      # It deliberately does not re-rasterise. The pixels a renderer produces
+      # belong to that renderer, and ImageMagick encodes an identical picture to
+      # different bytes on different builds; comparing fresh output in CI would
+      # compare toolchains, not artwork. scripts/generate-icons.py --render is
+      # the pixel comparison, and it is meant for the machine that owns the
+      # assets. The interpreter is resolved because the two runners disagree on
+      # whether it is called python or python3.
       - name: Verify icon assets match the canonical artwork
-        if: runner.os == 'Windows'
         shell: bash
         run: |
           PY=$(command -v python3 || command -v python)

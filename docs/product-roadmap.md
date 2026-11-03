@@ -159,7 +159,7 @@ kapıyı beklerken boş kapasiteye biner. **P2, 20 puanda biter (D13 ile 21).**
 | **Kontrast kapsamı eksik** (kriter 1) | U3 | Kısmi | **W0-03** | `ContrastRatioTest` 19 → 23; araç çubuğu metni, düz popup satırı ve varsayılan editör metni de AA sınırında |
 | **CI artefaktı çalıştırmıyor** (kriter 7 / PW-43) | B1 | Açık | **W1-01** | CI'da imaj başlar, `.deb` kurulur/kaldırılır |
 | **`verify-artifacts.sh` CI'da değil** | B14 | Açık | **W0-04** | Linux ayağında `verify-artifacts.sh --skip-build` (paketlemeden sonra) yeşil: 17/17; kasıtlı bozma (`.deb`'den `NOTICE` silindi) 1/17 → exit 1 |
-| **İkon `--check` CI'da değil** | B15 | Açık | **W0-04** | Windows ayağında `generate-icons.py --check` (derlemeden önce) yeşil: 10 dosya; bozuk PNG exit 1, dosyayı adıyla söylüyor |
+| **İkon `--check` CI'da değil** | B15 | Açık | **W0-04** | Her iki ayakta `generate-icons.py --check` (derlemeden önce) yeşil: 11 dosya; düzenlenmiş SVG / elle değiştirilmiş PNG / eksik dosya exit 1 |
 | **Sürüm yok / hat koşmadı** (kriter 6) | B2 | Kısmi | **W1-02, W1-03** | GitHub Release + 6 varlık |
 
 **Kural:** Bu tablodaki hiçbir satır "P2 sırasında bir ara" diye bırakılmaz. Her satırın bir kart
@@ -214,8 +214,13 @@ Hiçbir kart `FileService`'e dokunmaz, yani W2'nin hazırlığını kilitlemez.
 - **Kapsam:** `.github/workflows/maven.yml` (yeni adımlar), `scripts/verify-artifacts.sh`,
   `scripts/generate-icons.py`
 - **Yapılacak:** `verify-artifacts.sh --skip-build` ve `generate-icons.py --check` her PR'da ve
-  `main` push'unda koşar. Windows ayağında `--check` koşar, `verify-artifacts` yalnız Linux'ta
-  (dpkg-deb).
+  `main` push'unda koşar. `--check` iki ayakta da koşar (özet karşılaştırması, rasterleştirici
+  gerekmez), `verify-artifacts` yalnız Linux'ta (dpkg-deb).
+- **Uygulama notu (3 Kas 2026):** İlk hâli ikon kontrolünü Windows ayağına kilitlemişti, çünkü
+  `--check` SVG'yi yeniden rasterleştirip bayt eşitliği arıyordu. İlk CI koşusunda Windows ayağı
+  **kırıldı**: aynı pikseller, farklı ImageMagick/zlib sürümü → farklı PNG baytları. Kontrol artık
+  `icons.manifest`'teki SHA-256'lara bakıyor; ImageMagick gerekmediği için iki ayakta da koşuyor.
+  Piksel karşılaştırması `--render` olarak duruyor (yerel, yeniden üretim sonrası kanıt).
 - **Bitti tanımı:** İki adım da yeşil; bir kasıtlı bozma denemesinde (ör. `.deb` payload'ından
   `NOTICE` silinmiş bir yamayla) iş **kırmızıya** dönüyor.
 - **Doğrulama:** Bozma denemesi PR'ı (kanıt için ekran/CI logu) + sonrasında geri alınmış hâli.
@@ -450,7 +455,7 @@ A3 önce, çünkü A2'nin önkoşulu ve ölçülmüş darboğaz orada.
 - **Bitti tanımı:** Release'te 6 varlık; notlar iki dilli; `SHA256SUMS` doğrulanıyor.
 - **Doğrulama:** W1-03 ile aynı API sorgusu.
 
-> **Kapı G4:** Tam suite yeşil, `verify-artifacts` 17/17, ikon `--check` 10 dosya,
+> **Kapı G4:** Tam suite yeşil, `verify-artifacts` 17/17, ikon `--check` 11 dosya,
 > `v1.1.0` yayında, §5'teki tüm kartlar `✅`.
 
 ---
@@ -498,7 +503,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W0-01 | Dokuz `Alert` kelepçesi | U1, M3 | M | — | ✅ | `mvn test -Dtest=DialogSizingTest,DialogServiceTest` → 18/18; `grep -rn "new Alert" src/main/java` → yalnız `DialogService`; `mvn -B clean test` → 354/354 |
 | W0-02 | Tarih/saat + ayırıcı yerelleştirmesi | U5, U12 | S | — | ✅ | `mvn test -Dtest=StatsBarModelTest,MessagesTest` → 25/25; `grep -rn "HH:mm\|yyyy" src/main/java` → boş; `mvn -B clean test` → 357/357; `mvn -B test -Duser.language=de -Duser.country=DE` → 357/357 |
 | W0-03 | Kontrast kapsamı | U3 | S | — | ✅ | `mvn test -Dtest=ContrastRatioTest` → 23/23; `-toolbar-text-muted` üç temadan da silindi, `everyThemeTokenIsActuallyReadByBaseCss` ölü token'ı yakalıyor; `mvn -B clean test` → 361/361; `mvn -B test -Duser.language=de -Duser.country=DE` → 361/361 |
-| W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ✅ | `bash scripts/verify-artifacts.sh` → 17/17 (linux, 1.0.0); kasıtlı bozma (`.deb`'den `NOTICE` silindi) → 1/17, exit 1, sonra `package.sh --skip-build --installer` ile geri alındı → 17/17; `python3 scripts/generate-icons.py --check` → 10 dosya, bozuk `jtypewriter-256.png` → exit 1; `mvn test -Dtest=CiGatesTest` → 4/4; `mvn -B clean test` → 365/365 |
+| W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ✅ | `bash scripts/verify-artifacts.sh` → 17/17 (linux, 1.0.0); kasıtlı bozma (`.deb`'den `NOTICE` silindi) → 1/17, exit 1, sonra `package.sh --skip-build --installer` ile geri alındı → 17/17; `python3 scripts/generate-icons.py --check` → 11 dosya (manifest dahil), düzenlenmiş SVG / değiştirilmiş PNG / eksik PNG → exit 1, `--render` → piksel özdeş, palet değişikliği %0,33 → exit 1, ImageMagick'siz `PATH`'te `--check` yeşil; `mvn test -Dtest=CiGatesTest` → 5/5; `mvn -B clean test` → 366/366 |
 | W1-01 | CI artefakt smoke | B1 | M | W0-04 | ☐ | |
 | W1-02 | Release dry-run | B2 | S | — | ☐ | |
 | W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ☐ | |
@@ -568,7 +573,7 @@ menüde; 10 MB belgede arama süresi kaydedildi.
 ```bash
 mvn -B clean test
 bash scripts/verify-artifacts.sh --skip-build     # 17/17
-python3 scripts/generate-icons.py --check         # 10 dosya
+python3 scripts/generate-icons.py --check         # 11 dosya
 ```
 + `v1.1.0` Release'i (6 varlık, iki dilli not).
 

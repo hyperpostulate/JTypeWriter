@@ -23,8 +23,8 @@ platforms on purpose.
 - `./scripts/verify-artifacts.sh [--skip-build]` — fresh build then a byte-for-byte comparison
   of repo payload ↔ application image ↔ `.deb` payload (jars, legal texts, jar entries).
 - CI runs `mvn -B package` then `scripts/package.sh --skip-build --installer`, then re-runs
-  the suite under `tr-TR` and `de-DE`. `generate-icons.py --check` runs before the build on the
-  Windows leg and `verify-artifacts.sh --skip-build` after packaging on the Linux leg; both are
+  the suite under `tr-TR` and `de-DE`. `generate-icons.py --check` runs before the build on
+  both legs and `verify-artifacts.sh --skip-build` after packaging on the Linux leg; both are
   pinned by `CiGatesTest`, so moving or dropping a gate fails the suite.
 
 Run Maven from the repo root: several tests read `src/`, `docs/` and `.github/` through
@@ -107,7 +107,12 @@ suite is the gate, and it enforces several non-code invariants below.
 - Version has one source: `pom.xml`. Release tag must be `v<version>`; `package.sh` rejects
   versions jpackage cannot use (`0.x`, `-SNAPSHOT`).
 - Icons have one source: `src/main/resources/icons/jtypewriter.svg`.
-  `scripts/generate-icons.py` regenerates PNG/ICO (needs ImageMagick), `--check` verifies.
+  `scripts/generate-icons.py` regenerates the PNG/ICO set plus `icons.manifest` (needs
+  ImageMagick 7 `magick` or 6 `convert`). `--check` compares hashes against that manifest and
+  needs no ImageMagick — it never re-rasterises, because the bytes a renderer produces are not
+  portable across builds. `--render` is the machine-local pixel comparison; run it after
+  regenerating. A hand-edited asset, an edited SVG or an extra PNG in that directory fails
+  `--check`.
 - `releases/` and `target/` are generated — never hand-edit or commit them.
 - Docs are bilingual: update `README.md` and `README-TR.md` (and release notes) together.
 - `.gitattributes` forces LF for text (CRLF only for `.bat/.cmd/.ps1`); keep new text files LF.
