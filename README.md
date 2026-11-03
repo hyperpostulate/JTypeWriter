@@ -208,7 +208,8 @@ CSS files are located in `src/main/resources/css/`:
 
 Download the installer (`.deb` on Linux, `.msi` on Windows) or the portable
 `.tar.gz` from
-the GitHub Releases assets, together with the `SHA256SUMS` file that lets you
+[the GitHub Releases page](https://github.com/hyperpostulate/JTypeWriter/releases),
+together with the `SHA256SUMS` file that lets you
 verify it. Both channels carry a bundled runtime, so neither needs Java
 installed. The `git clone` and `mvn clean install` steps below are the
 developer path, not the user path.
@@ -304,7 +305,7 @@ GitHub Actions workflows: build and test on every push and pull request to `main
 - **Gates**: `scripts/generate-icons.py --check` runs before the build on both OS legs: it compares every icon's hash with `icons.manifest`, so a committed asset that no longer matches the canonical artwork fails in a minute rather than shipping. It verifies hashes rather than re-rasterising on purpose - ImageMagick encodes the same pixels to different bytes on different builds, so a byte or pixel comparison in CI would compare toolchains, not artwork. `scripts/verify-artifacts.sh --skip-build` runs after packaging (Linux leg, because it unpacks the `.deb` with `dpkg-deb`) and re-proves the byte-for-byte comparison between the repository payload, the application image and the installer payload. A separate `smoke` job then consumes the packaged artifact and runs `scripts/smoke-appimage.sh --skip-build` on both OS legs: Linux starts the image under Xvfb and installs, launches and purges the `.deb`; Windows requires the launcher to stay alive
 - **Locales**: the test suite also runs under Turkish and German system locales, so i18n regressions (e.g. a language that silently resolves to the system language) cannot slip through
 - **Artifacts**: native application image plus a platform installer (`.deb` / `.msi`) per OS
-- **Releases**: pushing a `v*` tag that matches the `pom.xml` version builds both platforms and publishes them to a GitHub Release together with a `SHA256SUMS` file, so the binaries no longer live in Actions artifacts that expire after a few days. The same workflow can be started by hand as a **dry run**: `prepare`, both OS builds, the asset/source/checksum assembly, the five-asset assertion and the release-note rendering all run, but publication is replaced by an artifact holding exactly the assembled set. A manual run cannot publish - a release from a branch tip could not be reproduced from its tag - so `dry_run` defaults to true and asking for false is refused in `prepare`
+- **Releases**: pushing a `v*` tag that matches the `pom.xml` version builds both platforms and publishes them to a GitHub Release together with a `SHA256SUMS` file, so the binaries no longer live in Actions artifacts that expire after a few days. The same workflow can be started by hand as a **dry run**: `prepare`, both OS builds, the asset/source/checksum assembly, the five-asset assertion and the release-note rendering all run, but publication is replaced by an artifact holding exactly the assembled set. A manual run cannot publish - a release from a branch tip could not be reproduced from its tag - so `dry_run` defaults to true and asking for false is refused in `prepare`. A published release is marked **pre-release** (`gh release create --prerelease`) while the project says so in its own note: the first releases are early access and can change between versions, and the mark is removed deliberately in a later card rather than by omission
 
 ---
 

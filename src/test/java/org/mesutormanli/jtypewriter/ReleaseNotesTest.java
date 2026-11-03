@@ -158,6 +158,32 @@ class ReleaseNotesTest {
     }
 
     /**
+     * The note tells the reader this is an early build; the repository page
+     * derives its own label from the release metadata. Publishing without
+     * {@code --prerelease} made GitHub call the same release "Latest", so a
+     * visitor saw a stable release and a body saying "pre-release" - the two
+     * claims lived in different places and could disagree.
+     *
+     * <p>The flag belongs in the publish step itself, next to
+     * {@code --verify-tag}: dropping the mark is then a visible edit with a
+     * roadmap card behind it (W4-05), never something that happens by
+     * omission.</p>
+     */
+    @Test
+    void theReleaseIsPublishedWithThePrereleaseFlagTheNoteClaims() throws IOException {
+        var release = Files.readString(RELEASE_WORKFLOW, StandardCharsets.UTF_8);
+        var publish = stepContaining(release, release.indexOf("gh release create"));
+
+        assertTrue(publish.contains("--prerelease"),
+                "the publish step does not mark the release as a pre-release, so GitHub "
+                        + "labels an early-access build as Latest while its own note says otherwise:\n"
+                        + publish);
+        assertTrue(publish.contains("--verify-tag"),
+                "the publish step dropped --verify-tag, so a local-only tag could get a Release:\n"
+                        + publish);
+    }
+
+    /**
      * A release pipeline nobody has ever run is a hypothesis, and a tag is the
      * least convenient moment to find out that an asset name, the note
      * rendering or the two-OS merge was wrong. The dry run exists to convert

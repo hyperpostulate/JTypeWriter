@@ -324,6 +324,13 @@ jobs:
       # token. --verify-tag matters because a tag that only exists locally would
       # otherwise get a Release pointing at a commit nobody can fetch.
       #
+      # --prerelease is here because the note itself tells the reader this is an
+      # early build; leaving the flag off made GitHub label the same release
+      # "Latest", so the page and its own body disagreed. The claim and the
+      # metadata are set in one place now. Removing the flag is a deliberate act
+      # with a card of its own (roadmap W4-05, v1.1.0) rather than something
+      # that happens by omission.
+      #
       # Guarded rather than removed: the publish path must exist for a tag push
       # and must not be reachable from a manual run, and the guard is the only
       # thing that makes that true.
@@ -335,6 +342,7 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* \
             --verify-tag \
+            --prerelease \
             --title "JTypeWriter ${{ needs.prepare.outputs.version }}" \
             --notes-file "$RUNNER_TEMP/release-notes.md"
 

@@ -160,7 +160,7 @@ kapıyı beklerken boş kapasiteye biner. **P2, 20 puanda biter (D13 ile 21).**
 | **CI artefaktı çalıştırmıyor** (kriter 7 / PW-43) | B1 | **Kapalı** | **W1-01** | `smoke` job'u iki OS'te yeşil ([run 41711024985](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41711024985)): Ubuntu'da imaj Xvfb altında açıldı, `.deb` kuruldu/açıldı/kaldırıldı ve `dpkg -l` temiz döndü; Windows'ta launcher ayakta kaldı |
 | **`verify-artifacts.sh` CI'da değil** | B14 | Açık | **W0-04** | Linux ayağında `verify-artifacts.sh --skip-build` (paketlemeden sonra) yeşil: 17/17; kasıtlı bozma (`.deb`'den `NOTICE` silindi) 1/17 → exit 1 |
 | **İkon `--check` CI'da değil** | B15 | Açık | **W0-04** | Her iki ayakta `generate-icons.py --check` (derlemeden önce) yeşil: 11 dosya; düzenlenmiş SVG / elle değiştirilmiş PNG / eksik dosya exit 1 |
-| **Sürüm yok / hat koşmadı** (kriter 6) | B2 | Kısmi | **W1-02, W1-03** | **Hat artık koştu ve kurudu** (W1-02: `dry_run` yeşil, 5 varlık + `SHA256SUMS` birleştirildi, yayımlama kapalı, tag yok); kapanış için W1-03: GitHub Release + 5 varlık + `SHA256SUMS` |
+| **Sürüm yok / hat koşmadı** (kriter 6) | B2 | **Kapalı** | **W1-02, W1-03** | [run 41729981210](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41729981210): `v1.0.0` yayında, **6 varlık** (5 + `SHA256SUMS`); beşi indirilip `sha256sum -c SHA256SUMS` ile doğrulandı → 5/5 OK; not iki dilli ve ölçülen boyutlarla üretildi. Hat artık hipotez değil: iki kuru koşu + bir gerçek yayın |
 
 **Kural:** Bu tablodaki hiçbir satır "P2 sırasında bir ara" diye bırakılmaz. Her satırın bir kart
 numarası vardır; kart kapanmadan satır kapanmaz. P1'in kısmi kapanış hatası (`analysis.md` §3.2
@@ -337,8 +337,25 @@ yayınlamak.** Yayınlanana kadar diğer bütün işler tahmindir (`analysis.md`
   **önce** koştuğu. Mutasyonla doğrulandı: ikinci yer tutucu silinince ve `stat` satırı
   kaldırılınca test kırmızı. Yerel render sahte bir `dist/` ile koşuldu: iki başlık yerinde,
   yer tutucu kalmıyor, beş varlık MiB cinsinden listeleniyor.
-- **Kalan adım:** `v1.0.0` tag'inin itilmesi (kullanıcı) ve ardından Release'te 6 varlığın
-  doğrulanması; tag push'u yapılmadan kart kapanmaz.
+- **Kapanış (4 Kas 2026):** [run 41729981210](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41729981210)
+  (`push`, tag `v1.0.0`) dört job'u da yeşil bitirdi; Release yayımlandı ve **6 varlık** var:
+  `linux-x64.deb` (49.977.836 B), `linux-x64.tar.gz` (62.654.421 B), `windows-x64.msi`
+  (59.769.452 B), `windows-x64.tar.gz` (58.060.848 B), `source.tar.gz` (590.889 B) ve
+  `SHA256SUMS` (500 B).
+  Not, ölçülen boyutlarla **iki dilde** üretildi (`47.7 / 59.8 / 57.0 / 55.4 / 0.6 MiB`) —
+  yani `@ASSET_SIZES@` gerçekten yayımlanan dosyalardan doldu, elle yazılmış bir sayı yok.
+  Doğrulama: beş varlık indirilip `sha256sum -c SHA256SUMS` ile karşılaştırıldı → **5/5 OK**;
+  kaynak arşivi `JTypeWriter-1.0.0/` tek üst dizinini taşıyor; taşınabilir arşivde `LICENSE`,
+  `NOTICE`, `THIRD-PARTY-NOTICES` var.
+- **Kapanışın bulduğu kusur (4 Kas 2026):** Release yayımlandı ama GitHub onu
+  `prerelease=false` ile **"Latest release"** olarak etiketledi; notun kendisi ise "pre-release"
+  diyordu. Yani aynı sürüm için sayfa ile gövdesi çelişiyordu — üstelik W4-05 "pre-release
+  işaretini kaldır" diyor, yani işaret hiç kurulmamış olsaydı o kart da anlamsız kalırdı.
+  Düzeltme `release.yml`'de: `gh release create` artık `--prerelease` taşıyor (yorumu,
+  kaldırmanın bilinçli bir eylem ve W4-05'in işi olduğunu söylüyor).
+  `ReleaseNotesTest` 8 → 9 test bunu kilitliyor; mutasyonla doğrulandı (satır silinince kırmızı).
+  **Mevcut `v1.0.0` için tek seferlik adım:** GitHub → Releases → `v1.0.0` → Edit →
+  "Set as a pre-release" (veya `gh release edit v1.0.0 --prerelease`).
 
 **W1-04 · A8a — Taslak tarayıcısını sertleştir** · M · D4, D5, D14
 - **Kapsam:** `service/RecoveryStore.java:131-139,145,271`, `service/BackupKeeper.java`
@@ -527,7 +544,7 @@ A3 önce, çünkü A2'nin önkoşulu ve ölçülmüş darboğaz orada.
 - **Doğrulama:** `mvn test -Dtest=AudioAssetTest` + yeni `SoundPolicyTest`.
 
 **W4-05 — `v1.1.0` yayını** · S · B2
-- **Yapılacak:** W1-03'ün tekrarı; bu kez **pre-release işareti kaldırılır**.
+- **Yapılacak:** W1-03'ün tekrarı; bu kez **pre-release işareti kaldırılır** — işaret `release.yml`'deki `gh release create ... --prerelease` satırıdır, kart o satırı kaldırır (`ReleaseNotesTest` bu satırı pinliyor; kart onu da güncellemeli).
 - **Bitti tanımı:** Release'te 6 varlık; notlar iki dilli; `SHA256SUMS` doğrulanıyor.
 - **Doğrulama:** W1-03 ile aynı API sorgusu.
 
@@ -582,7 +599,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ✅ | `bash scripts/verify-artifacts.sh` → 17/17 (linux, 1.0.0); kasıtlı bozma (`.deb`'den `NOTICE` silindi) → 1/17, exit 1, sonra `package.sh --skip-build --installer` ile geri alındı → 17/17; `python3 scripts/generate-icons.py --check` → 11 dosya (manifest dahil), düzenlenmiş SVG / değiştirilmiş PNG / eksik PNG → exit 1, `--render` → piksel özdeş, palet değişikliği %0,33 → exit 1, ImageMagick'siz `PATH`'te `--check` yeşil; `mvn test -Dtest=CiGatesTest` → 5/5; `mvn -B clean test` → 366/366 |
 | W1-01 | CI artefakt smoke | B1 | M | W0-04 | ✅ | CI [run 41711024985](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41711024985): `Smoke test packaged app (ubuntu-latest)` ve `(windows-latest)` **success** (imaj açıldı, `.deb` kuruldu/çalıştırıldı/kaldırıldı, `dpkg -l` temiz); ilk koşu `7e474c1` Ubuntu'da `xdg-desktop-menu` exit 3 → dpkg abort ile kırmızıydı, `25ca53e` bunu `package.sh`'te onardı; `mvn -B clean test` → 368/368 (CiGatesTest 7/7, `needs: build` kaldırılınca kırmızı); `verify-artifacts.sh --skip-build` → 17/17; `smoke-appimage.sh --skip-build` yerelde imajı 2 s'de pencereyle açtı |
 | W1-02 | Release dry-run | B2 | S | — | ✅ | Kuru koşu yeşil: [run 41725168564](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41725168564) — 4/4 job success (`Assemble and publish` içinde `Create the GitHub Release` **skipped**, `Upload the dry-run release bundle` success); artefakt `JTypeWriter-release-dry-run-1.0.0` (7 gün, 229,7 MB); `Verify the expected assets are present` yeşil → tam 5 varlık; `git tag -l` boş, Release sayısı 0 → kuru koşu yayımlamıyor. Hat iki gerçek kusur buldu ve ikisi de onarıldı: (a) `xdg-desktop-menu`/dpkg (W1-01), (b) GNU tar'ın `D:` yolunu `host:path` sanması (`release-assets.sh` `to_tar_path` + `ReleaseAssetsScriptTest`). Yerel: `prepare` dört senaryoda doğru (`v0.9.9` → exit 1, dispatch `dry_run=false` → exit 1); `mvn -B clean test` → 373/373 |
-| W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ◐ | Not hazır: iki dilde **erken erişim** işareti, imza yokluğu cümlesi (zaten vardı) ve **ölçülen indirme boyutları**. Boyutlar elle yazılmadı: şablonda `@ASSET_SIZES@`, `release.yml` onu `dist/` içindeki dosyalardan `stat -c %s` → MiB (`LC_ALL=C`) ile üretiyor — Windows varlıkları bu makinede ölçülemiyor, elle yazılan sayı da bir sonraki sürümde yanlış olur. `ReleaseNotesTest` 8/8 (yeni test mutasyonla doğrulandı: ikinci yer tutucu veya `stat` kaldırılınca kırmızı); sahte `dist/` ile yerel render iki başlığı ve beş varlık boyutunu üretti, yer tutucu kalmadı. **Eksik: `v1.0.0` tag push'u (kullanıcı)** — sonrası: `curl …/releases | jq '.[0].assets[].name'` → 6 satır ve `sha256sum -c SHA256SUMS` doğrulaması |
+| W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ✅ | Yayın yapıldı: [run 41729981210](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41729981210) (4/4 job), Release'te **6 varlık** — 5 ikili/kaynak + `SHA256SUMS`; beşi indirilip `sha256sum -c SHA256SUMS` → **5/5 OK**. Not iki dilli ve ölçülen boyutlarla (`47.7/59.8/57.0/55.4/0.6 MiB`, `@ASSET_SIZES@` gerçek dosyalardan doldu), erken erişim işareti iki yarıda. Kapanış bir kusur daha buldu: GitHub sürümü `prerelease=false` ile Latest etiketledi, not ise pre-release diyordu → `release.yml` `gh release create` artık `--prerelease` taşıyor (`ReleaseNotesTest` 9/9, mutasyonla doğrulandı). **Kalan tek adım (elle, tek seferlik):** mevcut `v1.0.0` sürümünü Edit → "Set as a pre-release" işaretlemek; sonraki yayınlar bunu otomatik yapacak |
 | W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ☐ | |
 | W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ☐ | |
 | W2-02 | G/Ç executor | X1, X2 | M | W2-01 | ☐ | |
