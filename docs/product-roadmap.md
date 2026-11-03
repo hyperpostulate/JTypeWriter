@@ -160,7 +160,7 @@ kapıyı beklerken boş kapasiteye biner. **P2, 20 puanda biter (D13 ile 21).**
 | **CI artefaktı çalıştırmıyor** (kriter 7 / PW-43) | B1 | **Kapalı** | **W1-01** | `smoke` job'u iki OS'te yeşil ([run 41711024985](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41711024985)): Ubuntu'da imaj Xvfb altında açıldı, `.deb` kuruldu/açıldı/kaldırıldı ve `dpkg -l` temiz döndü; Windows'ta launcher ayakta kaldı |
 | **`verify-artifacts.sh` CI'da değil** | B14 | Açık | **W0-04** | Linux ayağında `verify-artifacts.sh --skip-build` (paketlemeden sonra) yeşil: 17/17; kasıtlı bozma (`.deb`'den `NOTICE` silindi) 1/17 → exit 1 |
 | **İkon `--check` CI'da değil** | B15 | Açık | **W0-04** | Her iki ayakta `generate-icons.py --check` (derlemeden önce) yeşil: 11 dosya; düzenlenmiş SVG / elle değiştirilmiş PNG / eksik dosya exit 1 |
-| **Sürüm yok / hat koşmadı** (kriter 6) | B2 | Kısmi | **W1-02, W1-03** | GitHub Release + 6 varlık |
+| **Sürüm yok / hat koşmadı** (kriter 6) | B2 | Kısmi | **W1-02, W1-03** | **Hat artık koştu ve kurudu** (W1-02: `dry_run` yeşil, 5 varlık + `SHA256SUMS` birleştirildi, yayımlama kapalı, tag yok); kapanış için W1-03: GitHub Release + 5 varlık + `SHA256SUMS` |
 
 **Kural:** Bu tablodaki hiçbir satır "P2 sırasında bir ara" diye bırakılmaz. Her satırın bir kart
 numarası vardır; kart kapanmadan satır kapanmaz. P1'in kısmi kapanış hatası (`analysis.md` §3.2
@@ -304,6 +304,13 @@ yayınlamak.** Yayınlanana kadar diğer bütün işler tahmindir (`analysis.md`
   test **birebir aynı CI hatasıyla** ("Cannot connect to D") kırmızıya dönüyor. Bu, W1-02'nin
   neden var olduğunun en somut kanıtı: hat hiç koşmamış olsaydı bu kusur ilk gerçek tag'de,
   yayın ortasında çıkacaktı.
+
+- **Kapanış (4 Kas 2026):** [run 41725168564](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41725168564)
+  dört job'u da yeşil bitirdi. `Assemble and publish (or stage a dry run)` içinde
+  `Create the GitHub Release` **skipped**, `Upload the dry-run release bundle` **success**;
+  `Verify the expected assets are present` yeşil (5 varlık), `Write release notes` yeşil.
+  Artefakt: `JTypeWriter-release-dry-run-1.0.0`, 229.733.257 bayt, 7 gün saklama.
+  `git tag -l` boş ve `GET /releases` uzunluğu 0 — kuru koşu hiçbir şey yayımlamadı.
 
 **W1-03 · A6c — İlk yayın `v1.0.0` (pre-release)** · S · B2
 - **Kapsam:** tag + `docs/release-notes-template.md` (yalnız doldurulur, yapısı değişmez)
@@ -555,7 +562,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W0-03 | Kontrast kapsamı | U3 | S | — | ✅ | `mvn test -Dtest=ContrastRatioTest` → 23/23; `-toolbar-text-muted` üç temadan da silindi, `everyThemeTokenIsActuallyReadByBaseCss` ölü token'ı yakalıyor; `mvn -B clean test` → 361/361; `mvn -B test -Duser.language=de -Duser.country=DE` → 361/361 |
 | W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ✅ | `bash scripts/verify-artifacts.sh` → 17/17 (linux, 1.0.0); kasıtlı bozma (`.deb`'den `NOTICE` silindi) → 1/17, exit 1, sonra `package.sh --skip-build --installer` ile geri alındı → 17/17; `python3 scripts/generate-icons.py --check` → 11 dosya (manifest dahil), düzenlenmiş SVG / değiştirilmiş PNG / eksik PNG → exit 1, `--render` → piksel özdeş, palet değişikliği %0,33 → exit 1, ImageMagick'siz `PATH`'te `--check` yeşil; `mvn test -Dtest=CiGatesTest` → 5/5; `mvn -B clean test` → 366/366 |
 | W1-01 | CI artefakt smoke | B1 | M | W0-04 | ✅ | CI [run 41711024985](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41711024985): `Smoke test packaged app (ubuntu-latest)` ve `(windows-latest)` **success** (imaj açıldı, `.deb` kuruldu/çalıştırıldı/kaldırıldı, `dpkg -l` temiz); ilk koşu `7e474c1` Ubuntu'da `xdg-desktop-menu` exit 3 → dpkg abort ile kırmızıydı, `25ca53e` bunu `package.sh`'te onardı; `mvn -B clean test` → 368/368 (CiGatesTest 7/7, `needs: build` kaldırılınca kırmızı); `verify-artifacts.sh --skip-build` → 17/17; `smoke-appimage.sh --skip-build` yerelde imajı 2 s'de pencereyle açtı |
-| W1-02 | Release dry-run | B2 | S | — | ◐ | Kuru koşu **çalıştı ve iki gerçek kusur buldu**; Ubuntu ayağı yeşil, Windows ayağı `Stage normalised release assets`'ta kırmızı: `tar (child): Cannot connect to D` — GNU tar `D:\a\...` yolunu `host:path` sandı. `release-assets.sh`'e `to_tar_path` eklendi (cygpath ile POSIX biçimi); kusur `ReleaseAssetsScriptTest` ile POSIX'te yeniden üretiliyor: dönüşüm kaldırılınca test aynı hatayla kırmızı, düzeltmeyle yeşil. Yerel: `prepare` dört senaryoda doğru (`push`+eşleşen → `publish=true`; `v0.9.9` → exit 1; dispatch `true` → `publish=false`; dispatch `false` → exit 1); `mvn -B clean test` → 373/373; `ReleaseNotesTest` 7/7, `ReleaseAssetsScriptTest` 2/2. **Eksik: yeşil kuru koşu** — düzeltme push edilip yeniden tetiklenmeli, `git tag -l` boş kalmalı |
+| W1-02 | Release dry-run | B2 | S | — | ✅ | Kuru koşu yeşil: [run 41725168564](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41725168564) — 4/4 job success (`Assemble and publish` içinde `Create the GitHub Release` **skipped**, `Upload the dry-run release bundle` success); artefakt `JTypeWriter-release-dry-run-1.0.0` (7 gün, 229,7 MB); `Verify the expected assets are present` yeşil → tam 5 varlık; `git tag -l` boş, Release sayısı 0 → kuru koşu yayımlamıyor. Hat iki gerçek kusur buldu ve ikisi de onarıldı: (a) `xdg-desktop-menu`/dpkg (W1-01), (b) GNU tar'ın `D:` yolunu `host:path` sanması (`release-assets.sh` `to_tar_path` + `ReleaseAssetsScriptTest`). Yerel: `prepare` dört senaryoda doğru (`v0.9.9` → exit 1, dispatch `dry_run=false` → exit 1); `mvn -B clean test` → 373/373 |
 | W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ☐ | |
 | W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ☐ | |
 | W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ☐ | |
