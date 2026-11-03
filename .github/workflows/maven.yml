@@ -45,6 +45,27 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      # The icon assets are committed binaries, so nothing in the build notices
+      # when they stop matching the canonical SVG - the artwork would keep
+      # looking right on the machine that regenerated it and ship stale
+      # everywhere else. This is the gate, on every push and every PR.
+      #
+      # Windows leg only, and that is not an oversight: the check compares
+      # rendered bytes, and the bytes depend on the rasteriser. The assets were
+      # rendered by ImageMagick 7's internal MSVG renderer, which the Windows
+      # runner image ships (7.1.2-x). The ubuntu runner image ships no
+      # ImageMagick at all, and its apt package is 6.9.x, whose SVG path
+      # delegates to rsvg-convert - a different renderer that produces
+      # different pixels, so the gate there would report a false failure on
+      # assets that are perfectly in date. The interpreter is resolved because
+      # the two runners disagree on whether it is called python or python3.
+      - name: Verify icon assets match the canonical artwork
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          PY=$(command -v python3 || command -v python)
+          "$PY" scripts/generate-icons.py --check
+
       - name: Build and test with Maven
         run: mvn -B package --file pom.xml
 
@@ -90,6 +111,21 @@ jobs:
       - name: Build application image and platform installer
         shell: bash
         run: bash scripts/package.sh --skip-build --installer
+
+      # package.sh proves the legal files are *present*; this proves they are
+      # the same bytes in the repository, in the application image and in the
+      # installer payload, and that the jar entries match the checked-in texts.
+      # A stale jar, a hand-edited notice or an installer built from an older
+      # image all pass package.sh and fail here - which is exactly the drift a
+      # release cannot detect after the fact.
+      #
+      # Linux only: the installer half of the comparison unpacks the .deb with
+      # dpkg-deb. On Windows the .msi is compared only as part of the
+      # application image, so this step has nothing extra to say there.
+      - name: Verify packaged artifacts match the repository
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/verify-artifacts.sh --skip-build
 
       # The packaged installers are rebuildable from source, so keeping every
       # main push for 90 days is pure storage cost.

@@ -158,8 +158,8 @@ kapıyı beklerken boş kapasiteye biner. **P2, 20 puanda biter (D13 ile 21).**
 | **Sabit tarih/saat biçimi** (kriter 5) | U5, U12 | Kısmi | **W0-02** | Tüm biçimler `LocaleManager` üzerinden; TR/DE locale koşusunda farklı çıktı |
 | **Kontrast kapsamı eksik** (kriter 1) | U3 | Kısmi | **W0-03** | `ContrastRatioTest` 19 → 23; araç çubuğu metni, düz popup satırı ve varsayılan editör metni de AA sınırında |
 | **CI artefaktı çalıştırmıyor** (kriter 7 / PW-43) | B1 | Açık | **W1-01** | CI'da imaj başlar, `.deb` kurulur/kaldırılır |
-| **`verify-artifacts.sh` CI'da değil** | B14 | Açık | **W0-04** | Workflow'da adım yeşil, 17/17 |
-| **İkon `--check` CI'da değil** | B15 | Açık | **W0-04** | Workflow'da adım yeşil, 10 dosya |
+| **`verify-artifacts.sh` CI'da değil** | B14 | Açık | **W0-04** | Linux ayağında `verify-artifacts.sh --skip-build` (paketlemeden sonra) yeşil: 17/17; kasıtlı bozma (`.deb`'den `NOTICE` silindi) 1/17 → exit 1 |
+| **İkon `--check` CI'da değil** | B15 | Açık | **W0-04** | Windows ayağında `generate-icons.py --check` (derlemeden önce) yeşil: 10 dosya; bozuk PNG exit 1, dosyayı adıyla söylüyor |
 | **Sürüm yok / hat koşmadı** (kriter 6) | B2 | Kısmi | **W1-02, W1-03** | GitHub Release + 6 varlık |
 
 **Kural:** Bu tablodaki hiçbir satır "P2 sırasında bir ara" diye bırakılmaz. Her satırın bir kart
@@ -498,7 +498,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W0-01 | Dokuz `Alert` kelepçesi | U1, M3 | M | — | ✅ | `mvn test -Dtest=DialogSizingTest,DialogServiceTest` → 18/18; `grep -rn "new Alert" src/main/java` → yalnız `DialogService`; `mvn -B clean test` → 354/354 |
 | W0-02 | Tarih/saat + ayırıcı yerelleştirmesi | U5, U12 | S | — | ✅ | `mvn test -Dtest=StatsBarModelTest,MessagesTest` → 25/25; `grep -rn "HH:mm\|yyyy" src/main/java` → boş; `mvn -B clean test` → 357/357; `mvn -B test -Duser.language=de -Duser.country=DE` → 357/357 |
 | W0-03 | Kontrast kapsamı | U3 | S | — | ✅ | `mvn test -Dtest=ContrastRatioTest` → 23/23; `-toolbar-text-muted` üç temadan da silindi, `everyThemeTokenIsActuallyReadByBaseCss` ölü token'ı yakalıyor; `mvn -B clean test` → 361/361; `mvn -B test -Duser.language=de -Duser.country=DE` → 361/361 |
-| W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ☐ | |
+| W0-04 | `verify-artifacts` + ikon `--check` CI'da | B14, B15 | S | — | ✅ | `bash scripts/verify-artifacts.sh` → 17/17 (linux, 1.0.0); kasıtlı bozma (`.deb`'den `NOTICE` silindi) → 1/17, exit 1, sonra `package.sh --skip-build --installer` ile geri alındı → 17/17; `python3 scripts/generate-icons.py --check` → 10 dosya, bozuk `jtypewriter-256.png` → exit 1; `mvn test -Dtest=CiGatesTest` → 4/4; `mvn -B clean test` → 365/365 |
 | W1-01 | CI artefakt smoke | B1 | M | W0-04 | ☐ | |
 | W1-02 | Release dry-run | B2 | S | — | ☐ | |
 | W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ☐ | |

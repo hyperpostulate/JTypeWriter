@@ -269,7 +269,9 @@ Başlatıcı, pencere ve görev çubuğu simgesi, görselin tek kaynağı olan
 `src/main/resources/icons/jtypewriter.svg` dosyasından üretilir: `scripts/generate-icons.py`
 PNG setini ve Windows `.ico` dosyasını yeniden oluşturur (`--check`
 güncelliklerini doğrular); `scripts/package.sh` platforma göre doğru biçimi seçip
-`jpackage`'a aktarır.
+`jpackage`'a aktarır. Script, ImageMagick 7'nin `magick` sürücüsünü de eski
+sürüm 6'nın `convert` komutunu da kabul eder; böylece geliştirici makinesinde ve
+ImageMagick 6 paketleyen bir CI çalıştırıcısında aynı şekilde çalışır.
 
 ---
 
@@ -281,6 +283,7 @@ GitHub Actions iş akışları: `main` dalına her push ve pull request'te derle
 - **Ortam**: Ubuntu ve Windows (build matrisi)
 - **JDK**: Temurin 25
 - **Komut**: `mvn -B package` (derleme + testler), ardından `scripts/package.sh --skip-build --installer`
+- **Kapılar**: `scripts/generate-icons.py --check` derlemeden önce koşar; kanonik SVG ile artık eşleşmeyen bir ikon on dakika sonra değil bir dakika içinde kırmızı olur. `scripts/verify-artifacts.sh --skip-build` paketlemeden sonra koşar ve depo yükü, uygulama görüntüsü ile kurulum paketi arasındaki bayt bayt karşılaştırmayı yeniden kanıtlar. İkon kapısı yalnızca Windows ayağında çalışır (varlıklar, o çalıştırıcı imajında bulunan ImageMagick 7'nin yerleşik işleyicisiyle üretildi); artefakt kapısı yalnızca Linux ayağında çalışır (`.deb` paketini `dpkg-deb` ile açar).
 - **Diller**: test paketi Türkçe ve Almanca sistem dillerinde de çalışır; böylece yerelleştirme regresyonları (ör. bir dilin sessizce sistem diline çözülmesi) gözden kaçamaz
 - **Artefaktlar**: her işletim sistemi için yerel uygulama görüntüsü ve platform kurulum paketi (`.deb` / `.msi`)
 - **Sürümler**: `pom.xml` sürümüyle eşleşen bir `v*` tag'i itildiğinde iki platform da derlenip bir GitHub Release'e yüklenir; yanına `SHA256SUMS` dosyası eklenir, böylece ikililer birkaç gün sonra silinen Actions artefaktlarına bağlı kalmaz
@@ -446,6 +449,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `ToolbarFitTest` | Araç çubuğu taşma politikası: başlıklı satırın (düğmeler, açılır listeler, ayırıcı, çerçeve) enjekte edilen ölçülerle nasıl hesaplandığı, FULL→COMPACT geçişi ve 40 px histerezisi; ayrıca Almanca ve Fransızcanın 1280 px'te kırpılmadığını ve daraltılmış satırın altı dilde 900 px'e sığdığını kanıtlayan kabul testleri |
 | `PackagingNoticesTest` | Paketleme sözleşmesi: `META-INF/THIRD-PARTY-NOTICES` ve iki lisans metni sınıf yolunda; bildirim her paketlenen bileşeni gerçek SPDX kimliğiyle adlandırıyor, FFmpeg'in dağıtılmadığını söylüyor, 100 sütun içinde yalnızca LF kullanıyor ve depodaki dosyayla bayt-özdeş, böylece bayat bir derleme çıktısı testi geçemiyor |
 | `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni, otomatik kayıt uyarısı, araç çubuğu metni, düz popup satırı ya da varsayılan editör metni AA'nın veya 13 px'in altına düşerse (ya da bir tema `base.css`'in hiç okumadığı bir token tanımlarsa), odak halkası 3:1'in altına düşerse, vurgulanan popup satırı metni AA'nın altına düşerse, popup hücresi yazı boyutu kapalı combo'nun boyutundan saparsa, odak rengi yeniden saydamlaşırsa ya da var olmayan bir JavaFX CSS özelliği (`-fx-letter-spacing`, `-fx-transition`) geri dönerse derlemeyi başarısız kılan CSS ayrıştırma korumaları |
+| `CiGatesTest` | CI kapı sözleşmesi: iş akışı ikon güncellik kontrolünü ve artefakt doğrulamasını gerçekten çağırıyor, ikon kontrolü derlemeden önce, artefakt kontrolü paketlemeden sonra koşuyor ve artefakt kapısı Linux ayağında kalıyor (`.deb` paketini açıyor) |
 
 ---
 

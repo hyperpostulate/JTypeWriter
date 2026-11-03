@@ -9,8 +9,11 @@ Usage:
     scripts/generate-icons.py               # regenerate everything
     scripts/generate-icons.py --check       # fail if the assets are stale
 
-Requires ImageMagick (``magick``) for rasterising the SVG; everything else is
-plain Python.
+Requires ImageMagick for rasterising the SVG - the ImageMagick 7 ``magick``
+driver, or the legacy ``convert`` of version 6 when that is what the machine
+has; everything else is plain Python. Accepting both is what lets the same
+command run on a developer machine and on a CI runner whose distribution
+still packages ImageMagick 6.
 
 The SVG deliberately avoids gradients and filters because ImageMagick's internal
 MSVG renderer paints gradient fills as solid black. Render with
@@ -22,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import shutil
 import struct
 import subprocess
 import sys
@@ -43,6 +47,19 @@ ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
 RENDER_DENSITY = "384"
 
 
+def magick() -> list[str]:
+    """The ImageMagick command, as a prefix: ``magick`` (v7) or ``convert`` (v6).
+
+    Every operation here is a single-image read-modify-write, so the two
+    drivers are interchangeable for these flags and the choice is purely
+    "which one this machine installed".
+    """
+    for candidate in (["magick"], ["convert"]):
+        if shutil.which(candidate[0]):
+            return candidate
+    sys.exit("ImageMagick ('magick' or 'convert') is required to rasterise the SVG")
+
+
 def run(command: list[str]) -> None:
     subprocess.run(command, check=True)
 
@@ -55,7 +72,7 @@ def render_base(workdir: Path) -> Path:
     """
     base = workdir / "base-1024.png"
     run([
-        "magick",
+        *magick(),
         "-background", "none",
         "-density", RENDER_DENSITY,
         str(SVG),
@@ -70,7 +87,7 @@ def render_base(workdir: Path) -> Path:
 
 def render_png(base: Path, size: int, target: Path) -> None:
     run([
-        "magick", str(base),
+        *magick(), str(base),
         "-filter", "Lanczos",
         "-resize", f"{size}x{size}",
         "-strip",
@@ -130,8 +147,8 @@ def main() -> int:
 
     if not SVG.is_file():
         sys.exit(f"canonical artwork missing: {SVG}")
-    if subprocess.run(["magick", "-version"], capture_output=True).returncode != 0:
-        sys.exit("ImageMagick ('magick') is required to rasterise the SVG")
+    if subprocess.run([*magick(), "-version"], capture_output=True).returncode != 0:
+        sys.exit("ImageMagick is required to rasterise the SVG")
 
     outputs = generate()
 
