@@ -188,13 +188,11 @@ public class ToolbarView extends HBox {
         showAsCaptionedCombo(languageCombo, messages::toolbarLanguage);
         languageCombo.getStyleClass().add("toolbar-lang-combo");
 
-        openBtn.setOnAction(e -> {
-            fileService.openFile(stage).ifPresent(path ->
-                    editorArea.setDocument(fileService.getCurrentContent()));
-        });
+        openBtn.setOnAction(e -> fileService.openFileAsync(stage).thenAccept(opened -> opened.ifPresent(path ->
+                editorArea.setDocument(fileService.getCurrentContent()))));
         saveBtn.setOnAction(e -> {
             if (editorArea != null) {
-                fileService.saveFile(stage, editorArea.getText());
+                fileService.saveFileAsync(stage, editorArea.getText());
             }
         });
         undoBtn.setOnAction(e -> {

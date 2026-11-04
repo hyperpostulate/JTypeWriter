@@ -489,6 +489,15 @@ public class Messages {
     }
 
     /**
+     * The short status-bar text shown while a save is still on the I/O worker.
+     * A slow or network write must not look like a frozen window, so the bar
+     * states what is happening until the save commits or fails.
+     */
+    public String savingStatus() {
+        return bundle.getString("savingStatus");
+    }
+
+    /**
      * The standing status-bar warning while the autosave safety net
      * cannot write a recovery copy. Deliberately phrased as an instruction, not
      * as a status: the only thing that helps the user right now is a normal

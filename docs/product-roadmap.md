@@ -442,6 +442,30 @@ A3 önce, çünkü A2'nin önkoşulu ve ölçülmüş darboğaz orada.
 - **Doğrulama:** `mvn test -Dtest=FileServiceTest,AutoSaveServiceTest` +
   yeni `FxThreadIoTest`.
 
+**Uygulama (5 Kas 2026):** Yeni `IoExecutor` (kök paket) tek bir daemon işçi
+thread'inde (`jtw-io-*`) çalışıyor: belge kaydetme, yedek rotasyonu, otomatik kayıt ve taslak
+temizliği aynı kuyruğa girdiği için bir anlık görüntü, henüz rename etmekte olan bir kaydetmenin
+yedek kuşağını döndüremiyor. Sayaç `IoExecutor.fxThreadTasks()`; üretimde sonda
+`Platform.isFxApplicationThread()`, gönderim `Platform.runLater` — testler toolkit açmamak için
+aynı arayüze saf bir thread probe'u enjekte ediyor. Servislerin varsayılan kurucusu
+`IoExecutor.synchronous()` (başsız testlerin determinizmi için), `AppGraph` ise paylaşılan
+`IoExecutor.background()` örneğini enjekte ediyor ve `FxApplication.stop()` onu kapatıyor.
+`FileService` artık `openFileAsync`, `loadFileAsync`, `saveFileAsync`, `saveFileAsAsync`,
+`newDocumentAsync` ve `requestExitAsync` sunuyor; araç çubuğu, kısayollar ve pencere kapatma
+yolu bunları kullanıyor. Senkron imzalar (açılış geri yüklemesi ve testler için) korundu ama
+artık G/Ç'yi yine işçiye gönderip yalnız çağıranı bekletiyor — disk erişimi hiçbir yolda FX
+thread'ine dönmüyor. Kaydetme başlarken `Listener.onSavingChanged(true)` yayınlanıyor; durum
+çubuğu altı dilde yeni `savingStatus` anahtarıyla "Kaydediliyor..." gösteriyor, commit gelince
+"Kaydedildi {0}" geri geliyor. Eşzamanlılığın getirdiği yeni risk kapatıldı: kaydetme sürerken
+yazılan metin commit'te ezilmiyor (`savedContent` diske giden anlık görüntü, `currentContent`
+editörün yeni hâli; kirli işareti yeniden hesaplanıyor) ve belge jetonu eski bir tamamlanmanın
+yeni belgenin durumunu ezmesini engelliyor. `AutoSaveService.snapshot` artık `Supplier<String>`
+alıyor: önce `hasUnsavedChanges()`, sonra `getText()`; temiz tikte metin kopyası hiç alınmıyor.
+Snapshot/clear/park işçide; `shutdown` yalnız son karar için kısa süre bekliyor (G/Ç yine
+işçide). Testler: yeni `FxThreadIoTest` 5/5 (işçi FX thread'i değil, kaydetme/açma sırasında
+`fxThreadTasks()==0`, temiz tikte kopya yok, kaydetme sürerken yazılan metin kirli kalıyor),
+`FileServiceTest` 36/36, `AutoSaveServiceTest` 15/15. `mvn -B clean test` → **401/401**.
+
 **W2-03 · A3c — Bellek, boyut ve hata yolu** · M · X4, M10, D7, D14
 - **Kapsam:** `FileService.loadFile`, `AtomicFiles`, `AutoSaveService.java:317`
 - **Yapılacak:** `readAllBytes` yerine boyut denetimli akış; üst sınır aşılırsa **açık uyarı**
@@ -640,7 +664,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ✅ | Yayın yapıldı: [run 41729981210](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41729981210) (4/4 job), Release'te **6 varlık** — 5 ikili/kaynak + `SHA256SUMS`; beşi indirilip `sha256sum -c SHA256SUMS` → **5/5 OK**. Not iki dilli ve ölçülen boyutlarla (`47.7/59.8/57.0/55.4/0.6 MiB`, `@ASSET_SIZES@` gerçek dosyalardan doldu), erken erişim işareti iki yarıda. Kapanış bir kusur daha buldu: GitHub sürümü `prerelease=false` ile Latest etiketledi, not ise pre-release diyordu → `release.yml` `gh release create` artık `--prerelease` taşıyor (`ReleaseNotesTest` 9/9, mutasyonla doğrulandı); mevcut `v1.0.0` de elle pre-release işaretlendi → `GET /releases` `prerelease=true`, yani yayındaki sürüm ile notu aynı şeyi söylüyor |
 | W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ✅ | `mvn test -Dtest=RecoveryStoreTest,BackupKeeperTest` → 25/25 + 9/9; symlink taslağı okunmuyor, 100 MB taslak taramayı bloke etmiyor (sparse dosya, sınırlı okuma), `pending-*` 30 gün sonra siliniyor; dördü de mutasyonla kırmızıya döndü; `mvn -B clean test` → 384/384 |
 | W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ✅ | `mvn test -Dtest=SessionStatsTest` → 21/21 (her adımda eski tam taramayla birebir); `mvn test -Dtest=StatsPerfHarnessTest` → 10 MiB tek yenileme **0,116 ms** (CI eşiği 50, eski ölçüm 163); mutasyon: `getWordCount` eski gövdeye dönünce **123,2 ms** → kırmızı, delta penceresinden `+1` atılınca 3 property testi kırmızı; `getWordCount`/`getLineCount`/`getCharCount*` imzaları aynı, `StatsBarModel` değişmedi; `mvn -B clean test` → 396/396 |
-| W2-02 | G/Ç executor | X1, X2 | M | W2-01 | ☐ | |
+| W2-02 | G/Ç executor | X1, X2 | M | W2-01 | ✅ | `mvn test -Dtest=FxThreadIoTest,FileServiceTest,AutoSaveServiceTest` → 5/5 + 36/36 + 15/15: kaydetme ve açma `IoExecutor` işçisinde, `fxThreadTasks()==0`; temiz otomatik kayıt tikinde metin kopyası yok; kaydetme sürerken yazılan metin kirli kalıyor. `AppGraph` paylaşılan `IoExecutor.background()` enjekte ediyor; `FxApplication.stop()` kapanışta işçiyi durduruyor; `savingStatus` altı bundle'da (`MessagesTest` 13/13); `mvn -B clean test` → 401/401 |
 | W2-03 | Bellek/boyut/hata yolu | X4, M10, D7 | M | W2-02 | ☐ | |
 | W2-04 | Dış değişiklik | D1, M9 | M | W2-02 | ☐ | |
 | W2-05 | Symlink korunumu | D2 | S | W2-04 | ☐ | |

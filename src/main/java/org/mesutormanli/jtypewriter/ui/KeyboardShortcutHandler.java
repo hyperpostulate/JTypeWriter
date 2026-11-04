@@ -89,15 +89,15 @@ public class KeyboardShortcutHandler {
             case REDO -> editorArea.requestRedo();
             case TOGGLE_YOLO -> toolbarView.toggleYolo();
             case CYCLE_TEXT_COLOR -> toolbarView.cycleTextColor();
-            case OPEN -> fileService.openFile(stage).ifPresent(path ->
-                    editorArea.setDocument(fileService.getCurrentContent()));
-            case NEW_DOCUMENT -> {
-                if (fileService.newDocument(stage)) {
+            case OPEN -> fileService.openFileAsync(stage).thenAccept(opened -> opened.ifPresent(path ->
+                    editorArea.setDocument(fileService.getCurrentContent())));
+            case NEW_DOCUMENT -> fileService.newDocumentAsync(stage).thenAccept(created -> {
+                if (created) {
                     editorArea.setDocument("");
                 }
-            }
-            case SAVE -> fileService.saveFile(stage, editorArea.getText());
-            case SAVE_AS -> fileService.saveFileAs(stage, editorArea.getText());
+            });
+            case SAVE -> fileService.saveFileAsync(stage, editorArea.getText());
+            case SAVE_AS -> fileService.saveFileAsAsync(stage, editorArea.getText());
             case FONT_RESET -> toolbarView.resetFontSize();
             case FONT_UP -> toolbarView.changeFontSize(1);
             case FONT_DOWN -> toolbarView.changeFontSize(-1);

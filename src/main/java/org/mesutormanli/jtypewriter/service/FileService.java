@@ -7,6 +7,7 @@ package org.mesutormanli.jtypewriter.service;
 
 import org.mesutormanli.jtypewriter.AppLogging;
 import org.mesutormanli.jtypewriter.AtomicFiles;
+import org.mesutormanli.jtypewriter.IoExecutor;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.io.IOException;
@@ -16,7 +17,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,6 +42,22 @@ import java.util.logging.Logger;
  *       switch the document to UTF-8 - unmappable characters are never
  *       silently turned into {@code ?}.</li>
  * </ul>
+ *
+ * <p><strong>Threading:</strong> every call that touches a file goes through
+ * {@link IoExecutor}; the FX thread only ever runs state commits, dialogs and
+ * listener notifications. The {@code *Async} methods are the production entry
+ * points: they return immediately and complete on the FX thread after the
+ * write/read is done. The synchronous methods remain for startup restore and
+ * for headless tests; they block the caller on the worker but still never
+ * perform the I/O on that caller. Their default executor is
+ * {@link IoExecutor#synchronous()} - the application wires a shared
+ * {@link IoExecutor#background()} in {@code AppGraph}.</p>
+ *
+ * <p><strong>Stale completions:</strong> because a save or load can finish
+ * after the user already opened another document, every operation captures a
+ * document token. A completion whose token is no longer current is dropped:
+ * the file itself was still written, but it never overwrites the state of a
+ * newer document.</p>
  */
 public class FileService {
 
@@ -57,6 +77,14 @@ public class FileService {
          */
         default void onNewDocument() {
         }
+
+        /**
+         * Reports that a save started or finished, so the UI can show a
+         * "saving" state instead of looking frozen. Always called on the FX
+         * thread; a finished save fires after {@link #onSaved(Path)}.
+         */
+        default void onSavingChanged(boolean saving) {
+        }
     }
 
     private static final Logger LOG = AppLogging.logger(FileService.class);
@@ -64,6 +92,7 @@ public class FileService {
     private final DialogService dialogService;
     private final Messages messages;
     private final BackupKeeper backupKeeper;
+    private final IoExecutor ioExecutor;
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
 
     private Path currentFilePath;
@@ -73,15 +102,32 @@ public class FileService {
     private boolean currentBom;
     private boolean dirty;
 
+    /**
+     * Identifies the current document generation. A load, a new document or a
+     * recovered draft bumps it; a save/load completion that captured an older
+     * value is stale and must not mutate state.
+     */
+    private long operation;
+
     public FileService(DialogService dialogService, Messages messages) {
-        this(dialogService, messages, new BackupKeeper());
+        this(dialogService, messages, new BackupKeeper(), IoExecutor.synchronous());
     }
 
     /** Visible for tests: lets a test inject a BackupKeeper whose phases fail. */
     FileService(DialogService dialogService, Messages messages, BackupKeeper backupKeeper) {
+        this(dialogService, messages, backupKeeper, IoExecutor.synchronous());
+    }
+
+    /**
+     * Production constructor: all blocking I/O is executed by {@code ioExecutor}
+     * (shared with {@link AutoSaveService} so saves and snapshots serialise).
+     */
+    public FileService(DialogService dialogService, Messages messages,
+                       BackupKeeper backupKeeper, IoExecutor ioExecutor) {
         this.dialogService = dialogService;
         this.messages = messages;
         this.backupKeeper = backupKeeper;
+        this.ioExecutor = ioExecutor;
     }
 
     public String getCurrentContent() {
@@ -118,6 +164,8 @@ public class FileService {
      * Opens a file only after the current document is safe. Unsaved changes
      * trigger the same Save / Don't Save / Cancel prompt used on exit; choosing
      * Cancel - or abandoning the save - aborts the open so no text is ever lost.
+     *
+     * <p>Blocking variant; production UI uses {@link #openFileAsync}.</p>
      */
     public Optional<Path> openFile(javafx.stage.Stage stage) {
         if (!confirmDiscardOrSave(stage)) {
@@ -128,6 +176,23 @@ public class FileService {
         if (file.isEmpty()) return Optional.empty();
 
         return loadFile(stage, file.get().toPath());
+    }
+
+    /**
+     * Async open: the disk read runs on the I/O worker and the returned future
+     * completes on the FX thread, so the caller can hand the decoded text to
+     * the editor without freezing the UI.
+     */
+    public CompletableFuture<Optional<Path>> openFileAsync(javafx.stage.Stage stage) {
+        return confirmDiscardOrSaveAsync(stage).thenCompose(proceed -> {
+            if (!proceed) {
+                return CompletableFuture.completedFuture(Optional.empty());
+            }
+            return ioExecutor.completeOnFx(() -> dialogService.showOpenDialog(stage))
+                    .thenCompose(file -> file.isEmpty()
+                            ? CompletableFuture.completedFuture(Optional.<Path>empty())
+                            : loadFileAsync(stage, file.get().toPath()));
+        });
     }
 
     /**
@@ -145,6 +210,21 @@ public class FileService {
     public boolean newDocument(javafx.stage.Stage stage) {
         if (!confirmDiscardOrSave(stage)) {
             return false;
+        }
+        return commitNewDocument(++operation);
+    }
+
+    /** Async variant of {@link #newDocument(javafx.stage.Stage)}. */
+    public CompletableFuture<Boolean> newDocumentAsync(javafx.stage.Stage stage) {
+        return confirmDiscardOrSaveAsync(stage).thenCompose(proceed ->
+                proceed
+                        ? ioExecutor.completeOnFx(() -> commitNewDocument(++operation))
+                        : CompletableFuture.completedFuture(false));
+    }
+
+    private boolean commitNewDocument(long operationId) {
+        if (operationId != operation) {
+            return false; // a newer document replaced this one while the prompt was open
         }
         currentFilePath = null;
         currentCharset = StandardCharsets.UTF_8;
@@ -181,29 +261,72 @@ public class FileService {
         return true;
     }
 
+    private CompletableFuture<Boolean> confirmDiscardOrSaveAsync(javafx.stage.Stage stage) {
+        if (!hasUnsavedChanges()) {
+            return CompletableFuture.completedFuture(true);
+        }
+        return switch (dialogService.showUnsavedChangesDialog(stage)) {
+            case SAVE -> saveFileAsync(stage, currentContent).thenApply(Optional::isPresent);
+            case DISCARD -> CompletableFuture.completedFuture(true);
+            case CANCEL -> CompletableFuture.completedFuture(false);
+        };
+    }
+
     /**
      * Loads a document that is already known - the file picker has been
      * answered, or the path comes from session restore. The encoding prompt
      * still applies, so a legacy document is never silently mangled.
+     *
+     * <p>Blocking variant; production UI uses {@link #loadFileAsync}.</p>
      */
     public Optional<Path> loadFile(javafx.stage.Stage stage, Path path) {
+        long operationId = ++operation;
+        ReadResult read;
         try {
-            var decoded = decode(Files.readAllBytes(path), stage, path);
-            if (decoded == null) {
-                return Optional.empty(); // unsupported encoding: user cancelled
-            }
-            currentFilePath = path;
-            currentCharset = decoded.charset();
-            currentBom = decoded.bom();
-            savedContent = decoded.text();
-            currentContent = decoded.text();
-            dirty = false;
-            listeners.forEach(l -> l.onLoaded(path));
-            return Optional.of(path);
-        } catch (IOException e) {
-            dialogService.showError(stage, messages.errorOpen(), e.getMessage());
+            read = ioExecutor.submit("open " + path, () -> read(path)).join();
+        } catch (CompletionException failure) {
+            read = new ReadResult(null, new IOException(failure.getCause()));
+        }
+        return commitLoaded(stage, operationId, path, read);
+    }
+
+    /** Async load: the read runs on the I/O worker, the commit on the FX thread. */
+    public CompletableFuture<Optional<Path>> loadFileAsync(javafx.stage.Stage stage, Path path) {
+        long operationId = ++operation;
+        return ioExecutor.submit("open " + path, () -> read(path))
+                .thenCompose(read -> ioExecutor.completeOnFx(
+                        () -> commitLoaded(stage, operationId, path, read)));
+    }
+
+    private static ReadResult read(Path path) {
+        try {
+            return new ReadResult(Files.readAllBytes(path), null);
+        } catch (IOException failure) {
+            return new ReadResult(null, failure);
+        }
+    }
+
+    private Optional<Path> commitLoaded(javafx.stage.Stage stage, long operationId,
+                                        Path path, ReadResult read) {
+        if (operationId != operation) {
+            return Optional.empty(); // a newer document operation won
+        }
+        if (read.failure() != null) {
+            dialogService.showError(stage, messages.errorOpen(), read.failure().getMessage());
             return Optional.empty();
         }
+        var decoded = decode(read.bytes(), stage, path);
+        if (decoded == null || operationId != operation) {
+            return Optional.empty(); // unsupported encoding cancelled, or a newer load won
+        }
+        currentFilePath = path;
+        currentCharset = decoded.charset();
+        currentBom = decoded.bom();
+        savedContent = decoded.text();
+        currentContent = decoded.text();
+        dirty = false;
+        listeners.forEach(l -> l.onLoaded(path));
+        return Optional.of(path);
     }
 
     /**
@@ -218,6 +341,7 @@ public class FileService {
      * saved, instead of being silently rewritten as UTF-8.</p>
      */
     public void restoreRecovered(Path file, String content) {
+        operation++; // the recovered draft replaces whatever was current
         if (file != null && Files.isRegularFile(file)) {
             try {
                 var onDisk = TextCodec.decode(Files.readAllBytes(file));
@@ -252,53 +376,144 @@ public class FileService {
         dirty = true;
     }
 
+    /** Blocking save; production UI uses {@link #saveFileAsync}. */
     public Optional<Path> saveFile(javafx.stage.Stage stage, String content) {
         if (currentFilePath == null) {
             return saveFileAs(stage, content);
         }
-        return writeFile(stage, currentFilePath, content);
+        return writeBlocking(stage, currentFilePath, content);
     }
 
+    /** Blocking Save As; production UI uses {@link #saveFileAsAsync}. */
     public Optional<Path> saveFileAs(javafx.stage.Stage stage, String content) {
         var file = dialogService.showSaveDialog(stage, currentFilePath);
         if (file.isEmpty()) return Optional.empty();
 
-        return writeFile(stage, file.get().toPath(), content);
+        return writeBlocking(stage, file.get().toPath(), content);
+    }
+
+    /** Async save: writes on the I/O worker, commits and reports on the FX thread. */
+    public CompletableFuture<Optional<Path>> saveFileAsync(javafx.stage.Stage stage, String content) {
+        if (currentFilePath == null) {
+            return saveFileAsAsync(stage, content);
+        }
+        return writeAsync(stage, currentFilePath, content);
+    }
+
+    /** Async Save As. */
+    public CompletableFuture<Optional<Path>> saveFileAsAsync(javafx.stage.Stage stage, String content) {
+        var file = dialogService.showSaveDialog(stage, currentFilePath);
+        if (file.isEmpty()) {
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
+        return writeAsync(stage, file.get().toPath(), content);
+    }
+
+    /** Everything a save needs from the FX thread's current document, captured once. */
+    private record SaveContext(long operationId, Path path, String content, Charset charset,
+                               boolean bom, String expectedCurrent, boolean unchanged) {
+    }
+
+    private SaveContext contextFor(Path path, String content) {
+        return new SaveContext(operation, path, content, currentCharset, currentBom,
+                currentContent, path.equals(currentFilePath) && content.equals(savedContent));
+    }
+
+    private Optional<Path> writeBlocking(javafx.stage.Stage stage, Path path, String content) {
+        var context = contextFor(path, content);
+        notifySavingChanged(true);
+        try {
+            WriteResult result;
+            try {
+                result = ioExecutor.submit("save " + path,
+                        () -> writeAttempt(context)).join();
+            } catch (CompletionException failure) {
+                result = new WriteFailed(messageOf(failure));
+            }
+            return finishBlocking(stage, context, result);
+        } finally {
+            notifySavingChanged(false);
+        }
+    }
+
+    private Optional<Path> finishBlocking(javafx.stage.Stage stage, SaveContext context,
+                                          WriteResult result) {
+        if (result instanceof Written) {
+            return commitSave(context);
+        }
+        if (result instanceof UpgradeRequired) {
+            if (!dialogService.showEncodingUpgradeDialog(stage, context.charset())) {
+                return Optional.empty(); // nothing written: the document stays dirty
+            }
+            var upgraded = new SaveContext(context.operationId(), context.path(), context.content(),
+                    StandardCharsets.UTF_8, context.bom(), context.expectedCurrent(), false);
+            WriteResult retry;
+            try {
+                retry = ioExecutor.submit("save " + context.path() + " as UTF-8",
+                        () -> writeAttempt(upgraded)).join();
+            } catch (CompletionException failure) {
+                retry = new WriteFailed(messageOf(failure));
+            }
+            if (retry instanceof Written) {
+                return commitSave(upgraded);
+            }
+            return reportFailure(stage, retry);
+        }
+        return reportFailure(stage, result);
+    }
+
+    private CompletableFuture<Optional<Path>> writeAsync(javafx.stage.Stage stage,
+                                                         Path path, String content) {
+        var context = contextFor(path, content);
+        notifySavingChanged(true);
+        return writeAttemptAsync(stage, context)
+                .whenComplete((ignored, failure) -> notifySavingChanged(false));
+    }
+
+    private CompletableFuture<Optional<Path>> writeAttemptAsync(javafx.stage.Stage stage,
+                                                                SaveContext context) {
+        return ioExecutor.submit("save " + context.path(), () -> writeAttempt(context))
+                .thenCompose(result -> switch (result) {
+                    case Written written -> ioExecutor.completeOnFx(() -> commitSave(context));
+                    case UpgradeRequired upgrade -> ioExecutor
+                            .completeOnFx(() -> dialogService.showEncodingUpgradeDialog(
+                                    stage, context.charset()))
+                            .thenCompose(accepted -> accepted
+                                    ? writeAttemptAsync(stage, new SaveContext(
+                                            context.operationId(), context.path(), context.content(),
+                                            StandardCharsets.UTF_8, context.bom(),
+                                            context.expectedCurrent(), false))
+                                    : CompletableFuture.completedFuture(Optional.<Path>empty()));
+                    case WriteFailed failure -> ioExecutor
+                            .completeOnFx(() -> reportFailure(stage, failure));
+                });
     }
 
     /**
-     * Writes the document in its own encoding. When the text no longer fits
-     * that encoding (e.g. a pasted emoji in a windows-1254 document), the user
-     * is asked to switch the document to UTF-8 - the unmappable characters are
-     * never silently replaced with {@code ?}.
+     * Encodes and writes one attempt. Runs on the I/O worker only: it never
+     * shows a dialog, it reports what happened so the caller can decide.
      */
-    private Optional<Path> writeFile(javafx.stage.Stage stage, Path path, String content) {
+    private WriteResult writeAttempt(SaveContext context) {
         byte[] bytes;
         try {
-            bytes = TextCodec.encode(content, currentCharset, currentBom);
+            bytes = TextCodec.encode(context.content(), context.charset(), context.bom());
         } catch (CharacterCodingException notRepresentable) {
-            if (!dialogService.showEncodingUpgradeDialog(stage, currentCharset)) {
-                return Optional.empty(); // nothing written: the document stays dirty
-            }
-            currentCharset = StandardCharsets.UTF_8; // the file is rewritten in UTF-8
-            try {
-                bytes = TextCodec.encode(content, currentCharset, currentBom);
-            } catch (CharacterCodingException impossible) {
+            if (StandardCharsets.UTF_8.equals(context.charset())) {
                 // UTF-8 represents every character: unreachable in practice
-                dialogService.showError(stage, messages.errorSave(), impossible.getMessage());
-                return Optional.empty();
+                return new WriteFailed(notRepresentable.getMessage());
             }
+            return UpgradeRequired.INSTANCE;
         }
+        var path = context.path();
         try {
             // Re-saving unchanged content would rotate the backup history with
             // copies of the same text; the encoding-upgrade flow always has
             // content != savedContent, so it is unaffected by this guard.
-            var unchangedSave = path.equals(currentFilePath) && content.equals(savedContent);
             // The document write is the primary operation; the backup protects
             // the previous version but must never be able to cancel the save.
             // The copy is therefore staged first, but failures only warn.
             BackupKeeper.PreparedBackup prepared = null;
-            if (!unchangedSave) {
+            if (!context.unchanged()) {
                 try {
                     prepared = backupKeeper.prepare(path).orElse(null);
                 } catch (IOException | RuntimeException backupFailure) {
@@ -325,29 +540,66 @@ public class FileService {
                     backupKeeper.discard(prepared);
                 }
             }
-            currentFilePath = path;
-            savedContent = content;
-            currentContent = content;
-            dirty = false;
+            return Written.INSTANCE;
         } catch (IOException | RuntimeException e) {
             // An unexpected runtime failure must not take the app down mid-save:
             // log it and let the user retry from a dialog.
             LOG.log(Level.WARNING, "save failed for " + path, e);
-            dialogService.showError(stage, messages.errorSave(), e.getMessage());
+            return new WriteFailed(e.getMessage());
+        }
+    }
+
+    private Optional<Path> commitSave(SaveContext context) {
+        if (context.operationId() != operation) {
+            // The file was written, but the user has already moved to another
+            // document: never let the old save overwrite the new state.
+            LOG.log(Level.FINE, "dropping the state commit of a stale save for " + context.path());
             return Optional.empty();
         }
+        currentFilePath = context.path();
+        currentCharset = context.charset();
+        currentBom = context.bom();
+        savedContent = context.content();
+        if (Objects.equals(currentContent, context.expectedCurrent())) {
+            // Nothing typed while the save was in flight: the document is the
+            // text that just reached the disk.
+            currentContent = context.content();
+        }
+        dirty = differsFromSaved(currentContent);
         // The file is written and fsynced at this point, so a failing listener
         // must never turn a successful save into a reported failure: each one is
         // isolated and only warns, and the rest still run.
         for (var listener : listeners) {
             try {
-                listener.onSaved(path);
+                listener.onSaved(context.path());
             } catch (RuntimeException failure) {
-                LOG.log(Level.WARNING, "a save listener failed for " + path
+                LOG.log(Level.WARNING, "a save listener failed for " + context.path()
                         + "; the document itself was saved", failure);
             }
         }
-        return Optional.of(path);
+        return Optional.of(context.path());
+    }
+
+    private Optional<Path> reportFailure(javafx.stage.Stage stage, WriteResult result) {
+        if (result instanceof WriteFailed failure) {
+            dialogService.showError(stage, messages.errorSave(), failure.message());
+        }
+        return Optional.empty();
+    }
+
+    private static String messageOf(CompletionException failure) {
+        return failure.getCause() == null ? failure.getMessage() : failure.getCause().getMessage();
+    }
+
+    /** The "saving" state is advisory UI; a broken listener must never abort a save. */
+    private void notifySavingChanged(boolean saving) {
+        for (var listener : listeners) {
+            try {
+                listener.onSavingChanged(saving);
+            } catch (RuntimeException failure) {
+                LOG.log(Level.WARNING, "a saving-state listener failed", failure);
+            }
+        }
     }
 
     /** @return the decoded document, or {@code null} when the user cancelled the encoding prompt */
@@ -391,12 +643,45 @@ public class FileService {
      * tell the autosave service that this exit was a sanctioned one before the
      * window hides - the difference between deleting a recovery draft the user
      * has just abandoned and deleting one that was never asked about.
+     *
+     * <p>Blocking variant; the close handler uses {@link #requestExitAsync} so
+     * a save during exit does not freeze the window.</p>
      */
     public ExitAnswer requestExit(javafx.stage.Stage stage) {
         return confirmDiscardOrSave(stage) ? ExitAnswer.CLOSE : ExitAnswer.STAY;
     }
 
+    /** Async exit verdict: completes on the FX thread after any save finishes. */
+    public CompletableFuture<ExitAnswer> requestExitAsync(javafx.stage.Stage stage) {
+        return confirmDiscardOrSaveAsync(stage)
+                .thenApply(safe -> safe ? ExitAnswer.CLOSE : ExitAnswer.STAY);
+    }
+
     public Path getCurrentFilePath() {
         return currentFilePath;
+    }
+
+    /** The shared I/O seam; package-visible so {@link AutoSaveService} can serialise with it. */
+    IoExecutor ioExecutor() {
+        return ioExecutor;
+    }
+
+    // --- results of the blocking parts, free of UI types --------------------
+
+    private sealed interface WriteResult permits Written, UpgradeRequired, WriteFailed {
+    }
+
+    private record Written() implements WriteResult {
+        static final Written INSTANCE = new Written();
+    }
+
+    private record UpgradeRequired() implements WriteResult {
+        static final UpgradeRequired INSTANCE = new UpgradeRequired();
+    }
+
+    private record WriteFailed(String message) implements WriteResult {
+    }
+
+    private record ReadResult(byte[] bytes, IOException failure) {
     }
 }

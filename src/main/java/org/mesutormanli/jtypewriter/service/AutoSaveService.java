@@ -12,6 +12,7 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
 import org.mesutormanli.jtypewriter.AppLogging;
+import org.mesutormanli.jtypewriter.IoExecutor;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 
@@ -19,6 +20,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.concurrent.CompletionException;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -55,6 +58,11 @@ import java.util.logging.Logger;
  * {@link AutosaveHealth.Problem#DRAFT_DELETE} - a status-bar warning, never a
  * dialog, because the dialog copy is about writing a copy - so the user is not
  * told the stale draft is gone when it is not.</p>
+ *
+ * <p><strong>Threading:</strong> a snapshot is a full-text copy plus an
+ * {@code fsync}, so it runs on the shared {@link IoExecutor}, never on the FX
+ * thread. The text is only copied <em>after</em> the dirty check: a clean
+ * document costs one boolean read per tick, not a whole-document copy.</p>
  */
 public class AutoSaveService {
 
@@ -66,6 +74,7 @@ public class AutoSaveService {
     private final FileService fileService;
     private final DialogService dialogService;
     private final Messages messages;
+    private final IoExecutor ioExecutor;
     private final AutosaveHealth health = new AutosaveHealth();
 
     private Timeline timeline;
@@ -91,10 +100,22 @@ public class AutoSaveService {
 
     public AutoSaveService(RecoveryStore store, FileService fileService,
                            DialogService dialogService, Messages messages) {
+        this(store, fileService, dialogService, messages, IoExecutor.synchronous());
+    }
+
+    /**
+     * Production constructor: the shared {@link IoExecutor} also used by
+     * {@link FileService}, so a snapshot and a document save can never race on
+     * the same directory or backup generation.
+     */
+    public AutoSaveService(RecoveryStore store, FileService fileService,
+                           DialogService dialogService, Messages messages,
+                           IoExecutor ioExecutor) {
         this.store = store;
         this.fileService = fileService;
         this.dialogService = dialogService;
         this.messages = messages;
+        this.ioExecutor = ioExecutor;
         fileService.addListener(new FileService.Listener() {
             /**
              * A load always means the previous document was resolved first
@@ -106,14 +127,14 @@ public class AutoSaveService {
             @Override
             public void onLoaded(java.nio.file.Path file) {
                 if (!draftFrozen) {
-                    clearDraft();
+                    clearDraftAsync();
                 }
             }
 
             @Override
             public void onSaved(java.nio.file.Path file) {
                 if (!draftFrozen) {
-                    clearDraft(); // content is on disk now, nothing left to recover
+                    clearDraftAsync(); // content is on disk now, nothing left to recover
                 }
             }
 
@@ -124,7 +145,7 @@ public class AutoSaveService {
             @Override
             public void onNewDocument() {
                 if (!draftFrozen) {
-                    clearDraft();
+                    clearDraftAsync();
                 }
             }
         });
@@ -133,13 +154,16 @@ public class AutoSaveService {
     /** Starts periodic snapshots and ties cleanup to the window lifecycle. */
     public void attach(Stage stage, EditorArea editorArea) {
         this.stage = stage;
-        timeline = new Timeline(new KeyFrame(Duration.seconds(AUTOSAVE_SECONDS), e -> snapshot(editorArea.getText())));
+        // The supplier is evaluated only after the dirty check inside snapshot,
+        // so a clean document never pays for copy()ing its whole text.
+        timeline = new Timeline(new KeyFrame(Duration.seconds(AUTOSAVE_SECONDS),
+                e -> snapshot(editorArea::getText)));
         timeline.setCycleCount(Animation.INDEFINITE);
         timeline.play();
 
         stage.focusedProperty().addListener((obs, wasFocused, focused) -> {
             if (!focused) {
-                snapshot(editorArea.getText());
+                snapshot(editorArea::getText);
             }
         });
         // Fires on every hide - a close request, Platform.exit(), a session
@@ -267,13 +291,18 @@ public class AutoSaveService {
      * from {@code WINDOW_HIDDEN} and from {@code Application.stop()}, so an
      * exit that never produced a close request ({@code Platform.exit()}, a
      * session log-out) parks the draft instead of deleting it.
+     *
+     * <p>The final delete/park blocks this last FX call, but the file work
+     * itself still runs on the I/O worker: exiting is allowed to wait a moment
+     * for the draft, it is just not allowed to do the disk write on the UI
+     * thread.</p>
      */
     public void shutdown() {
         if (timeline != null) {
             timeline.stop();
         }
         switch (ExitDisposition.decide(closeRequestAnswered, draftFrozen)) {
-            case CLEAR -> clearDraft();
+            case CLEAR -> clearDraftBlocking();
             case PARK -> parkOrFreeze();
             case KEEP -> {
                 // a postponed draft that could not be parked: never touch it
@@ -288,7 +317,14 @@ public class AutoSaveService {
      * on the other.
      */
     private void parkOrFreeze() {
-        if (store.park()) {
+        boolean parked;
+        try {
+            parked = ioExecutor.submit("park recovery draft", store::park).join();
+        } catch (CompletionException failure) {
+            LOG.log(Level.WARNING, "could not park the recovery draft", failure);
+            parked = false;
+        }
+        if (parked) {
             draftFrozen = false;
             return;
         }
@@ -301,36 +337,89 @@ public class AutoSaveService {
      * that holds it) so the whole decision stays testable without a toolkit.
      */
     void snapshot(String text) {
-        if (draftFrozen) {
-            return; // the slot could not be freed; never overwrite its only copy
-        }
-        try {
-            if (fileService.hasUnsavedChanges()) {
-                store.saveDraft(text, fileService.getCurrentFilePath());
-                health.recover(); // a working snapshot withdraws an older warning
-            } else if (clearDraft()) {
-                // Only a delete that actually happened may withdraw a
-                // warning. Recovering unconditionally would instantly erase the
-                // DRAFT_DELETE recorded by clearDraft().
-                health.recover();
-            }
-        } catch (Exception e) {
-            LOG.log(Level.WARNING, "autosave snapshot failed", e);
-            reportFailure(AutosaveHealth.Problem.DRAFT_WRITE, true);
-        }
+        snapshot(() -> text);
     }
 
     /**
-     * Drops this session's draft and records a failed delete.
+     * One autosave tick. The supplier is the editor's {@code getText}, so the
+     * expensive full-document copy is only taken when the document is actually
+     * dirty: the previous code copied 10 MB every 30 seconds to then discover
+     * there was nothing to snapshot.
      *
-     * @return {@code true} when the slot is empty afterwards
+     * <p>Package-visible and supplier-based so a test can fail the tick when
+     * the text is copied on a clean document.</p>
      */
-    private boolean clearDraft() {
-        if (store.clear()) {
-            return true;
+    void snapshot(Supplier<String> text) {
+        if (draftFrozen) {
+            return; // the slot could not be freed; never overwrite its only copy
         }
-        reportFailure(AutosaveHealth.Problem.DRAFT_DELETE, false);
-        return false;
+        if (fileService.hasUnsavedChanges()) {
+            // Dirty check first, copy second. This ordering is the whole point
+            // of the supplier: a clean tick costs no text copy at all.
+            String copy = text.get();
+            Path path = fileService.getCurrentFilePath();
+            ioExecutor.submit("autosave snapshot", () -> {
+                store.saveDraft(copy, path);
+                return null;
+            }).whenComplete((ignored, failure) -> ioExecutor.completeOnFx(() -> {
+                if (failure != null) {
+                    LOG.log(Level.WARNING, "autosave snapshot failed", unwrap(failure));
+                    reportFailure(AutosaveHealth.Problem.DRAFT_WRITE, true);
+                } else {
+                    health.recover(); // a working snapshot withdraws an older warning
+                }
+                return null;
+            }));
+            return;
+        }
+        // Only a delete that actually happened may withdraw a warning.
+        // Recovering unconditionally would instantly erase the DRAFT_DELETE
+        // recorded by the delete failure.
+        clearDraftAsync();
+    }
+
+    /**
+     * Drops this session's draft without blocking the caller. The write/delete
+     * itself runs on the I/O worker; a healthy delete withdraws an older
+     * warning and a failed one records {@code DRAFT_DELETE}.
+     */
+    private void clearDraftAsync() {
+        ioExecutor.submit("clear recovery draft", store::clear)
+                .whenComplete((cleared, failure) -> ioExecutor.completeOnFx(() -> {
+                    if (failure != null) {
+                        LOG.log(Level.WARNING, "could not delete the recovery draft", unwrap(failure));
+                        reportFailure(AutosaveHealth.Problem.DRAFT_DELETE, false);
+                    } else if (Boolean.TRUE.equals(cleared)) {
+                        health.recover();
+                    } else {
+                        reportFailure(AutosaveHealth.Problem.DRAFT_DELETE, false);
+                    }
+                    return null;
+                }));
+    }
+
+    /**
+     * Blocking delete used only at exit, where the process may disappear right
+     * after this call. The I/O still happens on the worker; the FX thread only
+     * waits for the answer.
+     */
+    private void clearDraftBlocking() {
+        boolean cleared;
+        try {
+            cleared = ioExecutor.submit("clear recovery draft", store::clear).join();
+        } catch (CompletionException failure) {
+            LOG.log(Level.WARNING, "could not delete the recovery draft", unwrap(failure));
+            cleared = false;
+        }
+        if (cleared) {
+            health.recover();
+        } else {
+            reportFailure(AutosaveHealth.Problem.DRAFT_DELETE, false);
+        }
+    }
+
+    private static Throwable unwrap(Throwable failure) {
+        return failure.getCause() == null ? failure : failure.getCause();
     }
 
     /**

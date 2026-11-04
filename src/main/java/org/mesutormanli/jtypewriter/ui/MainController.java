@@ -110,6 +110,22 @@ public class MainController implements Initializable {
                 clearSaveStatus(); // a never-saved document has nothing to claim
                 refreshTitle();
             }
+
+            /**
+             * Saves now run on an I/O worker, so the window would otherwise look
+             * unchanged for the duration of a slow or network write. The status
+             * bar says "Saving..." until the save commits (which re-renders the
+             * "Saved 12:04" line) or fails (which leaves the honest previous
+             * state in place).
+             */
+            @Override
+            public void onSavingChanged(boolean saving) {
+                if (saving) {
+                    statsBar.setSaveStatus(messages.savingStatus());
+                } else {
+                    refreshSaveStatus();
+                }
+            }
         });
         // The title and the save status are composed from bundle texts, so a
         // language switch has to rebuild both; the toolbar updates its own

@@ -110,5 +110,6 @@ public class FxApplication extends Application {
             return; // init() failed before the graph existed
         }
         app.autoSaveService.shutdown();
+        app.ioExecutor.close(); // the draft decision above already blocked on this worker
     }
 }

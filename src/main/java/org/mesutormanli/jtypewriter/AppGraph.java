@@ -10,6 +10,7 @@ import org.mesutormanli.jtypewriter.audio.TypewriterSound;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.service.AutoSaveService;
+import org.mesutormanli.jtypewriter.service.BackupKeeper;
 import org.mesutormanli.jtypewriter.service.DialogService;
 import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.service.RecoveryStore;
@@ -53,10 +54,17 @@ public final class AppGraph {
     public final SessionStats sessionStats = new SessionStats();
     public final TypewriterSound typewriterSound = new TypewriterSound();
     public final DialogService dialogService = new DialogService(messages, settings);
-    public final FileService fileService = new FileService(dialogService, messages);
+    /**
+     * The one place that performs blocking file I/O. Declared before its users:
+     * document saves, recovery snapshots and draft cleanup share this single
+     * worker, so they can never race on the same file or backup generation.
+     */
+    public final IoExecutor ioExecutor = IoExecutor.background();
+    public final FileService fileService = new FileService(
+            dialogService, messages, new BackupKeeper(), ioExecutor);
     public final RecoveryStore recoveryStore = new RecoveryStore(AppDirs.recoveryDir());
     public final AutoSaveService autoSaveService = new AutoSaveService(
-            recoveryStore, fileService, dialogService, messages);
+            recoveryStore, fileService, dialogService, messages, ioExecutor);
 
     // --- UI state managers -----------------------------------------------
     public final ThemeManager themeManager = new ThemeManager(settings);

@@ -77,15 +77,24 @@ public class MainStage {
         // it is the only one allowed to delete the recovery draft. The request
         // is answered first, then the autosave service is told that this exit
         // was sanctioned - before the window hides, because the hide handler
-        // decides between deleting and parking from exactly that fact. Not
-        // consuming the event lets JavaFX close the window, so no path here
-        // can open a second prompt.
+        // decides between deleting and parking from exactly that fact. A save
+        // may run on the I/O worker, so the event is consumed up front and the
+        // window is closed programmatically once the verdict arrives: closing
+        // from the callback cannot re-enter this handler (Stage.close() only
+        // hides the window).
         stage.setOnCloseRequest(event -> {
-            if (fileService.requestExit(stage) == FileService.ExitAnswer.STAY) {
-                event.consume();
-                return;
-            }
-            autoSaveService.approveExit();
+            event.consume();
+            fileService.requestExitAsync(stage).thenAccept(answer -> {
+                if (answer == FileService.ExitAnswer.CLOSE) {
+                    // The verdict may be immediate (clean document); closing
+                    // from a later pulse keeps Stage.close() out of the close
+                    // request dispatch itself.
+                    javafx.application.Platform.runLater(() -> {
+                        autoSaveService.approveExit();
+                        stage.close();
+                    });
+                }
+            });
         });
 
         // Geometry is remembered on hide, so it survives both a clean close
