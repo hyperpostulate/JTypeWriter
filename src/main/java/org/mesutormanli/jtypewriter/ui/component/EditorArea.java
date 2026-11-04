@@ -11,6 +11,7 @@ import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextArea;
 import javafx.scene.input.ContextMenuEvent;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.stats.TextChange;
 
 /**
  * YOLO mode: while it is enabled no user edit may remove characters that are
@@ -43,6 +44,14 @@ public class EditorArea extends TextArea {
 
     private boolean yoloMode;
 
+    /**
+     * The replacement most recently applied through {@link #replaceText},
+     * waiting for the text listener to consume it. {@code null} means the
+     * change did not pass through the override (undo/redo and document loads
+     * rewrite the content directly), so the listener must rescan instead.
+     */
+    private TextChange pendingChange;
+
     public EditorArea(Messages messages) {
         this.messages = messages;
         setWrapText(true);
@@ -74,16 +83,44 @@ public class EditorArea extends TextArea {
      *   <li>a replacement inserts the new text without removing the old one, so
      *       typing or pasting over a selection never loses characters.</li>
      * </ul>
+     *
+     * <p>This is also the one place where the applied edit is recorded, so the
+     * incremental statistics can adjust a window instead of rescanning the
+     * document. The record is the <em>applied</em> change, after the YOLO
+     * rewrite: a blocked deletion records nothing and an
+     * {@code INSERT_WITHOUT_DELETION} records an insertion at {@code start},
+     * which is what the content actually did.</p>
      */
     @Override
     public void replaceText(int start, int end, String text) {
+        pendingChange = null;
+        var describable = text != null && start >= 0 && start <= end && end <= getLength();
         switch (YoloPolicy.decide(yoloMode, start, end, text, getLength())) {
-            case APPLY -> super.replaceText(start, end, text);
+            case APPLY -> {
+                if (describable) {
+                    pendingChange = new TextChange(start, end - start, text);
+                }
+                super.replaceText(start, end, text);
+            }
             case BLOCK -> {
                 // Backspace / Delete / Cut / deleting a selection: ignored while YOLO is on
             }
-            case INSERT_WITHOUT_DELETION -> super.replaceText(start, start, text);
+            case INSERT_WITHOUT_DELETION -> {
+                pendingChange = new TextChange(start, 0, text);
+                super.replaceText(start, start, text);
+            }
         }
+    }
+
+    /**
+     * The edit applied by the most recent {@link #replaceText}, or {@code null}
+     * when the change came from a path that bypasses it. Consumed exactly once
+     * by the text listener, so a hint can never describe a later edit.
+     */
+    public TextChange takeChange() {
+        var change = pendingChange;
+        pendingChange = null;
+        return change;
     }
 
     /** {@code clear()} goes through {@code setText} and would bypass {@link #replaceText}. */

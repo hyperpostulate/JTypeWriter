@@ -24,8 +24,18 @@ public class EditorKeyHandler {
         editorArea.addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPressed);
         editorArea.addEventFilter(KeyEvent.KEY_TYPED, this::handleKeyTyped);
 
-        editorArea.textProperty().addListener((obs, oldVal, newVal) ->
-                sessionStats.updateText(newVal));
+        // The editor records the applied edit at its single enforcement point;
+        // consuming it keeps the statistics O(edit size). A change that did not
+        // pass through that point (undo/redo, a document load) has no hint and
+        // is rescanned once, which is correct and rare.
+        editorArea.textProperty().addListener((obs, oldVal, newVal) -> {
+            var change = editorArea.takeChange();
+            if (change != null) {
+                sessionStats.applyChange(change, newVal);
+            } else {
+                sessionStats.updateText(newVal);
+            }
+        });
     }
 
     private void handleKeyPressed(KeyEvent event) {

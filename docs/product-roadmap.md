@@ -407,6 +407,29 @@ A3 önce, çünkü A2'nin önkoşulu ve ölçülmüş darboğaz orada.
   ≥6 test eklendi.
 - **Doğrulama:** `StatsPerfHarness` (yeni, `src/test/java`) çıktısı; CI'da eşik **50 ms**
   (O(n)'e geri dönüş 163 ms → yakalanır), referans makinede eşik **5 ms**.
+- **Uygulama (5 Kas 2026):** `SessionStats` artık sayaç tutuyor: `getWordCount`,
+  `getCharCount`, `getCharCountNoSpaces`, `getLineCount` O(1) okuma; imzalar değişmedi, bu yüzden
+  `StatsBarModel` hiç dokunulmadı. İki giriş noktası var: `updateText(String)` belge yüklenince
+  tek tam tarama yapar (eski davranış, artık yalnız yüklemede), `applyChange(TextChange, String)`
+  ise yalnız değişen pencereyi tarar — `TextChange` (`offset`, `removedLength`, `insertedText`)
+  `stats` paketinde saf bir record, JavaFX tipi taşımıyor. Tanımlar eski tam taramayla birebir:
+  kelime `trim().split("\\s+")` (ASCII `\s` sınıfı; `\u00A0` kelimeyi bölmez), satır yeni satır + 1
+  (boş belge 0), boşluksuz yalnız `' '`, `\n`, `\r` atıldıktan sonraki uzunluk. `isBlank()` daha
+  geniş bir küme olduğu için ayrı bir `Character.isWhitespace` sayacı tutuluyor: yalnız em-space
+  içeren belge 0 kelime ama regex açısından "kelime başlangıcı" sayılırdı.
+  Deltayı `EditorArea.replaceText` üretiyor — YOLO'nun tek uygulama noktası zaten orası — ve
+  **uygulanan** değişikliği kaydediyor (`BLOCK` hiçbir şey yazmıyor, `INSERT_WITHOUT_DELETION`
+  `(start, 0, text)` olarak). `EditorKeyHandler`'daki metin dinleyicisi ipucunu bir kez tüketiyor;
+  ipucu yoksa (undo/redo, `setText`, belge yükleme) `updateText` ile tam tarama yapılıyor, yani
+  sayaç asla ipucunun doğruluğuna bağlı değil — yalnız hız ona bağlı. Sahte ipucu (yeni metnin
+  uzunluğu tutmuyorsa) da tam taramaya düşüyor.
+  Testler: `SessionStatsTest` 12 → 21 (ekleme, silme, değiştirme, kelime sınırı, Unicode boşluk,
+  tutarsız ipucu, tüm belge değişimi, hepsini silme ve 500 adımlık rastgele dizi — her adımda eski
+  tam tarama implementasyonuyla birebir karşılaştırma). Yeni `StatsPerfHarnessTest` gerçek
+  `StatsBarModel.refresh` yolunu 10 MiB'da ölçüyor: **0,116–0,212 ms** (CI eşiği 50 ms; eski
+  ölçüm 163 ms). İki mutasyonla doğrulandı: `getWordCount` eski `split` gövdesine döndürülünce
+  harness **123,2 ms** ile kırmızı; `applyChange` penceresinden `+1` atılınca property testleri
+  (3 tanesi) kırmızı. `mvn -B clean test` → **396/396**.
 
 **W2-02 · A3b — G/Ç'yi FX thread'inden çıkar** · M · X1, X2
 - **Kapsam:** `service/FileService.java`, `service/AutoSaveService.java`, yeni `IoExecutor`
@@ -596,7 +619,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 
 | Değişmez | Zorlayan test | Bu yol haritasında risk |
 |---|---|---|
-| SPDX başlığı byte 0'da | `LicenseHeaderTest` | Yeni sınıflar (`FindModel`, `EditorAction`, `IoExecutor`) |
+| SPDX başlığı byte 0'da | `LicenseHeaderTest` | Yeni sınıflar (`FindModel`, `EditorAction`, `IoExecutor`, `TextChange`) |
 | 6 bundle × aynı anahtar kümesi, iki yönlü erişim | `MessagesTest` | W0-01/02, W1-04, W3-02, W4 metinleri |
 | `THIRD-PARTY-NOTICES` bayt-ödeş + LF + 100 kolon | `PackagingNoticesTest` | Bağımlılık değişirse |
 | Sürüm notu iki dilli, `@VERSION@`/`@TAG@`, semver yok | `ReleaseNotesTest` | W1-03, W4-05 |
@@ -616,7 +639,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W1-02 | Release dry-run | B2 | S | — | ✅ | Kuru koşu yeşil: [run 41725168564](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41725168564) — 4/4 job success (`Assemble and publish` içinde `Create the GitHub Release` **skipped**, `Upload the dry-run release bundle` success); artefakt `JTypeWriter-release-dry-run-1.0.0` (7 gün, 229,7 MB); `Verify the expected assets are present` yeşil → tam 5 varlık; `git tag -l` boş, Release sayısı 0 → kuru koşu yayımlamıyor. Hat iki gerçek kusur buldu ve ikisi de onarıldı: (a) `xdg-desktop-menu`/dpkg (W1-01), (b) GNU tar'ın `D:` yolunu `host:path` sanması (`release-assets.sh` `to_tar_path` + `ReleaseAssetsScriptTest`). Yerel: `prepare` dört senaryoda doğru (`v0.9.9` → exit 1, dispatch `dry_run=false` → exit 1); `mvn -B clean test` → 373/373 |
 | W1-03 | `v1.0.0` pre-release | B2 | S | W1-01, W1-02 | ✅ | Yayın yapıldı: [run 41729981210](https://github.com/hyperpostulate/JTypeWriter/actions/runs/41729981210) (4/4 job), Release'te **6 varlık** — 5 ikili/kaynak + `SHA256SUMS`; beşi indirilip `sha256sum -c SHA256SUMS` → **5/5 OK**. Not iki dilli ve ölçülen boyutlarla (`47.7/59.8/57.0/55.4/0.6 MiB`, `@ASSET_SIZES@` gerçek dosyalardan doldu), erken erişim işareti iki yarıda. Kapanış bir kusur daha buldu: GitHub sürümü `prerelease=false` ile Latest etiketledi, not ise pre-release diyordu → `release.yml` `gh release create` artık `--prerelease` taşıyor (`ReleaseNotesTest` 9/9, mutasyonla doğrulandı); mevcut `v1.0.0` de elle pre-release işaretlendi → `GET /releases` `prerelease=true`, yani yayındaki sürüm ile notu aynı şeyi söylüyor |
 | W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ✅ | `mvn test -Dtest=RecoveryStoreTest,BackupKeeperTest` → 25/25 + 9/9; symlink taslağı okunmuyor, 100 MB taslak taramayı bloke etmiyor (sparse dosya, sınırlı okuma), `pending-*` 30 gün sonra siliniyor; dördü de mutasyonla kırmızıya döndü; `mvn -B clean test` → 384/384 |
-| W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ☐ | |
+| W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ✅ | `mvn test -Dtest=SessionStatsTest` → 21/21 (her adımda eski tam taramayla birebir); `mvn test -Dtest=StatsPerfHarnessTest` → 10 MiB tek yenileme **0,116 ms** (CI eşiği 50, eski ölçüm 163); mutasyon: `getWordCount` eski gövdeye dönünce **123,2 ms** → kırmızı, delta penceresinden `+1` atılınca 3 property testi kırmızı; `getWordCount`/`getLineCount`/`getCharCount*` imzaları aynı, `StatsBarModel` değişmedi; `mvn -B clean test` → 396/396 |
 | W2-02 | G/Ç executor | X1, X2 | M | W2-01 | ☐ | |
 | W2-03 | Bellek/boyut/hata yolu | X4, M10, D7 | M | W2-02 | ☐ | |
 | W2-04 | Dış değişiklik | D1, M9 | M | W2-02 | ☐ | |
