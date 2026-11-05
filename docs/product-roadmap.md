@@ -476,6 +476,27 @@ işçide). Testler: yeni `FxThreadIoTest` 5/5 (işçi FX thread'i değil, kaydet
   göstermiyor.
 - **Doğrulama:** `mvn test -Dtest=FileServiceTest,AtomicFilesTest` + yeni testler.
 
+**Uygulama (5 Kas 2026):** `FileService.MAX_DOCUMENT_BYTES` = 64 MiB (kurtarma taslağı sınırıyla
+aynı değer). Açma artık `Files.readAllBytes` değil: önce `Files.size`, sonra
+`readNBytes(MAX+1)` ile sınırlı okuma; arada büyüyen/yalan söyleyen dosya da yakalanıyor. Sınır
+aşılırsa dosya **açılmıyor**, kesilmiş bir önek editöre verilmiyor ve kullanıcıya dosya adı,
+gerçek boyut ve 64 MB'lık sınırı söyleyen `errorOpenTooLargeHeader/Content` diyaloğu gösteriliyor
+(altı bundle + `Messages` erişimcisi; `MessagesTest` 13/13). Kaydetme yolu artık
+`IOException | RuntimeException | Error` yakalıyor: `OutOfMemoryError` gibi bir `Error` de
+`WriteFailed` üretip kaydetme hata yolundan geçiyor, belge kirli kalıyor ve `onSaved`
+yayınlanmadığı için otomatik kurtarma taslağı silinmiyor. Mesajsız `Error`'da diyalog içeriği
+tür adıyla (`OutOfMemoryError`) dolduruluyor. Yedek hazırlama/yerleştirme hataları eskisi gibi
+yalnız `IOException | RuntimeException` ile yutuluyor (yedek ikincil), böylece oradaki bir `Error`
+asıl kaydetme hatasına dönüşüp görünür oluyor. Disk alanı ön kontrolü `AtomicFiles.writeMoving`'e
+girdi: temp dosya oluşturulmadan önce `FileStore.getUsableSpace()` yeni içerik boyutuyla
+karşılaştırılıyor; alanı bildirmeyen dosya sistemleri (ağ paylaşımları) engellenmiyor, gerçekten
+dolu disk ise `IOException` ile kaydetme hatasına düşüyor. Testler: yeni
+`anOversizedDocumentIsRefused...`, `aWriteRejectedByAFullDisk...`, `aFullDiskFailsBeforeAnyTempFileIsCreated`,
+`aSnapshotThatFailsWithAnError...`, `aSaveThatFailsWithAnErrorKeepsTheRecoveryDraft`.
+`mvn test -Dtest=FileServiceTest,AtomicFilesTest,AutoSaveServiceTest,MessagesTest` → 38/38 + 7/7 +
+17/17 + 13/13; `mvn -B clean test` → **406/406**; `mvn -B test -Duser.language=de -Duser.country=DE`
+→ **406/406**.
+
 **W2-04 · A1a — Dış değişikliği yakala** · M · D1, M9
 - **Kapsam:** `service/FileService.java:69-74,296,310`, `AtomicFiles`
 - **Yapılacak:** Yüklemede `(mtime, boyut, içerik SHA-256)` saklanır; kaydetmeden hemen önce
@@ -665,7 +686,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W1-04 | Taslak tarayıcı sertleştirme | D4, D5, D14 | M | — | ✅ | `mvn test -Dtest=RecoveryStoreTest,BackupKeeperTest` → 25/25 + 9/9; symlink taslağı okunmuyor, 100 MB taslak taramayı bloke etmiyor (sparse dosya, sınırlı okuma), `pending-*` 30 gün sonra siliniyor; dördü de mutasyonla kırmızıya döndü; `mvn -B clean test` → 384/384 |
 | W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ✅ | `mvn test -Dtest=SessionStatsTest` → 21/21 (her adımda eski tam taramayla birebir); `mvn test -Dtest=StatsPerfHarnessTest` → 10 MiB tek yenileme **0,116 ms** (CI eşiği 50, eski ölçüm 163); mutasyon: `getWordCount` eski gövdeye dönünce **123,2 ms** → kırmızı, delta penceresinden `+1` atılınca 3 property testi kırmızı; `getWordCount`/`getLineCount`/`getCharCount*` imzaları aynı, `StatsBarModel` değişmedi; `mvn -B clean test` → 396/396 |
 | W2-02 | G/Ç executor | X1, X2 | M | W2-01 | ✅ | `mvn test -Dtest=FxThreadIoTest,FileServiceTest,AutoSaveServiceTest` → 5/5 + 36/36 + 15/15: kaydetme ve açma `IoExecutor` işçisinde, `fxThreadTasks()==0`; temiz otomatik kayıt tikinde metin kopyası yok; kaydetme sürerken yazılan metin kirli kalıyor. `AppGraph` paylaşılan `IoExecutor.background()` enjekte ediyor; `FxApplication.stop()` kapanışta işçiyi durduruyor; `savingStatus` altı bundle'da (`MessagesTest` 13/13); `mvn -B clean test` → 401/401 |
-| W2-03 | Bellek/boyut/hata yolu | X4, M10, D7 | M | W2-02 | ☐ | |
+| W2-03 | Bellek/boyut/hata yolu | X4, M10, D7 | M | W2-02 | ✅ | `mvn test -Dtest=FileServiceTest,AtomicFilesTest,AutoSaveServiceTest,MessagesTest` → 38/38 + 7/7 + 17/17 + 13/13: sınır üstü dosya açılmıyor ve altı dilde açıklama gösteriliyor; `OutOfMemoryError` kaydetme hatasına düşüp taslak korunuyor; dolu disk (`usableSpace=0`) temp dosya oluşmadan `IOException` ile reddediliyor ve belge kirli kalıyor. `mvn -B clean test` → 406/406; `mvn -B test -Duser.language=de -Duser.country=DE` → 406/406 |
 | W2-04 | Dış değişiklik | D1, M9 | M | W2-02 | ☐ | |
 | W2-05 | Symlink korunumu | D2 | S | W2-04 | ☐ | |
 | W2-06 | Taslak yolu + belge kilidi | D3, D8 | M | W2-04 | ☐ | |

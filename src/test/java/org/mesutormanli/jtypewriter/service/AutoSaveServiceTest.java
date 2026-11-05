@@ -7,6 +7,7 @@ package org.mesutormanli.jtypewriter.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mesutormanli.jtypewriter.IoExecutor;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.io.IOException;
@@ -223,6 +224,56 @@ class AutoSaveServiceTest {
         service.snapshot("third tick succeeds");
         assertFalse(service.health().isFailing());
         assertTrue(service.health().problem().isEmpty());
+    }
+
+    /**
+     * An {@code Error} is not an {@code Exception}: before this card a snapshot
+     * that hit an {@code OutOfMemoryError} skipped the failure reporting entirely
+     * and the status bar kept claiming the draft was fine.
+     */
+    @Test
+    void aSnapshotThatFailsWithAnErrorStillRecordsTheDraftWriteProblem() throws Exception {
+        var store = mock(RecoveryStore.class);
+        when(store.clear()).thenReturn(true);
+        doThrow(new OutOfMemoryError("no memory")).when(store).saveDraft(anyString(), any());
+        var fileService = mock(FileService.class);
+        when(fileService.hasUnsavedChanges()).thenReturn(true);
+        var service = newService(store, fileService);
+
+        service.snapshot("text");
+
+        assertEquals(AutosaveHealth.Problem.DRAFT_WRITE, service.health().problem().orElseThrow());
+    }
+
+    /**
+     * The save-side counterpart: an {@code OutOfMemoryError} during the write
+     * must reach the error path, leave the document dirty and therefore keep the
+     * recovery draft instead of clearing it as a successful save would.
+     */
+    @Test
+    void aSaveThatFailsWithAnErrorKeepsTheRecoveryDraft(@TempDir Path dir) throws Exception {
+        var store = new RecoveryStore(dir);
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "old");
+        var messages = mock(Messages.class);
+        when(messages.errorSave()).thenReturn("Could not save file");
+        var dialogService = mock(DialogService.class);
+        var fileService = new FileService(dialogService, messages, new BackupKeeper(),
+                IoExecutor.synchronous(), (path, bytes) -> {
+                    throw new OutOfMemoryError("out of memory");
+                });
+        var service = new AutoSaveService(store, fileService, dialogService, messages);
+
+        fileService.restoreRecovered(target, "unsaved text");
+        service.snapshot("unsaved text");
+        assertTrue(store.loadDraft().isPresent());
+
+        var saved = fileService.saveFile(null, "unsaved text");
+
+        assertTrue(saved.isEmpty());
+        assertTrue(fileService.hasUnsavedChanges());
+        assertEquals("unsaved text", store.loadDraft().orElseThrow().content());
+        verify(dialogService).showError(null, "Could not save file", "out of memory");
     }
 
     /**

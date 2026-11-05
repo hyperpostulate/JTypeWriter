@@ -253,6 +253,20 @@ public class Messages {
         return bundle.getString("errorSave");
     }
 
+    /** Header for a refused open: the file exceeds the editor's size ceiling. */
+    public String errorOpenTooLargeHeader() {
+        return bundle.getString("errorOpenTooLargeHeader");
+    }
+
+    /**
+     * Explains an oversized file in whole megabytes: what the file is, where the
+     * limit is, and that nothing was opened or changed.
+     */
+    public String errorOpenTooLargeContent(String fileName, long sizeMegabytes,
+                                           long limitMegabytes) {
+        return format("errorOpenTooLargeContent", fileName, sizeMegabytes, limitMegabytes);
+    }
+
     public String appName() {
         return bundle.getString("appName");
     }

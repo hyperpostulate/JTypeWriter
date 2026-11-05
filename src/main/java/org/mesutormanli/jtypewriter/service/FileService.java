@@ -89,10 +89,32 @@ public class FileService {
 
     private static final Logger LOG = AppLogging.logger(FileService.class);
 
+    /**
+     * Upper bound for a file this service is willing to read into the editor.
+     *
+     * <p>{@link Files#readAllBytes} has no size concept: a stray multi-gigabyte
+     * file (a log, a disk image, a runaway export) would be pulled into memory
+     * and could take the application down with an {@code OutOfMemoryError}
+     * before a single character is shown. The check is deliberately generous
+     * (64 MiB is far beyond a document a person types) and has the same value
+     * as {@link RecoveryStore#MAX_DRAFT_BYTES}, because a recovery draft is a
+     * copy of such a document.</p>
+     */
+    public static final int MAX_DOCUMENT_BYTES = 64 * 1024 * 1024;
+
+    private static final long BYTES_PER_MEGABYTE = 1024L * 1024L;
+
+    /** The atomic writer; an interface so a test can simulate a failed save. */
+    @FunctionalInterface
+    interface Writer {
+        void write(Path target, byte[] bytes) throws IOException;
+    }
+
     private final DialogService dialogService;
     private final Messages messages;
     private final BackupKeeper backupKeeper;
     private final IoExecutor ioExecutor;
+    private final Writer writer;
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
 
     private Path currentFilePath;
@@ -110,12 +132,14 @@ public class FileService {
     private long operation;
 
     public FileService(DialogService dialogService, Messages messages) {
-        this(dialogService, messages, new BackupKeeper(), IoExecutor.synchronous());
+        this(dialogService, messages, new BackupKeeper(), IoExecutor.synchronous(),
+                AtomicFiles::writeMoving);
     }
 
     /** Visible for tests: lets a test inject a BackupKeeper whose phases fail. */
     FileService(DialogService dialogService, Messages messages, BackupKeeper backupKeeper) {
-        this(dialogService, messages, backupKeeper, IoExecutor.synchronous());
+        this(dialogService, messages, backupKeeper, IoExecutor.synchronous(),
+                AtomicFiles::writeMoving);
     }
 
     /**
@@ -124,10 +148,21 @@ public class FileService {
      */
     public FileService(DialogService dialogService, Messages messages,
                        BackupKeeper backupKeeper, IoExecutor ioExecutor) {
+        this(dialogService, messages, backupKeeper, ioExecutor, AtomicFiles::writeMoving);
+    }
+
+    /**
+     * Visible for tests: lets a test replace the atomic writer, e.g. to prove
+     * that a write rejected by a full disk is reported as a failure and leaves
+     * the document dirty instead of pretending the save succeeded.
+     */
+    FileService(DialogService dialogService, Messages messages, BackupKeeper backupKeeper,
+                IoExecutor ioExecutor, Writer writer) {
         this.dialogService = dialogService;
         this.messages = messages;
         this.backupKeeper = backupKeeper;
         this.ioExecutor = ioExecutor;
+        this.writer = writer;
     }
 
     public String getCurrentContent() {
@@ -285,7 +320,7 @@ public class FileService {
         try {
             read = ioExecutor.submit("open " + path, () -> read(path)).join();
         } catch (CompletionException failure) {
-            read = new ReadResult(null, new IOException(failure.getCause()));
+            read = ReadResult.failed(new IOException(failure.getCause()));
         }
         return commitLoaded(stage, operationId, path, read);
     }
@@ -298,11 +333,27 @@ public class FileService {
                         () -> commitLoaded(stage, operationId, path, read)));
     }
 
+    /**
+     * Reads a document with a hard size ceiling. The size is checked before the
+     * file is opened, and the bounded read after it covers a file that grows
+     * between the check and the read (or a sparse/lying size). An oversized file
+     * is never truncated: the caller refuses the open and tells the user why.
+     */
     private static ReadResult read(Path path) {
         try {
-            return new ReadResult(Files.readAllBytes(path), null);
+            var size = Files.size(path);
+            if (size > MAX_DOCUMENT_BYTES) {
+                return ReadResult.tooLarge(size);
+            }
+            try (var in = Files.newInputStream(path)) {
+                var bytes = in.readNBytes(MAX_DOCUMENT_BYTES + 1);
+                if (bytes.length > MAX_DOCUMENT_BYTES) {
+                    return ReadResult.tooLarge(bytes.length);
+                }
+                return ReadResult.ok(bytes);
+            }
         } catch (IOException failure) {
-            return new ReadResult(null, failure);
+            return ReadResult.failed(failure);
         }
     }
 
@@ -310,6 +361,15 @@ public class FileService {
                                         Path path, ReadResult read) {
         if (operationId != operation) {
             return Optional.empty(); // a newer document operation won
+        }
+        if (read.tooLarge()) {
+            // No silent truncation and no partial document: an editor that opens
+            // the first 64 MiB of a file invites the user to save that prefix
+            // over the original. Refusing is the only safe answer.
+            dialogService.showError(stage, messages.errorOpenTooLargeHeader(),
+                    messages.errorOpenTooLargeContent(path.getFileName().toString(),
+                            megabytes(read.tooLargeBytes()), megabytes(MAX_DOCUMENT_BYTES)));
+            return Optional.empty();
         }
         if (read.failure() != null) {
             dialogService.showError(stage, messages.errorOpen(), read.failure().getMessage());
@@ -522,8 +582,8 @@ public class FileService {
                 }
             }
             try {
-                AtomicFiles.writeMoving(path, bytes);
-            } catch (IOException | RuntimeException writeFailure) {
+                writer.write(path, bytes);
+            } catch (IOException | RuntimeException | Error writeFailure) {
                 if (prepared != null) {
                     backupKeeper.discard(prepared);
                 }
@@ -541,11 +601,14 @@ public class FileService {
                 }
             }
             return Written.INSTANCE;
-        } catch (IOException | RuntimeException e) {
-            // An unexpected runtime failure must not take the app down mid-save:
-            // log it and let the user retry from a dialog.
+        } catch (IOException | RuntimeException | Error e) {
+            // An unexpected runtime failure or an Error (notably an
+            // OutOfMemoryError while encoding a huge paste) must not take the
+            // app down mid-save and must not look like a successful save: it
+            // reaches the same failure path as a disk error, so the document
+            // stays dirty and the recovery draft is kept.
             LOG.log(Level.WARNING, "save failed for " + path, e);
-            return new WriteFailed(e.getMessage());
+            return WriteFailed.of(e);
         }
     }
 
@@ -588,7 +651,12 @@ public class FileService {
     }
 
     private static String messageOf(CompletionException failure) {
-        return failure.getCause() == null ? failure.getMessage() : failure.getCause().getMessage();
+        return WriteFailed.describe(failure.getCause() == null ? failure : failure.getCause());
+    }
+
+    /** Whole megabytes, rounded up so a limit is never understated in the dialog. */
+    private static long megabytes(long bytes) {
+        return Math.max(1, (bytes + BYTES_PER_MEGABYTE - 1) / BYTES_PER_MEGABYTE);
     }
 
     /** The "saving" state is advisory UI; a broken listener must never abort a save. */
@@ -680,8 +748,39 @@ public class FileService {
     }
 
     private record WriteFailed(String message) implements WriteResult {
+        static WriteFailed of(Throwable failure) {
+            return new WriteFailed(describe(failure));
+        }
+
+        /** An {@code Error} often has no message; its type is still worth showing. */
+        static String describe(Throwable failure) {
+            var message = failure.getMessage();
+            return message == null || message.isBlank()
+                    ? failure.getClass().getSimpleName()
+                    : message;
+        }
     }
 
-    private record ReadResult(byte[] bytes, IOException failure) {
+    /**
+     * A read outcome. {@code tooLargeBytes} is negative unless the file exceeded
+     * {@link #MAX_DOCUMENT_BYTES}, in which case {@code bytes} is always empty:
+     * a truncated prefix is never handed to the decoder.
+     */
+    private record ReadResult(byte[] bytes, IOException failure, long tooLargeBytes) {
+        static ReadResult ok(byte[] bytes) {
+            return new ReadResult(bytes, null, -1);
+        }
+
+        static ReadResult failed(IOException failure) {
+            return new ReadResult(null, failure, -1);
+        }
+
+        static ReadResult tooLarge(long bytes) {
+            return new ReadResult(null, null, bytes);
+        }
+
+        boolean tooLarge() {
+            return tooLargeBytes >= 0;
+        }
     }
 }

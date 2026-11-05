@@ -68,6 +68,28 @@ class AtomicFilesTest {
     }
 
     /**
+     * Disk-full simulation without filling a disk: the pre-check must reject
+     * the write before a temp file exists, and the target must keep its old
+     * content so the caller can report a failed save instead of a success.
+     */
+    @Test
+    void aFullDiskFailsBeforeAnyTempFileIsCreated(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("note.txt");
+        Files.writeString(target, "keep me");
+
+        var failure = assertThrows(IOException.class,
+                () -> AtomicFiles.writeMoving(target,
+                        "new text".getBytes(StandardCharsets.UTF_8), 0));
+
+        assertTrue(failure.getMessage().contains("free disk space"));
+        assertEquals("keep me", Files.readString(target));
+        try (Stream<Path> files = Files.list(dir)) {
+            assertTrue(files.noneMatch(p -> p.getFileName().toString().endsWith(".tmp")),
+                    "no temp file may be created when the pre-check fails");
+        }
+    }
+
+    /**
      * Regression: {@code createTempFile} rejects a prefix shorter than three
      * characters, so a document named "a" could not be saved.
      */

@@ -51,8 +51,21 @@ public final class AtomicFiles {
 
     /** Writes {@code bytes} to {@code target} atomically and durably. */
     public static void writeMoving(Path target, byte[] bytes) throws IOException {
+        writeMoving(target, bytes, -1);
+    }
+
+    /**
+     * The implementation behind {@link #writeMoving(Path, byte[])}.
+     *
+     * @param usableSpace pre-measured free space on the target's volume, or a
+     *        negative value to measure it from the file store. The overload is
+     *        package-private so a test can simulate a full disk without filling
+     *        one: the pre-check must fail <em>before</em> any temp file exists.
+     */
+    static void writeMoving(Path target, byte[] bytes, long usableSpace) throws IOException {
         var absolute = target.toAbsolutePath();
         var dir = absolute.getParent();
+        requireFreeSpace(dir, bytes.length, usableSpace);
         // createTempFile rejects prefixes shorter than three characters, so a
         // document called "a" could not be saved at all without the fixed prefix
         var temp = Files.createTempFile(dir, "jtw-" + absolute.getFileName(), ".tmp");
@@ -78,6 +91,47 @@ public final class AtomicFiles {
             if (!moved) {
                 Files.deleteIfExists(temp);
             }
+        }
+    }
+
+    /**
+     * Fails the save before the new document's temp file is created when the
+     * volume obviously cannot hold it. Without this check a full disk is only
+     * discovered halfway through the write, after the user has already waited
+     * for the backup staging copy.
+     *
+     * <p>A negative {@code usableSpace} means "measure it"; an unmeasurable
+     * file store (network shares, exotic providers) must never block a save, so
+     * the check is skipped instead of guessed.</p>
+     */
+    private static void requireFreeSpace(Path dir, long requiredBytes, long usableSpace)
+            throws IOException {
+        long usable = usableSpace >= 0 ? usableSpace : usableSpace(dir);
+        if (usable < 0) {
+            return; // unknown: let the write itself decide
+        }
+        if (requiredBytes > usable) {
+            throw new IOException("not enough free disk space: " + requiredBytes
+                    + " bytes needed, " + usable + " available");
+        }
+    }
+
+    /**
+     * @return usable bytes, or {@code -1} when the file store cannot report
+     *         them. A total size of zero means the provider does not know the
+     *         volume at all; a zero <em>usable</em> size on a known volume is a
+     *         genuinely full disk and must stay distinguishable from "unknown".
+     */
+    private static long usableSpace(Path dir) {
+        if (dir == null) {
+            return -1;
+        }
+        try {
+            var store = Files.getFileStore(dir);
+            return store.getTotalSpace() > 0 ? store.getUsableSpace() : -1;
+        } catch (IOException e) {
+            LOG.log(Level.FINE, "cannot read free space of " + dir, e);
+            return -1;
         }
     }
 

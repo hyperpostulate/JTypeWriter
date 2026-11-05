@@ -9,9 +9,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mesutormanli.jtypewriter.AppLogging;
+import org.mesutormanli.jtypewriter.IoExecutor;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -170,6 +174,31 @@ class FileServiceTest {
         }
     }
 
+    @Test
+    void aWriteRejectedByAFullDiskIsReportedAndTheDocumentStaysDirty(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "v1");
+        var service = new FileService(dialogService, messages, new BackupKeeper(),
+                IoExecutor.synchronous(), (path, bytes) -> {
+                    throw new IOException("No space left on device");
+                });
+        service.restoreRecovered(target, "new text");
+        when(messages.errorSave()).thenReturn("Could not save file");
+
+        var saved = service.saveFile(null, "new text");
+
+        // A rejected write must never clear the dirty marker or fire onSaved:
+        // that is what made a full disk look like a successful save before.
+        assertTrue(saved.isEmpty());
+        assertTrue(service.hasUnsavedChanges());
+        verify(dialogService).showError(null, "Could not save file", "No space left on device");
+        try (Stream<Path> files = Files.list(dir)) {
+            assertTrue(files.noneMatch(p -> p.getFileName().toString().endsWith(".bak.new")),
+                    "the staged backup must be discarded after the write fails");
+        }
+    }
+
     // --- encoding stability -------------------------------------------------
 
     @Test
@@ -210,6 +239,32 @@ class FileServiceTest {
         assertTrue(fileService.openFile(null).isPresent());
 
         assertEquals("héllo wörld", fileService.getCurrentContent());
+        verify(dialogService, never()).showEncodingDialog(any(), any());
+    }
+
+    // --- memory and size ceiling -------------------------------------------
+
+    @Test
+    void anOversizedDocumentIsRefusedWithAnExplanationAndTheCurrentDocumentIsKept(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("huge.txt");
+        try (var file = new RandomAccessFile(target.toFile(), "rw")) {
+            file.setLength(FileService.MAX_DOCUMENT_BYTES + 1L);
+        }
+        fileService.setCurrentContent("my draft");
+        when(messages.errorOpenTooLargeHeader()).thenReturn("The file is too large to open");
+        when(messages.errorOpenTooLargeContent(anyString(), anyLong(), anyLong()))
+                .thenReturn("The file was not opened");
+
+        var opened = fileService.loadFile(null, target);
+
+        // Refusing beats truncating: a partial document could then be saved
+        // over the original and destroy the rest of it.
+        assertTrue(opened.isEmpty());
+        assertEquals("my draft", fileService.getCurrentContent());
+        assertTrue(fileService.hasUnsavedChanges());
+        verify(dialogService).showError(null, "The file is too large to open",
+                "The file was not opened");
         verify(dialogService, never()).showEncodingDialog(any(), any());
     }
 
