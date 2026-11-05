@@ -507,6 +507,31 @@ dolu disk ise `IOException` ile kaydetme hatasına düşüyor. Testler: yeni
   değil).
 - **Doğrulama:** `mvn test -Dtest=FileServiceTest` (yeni `externalChange*` testleri).
 
+**Uygulama (5 Kas 2026):** `FileService` artık yüklemede ve her başarılı kaydetmeden sonra hedefin
+`DiskFingerprint`'ini (`boyut`, `mtime`, içerik SHA-256) saklıyor. Kaydetme, yedek hazırlanmadan
+**önce** dosyayı akış üzerinden yeniden özetliyor; özet tutmuyorsa hiçbir şey yazmadan `Conflict`
+dönüyor ve üç seçenekli `showExternalChangeDialog` açılıyor: **Üzerine Yaz** (dış sürüm `.bak`
+olarak korunur, çünkü `unchanged` zorla false yapılır), **Farklı Kaydet** (normal `saveFileAs`
+akışı; dosya seçici iptal edilirse çıkış `STAY` kalır, yani `ExitDisposition` atlanmaz) ve
+**İptal** (hiçbir şey yazılmaz, belge kirli kalır). Karşılaştırma yalnız SHA-256 üzerinden: aynı
+boyutlu ve aynı saniyedeki değişiklik ne boyutla ne mtime'la görülür (test mtime'ı geri alarak
+bunu sabitliyor). Yüklemeden sonra silinen dosya da çelişki sayılıyor (yeniden oluşturmak sessiz
+üzerine yazma olurdu) ve çelişki `WARNING` seviyesinde iki tarafın boyut/mtime'ıyla loglanıyor.
+Kurtarma taslağında özgün dosyanın özeti `restoreRecovered`'da yakalanıyor; özet akış üzerinden
+hesaplandığı için dış dosyanın boyutu belleğe alınmıyor (W2-03 sınırı korunuyor). Altı bundle'a
+`externalChange*` anahtarları ve `Messages` erişimcileri eklendi. Testler: yeni dokuz test —
+`anUntouchedFileOnDiskIsSavedWithoutAnExternalChangePrompt`,
+`anExternalChangeIsCaughtAndCancellingTouchesNeitherVersion`,
+`anExternalChangeWithinTheSameSecondIsCaughtByTheContentHash`,
+`overwritingAnExternalChangeKeepsThatVersionAsABackup`,
+`savingAnExternalChangeUnderANewNameKeepsBothFiles`,
+`choosingSaveAsAfterAnExternalChangeDoesNotBypassTheExitCheck`,
+`aFileDeletedSinceItWasOpenedCountsAsAnExternalChange`,
+`anAsyncSaveAsksAboutAnExternalChangeAndHonoursCancel`,
+`anAsyncSaveCanOverwriteAnExternalChange`.
+`mvn test -Dtest=FileServiceTest,DialogServiceTest,MessagesTest` → 47/47 + 9/9 + 13/13;
+`mvn -B clean test` → **415/415**.
+
 **W2-05 · A1b — Symlink'i koru** · S · D2
 - **Kapsam:** `AtomicFiles.java:54-74`
 - **Yapılacak:** Hedef `toRealPath()` ile çözülür; yazma gerçek hedefe, atomik taşıma hedefin
@@ -687,7 +712,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W2-01 | Artımlı istatistik | X5, X3 | M | W1-03 | ✅ | `mvn test -Dtest=SessionStatsTest` → 21/21 (her adımda eski tam taramayla birebir); `mvn test -Dtest=StatsPerfHarnessTest` → 10 MiB tek yenileme **0,116 ms** (CI eşiği 50, eski ölçüm 163); mutasyon: `getWordCount` eski gövdeye dönünce **123,2 ms** → kırmızı, delta penceresinden `+1` atılınca 3 property testi kırmızı; `getWordCount`/`getLineCount`/`getCharCount*` imzaları aynı, `StatsBarModel` değişmedi; `mvn -B clean test` → 396/396 |
 | W2-02 | G/Ç executor | X1, X2 | M | W2-01 | ✅ | `mvn test -Dtest=FxThreadIoTest,FileServiceTest,AutoSaveServiceTest` → 5/5 + 36/36 + 15/15: kaydetme ve açma `IoExecutor` işçisinde, `fxThreadTasks()==0`; temiz otomatik kayıt tikinde metin kopyası yok; kaydetme sürerken yazılan metin kirli kalıyor. `AppGraph` paylaşılan `IoExecutor.background()` enjekte ediyor; `FxApplication.stop()` kapanışta işçiyi durduruyor; `savingStatus` altı bundle'da (`MessagesTest` 13/13); `mvn -B clean test` → 401/401 |
 | W2-03 | Bellek/boyut/hata yolu | X4, M10, D7 | M | W2-02 | ✅ | `mvn test -Dtest=FileServiceTest,AtomicFilesTest,AutoSaveServiceTest,MessagesTest` → 38/38 + 7/7 + 17/17 + 13/13: sınır üstü dosya açılmıyor ve altı dilde açıklama gösteriliyor; `OutOfMemoryError` kaydetme hatasına düşüp taslak korunuyor; dolu disk (`usableSpace=0`) temp dosya oluşmadan `IOException` ile reddediliyor ve belge kirli kalıyor. `mvn -B clean test` → 406/406; `mvn -B test -Duser.language=de -Duser.country=DE` → 406/406 |
-| W2-04 | Dış değişiklik | D1, M9 | M | W2-02 | ☐ | |
+| W2-04 | Dış değişiklik | D1, M9 | M | W2-02 | ✅ | `mvn test -Dtest=FileServiceTest,DialogServiceTest,MessagesTest` → 47/47 + 9/9 + 13/13: yüklemeden sonra değişen/silinen dosya sessizce üzerine yazılmıyor, üç seçenekli diyalog (üzerine yaz / farklı kaydet / iptal) akışı testli; aynı boyut + aynı mtime değişikliği SHA-256 ile yakalanıyor; "Farklı Kaydet" iptalinde çıkış `STAY` kalıyor; senkron ve asenkron kaydetme yolları ayrı ayrı doğrulandı. `mvn -B clean test` → 415/415 |
 | W2-05 | Symlink korunumu | D2 | S | W2-04 | ☐ | |
 | W2-06 | Taslak yolu + belge kilidi | D3, D8 | M | W2-04 | ☐ | |
 | W3-01 | `EditorAction` katmanı | M1, U13 | M | W1-03 | ☐ | |

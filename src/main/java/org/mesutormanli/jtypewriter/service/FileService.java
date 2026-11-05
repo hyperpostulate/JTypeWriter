@@ -15,7 +15,12 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,6 +46,12 @@ import java.util.logging.Logger;
  *       Only when the text no longer fits that encoding does the user get to
  *       switch the document to UTF-8 - unmappable characters are never
  *       silently turned into {@code ?}.</li>
+ *   <li><b>External-change detection:</b> the content hash of the file is
+ *       remembered on load and after every save; a save whose target no longer
+ *       matches it asks before overwriting, so a {@code git checkout}, a sync
+ *       client or a second editor cannot lose someone else's text silently.
+ *       The digest, not the timestamp, decides: two edits inside the same
+ *       second look identical to a modification time.</li>
  * </ul>
  *
  * <p><strong>Threading:</strong> every call that touches a file goes through
@@ -123,6 +134,14 @@ public class FileService {
     private Charset currentCharset = StandardCharsets.UTF_8;
     private boolean currentBom;
     private boolean dirty;
+
+    /**
+     * What the file at {@link #currentFilePath} contained when this service last
+     * read or wrote it, or {@code null} when there is nothing to compare
+     * (a never-saved document, or an original that could not be read). A save
+     * whose target no longer matches it must ask before replacing the bytes.
+     */
+    private DiskFingerprint savedFingerprint;
 
     /**
      * Identifies the current document generation. A load, a new document or a
@@ -266,6 +285,7 @@ public class FileService {
         currentBom = false;
         savedContent = "";
         currentContent = "";
+        savedFingerprint = null;
         dirty = false;
         listeners.forEach(Listener::onNewDocument);
         return true;
@@ -350,7 +370,7 @@ public class FileService {
                 if (bytes.length > MAX_DOCUMENT_BYTES) {
                     return ReadResult.tooLarge(bytes.length);
                 }
-                return ReadResult.ok(bytes);
+                return ReadResult.ok(bytes, DiskFingerprint.of(path, bytes));
             }
         } catch (IOException failure) {
             return ReadResult.failed(failure);
@@ -384,6 +404,7 @@ public class FileService {
         currentBom = decoded.bom();
         savedContent = decoded.text();
         currentContent = decoded.text();
+        savedFingerprint = read.fingerprint();
         dirty = false;
         listeners.forEach(l -> l.onLoaded(path));
         return Optional.of(path);
@@ -402,9 +423,15 @@ public class FileService {
      */
     public void restoreRecovered(Path file, String content) {
         operation++; // the recovered draft replaces whatever was current
+        savedFingerprint = null;
         if (file != null && Files.isRegularFile(file)) {
             try {
-                var onDisk = TextCodec.decode(Files.readAllBytes(file));
+                var original = Files.readAllBytes(file);
+                // Remember what was on disk at recovery time, so the first save
+                // of the draft asks before replacing a version that changed in
+                // the meantime (the draft itself is newer than this content).
+                savedFingerprint = DiskFingerprint.of(file, original);
+                var onDisk = TextCodec.decode(original);
                 if (onDisk != null) {
                     currentCharset = onDisk.charset();
                     currentBom = onDisk.bom();
@@ -469,55 +496,84 @@ public class FileService {
         return writeAsync(stage, file.get().toPath(), content);
     }
 
-    /** Everything a save needs from the FX thread's current document, captured once. */
+    /**
+     * Everything a save needs from the FX thread's current document, captured
+     * once. {@code expectedFingerprint} is what the target file held when this
+     * service last saw it, or {@code null} when the target is a new file and
+     * there is nothing that could have been overwritten.
+     */
     private record SaveContext(long operationId, Path path, String content, Charset charset,
-                               boolean bom, String expectedCurrent, boolean unchanged) {
+                               boolean bom, String expectedCurrent, boolean unchanged,
+                               DiskFingerprint expectedFingerprint) {
+
+        /** The same save re-encoded as UTF-8, still guarding the same disk state. */
+        SaveContext asUtf8() {
+            return new SaveContext(operationId, path, content, StandardCharsets.UTF_8,
+                    bom, expectedCurrent, false, expectedFingerprint);
+        }
+
+        /**
+         * The same save after the user chose to replace a changed file. The
+         * fingerprint guard is dropped (the user has just seen the conflict) and
+         * {@code unchanged} is forced off, so the externally changed version is
+         * preserved as the backup copy instead of being skipped.
+         */
+        SaveContext overwriting() {
+            return new SaveContext(operationId, path, content, charset, bom,
+                    expectedCurrent, false, null);
+        }
     }
 
     private SaveContext contextFor(Path path, String content) {
+        var sameFile = path.equals(currentFilePath);
         return new SaveContext(operation, path, content, currentCharset, currentBom,
-                currentContent, path.equals(currentFilePath) && content.equals(savedContent));
+                currentContent, sameFile && content.equals(savedContent),
+                sameFile ? savedFingerprint : null);
     }
 
     private Optional<Path> writeBlocking(javafx.stage.Stage stage, Path path, String content) {
         var context = contextFor(path, content);
         notifySavingChanged(true);
         try {
-            WriteResult result;
-            try {
-                result = ioExecutor.submit("save " + path,
-                        () -> writeAttempt(context)).join();
-            } catch (CompletionException failure) {
-                result = new WriteFailed(messageOf(failure));
-            }
-            return finishBlocking(stage, context, result);
+            return handleResult(stage, context, writeOnce(context));
         } finally {
             notifySavingChanged(false);
         }
     }
 
-    private Optional<Path> finishBlocking(javafx.stage.Stage stage, SaveContext context,
-                                          WriteResult result) {
-        if (result instanceof Written) {
-            return commitSave(context);
+    /** Runs one encoding+write attempt on the I/O worker and waits for its verdict. */
+    private WriteResult writeOnce(SaveContext context) {
+        try {
+            return ioExecutor.submit("save " + context.path(), () -> writeAttempt(context)).join();
+        } catch (CompletionException failure) {
+            return new WriteFailed(messageOf(failure));
+        }
+    }
+
+    private Optional<Path> handleResult(javafx.stage.Stage stage, SaveContext context,
+                                        WriteResult result) {
+        if (result instanceof Written written) {
+            return commitSave(context, written.fingerprint());
         }
         if (result instanceof UpgradeRequired) {
             if (!dialogService.showEncodingUpgradeDialog(stage, context.charset())) {
                 return Optional.empty(); // nothing written: the document stays dirty
             }
-            var upgraded = new SaveContext(context.operationId(), context.path(), context.content(),
-                    StandardCharsets.UTF_8, context.bom(), context.expectedCurrent(), false);
-            WriteResult retry;
-            try {
-                retry = ioExecutor.submit("save " + context.path() + " as UTF-8",
-                        () -> writeAttempt(upgraded)).join();
-            } catch (CompletionException failure) {
-                retry = new WriteFailed(messageOf(failure));
-            }
-            if (retry instanceof Written) {
-                return commitSave(upgraded);
-            }
-            return reportFailure(stage, retry);
+            var upgraded = context.asUtf8();
+            return handleResult(stage, upgraded, writeOnce(upgraded));
+        }
+        if (result instanceof Conflict) {
+            return switch (dialogService.showExternalChangeDialog(stage, context.path())) {
+                case OVERWRITE -> {
+                    var override = context.overwriting();
+                    yield handleResult(stage, override, writeOnce(override));
+                }
+                // Save As keeps both versions and returns the usual save result,
+                // so an exit/open waiting on this save still sees a cancelled
+                // file picker as "not safe to leave".
+                case SAVE_AS -> saveFileAs(stage, context.content());
+                case CANCEL -> Optional.empty();
+            };
         }
         return reportFailure(stage, result);
     }
@@ -533,20 +589,32 @@ public class FileService {
     private CompletableFuture<Optional<Path>> writeAttemptAsync(javafx.stage.Stage stage,
                                                                 SaveContext context) {
         return ioExecutor.submit("save " + context.path(), () -> writeAttempt(context))
-                .thenCompose(result -> switch (result) {
-                    case Written written -> ioExecutor.completeOnFx(() -> commitSave(context));
-                    case UpgradeRequired upgrade -> ioExecutor
-                            .completeOnFx(() -> dialogService.showEncodingUpgradeDialog(
-                                    stage, context.charset()))
-                            .thenCompose(accepted -> accepted
-                                    ? writeAttemptAsync(stage, new SaveContext(
-                                            context.operationId(), context.path(), context.content(),
-                                            StandardCharsets.UTF_8, context.bom(),
-                                            context.expectedCurrent(), false))
-                                    : CompletableFuture.completedFuture(Optional.<Path>empty()));
-                    case WriteFailed failure -> ioExecutor
-                            .completeOnFx(() -> reportFailure(stage, failure));
-                });
+                .thenCompose(result -> handleResultAsync(stage, context, result));
+    }
+
+    private CompletableFuture<Optional<Path>> handleResultAsync(javafx.stage.Stage stage,
+                                                                SaveContext context,
+                                                                WriteResult result) {
+        return switch (result) {
+            case Written written -> ioExecutor.completeOnFx(
+                    () -> commitSave(context, written.fingerprint()));
+            case UpgradeRequired upgrade -> ioExecutor
+                    .completeOnFx(() -> dialogService.showEncodingUpgradeDialog(
+                            stage, context.charset()))
+                    .thenCompose(accepted -> accepted
+                            ? writeAttemptAsync(stage, context.asUtf8())
+                            : CompletableFuture.completedFuture(Optional.<Path>empty()));
+            case Conflict conflict -> ioExecutor
+                    .completeOnFx(() -> dialogService.showExternalChangeDialog(
+                            stage, context.path()))
+                    .thenCompose(choice -> switch (choice) {
+                        case OVERWRITE -> writeAttemptAsync(stage, context.overwriting());
+                        case SAVE_AS -> saveFileAsAsync(stage, context.content());
+                        case CANCEL -> CompletableFuture.completedFuture(Optional.<Path>empty());
+                    });
+            case WriteFailed failure -> ioExecutor
+                    .completeOnFx(() -> reportFailure(stage, failure));
+        };
     }
 
     /**
@@ -566,6 +634,11 @@ public class FileService {
         }
         var path = context.path();
         try {
+            if (changedOnDisk(context)) {
+                // Stop before the backup too: the conflict dialog may end in
+                // "Save As" or "Cancel", and neither should leave a staged copy.
+                return Conflict.INSTANCE;
+            }
             // Re-saving unchanged content would rotate the backup history with
             // copies of the same text; the encoding-upgrade flow always has
             // content != savedContent, so it is unaffected by this guard.
@@ -600,7 +673,9 @@ public class FileService {
                     backupKeeper.discard(prepared);
                 }
             }
-            return Written.INSTANCE;
+            // The bytes just written are the new truth about this file: a later
+            // save must compare against them, not against what was loaded.
+            return new Written(DiskFingerprint.of(path, bytes));
         } catch (IOException | RuntimeException | Error e) {
             // An unexpected runtime failure or an Error (notably an
             // OutOfMemoryError while encoding a huge paste) must not take the
@@ -612,7 +687,38 @@ public class FileService {
         }
     }
 
-    private Optional<Path> commitSave(SaveContext context) {
+    /**
+     * Tells whether the target changed on disk since this service last read or
+     * wrote it. Only the document's own file is guarded: a Save As writes a new
+     * target whose previous content is not this document's concern.
+     *
+     * <p>The comparison uses the content digest, never the modification time or
+     * the size alone - a file system may report a one-second timestamp, and a
+     * same-length edit leaves the size untouched. A missing file counts as a
+     * change: overwriting would silently recreate a file someone deleted or
+     * moved.</p>
+     */
+    private static boolean changedOnDisk(SaveContext context) throws IOException {
+        var expected = context.expectedFingerprint();
+        if (expected == null) {
+            return false; // new target: nothing to replace
+        }
+        try {
+            var actual = DiskFingerprint.read(context.path());
+            if (expected.sameContentAs(actual)) {
+                return false;
+            }
+            LOG.log(Level.WARNING, "external change detected for " + context.path()
+                    + ": expected " + expected.describe() + ", found " + actual.describe());
+            return true;
+        } catch (NoSuchFileException deleted) {
+            LOG.log(Level.WARNING, "the target of " + context.path()
+                    + " was deleted while the document was open");
+            return true;
+        }
+    }
+
+    private Optional<Path> commitSave(SaveContext context, DiskFingerprint fingerprint) {
         if (context.operationId() != operation) {
             // The file was written, but the user has already moved to another
             // document: never let the old save overwrite the new state.
@@ -623,6 +729,7 @@ public class FileService {
         currentCharset = context.charset();
         currentBom = context.bom();
         savedContent = context.content();
+        savedFingerprint = fingerprint;
         if (Objects.equals(currentContent, context.expectedCurrent())) {
             // Nothing typed while the save was in flight: the document is the
             // text that just reached the disk.
@@ -736,15 +843,23 @@ public class FileService {
 
     // --- results of the blocking parts, free of UI types --------------------
 
-    private sealed interface WriteResult permits Written, UpgradeRequired, WriteFailed {
+    private sealed interface WriteResult permits Written, UpgradeRequired, WriteFailed, Conflict {
     }
 
-    private record Written() implements WriteResult {
-        static final Written INSTANCE = new Written();
+    /** The bytes are on disk; the fingerprint describes the file they landed in. */
+    private record Written(DiskFingerprint fingerprint) implements WriteResult {
     }
 
     private record UpgradeRequired() implements WriteResult {
         static final UpgradeRequired INSTANCE = new UpgradeRequired();
+    }
+
+    /**
+     * The target changed on disk since the document was loaded or last saved.
+     * Nothing has been written: the caller asks the user what to do.
+     */
+    private record Conflict() implements WriteResult {
+        static final Conflict INSTANCE = new Conflict();
     }
 
     private record WriteFailed(String message) implements WriteResult {
@@ -766,21 +881,89 @@ public class FileService {
      * {@link #MAX_DOCUMENT_BYTES}, in which case {@code bytes} is always empty:
      * a truncated prefix is never handed to the decoder.
      */
-    private record ReadResult(byte[] bytes, IOException failure, long tooLargeBytes) {
-        static ReadResult ok(byte[] bytes) {
-            return new ReadResult(bytes, null, -1);
+    private record ReadResult(byte[] bytes, IOException failure, long tooLargeBytes,
+                              DiskFingerprint fingerprint) {
+        static ReadResult ok(byte[] bytes, DiskFingerprint fingerprint) {
+            return new ReadResult(bytes, null, -1, fingerprint);
         }
 
         static ReadResult failed(IOException failure) {
-            return new ReadResult(null, failure, -1);
+            return new ReadResult(null, failure, -1, null);
         }
 
         static ReadResult tooLarge(long bytes) {
-            return new ReadResult(null, null, bytes);
+            return new ReadResult(null, null, bytes, null);
         }
 
         boolean tooLarge() {
             return tooLargeBytes >= 0;
+        }
+    }
+
+    /**
+     * The identity of a file's content as this service last saw it.
+     *
+     * <p>The SHA-256 digest, not the timestamp, decides whether the file
+     * changed: file systems with one-second timestamp granularity cannot
+     * distinguish two edits inside the same second, and a same-length edit
+     * leaves the size untouched. The modification time and size are recorded
+     * for the log line and for a human reading a support report.</p>
+     */
+    private record DiskFingerprint(long size, long lastModifiedMillis, byte[] sha256) {
+
+        /** A fingerprint of bytes this service has just read or is about to write. */
+        static DiskFingerprint of(Path path, byte[] bytes) {
+            return new DiskFingerprint(bytes.length, lastModified(path),
+                    newDigest().digest(bytes));
+        }
+
+        /** A fingerprint of the file as it is on disk right now. */
+        static DiskFingerprint read(Path path) throws IOException {
+            var digest = newDigest();
+            long size = 0;
+            try (var in = Files.newInputStream(path)) {
+                // Streamed: an external file that grew past the read ceiling
+                // must not be loaded whole just to be compared.
+                var buffer = new byte[64 * 1024];
+                int read;
+                while ((read = in.read(buffer)) > 0) {
+                    digest.update(buffer, 0, read);
+                    size += read;
+                }
+            }
+            return new DiskFingerprint(size, lastModified(path), digest.digest());
+        }
+
+        boolean sameContentAs(DiskFingerprint other) {
+            return other != null && Arrays.equals(sha256, other.sha256);
+        }
+
+        /** The non-content half, for the log line that explains a conflict. */
+        String describe() {
+            var modified = lastModifiedMillis < 0
+                    ? "unknown"
+                    : Instant.ofEpochMilli(lastModifiedMillis).toString();
+            return size + " bytes, modified at " + modified;
+        }
+
+        private static long lastModified(Path path) {
+            try {
+                return Files.getLastModifiedTime(path).toMillis();
+            } catch (IOException unreadable) {
+                // Only diagnostic: the digest decides, so a missing timestamp
+                // must not turn a comparison or a save into a failure.
+                LOG.log(Level.FINE, "cannot read the modification time of " + path, unreadable);
+                return -1;
+            }
+        }
+
+        private static MessageDigest newDigest() {
+            try {
+                return MessageDigest.getInstance("SHA-256");
+            } catch (NoSuchAlgorithmException impossible) {
+                // Every conforming Java platform provides SHA-256.
+                throw new IllegalStateException("SHA-256 is unavailable", impossible);
+            }
         }
     }
 }

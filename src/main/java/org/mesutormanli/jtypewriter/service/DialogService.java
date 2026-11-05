@@ -188,6 +188,36 @@ public class DialogService {
         return result.isPresent() && result.get() == utf8Button;
     }
 
+    /** What to do when the file on disk changed after the editor loaded it. */
+    public enum ExternalChangeChoice { OVERWRITE, SAVE_AS, CANCEL }
+
+    /**
+     * Asks what to do about a file that another program changed or deleted
+     * after it was opened here. Overwriting is the deliberate choice; Save As
+     * keeps both versions; closing the window or choosing Cancel writes
+     * nothing and leaves the draft dirty.
+     */
+    public ExternalChangeChoice showExternalChangeDialog(Stage stage, Path file) {
+        var alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(messages.externalChangeTitle());
+        alert.setHeaderText(messages.externalChangeHeader()
+                + messages.dashSeparator() + file.getFileName());
+        alert.setContentText(messages.externalChangeContent());
+
+        var overwriteButton = DialogButtons.primary(messages.externalChangeOverwrite());
+        var saveAsButton = DialogButtons.alternative(messages.externalChangeSaveAs());
+        // Cancel (and the window X) is the non-destructive answer: nothing is
+        // written and the recovery draft keeps the only copy of the editor text.
+        var cancelButton = DialogButtons.cancel(messages.externalChangeCancel());
+        alert.getButtonTypes().setAll(overwriteButton, saveAsButton, cancelButton);
+
+        var result = show(alert, stage);
+        if (result.isEmpty()) return ExternalChangeChoice.CANCEL;
+        if (result.get() == overwriteButton) return ExternalChangeChoice.OVERWRITE;
+        if (result.get() == saveAsButton) return ExternalChangeChoice.SAVE_AS;
+        return ExternalChangeChoice.CANCEL;
+    }
+
     /**
      * Asks whether to open a file whose byte-order mark declares an encoding
      * its bytes do not satisfy. Accepting opens it with replacement characters

@@ -267,6 +267,33 @@ public class Messages {
         return format("errorOpenTooLargeContent", fileName, sizeMegabytes, limitMegabytes);
     }
 
+    /** Title of the prompt shown when the file changed on disk after it was opened. */
+    public String externalChangeTitle() {
+        return bundle.getString("externalChangeTitle");
+    }
+
+    /** Header of that prompt; the document name is appended by the dialog. */
+    public String externalChangeHeader() {
+        return bundle.getString("externalChangeHeader");
+    }
+
+    /** Explains the three answers: overwrite, save under a new name, cancel. */
+    public String externalChangeContent() {
+        return bundle.getString("externalChangeContent");
+    }
+
+    public String externalChangeOverwrite() {
+        return bundle.getString("externalChangeOverwrite");
+    }
+
+    public String externalChangeSaveAs() {
+        return bundle.getString("externalChangeSaveAs");
+    }
+
+    public String externalChangeCancel() {
+        return bundle.getString("externalChangeCancel");
+    }
+
     public String appName() {
         return bundle.getString("appName");
     }

@@ -268,6 +268,195 @@ class FileServiceTest {
         verify(dialogService, never()).showEncodingDialog(any(), any());
     }
 
+    // --- external changes on disk ------------------------------------------
+
+    @Test
+    void anUntouchedFileOnDiskIsSavedWithoutAnExternalChangePrompt(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "v1");
+        assertTrue(fileService.loadFile(null, target).isPresent());
+
+        var saved = fileService.saveFile(null, "v2");
+
+        // The fingerprint must describe our own write, not a stale load state:
+        // otherwise every second save would look like a conflict.
+        assertEquals(Optional.of(target), saved);
+        verify(dialogService, never()).showExternalChangeDialog(any(), any());
+    }
+
+    @Test
+    void anExternalChangeIsCaughtAndCancellingTouchesNeitherVersion(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "v1");
+        assertTrue(fileService.loadFile(null, target).isPresent());
+        Files.writeString(target, "theirs");
+        fileService.setCurrentContent("mine");
+        when(dialogService.showExternalChangeDialog(any(), any()))
+                .thenReturn(DialogService.ExternalChangeChoice.CANCEL);
+
+        var saved = fileService.saveFile(null, "mine");
+
+        // Silent overwrite is the data loss this card exists to prevent: the
+        // save must stop and the editor text must stay dirty.
+        assertTrue(saved.isEmpty());
+        assertEquals("theirs", Files.readString(target));
+        assertEquals("mine", fileService.getCurrentContent());
+        assertTrue(fileService.hasUnsavedChanges());
+        verify(dialogService).showExternalChangeDialog(null, target);
+        verify(dialogService, never()).showError(any(), any(), any());
+    }
+
+    @Test
+    void anExternalChangeWithinTheSameSecondIsCaughtByTheContentHash(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "ab");
+        var loadedAt = Files.getLastModifiedTime(target);
+        assertTrue(fileService.loadFile(null, target).isPresent());
+
+        // Same size and — deliberately — the same timestamp: only the digest
+        // can tell these two versions apart.
+        Files.writeString(target, "cd");
+        Files.setLastModifiedTime(target, loadedAt);
+        fileService.setCurrentContent("mine");
+        when(dialogService.showExternalChangeDialog(any(), any()))
+                .thenReturn(DialogService.ExternalChangeChoice.CANCEL);
+
+        assertTrue(fileService.saveFile(null, "mine").isEmpty());
+
+        verify(dialogService).showExternalChangeDialog(null, target);
+        assertEquals("cd", Files.readString(target));
+    }
+
+    @Test
+    void overwritingAnExternalChangeKeepsThatVersionAsABackup(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "v1");
+        assertTrue(fileService.loadFile(null, target).isPresent());
+        Files.writeString(target, "theirs");
+        fileService.setCurrentContent("mine");
+        when(dialogService.showExternalChangeDialog(any(), any()))
+                .thenReturn(DialogService.ExternalChangeChoice.OVERWRITE);
+
+        var saved = fileService.saveFile(null, "mine");
+
+        assertEquals(Optional.of(target), saved);
+        assertEquals("mine", Files.readString(target));
+        assertEquals("theirs", Files.readString(BackupKeeper.backupPath(target, 0)));
+        assertFalse(fileService.hasUnsavedChanges());
+    }
+
+    @Test
+    void savingAnExternalChangeUnderANewNameKeepsBothFiles(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("doc.txt");
+        var copy = dir.resolve("doc-mine.txt");
+        Files.writeString(target, "v1");
+        assertTrue(fileService.loadFile(null, target).isPresent());
+        Files.writeString(target, "theirs");
+        fileService.setCurrentContent("mine");
+        when(dialogService.showExternalChangeDialog(any(), any()))
+                .thenReturn(DialogService.ExternalChangeChoice.SAVE_AS);
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(copy.toFile()));
+
+        var saved = fileService.saveFile(null, "mine");
+
+        assertEquals(Optional.of(copy), saved);
+        assertEquals("mine", Files.readString(copy));
+        assertEquals("theirs", Files.readString(target));
+        assertEquals(copy, fileService.getCurrentFilePath());
+        assertFalse(fileService.hasUnsavedChanges());
+    }
+
+    /**
+     * "Save as new name" is still a save: when its file picker is cancelled the
+     * exit request must report STAY, never let the window close over a draft.
+     */
+    @Test
+    void choosingSaveAsAfterAnExternalChangeDoesNotBypassTheExitCheck(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "v1");
+        assertTrue(fileService.loadFile(null, target).isPresent());
+        Files.writeString(target, "theirs");
+        fileService.setCurrentContent("mine");
+        when(dialogService.showUnsavedChangesDialog(any()))
+                .thenReturn(DialogService.SaveChoice.SAVE);
+        when(dialogService.showExternalChangeDialog(any(), any()))
+                .thenReturn(DialogService.ExternalChangeChoice.SAVE_AS);
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.empty());
+
+        var answer = fileService.requestExit(null);
+
+        assertEquals(FileService.ExitAnswer.STAY, answer);
+        assertTrue(fileService.hasUnsavedChanges());
+        assertEquals("theirs", Files.readString(target));
+    }
+
+    @Test
+    void aFileDeletedSinceItWasOpenedCountsAsAnExternalChange(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "v1");
+        assertTrue(fileService.loadFile(null, target).isPresent());
+        Files.delete(target);
+        fileService.setCurrentContent("mine");
+        when(dialogService.showExternalChangeDialog(any(), any()))
+                .thenReturn(DialogService.ExternalChangeChoice.CANCEL);
+
+        assertTrue(fileService.saveFile(null, "mine").isEmpty());
+
+        // Recreating a file someone deleted on purpose would be just as silent
+        // an overwrite as replacing changed content.
+        verify(dialogService).showExternalChangeDialog(null, target);
+        assertFalse(Files.exists(target));
+        assertTrue(fileService.hasUnsavedChanges());
+    }
+
+    @Test
+    void anAsyncSaveAsksAboutAnExternalChangeAndHonoursCancel(@TempDir Path dir) throws Exception {
+        try (var io = IoExecutor.background(() -> false, Runnable::run)) {
+            var target = dir.resolve("doc.txt");
+            Files.writeString(target, "v1");
+            var service = new FileService(dialogService, messages, new BackupKeeper(), io);
+            assertTrue(service.loadFileAsync(null, target).join().isPresent());
+            Files.writeString(target, "theirs");
+            service.setCurrentContent("mine");
+            when(dialogService.showExternalChangeDialog(any(), any()))
+                    .thenReturn(DialogService.ExternalChangeChoice.CANCEL);
+
+            assertTrue(service.saveFileAsync(null, "mine").join().isEmpty());
+
+            assertEquals("theirs", Files.readString(target));
+            assertTrue(service.hasUnsavedChanges());
+            verify(dialogService).showExternalChangeDialog(null, target);
+        }
+    }
+
+    @Test
+    void anAsyncSaveCanOverwriteAnExternalChange(@TempDir Path dir) throws Exception {
+        try (var io = IoExecutor.background(() -> false, Runnable::run)) {
+            var target = dir.resolve("doc.txt");
+            Files.writeString(target, "v1");
+            var service = new FileService(dialogService, messages, new BackupKeeper(), io);
+            assertTrue(service.loadFileAsync(null, target).join().isPresent());
+            Files.writeString(target, "theirs");
+            service.setCurrentContent("mine");
+            when(dialogService.showExternalChangeDialog(any(), any()))
+                    .thenReturn(DialogService.ExternalChangeChoice.OVERWRITE);
+
+            var saved = service.saveFileAsync(null, "mine").join();
+
+            assertEquals(Optional.of(target), saved);
+            assertEquals("mine", Files.readString(target));
+            assertEquals("theirs", Files.readString(BackupKeeper.backupPath(target, 0)));
+            assertFalse(service.hasUnsavedChanges());
+        }
+    }
+
     // --- lifecycle listeners and recovery attachment ------------------------
 
     @Test
