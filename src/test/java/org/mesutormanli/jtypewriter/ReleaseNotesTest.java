@@ -158,6 +158,27 @@ class ReleaseNotesTest {
     }
 
     /**
+     * The note called itself "the first published build". That was true for the
+     * very first release and false for every one after it, yet the template is
+     * the body of each release, so the sentence shipped unchanged and told
+     * readers of a later version that the project had just started. A note that
+     * describes the release series instead of a single one cannot go stale this
+     * way.
+     */
+    @Test
+    void theNoteDoesNotClaimToBeTheFirstBuild() throws IOException {
+        var template = Files.readString(TEMPLATE, StandardCharsets.UTF_8);
+        // Folded so the assertion does not depend on where a sentence starts.
+        var folded = template.toLowerCase(java.util.Locale.ROOT).replace('İ', 'i');
+        for (var phrase : List.of("first published build", "first release",
+                "yayımlanan ilk derleme", "ilk sürüm")) {
+            assertFalse(folded.contains(phrase),
+                    TEMPLATE + " still claims to be the first release ('" + phrase + "');"
+                            + " it is the body of every release, so it must describe the series");
+        }
+    }
+
+    /**
      * The note tells the reader this is an early build; the repository page
      * derives its own label from the release metadata. Publishing without
      * {@code --prerelease} made GitHub call the same release "Latest", so a
