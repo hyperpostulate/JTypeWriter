@@ -344,6 +344,39 @@ public class Messages {
         return format("startupTooManyArguments", arguments);
     }
 
+    /**
+     * Header for a refused drop. The body names the dropped path (or the count)
+     * back, so the user can see which file was not understood.
+     */
+    public String dropOpenFailedHeader() {
+        return bundle.getString("dropOpenFailedHeader");
+    }
+
+    /** The gesture carried no file at all - plain text, a URL or an image. */
+    public String dropNothingToOpen() {
+        return bundle.getString("dropNothingToOpen");
+    }
+
+    /** Several files at once: opening one of them would be a guess. */
+    public String dropMultipleFiles(String count) {
+        return format("dropMultipleFiles", count);
+    }
+
+    /** Not a {@code .txt} or {@code .md}, so not a document for this editor. */
+    public String dropUnsupportedType(String fileName) {
+        return format("dropUnsupportedType", fileName);
+    }
+
+    /** The path existed when the drag started but is gone by the time it was dropped. */
+    public String dropMissingFile(String fileName) {
+        return format("dropMissingFile", fileName);
+    }
+
+    /** A directory, a device or a fifo - not text. */
+    public String dropNotAFile(String fileName) {
+        return format("dropNotAFile", fileName);
+    }
+
     /** Title of the prompt shown when the file changed on disk after it was opened. */
     public String externalChangeTitle() {
         return bundle.getString("externalChangeTitle");

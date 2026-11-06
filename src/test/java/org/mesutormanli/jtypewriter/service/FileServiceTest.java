@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -147,8 +148,57 @@ class FileServiceTest {
         assertFalse(fileService.hasUnsavedChanges());
     }
 
-    // --- data safety: atomic writes, backups, listener hooks ---------------
+    // --- the gate a drop shares with Open ---------------------------------
+    // A dropped file is not a new way to switch documents: it goes through the
+    // same SAVE / DISCARD / CANCEL decision, which is what these three cases
+    // pin. Anything else would be a second, untested save path.
 
+    @Test
+    void openPathIsAbortedWhenUnsavedChangesAreCancelled(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("dropped.txt");
+        Files.writeString(target, "from disk");
+        fileService.setCurrentContent("draft");
+        when(dialogService.showUnsavedChangesDialog(any())).thenReturn(DialogService.SaveChoice.CANCEL);
+
+        assertTrue(fileService.openPath(null, target).isEmpty());
+
+        // nothing was read and the editor still holds the unsaved text
+        assertEquals("draft", fileService.getCurrentContent());
+        assertTrue(fileService.hasUnsavedChanges());
+        assertNull(fileService.getCurrentFilePath());
+    }
+
+    @Test
+    void openPathLoadsTheDocumentAfterAnExplicitDiscard(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("dropped.md");
+        Files.writeString(target, "from disk");
+        fileService.setCurrentContent("draft");
+        when(dialogService.showUnsavedChangesDialog(any())).thenReturn(DialogService.SaveChoice.DISCARD);
+
+        var opened = fileService.openPath(null, target);
+
+        assertTrue(opened.isPresent());
+        assertEquals("from disk", fileService.getCurrentContent());
+        assertFalse(fileService.hasUnsavedChanges());
+    }
+
+    @Test
+    void openPathKeepsTheDraftWhenTheOfferedSaveIsCancelled(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("dropped.txt");
+        Files.writeString(target, "from disk");
+        fileService.setCurrentContent("draft");
+        when(dialogService.showUnsavedChangesDialog(any())).thenReturn(DialogService.SaveChoice.SAVE);
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.empty());
+
+        assertTrue(fileService.openPath(null, target).isEmpty());
+
+        assertEquals("draft", fileService.getCurrentContent());
+        assertTrue(fileService.hasUnsavedChanges());
+    }
+
+    // --- data safety: atomic writes, backups, listener hooks ---------------
     @Test
     void overwriteKeepsPreviousVersionInBackup(@TempDir Path dir) throws IOException {
         var target = dir.resolve("doc.txt");
@@ -563,7 +613,7 @@ class FileServiceTest {
         fileService.restoreRecovered(null, "scratch text");
 
         assertTrue(fileService.hasUnsavedChanges());
-        assertEquals(null, fileService.getCurrentFilePath());
+        assertNull(fileService.getCurrentFilePath());
     }
 
     @Test
@@ -755,7 +805,7 @@ class FileServiceTest {
         assertTrue(fileService.loadFile(null, target).isEmpty());
 
         assertEquals("my draft", fileService.getCurrentContent());
-        assertEquals(null, fileService.getCurrentFilePath());
+        assertNull(fileService.getCurrentFilePath());
         assertTrue(fileService.hasUnsavedChanges());
         assertArrayEquals(MALFORMED_UTF8_BOM, Files.readAllBytes(target));
     }
@@ -805,7 +855,7 @@ class FileServiceTest {
         assertTrue(fileService.newDocument(null));
 
         verifyNoInteractions(dialogService);
-        assertEquals(null, fileService.getCurrentFilePath());
+        assertNull(fileService.getCurrentFilePath());
         assertFalse(fileService.hasUnsavedChanges());
         assertEquals("", fileService.getCurrentContent());
     }
@@ -818,7 +868,7 @@ class FileServiceTest {
         assertFalse(fileService.newDocument(null));
 
         assertEquals("draft", fileService.getCurrentContent());
-        assertEquals(null, fileService.getCurrentFilePath());
+        assertNull(fileService.getCurrentFilePath());
         verify(dialogService, never()).showOpenDialog(any());
     }
 
@@ -831,7 +881,7 @@ class FileServiceTest {
 
         assertEquals("", fileService.getCurrentContent());
         assertFalse(fileService.hasUnsavedChanges());
-        assertEquals(null, fileService.getCurrentFilePath());
+        assertNull(fileService.getCurrentFilePath());
     }
 
     @Test
@@ -845,7 +895,7 @@ class FileServiceTest {
 
         assertEquals("draft", Files.readString(backup));
         assertEquals("", fileService.getCurrentContent());
-        assertEquals(null, fileService.getCurrentFilePath());
+        assertNull(fileService.getCurrentFilePath());
     }
 
     @Test

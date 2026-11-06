@@ -21,14 +21,21 @@ public class MainStage {
     private final FileService fileService;
     private final AppSettings settings;
     private final AutoSaveService autoSaveService;
+    private final DropHandler dropHandler;
 
-    public MainStage(FileService fileService, AppSettings settings, AutoSaveService autoSaveService) {
+    public MainStage(FileService fileService, AppSettings settings, AutoSaveService autoSaveService,
+                     DropHandler dropHandler) {
         this.fileService = fileService;
         this.settings = settings;
         this.autoSaveService = autoSaveService;
+        this.dropHandler = dropHandler;
     }
 
     public void configure(Stage stage, Scene scene) {
+        // Dropping a document works anywhere in the window, not just over the
+        // text: the gesture is installed once, on the scene the stage shows.
+        dropHandler.install(stage, scene);
+
         // A session that ended in fullscreen comes back in fullscreen.
         // Fullscreen and maximized are mutually exclusive states, so only one
         // of them is ever restored (fullscreen wins); the normal geometry is

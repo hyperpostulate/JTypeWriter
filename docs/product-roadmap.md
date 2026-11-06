@@ -41,20 +41,20 @@ yerleştirilmiştir, ayrı bir kuyruk oluşturmaz — üçü de kapatıldı (W0-
 Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir sayı burada yoksa
 `analysis.md`'den geliyordur ve `analysis.md` 2 Kasım'dan beri güncellenmediği için bayattır.
 
-| Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`W3-03 sonrası`) |
+| Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`W3-04 sonrası`) |
 |---|---:|---:|
-| Commit | 137 | **176** (+39) |
-| Üretim sınıfı / satırı | 51 / 7.611 | **59 / 10.661** |
-| Test dosyası / `@Test` | 42 / 350 | **51 / 466** |
-| Bundle anahtarı | 6 × 90 | **6 × 125** |
-| `mvn -B clean test` | 350/0/0 | **466/0/0** |
+| Commit | 137 | **177** (+40) |
+| Üretim sınıfı / satırı | 51 / 7.611 | **61 / 10.961** |
+| Test dosyası / `@Test` | 42 / 350 | **53 / 488** |
+| Bundle anahtarı | 6 × 90 | **6 × 131** |
+| `mvn -B clean test` | 350/0/0 | **488/0/0** |
 | Tag / Release | 0 / 0 | **3 / 3** (`v1.0.0`, `v1.0.1`, `v1.0.2`) |
 | Release varlığı | — | **6** (5 ikili/kaynak + `SHA256SUMS`) |
 | Release işareti | — | **üçü de `prerelease=true`** |
 | `verify-artifacts` karşılaştırması | 17 | **20** (gömülü font lisansı +2, font kaynağı +1) |
 | Yıldız / çatal / issue | 0 / 0 / 0 | **0 / 0 / 0** |
 
-**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ◐ (W3-01…W3-03 ✅; W3-04…W3-06 ☐) · W4 ☐.
+**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ◐ (W3-01…W3-04 ✅; W3-05, W3-06 ☐) · W4 ☐.
 Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ◐ · G4 ☐**.
 
 İki sayı bu tablodan **türetilmemelidir**:
@@ -810,6 +810,31 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
 - **Bitti tanımı:** Kirli belgeye bırakma `ExitDisposition` üzerinden soruyor (test, saf model
   düzeyinde).
 - **Doğrulama:** `mvn test -Dtest=ExitDispositionTest,MainStageTest`.
+- **Uygulama (7 Kasım):** Karar saf bir kayda taşındı: `ui/DroppedFiles` bir dosya listesini
+  tek okunabilir `.txt`/`.md` belgesine indirger; dosya olmaması, birden çok dosya, başka tür,
+  klasör ve kaybolmuş yol ayrı `Problem` değerleri olarak adıyla bildirilir. `ui/DropHandler`
+  yalnızca tutkal: jesti **sahne filtresi** olarak kurar (`DRAG_OVER`/`DRAG_DROPPED`), böylece
+  bırakma pencerenin her yerinde çalışır ve `TextInputControl` onu sürüklenen metin sanmadan
+  önce yakalanır; dosya taşımayan jest hiç dokunulmadan geçer, yani düzenleyici içi metin
+  sürükleme bozulmaz. Açma yolu yeni bir kaydetme yolu icat etmiyor:
+  `FileService.openPathAsync`, Aç/Yeni ile aynı `confirmDiscardOrSave` matrisinden geçiyor;
+  kirli belgede SAVE/DISCARD/CANCEL aynen sorulur ve iptal edilen kaydetme düzenleyiciyi olduğu
+  gibi bırakır. `DropContractTest` bunu kaynak düzeyinde pinliyor (ikinci soru yok, doğrudan
+  `saveFile` yok, `FileService` dışında hiçbir kaynak `showUnsavedChangesDialog` çağırmıyor).
+  Ret sessiz değil: kabul edilen jest sonra arayüz dilinde adıyla/adediyle hata diyalogu açar.
+  6 yeni anahtar altı dilde (6 × 131). Bu kart yazılırken ayrıca bir i18n kusuru bulundu ve
+  onarıldı: `MessageFormat`'a giden bir desende tek `'` sessizce yutuluyor, `getString` ile
+  okunan düz bir değerde ise `''` kullanıcıya iki kesme işareti olarak ulaşıyor. `MessagesTest`'e
+  bu sözleşmeyi anahtar bazında pinleyen bir test eklendi (formatted anahtarlar `''`, düz
+  anahtarlar tek `'`); mutasyonla (FR `dropOpenFailedHeader` → `''`) kırmızı olduğu görüldü.
+  W3-03'te sevk edilen `startupOpenFailedHeader` da aynı hatayı taşıyordu, o da düzeltildi.
+  Kart "`ExitDisposition` üzerinden" diyor; ölçülen karşılığı `FileService.confirmDiscardOrSave`:
+  `ExitDisposition` taslağın *çıkışta* ne olacağını söyleyen enum, belge değiştirmede hiç
+  çağrılmıyor. Kapatma isteği de, Aç da, Yeni de aynı SAVE/DISCARD/CANCEL matrisinden geçiyor;
+  bırakma da o matristen geçiyor.
+  **Kanıt:** `mvn -B clean test` → **488/0/0**; `mvn test -Dtest=DroppedFilesTest,DropContractTest,FileServiceTest,MessagesTest`
+  → **13/13 + 5/5 + 50/50 + 13/13**; `mvn test -Dtest=ExitDispositionTest,MainStageTest`
+  → kartın istediği hedef yeşil.
 
 **W3-05 · A2a — `FindModel` (saf model)** · M · E1
 - **Kapsam:** yeni `ui/FindModel` (JavaFX'siz)
@@ -950,7 +975,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W3-01 | `EditorAction` katmanı | M1, U13 | M | W1-03 | ✅ | `mvn test -Dtest=KeyboardShortcutHandlerTest,EditorActionTest,ShortcutRowsTest` → 15/15 + 6/6 + 7/7: akor tablosu, etki eşlemesi ve kısayol kartı tek `EditorAction` envanterinden üretiliyor; iki yönlü kapsam ve akor sahipliği testli; `EditorAction` dışındaki kaynak dosyalarda akor literali yok (kaynak taraması); araç çubuğu `actionRunner.accept(...)` üzerinden gidiyor. Mutasyonla (çift akor, yanlış etki, `ToolbarView`'a geri konan `"Ctrl+S"`) 3 test kırmızı. `mvn -B clean test` → 439/439 |
 | W3-02 | Komut menüsü (araç çubuğunda `☰`) | E2 | M | W3-01 | ✅ | `mvn test -Dtest=MainControllerTest,ToolbarFitTest,MessagesTest` → 10/10 + 13/13 + 12/12: `MainMenu.layout()` dört menüde 14 platform-dışı `EditorAction`'ı tam bir kez içeriyor, altı dilde başlık/etiket dolu, Yardım komut taşımıyor (yalnız Hakkında dialogu); menü düğmesi `fitControls()`'un ilk kontrolü olduğu için genişlik modeli onu da ölçüyor (FR compact 817 px < 900). `Ctrl+T` araç çubuğuyla birlikte menüyü de gizliyor (ayrı krom satırı yok). Mutasyon: `SAVE_AS` layout'tan çıkarılınca kapsam testi kırmızı (14→13), menü satırı `fitControls()`'tan çıkarılınca ölçüm testi kırmızı (ikisi de geri alındı). `mvn -B clean test` → 443/443 |
 | W3-03 | CLI argümanı | E3 | S | W3-01 | ✅ | `StartupArguments` + `FxApplication` bağlantısı: argümanlı başlatma belgeyi açıyor, geçersiz yol arayüz dilinde adıyla bildiriliyor, ikinci örnek devri yok; `mvn -B clean test` → 466/0/0, odaklı 34/0/0; paketli `smoke-appimage.sh --open-sample --skip-deb` → PASS (başlık `JTypeWriter - cli-sample.txt`); `verify-artifacts.sh --skip-build` → 20/20 |
-| W3-04 | Sürükle-bırak | E4 | S | W3-01 | ☐ | |
+| W3-04 | Sürükle-bırak | E4 | S | W3-01 | ✅ | `DroppedFiles` (saf karar) + `DropHandler` (sahne filtresi) + `FileService.openPathAsync`: `.txt`/`.md` bırakma Aç ile aynı SAVE/DISCARD/CANCEL matrisinden geçiyor, ret adıyla/adediyle bildiriliyor, dosya taşımayan jest düzenleyiciye bırakılıyor; `mvn -B clean test` → 488/0/0, odaklı DroppedFiles+DropContract+FileService+Messages 13/5/50/13, `ExitDispositionTest,MainStageTest` yeşil |
 | W3-05 | `FindModel` | E1 | M | W2-01, W3-01 | ☐ | |
 | W3-06 | Arama paneli | E1 | M | W3-05 | ☐ | |
 | W4-01 | Ayar şema sürümü | D13, D12 | S | — | ☐ | |

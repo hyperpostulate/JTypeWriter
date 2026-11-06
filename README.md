@@ -110,9 +110,11 @@ The leftmost toolbar control is a `☰` button holding four menus - File, Edit a
   - **Nothing blocks startup.** A document that has disappeared in the meantime is skipped silently, and a broken settings file falls back to the defaults instead of blocking startup
   - **YOLO mode is deliberately *not* persisted.** A mode that blocks deletions should not still be armed at the next start
 
-### Opening Files from the Command Line
+### Opening Documents from Outside the App
 
 `JTypeWriter notes.txt` opens that document directly, and a file association or double-click hands the same path through the same code, so both entry points behave alike. Only one file can be named: a second argument is refused with a dialog that names it, rather than silently picking the first. A path that does not exist, is not a regular file, or cannot be parsed as a path is reported in the UI language - startup never silently falls back to an empty editor, which would look exactly like a lost document. With no argument the welcome card appears as before. A recovered draft still wins over the command-line document: it is the only copy of that text, while the named file is still on disk. A symbolic link keeps its own name; the save path already follows the link to its target. Starting a second instance while one is running is still refused by the single-instance lock - there is no hand-off, so the already-running window is not asked to open the file.
+
+**Dropping a file works too, and means the same thing.** Drag a `.txt` or `.md` onto the window - the text, the status bar, anywhere - and it opens through the same code as Open: a dirty document is asked about first, and Cancel or a cancelled save leaves the editor exactly as it was, so a drop is never a shortcut past the save prompt. The whole window is the target because that is where the pointer happens to be, and the gesture is intercepted before the text area can treat it as dragged text. Plain-text drags inside the editor still work as before. Zero files, several files at once, a folder, a PDF or a file that vanished between the drag and the drop are each refused with a dialog naming what was dropped - a drop that silently did nothing would look like a broken window.
 
 ### Single Instance
 
@@ -349,6 +351,8 @@ org.mesutormanli.jtypewriter
 │   ├── AboutDialog.java                  # About dialog with author info
 │   ├── KeyboardShortcutHandler.java      # Centralized keyboard shortcut handling
 │   ├── CrashHandler.java                 # Global crash net: log + error dialog
+│   ├── DropHandler.java                  # Scene-level file drop glue (resolve, open, report)
+│   ├── DroppedFiles.java                 # Drop decision: one readable .txt/.md (pure)
 │   ├── SingleInstanceWarning.java        # "Already running" warning window
 │   ├── component/
 │   │   ├── EditorArea.java               # TextArea enforcing the YOLO policy
@@ -385,6 +389,8 @@ org.mesutormanli.jtypewriter
 | `EditorArea` | TextArea subclass that routes every edit through the YOLO policy; loads documents through `setDocument` |
 | `UndoHistoryReset` | Clears the TextArea undo/redo history on every document load (reflective, JavaFX has no API) |
 | `YoloPolicy` | YOLO mode edit policy (blocks deletions, allows insertions) |
+| `DroppedFiles` | Pure decision behind a file drop: exactly one readable `.txt`/`.md` becomes the document to open; no file, several files, another type, a folder or a vanished path becomes a localized refusal |
+| `DropHandler` | Scene-level drag glue: accepts the gesture as an event filter (so the text area cannot treat it as dragged text), resolves it through `DroppedFiles` and opens the document through the same unsaved-changes gate as Open |
 | `StartupArguments` | Pure resolution of the process argument behind `JTypeWriter <file>`: a regular file becomes the document to open, while a missing path, a directory, an unparsable path or more than one argument becomes a localized refusal instead of a silent empty editor; a symbolic link keeps its own name |
 | `EditorKeyHandler` | Handles keystroke sound effects and session stats tracking |
 | `StatsBar` | Renders the clock and the *saved at ...* confirmation, both in the UI language's date/time formats, and live session statistics in the bottom bar; shows a persistent warning naming the autosave failure, with separate text for a stale draft, and its text size cycles on double-click |
@@ -459,6 +465,8 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `RecoveryStoreTest` | Crash-recovery draft lifecycle (save/restore/drop) in one atomic per-session `.jtw` file, newest-draft adoption, isolation between concurrent sessions, parking a postponed draft so the live slot stays free, tolerance for corrupt headers, bad timestamps, unusable paths and invalid UTF-8; a read-only directory makes `clear()` report failure and log a `WARNING` |
 | `AutoSaveServiceTest` | Opening or creating a document drops the previous document's stale recovery draft; a postponed draft survives an exit and no longer silences autosave of the new document (regression); an answered exit clears the draft, an unasked exit parks it, a frozen slot keeps the file untouched, and failed snapshots or parked drafts report health; a failed delete keeps the warning without a dialog and a later successful delete withdraws it; a draft older than the document on disk is restored without its path |
 | `ExitDispositionTest` | The four-way exit matrix: answered vs unasked exit against a live vs frozen slot, with a frozen slot winning over every other signal |
+| `DroppedFilesTest` | The drop decision: `null`/empty file list, one file, `.md`, an upper-case extension, several files (refused with the count), a PDF and an extension-less file, a path that vanished before the drop, a directory named `*.txt`, a symlink that keeps its name, and the suffix check rejecting names that only end with the same letters |
+| `DropContractTest` | Source-level contract for the drop: `MainStage` installs it, it filters `DRAG_OVER`/`DRAG_DROPPED` on the whole scene, it opens only through `FileService.openPathAsync` (no second save prompt, no direct save), it hands the loaded text to the editor, and no source outside `FileService` asks the unsaved-changes question |
 | `StartupArgumentsTest` | The `JTypeWriter <file>` decision: no/blank argument, an existing regular file, a relative path, a missing path, a directory, two arguments, a symlink that keeps its name, and text the platform cannot parse |
 | `AutosaveHealthTest` | Sticky failure state (`DRAFT_WRITE` / `DRAFT_PARK` / `DRAFT_DELETE`) that survives repeated failures, clears on a successful write and notifies once per real transition |
 | `ProcessCrashRecoveryTest` | Linux-only end-to-end kill test: `CrashHarness` (a helper, not a test class) builds the real service graph in a child JVM without starting JavaFX and snapshots a dirty document through the production autosave path; the parent then kills it with `SIGKILL` (`Process.destroyForcibly`) and a second JVM must recover the exact non-ASCII text. A paired case proves an answered close still drops the draft, and `-Duser.home` keeps logging inside a temp home. Synchronisation is the stdout marker plus `waitFor`, never `Thread.sleep` |

@@ -223,6 +223,79 @@ class MessagesTest {
     }
 
     /**
+     * The apostrophe contract, which nothing else checks.
+     *
+     * <p>{@link MessageFormat} treats a single quote as a quoting delimiter: in a
+     * pattern, {@code n'est} is formatted as {@code nest} - the apostrophe
+     * disappears. In a plain property read with {@code bundle.getString}, the
+     * same doubled {@code n''est} is <em>not</em> folded, so the user sees two
+     * apostrophes. Both mistakes are invisible in the key-parity test and only
+     * ever show up in front of a French user, so the convention is derived from
+     * {@code Messages.java} (which keys go through {@code format(...)}) and
+     * enforced per key in every bundle.</p>
+     */
+    @Test
+    void apostrophesAreDoubledExactlyInTheKeysMessageFormatProcesses() {
+        var formatted = formattedKeys();
+        assertTrue(formatted.contains("dropMultipleFiles"),
+                "the derivation missed a formatted key: " + formatted);
+
+        for (var language : Language.values()) {
+            var bundle = Messages.bundleFor(language);
+            for (var key : keysOf(bundle)) {
+                var value = bundle.getString(key);
+                if (formatted.contains(key)) {
+                    assertFalse(hasLoneApostrophe(value),
+                            language + " " + key + " has an unescaped apostrophe, so"
+                                    + " MessageFormat drops it: " + value);
+                } else {
+                    assertFalse(value.contains("''"),
+                            language + " " + key + " is read verbatim, so a doubled apostrophe"
+                                    + " reaches the user as two: " + value);
+                }
+            }
+        }
+    }
+
+    /** An odd number of adjacent quotes somewhere means one of them is unescaped. */
+    private static boolean hasLoneApostrophe(String value) {
+        var index = 0;
+        while (index < value.length()) {
+            if (value.charAt(index) != '\'') {
+                index++;
+                continue;
+            }
+            var run = 0;
+            while (index < value.length() && value.charAt(index) == '\'') {
+                run++;
+                index++;
+            }
+            if (run % 2 != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Every bundle key whose value {@code Messages} passes through {@code MessageFormat}. */
+    private static Set<String> formattedKeys() {
+        var path = Path.of("src", "main", "java", "org", "mesutormanli", "jtypewriter",
+                "locale", "Messages.java");
+        String source;
+        try {
+            source = Files.readString(path, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot read " + path.toAbsolutePath(), e);
+        }
+        var keys = new TreeSet<String>();
+        var matcher = Pattern.compile("\\bformat\\(\\s*\"([^\"]+)\"").matcher(source);
+        while (matcher.find()) {
+            keys.add(matcher.group(1));
+        }
+        return keys;
+    }
+
+    /**
      * Regression: {@code MessageFormat.format} used to follow the JVM default
      * locale, so a Turkish UI on an English machine grouped numbers as "1,234".
      * The UI language decides the separators, not the system locale.

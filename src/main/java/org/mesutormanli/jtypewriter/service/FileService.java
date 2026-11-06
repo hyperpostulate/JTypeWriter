@@ -245,8 +245,37 @@ public class FileService {
             return ioExecutor.completeOnFx(() -> dialogService.showOpenDialog(stage))
                     .thenCompose(file -> file.isEmpty()
                             ? CompletableFuture.completedFuture(Optional.<Path>empty())
-                            : loadFileAsync(stage, file.get().toPath()));
+                            : openPathAsync(stage, file.get().toPath()));
         });
+    }
+
+    /**
+     * Opens a document whose path is already known - a drop, or any other
+     * gesture that names the file itself instead of asking the file chooser.
+     *
+     * <p>The unsaved-changes gate is the one used by
+     * {@link #openFileAsync(javafx.stage.Stage)} and {@link #newDocumentAsync}:
+     * this method does not ask a second question and does not invent a second
+     * save path. A drop is just another way to name the next document, so
+     * Cancel, a failing save and the encoding prompt all behave exactly as they
+     * do on Open.</p>
+     */
+    public CompletableFuture<Optional<Path>> openPathAsync(javafx.stage.Stage stage, Path path) {
+        return confirmDiscardOrSaveAsync(stage).thenCompose(proceed ->
+                proceed
+                        ? loadFileAsync(stage, path)
+                        : CompletableFuture.completedFuture(Optional.empty()));
+    }
+
+    /**
+     * Blocking variant of {@link #openPathAsync(javafx.stage.Stage, Path)};
+     * production UI uses the async one, tests use this.
+     */
+    public Optional<Path> openPath(javafx.stage.Stage stage, Path path) {
+        if (!confirmDiscardOrSave(stage)) {
+            return Optional.empty();
+        }
+        return loadFile(stage, path);
     }
 
     /**

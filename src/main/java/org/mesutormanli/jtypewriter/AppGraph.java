@@ -18,6 +18,7 @@ import org.mesutormanli.jtypewriter.service.StorageFootprint;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
 import org.mesutormanli.jtypewriter.ui.AboutDialog;
 import org.mesutormanli.jtypewriter.ui.CrashHandler;
+import org.mesutormanli.jtypewriter.ui.DropHandler;
 import org.mesutormanli.jtypewriter.ui.KeyboardShortcutHandler;
 import org.mesutormanli.jtypewriter.ui.MainController;
 import org.mesutormanli.jtypewriter.ui.MainMenu;
@@ -87,6 +88,8 @@ public final class AppGraph {
             themeManager, textColorManager, fontSizeManager,
             toolbarState, messages, localeManager, aboutDialog, mainMenu);
     public final StatsBar statsBar = new StatsBar(sessionStats, messages, statsBarState, localeManager);
+    public final DropHandler dropHandler = new DropHandler(
+            fileService, dialogService, messages, editorArea);
     public final CrashHandler crashHandler = new CrashHandler(dialogService, messages, () -> this.stage);
 
     // --- top level assembly ------------------------------------------------
@@ -94,7 +97,8 @@ public final class AppGraph {
             editorArea, mainMenu, toolbarView, statsBar,
             fileService, messages, localeManager, shortcutHandler, editorKeyHandler,
             autoSaveService, settings, LocalTime::now);
-    public final MainStage mainStage = new MainStage(fileService, settings, autoSaveService);
+    public final MainStage mainStage = new MainStage(
+            fileService, settings, autoSaveService, dropHandler);
 
     private volatile Stage stage;
 
