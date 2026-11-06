@@ -41,20 +41,20 @@ yerleştirilmiştir, ayrı bir kuyruk oluşturmaz — üçü de kapatıldı (W0-
 Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir sayı burada yoksa
 `analysis.md`'den geliyordur ve `analysis.md` 2 Kasım'dan beri güncellenmediği için bayattır.
 
-| Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`b5ebe09`) |
+| Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`W3-03 sonrası`) |
 |---|---:|---:|
-| Commit | 137 | **174** (+37) |
-| Üretim sınıfı / satırı | 51 / 7.611 | **58 / 10.459** |
-| Test dosyası / `@Test` | 42 / 350 | **50 / 452** |
-| Bundle anahtarı | 6 × 90 | **6 × 120** |
-| `mvn -B clean test` | 350/0/0 | **452/0/0** |
+| Commit | 137 | **176** (+39) |
+| Üretim sınıfı / satırı | 51 / 7.611 | **59 / 10.661** |
+| Test dosyası / `@Test` | 42 / 350 | **51 / 466** |
+| Bundle anahtarı | 6 × 90 | **6 × 125** |
+| `mvn -B clean test` | 350/0/0 | **466/0/0** |
 | Tag / Release | 0 / 0 | **3 / 3** (`v1.0.0`, `v1.0.1`, `v1.0.2`) |
 | Release varlığı | — | **6** (5 ikili/kaynak + `SHA256SUMS`) |
 | Release işareti | — | **üçü de `prerelease=true`** |
 | `verify-artifacts` karşılaştırması | 17 | **20** (gömülü font lisansı +2, font kaynağı +1) |
 | Yıldız / çatal / issue | 0 / 0 / 0 | **0 / 0 / 0** |
 
-**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ◐ (W3-01, W3-02 ✅; W3-03…W3-06 ☐) · W4 ☐.
+**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ◐ (W3-01…W3-03 ✅; W3-04…W3-06 ☐) · W4 ☐.
 Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ◐ · G4 ☐**.
 
 İki sayı bu tablodan **türetilmemelidir**:
@@ -783,6 +783,21 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   sessizce yutulmuyor.
 - **Doğrulama:** `scripts/smoke-appimage.sh --open-sample` (W1-01'e eklenir) +
   `mvn test -Dtest=JTypeWriterAppTests`.
+- **Uygulama (7 Kasım):** `StartupArguments` (saf, JavaFX'siz) `getParameters().getRaw()`'ı
+  çözer; `FxApplication.start` kurtarma teklifini önce sorar (taslak tek kopya, komut
+  satırındaki dosya diskte), başarılı açılışta karşılama kartını bastırır ve reddedilen
+  argümanı arayüz dilinde adıyla bildirir (`INVALID_PATH`/`MISSING`/`NOT_A_FILE`/
+  `TOO_MANY_ARGUMENTS`). Sembolik bağlantı kendi adını korur
+  (`toAbsolutePath().normalize()`, `toRealPath()` değil), çünkü yazma yolu bağlantıyı zaten
+  izliyor. Birden çok argüman ilkini seçmek yerine reddedilir; ikinci örnek devri yoktur.
+  5 yeni anahtar altı dilde (6 × 125) ve `Messages` erişimcileri `MessagesTest` ile eşleşiyor.
+  `--open-sample` smoke'a eklendi: Linux'ta pencere başlığı `JTypeWriter - cli-sample.txt`
+  doğrulanıyor, Windows'ta launcher argümanla ayakta kalıyor; CI smoke adımı artık
+  `--skip-build --open-sample` çalıştırıyor ve `CiGatesTest` bunu pinliyor.
+  **Kanıt:** `mvn -B clean test` → **466/0/0**; `mvn test -Dtest=StartupArgumentsTest,
+  JTypeWriterAppTests,CiGatesTest,MessagesTest` → **34/0/0**;
+  `scripts/smoke-appimage.sh --open-sample --skip-deb` → **PASS** (imaj 2 s'de, örnek belge
+  başlığıyla 2 s'de açıldı); `scripts/verify-artifacts.sh --skip-build` → **20/20**.
 
 **W3-04 · A4d — Sürükle-bırak** · S · E4
 - **Kapsam:** `MainStage`/`EditorArea` (`Dragboard`)
@@ -930,7 +945,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W2-06 | Taslak yolu doğrulama (D3) | D3 (D8 ürün kararıyla kapsam dışı) | M | W2-04 | ✅ | `mvn test -Dtest=RecoveryTargetPathTest,RecoveryStoreTest` → 10/10 + 27/27: mutlaklık, kanoniklik, izinli kök ve veri-dizini ret kuralları; kural tutmayan taslak hedefsiz açılıyor, metin korunuyor; kanonik biçim yalnız karar için (Windows 8.3 kısa adı ve symlink adı korunuyor); mutasyonla (accept→Path.of, toRealPath→toAbsolutePath, canonical→dönen değer) 4 test kırmızı; `mvn -B clean test` → 429/429. D8: `InstanceLock` aynı `user.home`'da ikinci süreci zaten durduruyor ve W2-04 çakışmayı soruyor → dosya başına `.jtwlock` eklenmedi, gerekçe kartta |
 | W3-01 | `EditorAction` katmanı | M1, U13 | M | W1-03 | ✅ | `mvn test -Dtest=KeyboardShortcutHandlerTest,EditorActionTest,ShortcutRowsTest` → 15/15 + 6/6 + 7/7: akor tablosu, etki eşlemesi ve kısayol kartı tek `EditorAction` envanterinden üretiliyor; iki yönlü kapsam ve akor sahipliği testli; `EditorAction` dışındaki kaynak dosyalarda akor literali yok (kaynak taraması); araç çubuğu `actionRunner.accept(...)` üzerinden gidiyor. Mutasyonla (çift akor, yanlış etki, `ToolbarView`'a geri konan `"Ctrl+S"`) 3 test kırmızı. `mvn -B clean test` → 439/439 |
 | W3-02 | Komut menüsü (araç çubuğunda `☰`) | E2 | M | W3-01 | ✅ | `mvn test -Dtest=MainControllerTest,ToolbarFitTest,MessagesTest` → 10/10 + 13/13 + 12/12: `MainMenu.layout()` dört menüde 14 platform-dışı `EditorAction`'ı tam bir kez içeriyor, altı dilde başlık/etiket dolu, Yardım komut taşımıyor (yalnız Hakkında dialogu); menü düğmesi `fitControls()`'un ilk kontrolü olduğu için genişlik modeli onu da ölçüyor (FR compact 817 px < 900). `Ctrl+T` araç çubuğuyla birlikte menüyü de gizliyor (ayrı krom satırı yok). Mutasyon: `SAVE_AS` layout'tan çıkarılınca kapsam testi kırmızı (14→13), menü satırı `fitControls()`'tan çıkarılınca ölçüm testi kırmızı (ikisi de geri alındı). `mvn -B clean test` → 443/443 |
-| W3-03 | CLI argümanı | E3 | S | W3-01 | ☐ | |
+| W3-03 | CLI argümanı | E3 | S | W3-01 | ✅ | `StartupArguments` + `FxApplication` bağlantısı: argümanlı başlatma belgeyi açıyor, geçersiz yol arayüz dilinde adıyla bildiriliyor, ikinci örnek devri yok; `mvn -B clean test` → 466/0/0, odaklı 34/0/0; paketli `smoke-appimage.sh --open-sample --skip-deb` → PASS (başlık `JTypeWriter - cli-sample.txt`); `verify-artifacts.sh --skip-build` → 20/20 |
 | W3-04 | Sürükle-bırak | E4 | S | W3-01 | ☐ | |
 | W3-05 | `FindModel` | E1 | M | W2-01, W3-01 | ☐ | |
 | W3-06 | Arama paneli | E1 | M | W3-05 | ☐ | |

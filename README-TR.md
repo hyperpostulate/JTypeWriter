@@ -110,6 +110,10 @@ Araç çubuğunun en solundaki kontrol, dört menüyü taşıyan bir `☰` düğ
   - **Hiçbir şey açılışı engellemez.** Aradan geçen sürede silinmiş bir belge sessizce atlanır, bozuk bir ayar dosyası ise başlangıcı engellemek yerine varsayılanlara döner
   - **YOLO modu bilinçli olarak *kaydedilmez*.** Silmeyi engelleyen bir modun bir sonraki açılışta hâlâ etkin olması istenmez
 
+### Komut Satırından Dosya Açma
+
+`JTypeWriter notlar.txt` belgeyi doğrudan açar; dosya ilişkilendirmesi veya çift tıklama aynı yolu aynı koddan geçirir, böylece iki giriş noktası aynı davranır. Yalnızca bir dosya adlandırılabilir: ikinci argüman sessizce ilkini seçmek yerine adını söyleyen bir iletişim kutusuyla reddedilir. Var olmayan, normal bir dosya olmayan ya da yol olarak çözülemeyen bir metin arayüz dilinde bildirilir - başlangıç asla sessizce boş bir düzenleyiciye düşmez, çünkü bu tam olarak kaybolmuş bir belge gibi görünürdü. Argüman yoksa karşılama kartı eskisi gibi görünür. Kurtarılan taslak komut satırındaki belgeden yine önce gelir: o metnin tek kopyası odur, adlandırılan dosya ise hâlâ diskte. Sembolik bağlantı kendi adını korur; kaydetme yolu bağlantıyı hedefine kadar zaten izler. Bir örnek çalışırken ikinci örnek başlatmak tek örnek kilidi tarafından yine reddedilir - devir yoktur, yani çalışan pencereye dosyayı açması söylenmez.
+
 ### Tek Örnek
 
 Kullanıcı hesabı başına yalnızca bir JTypeWriter örneği çalışır: `~/.jtypewriter/`
@@ -367,6 +371,7 @@ org.mesutormanli.jtypewriter
 ├── AppVersion.java                       # META-INF/maven pom.properties'ten okunan uygulama sürümü
 ├── AtomicFiles.java                      # Dayanıklı atomik dosya yazımı (fsync + rename)
 ├── InstanceLock.java                     # Kullanıcı başına örnek kilidi (tek örnek)
+├── StartupArguments.java                 # CLI/dosya ilişkilendirme argümanını çözer (saf)
 └── FxApplication.java                    # JavaFX yaşam döngüsü köprüsü
 ```
 
@@ -377,6 +382,7 @@ org.mesutormanli.jtypewriter
 | `EditorArea` | Her düzenlemeyi YOLO politikasından geçiren TextArea alt sınıfı; belgeleri `setDocument` ile yükler |
 | `UndoHistoryReset` | Her belge yüklemesinde TextArea'nın geri al/ileri al geçmişini temizler (yansıma ile; JavaFX'te API yok) |
 | `YoloPolicy` | YOLO modu düzenleme politikası (silmeyi engeller, eklemeye izin verir) |
+| `StartupArguments` | `JTypeWriter <dosya>` arkasındaki süreç argümanının saf çözümü: normal bir dosya açılacak belge olur; olmayan yol, dizin, çözülemeyen yol ya da birden çok argüman sessizce boş bir düzenleyici yerine arayüz dilinde bir ret bildirimi olur; sembolik bağlantı kendi adını korur |
 | `EditorKeyHandler` | Tuş vuruşu ses efektleri ve oturum istatistiklerini yönetir |
 | `StatsBar` | Saati ve *kaydedildi ...* onayını arayüz dilinin tarih/saat biçimleriyle alt çubukta gösterir; otomatik kayıt hatasını adlandıran kalıcı bir uyarı gösterir, eski taslak için ayrı metin kullanır ve yazı boyutu çift tıklamayla döner |
 | `KeyboardShortcutHandler` | Merkezi klavye kısayolu yönlendirmesi |
@@ -450,6 +456,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `RecoveryStoreTest` | Çökme kurtarma taslağı yaşam döngüsü (kaydet/geri yükle/sil); oturum başına tek atomik `.jtw` dosyası, en yeni taslağın devralınması, eşzamanlı oturumların izolasyonu, ertelenen taslağın ayrı dosyaya park edilip aktif slotun serbest bırakılması, bozuk başlık, hatalı zaman damgası, kullanılamayan yol ve geçersiz UTF-8'e tolerans; salt okunur bir dizin `clear()` çağrısının başarısız olduğunu bildirmesini ve `WARNING` loglamasını sağlar |
 | `AutoSaveServiceTest` | Belge açıldığında veya yeni belge oluşturulduğunda önceki belgenin bayat kurtarma taslağının silinmesi; ertelenen taslağın çıkışta korunması ve yeni belgenin otomatik kaydını artık susturmaması (regresyon); yanıtlanmış çıkışın taslağı silmesi, sorulmamış çıkışın taslağı park etmesi, dondurulmuş slotun dosyayı olduğu gibi koruması ve başarısız anlık görüntü veya park işlemlerinin sağlık durumunu bildirmesi; başarısız bir silmenin uyarıyı diyalog olmadan koruması ve sonraki başarılı silmenin uyarıyı kaldırması; diskteki belgeden daha eski bir taslağın yolu olmadan geri yüklenmesi |
 | `ExitDispositionTest` | Dört yönlü çıkış matrisi: canlı ve dondurulmuş slot karşısında yanıtlanmış ve sorulmamış çıkış; dondurulmuş slot diğer tüm sinyallerin önüne geçer |
+| `StartupArgumentsTest` | `JTypeWriter <dosya>` kararı: argümansız/boş argüman, var olan normal dosya, göreli yol, olmayan yol, dizin, iki argüman, adını koruyan symlink ve platformun yol olarak çözemediği metin |
 | `AutosaveHealthTest` | Yapışkan hata durumu (`DRAFT_WRITE` / `DRAFT_PARK` / `DRAFT_DELETE`); tekrarlanan hatalar boyunca korunur, başarılı bir yazımda temizlenir ve her gerçek geçişte tek bir bildirim gönderir |
 | `ProcessCrashRecoveryTest` | Yalnızca Linux'ta çalışan uçtan uca öldürme testi: `CrashHarness` (test sınıfı değil, yardımcı) alt JVM'de JavaFX'i başlatmadan gerçek servis grafiğini kurar ve kirli bir belgenin anlık görüntüsünü üretim otomatik kayıt yoluyla alır; ardından üst süreç onu `SIGKILL` ile (`Process.destroyForcibly`) öldürür ve ikinci bir JVM tam olarak aynı ASCII dışı metni kurtarmak zorundadır. Eşleştirilmiş bir durum, yanıtlanmış bir kapatmanın taslağı yine de sildiğini kanıtlar; `-Duser.home` ise loglamayı geçici bir ev dizininde tutar. Eşzamanlama `Thread.sleep` değil, stdout işareti ve `waitFor` ile yapılır |
 | `YoloPolicyTest` | YOLO modu düzenleme politikası (silme engelli, ekleme serbest, güvenli değiştirme) |

@@ -6,6 +6,7 @@
 #   ./scripts/smoke-appimage.sh                # fresh build + image + installer, then smoke
 #   ./scripts/smoke-appimage.sh --skip-build   # smoke what is already built
 #   ./scripts/smoke-appimage.sh --skip-build --skip-deb
+#   ./scripts/smoke-appimage.sh --skip-build --open-sample
 #
 # Linux launches the application image under an empty HOME inside Xvfb (or an
 # existing display), waits for the main window with xwininfo, stops the process,
@@ -13,6 +14,12 @@
 # package and asserts that dpkg no longer knows it. Windows launches the image
 # and requires the jpackage launcher to stay alive: a crashed JVM exits, and a
 # process that cannot start at all is exactly what this test must catch.
+#
+# --open-sample adds one more launch that names a real file on the command
+# line. A file association and a typed command both reach the application as
+# the same process argument, so this is the only place where the whole chain -
+# launcher, argument passing, path resolution, document load, window title -
+# is proven against the packaged artifact rather than the sources.
 #
 # Why this is not part of package.sh or verify-artifacts.sh: those prove the
 # *files*. They cannot prove that the bundled runtime finds its libraries, that
@@ -40,11 +47,13 @@ ALIVE_SECONDS="${SMOKE_ALIVE_SECONDS:-10}"
 
 BUILD=1
 SKIP_DEB=0
+OPEN_SAMPLE=0
 for argument in "$@"; do
     case "$argument" in
-        --skip-build) BUILD=0 ;;
-        --skip-deb)   SKIP_DEB=1 ;;
-        *) echo "unknown option: $argument (expected --skip-build and/or --skip-deb)" >&2; exit 1 ;;
+        --skip-build)   BUILD=0 ;;
+        --skip-deb)     SKIP_DEB=1 ;;
+        --open-sample)  OPEN_SAMPLE=1 ;;
+        *) echo "unknown option: $argument (expected --skip-build, --skip-deb and/or --open-sample)" >&2; exit 1 ;;
     esac
 done
 
@@ -120,9 +129,12 @@ ensure_display() {
 
 # --- process helpers ----------------------------------------------------
 # Waits for a titled window and treats an early exit as a failure with the
-# launcher's own log, so the CI result is diagnosable without a rerun.
+# launcher's own log, so the CI result is diagnosable without a rerun. The
+# pattern is matched literally: a document-title check must not let `.` in
+# "sample.txt" match any other character.
 wait_for_window() {
     local pid="$1" label="$2" log="$3"
+    local pattern="${4:-"\"$APP_NAME - "}"
     local deadline=$((SECONDS + WINDOW_TIMEOUT))
     local started=$SECONDS
     local tree
@@ -143,7 +155,7 @@ wait_for_window() {
         # before the app even started. The welcome dialog - "Welcome -
         # JTypeWriter" - deliberately does not match; the main stage is the
         # window a user gets.
-        if grep -q "\"$APP_NAME - " <<<"$tree"; then
+        if grep -qF -- "$pattern" <<<"$tree"; then
             note "$label: main window is up after $((SECONDS - started)) s"
             return
         fi
@@ -192,6 +204,31 @@ smoke_linux_image() {
     stop_process "$APP_PID"
     APP_PID=""
     note "image started and stopped cleanly"
+}
+
+smoke_linux_open_sample() {
+    local image="releases/linux/$APP_NAME"
+    [[ -x "$image/bin/$APP_NAME" ]] \
+        || fail "no application image launcher at $image/bin/$APP_NAME - run scripts/package.sh first"
+
+    ensure_display
+    local home="$WORK/sample-home"
+    mkdir -p "$home"
+    local sample="$WORK/cli-sample.txt"
+    echo "This document was named on the command line." > "$sample"
+    local log="$WORK/sample.log"
+
+    note "launching the application image with a document argument"
+    JAVA_TOOL_OPTIONS="-Duser.home=$home" "$image/bin/$APP_NAME" "$sample" >"$log" 2>&1 &
+    APP_PID=$!
+    # The title names the document, so a run that ignored the argument (and
+    # showed "Untitled" or the welcome card) fails instead of passing on any
+    # window at all.
+    wait_for_window "$APP_PID" "sample document" "$log" \
+        "\"$APP_NAME - $(basename "$sample")\""
+    stop_process "$APP_PID"
+    APP_PID=""
+    note "the sample document opened from the process argument"
 }
 
 smoke_linux_deb() {
@@ -298,9 +335,55 @@ smoke_windows_image() {
     APP_PID=""
 }
 
+smoke_windows_open_sample() {
+    local image="releases/windows/$APP_NAME"
+    [[ -x "$image/$APP_NAME.exe" ]] \
+        || fail "no application image launcher at $image/$APP_NAME.exe - run scripts/package.sh first"
+
+    local home="$WORK/sample-home"
+    mkdir -p "$home"
+    local home_native="$home"
+    local sample="$WORK/cli-sample.txt"
+    local sample_native="$sample"
+    echo "This document was named on the command line." > "$sample"
+    if command -v cygpath >/dev/null 2>&1; then
+        home_native=$(cygpath -w "$home")
+        sample_native=$(cygpath -w "$sample")
+    fi
+    local log="$WORK/sample.log"
+
+    note "launching the application image with a document argument"
+    JAVA_TOOL_OPTIONS="-Duser.home=$home_native" "$image/$APP_NAME.exe" "$sample_native" >"$log" 2>&1 &
+    APP_PID=$!
+
+    # There is no reliable interactive desktop on the Windows runners, so this
+    # leg proves what it can: the launcher accepts an argument and keeps
+    # running instead of dying on it. The document title is asserted on Linux.
+    local attempt
+    for attempt in $(seq 1 $((ALIVE_SECONDS * 2))); do
+        if ! kill -0 "$APP_PID" 2>/dev/null; then
+            local code=0
+            wait "$APP_PID" || code=$?
+            echo "---- image launcher log ----" >&2
+            cat "$log" >&2 || true
+            fail "the launcher exited with code $code after $((attempt / 2)) s with a document argument"
+        fi
+        sleep 0.5
+    done
+    note "image launcher with a document argument stayed alive for $ALIVE_SECONDS s"
+
+    taskkill //F //PID "$APP_PID" >/dev/null 2>&1 \
+        || taskkill //F //IM "$APP_NAME.exe" >/dev/null 2>&1 || true
+    wait "$APP_PID" 2>/dev/null || true
+    APP_PID=""
+}
+
 case "$PLATFORM" in
     linux)
         smoke_linux_image
+        if [[ "$OPEN_SAMPLE" == "1" ]]; then
+            smoke_linux_open_sample
+        fi
         if [[ "$SKIP_DEB" == "1" ]]; then
             note "skipping the .deb check (--skip-deb)"
         else
@@ -309,6 +392,9 @@ case "$PLATFORM" in
         ;;
     windows)
         smoke_windows_image
+        if [[ "$OPEN_SAMPLE" == "1" ]]; then
+            smoke_windows_open_sample
+        fi
         ;;
 esac
 

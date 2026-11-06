@@ -191,7 +191,7 @@ jobs:
 
       - name: Smoke test the packaged application
         shell: bash
-        run: bash scripts/smoke-appimage.sh --skip-build
+        run: bash scripts/smoke-appimage.sh --skip-build --open-sample
 
   # GitHub has no step-level permissions, so the badge push to gh-pages lives in
   # its own job: only this job needs contents: write. It runs only one leg of

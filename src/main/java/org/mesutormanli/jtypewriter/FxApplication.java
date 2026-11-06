@@ -17,6 +17,8 @@ import org.mesutormanli.jtypewriter.ui.MainController;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * JavaFX lifecycle bridge. Builds the object graph once in {@link #init()},
@@ -24,6 +26,8 @@ import java.io.InputStream;
  * {@link #start(Stage)}.
  */
 public class FxApplication extends Application {
+
+    private static final Logger LOG = AppLogging.logger(FxApplication.class);
 
     private AppGraph app;
 
@@ -67,13 +71,26 @@ public class FxApplication extends Application {
             // The recovery offer must be resolved before autosave starts: the
             // periodic snapshot sees an empty, clean editor while the (modal)
             // recovery dialog is still open and would clear the very draft the
-            // user is being asked about. Attach afterwards, on the settled
-            // document (restored draft or last session file).
+            // user is being asked about. It also outranks everything else,
+            // command-line arguments included: a draft is the only copy of that
+            // text, while the document named on the command line is still on
+            // disk and can be reopened.
+            var request = StartupArguments.resolve(getParameters().getRaw());
+            var openedFromArguments = false;
             if (!app.autoSaveService.offerRecovery(primaryStage, app.editorArea)) {
-                restoreLastSession(primaryStage); // continue where the last session ended
+                openedFromArguments = openRequestedDocument(primaryStage, request);
+                if (!openedFromArguments && request.argument() == null) {
+                    restoreLastSession(primaryStage); // continue where the last session ended
+                }
             }
             app.autoSaveService.attach(primaryStage, app.editorArea);
-            app.welcomeDialog.show(primaryStage);
+            // A document named on the command line is what the user asked for;
+            // the welcome card would be the answer to a question nobody asked.
+            // Every other path keeps the historical behaviour (see W4-02, which
+            // gives the card an opt-out of its own).
+            if (!openedFromArguments) {
+                app.welcomeDialog.show(primaryStage);
+            }
 
             // The welcome card is modal and closes without returning focus to
             // the window behind it. Without this hand-back the first character
@@ -117,6 +134,43 @@ public class FxApplication extends Application {
                 .filter(java.nio.file.Files::isRegularFile)
                 .flatMap(path -> app.fileService.loadFile(stage, path))
                 .ifPresent(path -> app.editorArea.setDocument(app.fileService.getCurrentContent()));
+    }
+
+    /**
+     * Opens the document named on the command line (or handed over by a file
+     * association, which arrives the same way) and reports anything that keeps
+     * that from happening.
+     *
+     * <p>A refused argument is shown in the UI language, not as a platform
+     * message: the user typed a name, so the answer has to name that same text
+     * back. A file that does exist but cannot be read keeps the load path's own
+     * dialog, which already explains the specific failure.</p>
+     *
+     * @return {@code true} when a document is now in the editor
+     */
+    private boolean openRequestedDocument(Stage stage, StartupArguments request) {
+        if (request.problem().isPresent()) {
+            var problem = request.problem().orElseThrow();
+            LOG.log(Level.WARNING, "refusing the startup document \"" + request.argument()
+                    + "\": " + problem);
+            app.dialogService.showError(stage, app.messages.startupOpenFailedHeader(),
+                    switch (problem) {
+                        case INVALID_PATH -> app.messages.startupInvalidPath(request.argument());
+                        case MISSING -> app.messages.startupMissingFile(request.argument());
+                        case NOT_A_FILE -> app.messages.startupNotAFile(request.argument());
+                        case TOO_MANY_ARGUMENTS ->
+                                app.messages.startupTooManyArguments(request.argument());
+                    });
+            return false;
+        }
+        if (request.document().isEmpty()) {
+            return false; // no argument at all: the caller restores the last session
+        }
+        var path = request.document().orElseThrow();
+        var loaded = app.fileService.loadFile(stage, path);
+        loaded.ifPresent(ignored ->
+                app.editorArea.setDocument(app.fileService.getCurrentContent()));
+        return loaded.isPresent();
     }
 
     /**

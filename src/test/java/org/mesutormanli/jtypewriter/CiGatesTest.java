@@ -154,6 +154,27 @@ class CiGatesTest {
                 "the smoke job does not run scripts/smoke-appimage.sh --skip-build");
         assertTrue(block.contains("download-artifact"),
                 "the smoke job repackages instead of consuming the artifact the build job uploaded");
+        assertTrue(block.contains("--open-sample"),
+                "the smoke job never names a document on the command line, so nothing in CI"
+                        + " proves that a file association or a typed argument opens the file");
+    }
+
+    /**
+     * The document-opening smoke is only as real as the flag it names. The
+     * script has to accept {@code --open-sample} and launch the packaged
+     * launcher with a file argument; a workflow step that passes a flag the
+     * script rejects would fail the whole smoke run, which is loud but does not
+     * explain the contract.
+     */
+    @Test
+    void theSmokeScriptAcceptsTheOpenSampleFlag() throws IOException {
+        var script = Files.readString(Path.of("scripts", "smoke-appimage.sh"),
+                StandardCharsets.UTF_8);
+
+        assertTrue(script.contains("--open-sample)"),
+                "scripts/smoke-appimage.sh does not accept --open-sample");
+        assertTrue(script.contains("cli-sample.txt"),
+                "scripts/smoke-appimage.sh never creates a sample document to open");
     }
 
     /**

@@ -316,6 +316,34 @@ public class Messages {
         return format("errorOpenTooLargeContent", fileName, sizeMegabytes, limitMegabytes);
     }
 
+    /**
+     * Header for a refused startup argument. The body names the argument back,
+     * so the user can see which word of the command line was not understood.
+     */
+    public String startupOpenFailedHeader() {
+        return bundle.getString("startupOpenFailedHeader");
+    }
+
+    /** The text handed to the launcher cannot be turned into a path at all. */
+    public String startupInvalidPath(String argument) {
+        return format("startupInvalidPath", argument);
+    }
+
+    /** The path was parsed, but nothing exists there. */
+    public String startupMissingFile(String argument) {
+        return format("startupMissingFile", argument);
+    }
+
+    /** The path exists but is a directory, a device or a fifo. */
+    public String startupNotAFile(String argument) {
+        return format("startupNotAFile", argument);
+    }
+
+    /** More than one argument: opening one of them would be a guess. */
+    public String startupTooManyArguments(String arguments) {
+        return format("startupTooManyArguments", arguments);
+    }
+
     /** Title of the prompt shown when the file changed on disk after it was opened. */
     public String externalChangeTitle() {
         return bundle.getString("externalChangeTitle");
