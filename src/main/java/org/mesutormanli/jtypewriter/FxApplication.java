@@ -9,9 +9,14 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import org.mesutormanli.jtypewriter.ui.AppFonts;
 import org.mesutormanli.jtypewriter.ui.AppIcons;
 import org.mesutormanli.jtypewriter.ui.MainController;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * JavaFX lifecycle bridge. Builds the object graph once in {@link #init()},
@@ -32,6 +37,7 @@ public class FxApplication extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         try {
+            registerBundledFonts();
             var resource = getClass().getResource("/fxml/main.fxml");
             if (resource == null) {
                 throw new IllegalStateException("main.fxml not found");
@@ -76,6 +82,28 @@ public class FxApplication extends Application {
         } catch (Throwable error) {
             app.crashHandler.report("Startup failed", error);
             throw error;
+        }
+    }
+
+    /**
+     * Registers the bundled UI chrome font with the JavaFX font registry
+     * before the first {@code Scene} is built, so {@code -fx-font-family:
+     * "DejaVu Sans Condensed"} in {@code base.css} resolves to the bytes the
+     * toolbar measures with ({@link AppFonts}). A file that fails to load is a
+     * startup failure, not a silent fallback to whichever font the host has:
+     * a fallback would make the fit decision depend on the machine again.
+     */
+    private static void registerBundledFonts() {
+        for (var resource : AppFonts.RESOURCES) {
+            try (InputStream stream = FxApplication.class.getResourceAsStream(resource)) {
+                var font = stream == null ? null : Font.loadFont(stream, 12);
+                if (font == null || !AppFonts.FAMILY.equals(font.getFamily())) {
+                    throw new IllegalStateException("bundled font " + resource
+                            + " did not register as " + AppFonts.FAMILY);
+                }
+            } catch (IOException error) {
+                throw new IllegalStateException("cannot read bundled font " + resource, error);
+            }
         }
     }
 

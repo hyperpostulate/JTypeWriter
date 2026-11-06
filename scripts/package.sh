@@ -34,7 +34,8 @@ MAIN_CLASS="org.mesutormanli.jtypewriter.JTypeWriterApp"
 # Every artifact must ship the license and the third-party notices. Missing source
 # text is a hard error here rather than a silently license-less release.
 for required in "$LICENSE_FILE" "$NOTICE_FILE" "$THIRD_PARTY_FILE" \
-    "$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt" "$LEGAL_DIR/LGPL-2.1.txt"; do
+    "$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt" "$LEGAL_DIR/LGPL-2.1.txt" \
+    "$LEGAL_DIR/Bitstream-Vera.txt"; do
     if [[ ! -f "$required" ]]; then
         echo "no $required - refusing to package without it" >&2
         exit 1
@@ -151,7 +152,8 @@ for artifact in "$LICENSE_TARGET" \
     "$(dirname "$LICENSE_TARGET")/$NOTICE_FILE" \
     "$(dirname "$LICENSE_TARGET")/$THIRD_PARTY_FILE" \
     "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt" \
-    "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/LGPL-2.1.txt"; do
+    "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/LGPL-2.1.txt" \
+    "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/Bitstream-Vera.txt"; do
     if [[ ! -f "$artifact" ]]; then
         echo "missing from the application image: $artifact" >&2
         exit 1
@@ -160,7 +162,8 @@ done
 for entry in 'META-INF/LICENSE' 'META-INF/NOTICE' \
     'META-INF/THIRD-PARTY-NOTICES' \
     'META-INF/licenses/GPL-2.0-with-classpath-exception.txt' \
-    'META-INF/licenses/LGPL-2.1.txt'; do
+    'META-INF/licenses/LGPL-2.1.txt' \
+    'META-INF/licenses/Bitstream-Vera.txt'; do
     if ! jar tf "$FAT_JAR" | grep -x "$entry" >/dev/null; then
         echo "license missing from $FAT_JAR (expected $entry)" >&2
         exit 1

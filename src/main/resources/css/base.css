@@ -7,6 +7,12 @@
    toolbar than Modena's double halo, and unstyled controls (dialog buttons)
    still get a themed single ring from Modena's own :focused rules. */
 .root {
+    /* The UI chrome font ships with the application (src/main/resources/fonts,
+       registered by FxApplication before the first Scene). It is not a system
+       font on purpose: the toolbar measures its labels with the same bundled
+       file (AppFonts/ToolbarFit), so layout decisions are the same on every
+       host. The editor and status line keep their monospace stack below. */
+    -fx-font-family: "DejaVu Sans Condensed";
     -fx-focus-color: -focus-ring;
     -fx-faint-focus-color: transparent;
 }

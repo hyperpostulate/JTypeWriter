@@ -134,6 +134,7 @@ LEGAL_FILES=(
     "THIRD-PARTY-NOTICES"
     "legal/GPL-2.0-with-classpath-exception.txt"
     "legal/LGPL-2.1.txt"
+    "legal/Bitstream-Vera.txt"
 )
 for relative in "${LEGAL_FILES[@]}"; do
     compare "$relative" "$relative" "$IMAGE_ROOT/$relative"
@@ -144,7 +145,8 @@ done
 if command -v unzip >/dev/null 2>&1; then
     for entry in META-INF/THIRD-PARTY-NOTICES META-INF/LICENSE META-INF/NOTICE \
         META-INF/licenses/GPL-2.0-with-classpath-exception.txt \
-        META-INF/licenses/LGPL-2.1.txt; do
+        META-INF/licenses/LGPL-2.1.txt \
+        META-INF/licenses/Bitstream-Vera.txt; do
         work=$(mktemp)
         if ! unzip -p "$FAT_JAR" "$entry" > "$work" 2>/dev/null; then
             echo "FAIL $entry: missing from $FAT_JAR" >&2

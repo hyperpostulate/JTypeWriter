@@ -5,7 +5,8 @@
 
 package org.mesutormanli.jtypewriter.ui.component;
 
-import java.awt.Font;
+import org.mesutormanli.jtypewriter.ui.AppFonts;
+
 import java.awt.font.FontRenderContext;
 import java.awt.font.TextLayout;
 import java.util.ArrayList;
@@ -75,11 +76,13 @@ public final class ToolbarFit {
     public static final double TOOLBAR_FONT_SIZE_PX = 11;
 
     /**
-     * Text widths measured with AWT undershoot JavaFX slightly (AWT SansSerif
-     * at 11px measured 106px against JavaFX's 106.865px for the same string),
-     * and CI runs with different system fonts than the reference desktop -
+     * Text widths measured with AWT undershoot JavaFX slightly (AWT measured
+     * 106px against JavaFX's 106.865px for the same string in the same face),
      * so every text width is scaled up by 8% and the fit decisions keep
-     * enough slack that a font swap cannot flip the mode or clip a label.
+     * enough slack that the rendering difference cannot flip the mode or clip
+     * a label. The face itself is the bundled one
+     * ({@link AppFonts#FAMILY}), so the number no longer depends on which
+     * system font a runner happens to alias {@code SansSerif} to.
      */
     public static final double TEXT_SAFETY_FACTOR = 1.08;
 
@@ -208,23 +211,18 @@ public final class ToolbarFit {
     }
 
     /**
-     * The real metrics supplier: AWT text layout, which is headless (no X11,
-     * no JavaFX native libraries) and ships with the JDK. See
-     * {@link #TEXT_SAFETY_FACTOR} for why callers must treat it as an
+     * The real metrics supplier: AWT text layout of the bundled UI face, which
+     * is headless (no X11, no JavaFX native libraries) and ships with the JDK.
+     * See {@link AppFonts} for why the face is bundled and
+     * {@link #TEXT_SAFETY_FACTOR} for why callers must treat AWT as a slight
      * underestimate of the JavaFX scene graph.
      */
     public static double awtTextWidth(String text, double fontSizePx) {
         if (text == null || text.isEmpty()) {
             return 0;
         }
-        return new TextLayout(text, awtFont(fontSizePx), FRC).getAdvance();
+        return new TextLayout(text, AppFonts.awt(fontSizePx), FRC).getAdvance();
     }
 
     private static final FontRenderContext FRC = new FontRenderContext(null, true, true);
-
-    private static Font awtFont(double fontSizePx) {
-        return AWT_BASE_FONT.deriveFont((float) fontSizePx);
-    }
-
-    private static final Font AWT_BASE_FONT = Font.decode(Font.SANS_SERIF);
 }

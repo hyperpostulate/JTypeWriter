@@ -40,6 +40,7 @@ class PackagingNoticesTest {
     private static final String GPL_RESOURCE =
             "/META-INF/licenses/GPL-2.0-with-classpath-exception.txt";
     private static final String LGPL_RESOURCE = "/META-INF/licenses/LGPL-2.1.txt";
+    private static final String VERA_RESOURCE = "/META-INF/licenses/Bitstream-Vera.txt";
 
     @Test
     void thirdPartyNoticesAreOnTheClasspath() throws IOException {
@@ -61,6 +62,13 @@ class PackagingNoticesTest {
         assertTrue(lgpl.contains("GNU LESSER GENERAL PUBLIC LICENSE"),
                 LGPL_RESOURCE + " does not contain the LGPL heading");
         assertTrue(lgpl.contains("Version 2.1"), LGPL_RESOURCE + " is not LGPL version 2.1");
+
+        var vera = read(VERA_RESOURCE);
+        assertNotNull(vera, VERA_RESOURCE + " is not on the classpath");
+        assertTrue(vera.contains("Bitstream Vera Fonts Copyright"),
+                VERA_RESOURCE + " does not contain the Bitstream Vera heading");
+        assertTrue(vera.contains("DejaVu changes are in public domain."),
+                VERA_RESOURCE + " does not state the public-domain DejaVu changes");
     }
 
     @Test
@@ -68,12 +76,13 @@ class PackagingNoticesTest {
         var notice = read(NOTICE_RESOURCE);
         assertNotNull(notice, NOTICE_RESOURCE + " is not on the classpath");
         for (var component : List.of("JavaFX", "OpenJFX", "GStreamer", "KISS FFT",
-                "Independent JPEG Group", "GCC")) {
+                "Independent JPEG Group", "GCC", "DejaVu Sans Condensed")) {
             assertTrue(notice.contains(component),
                     NOTICE_RESOURCE + " does not name the bundled component: " + component);
         }
         for (var id : List.of("GPL-2.0-only WITH Classpath-exception-2.0",
-                "LGPL-2.1-or-later", "GPL-3.0-or-later WITH GCC-exception-3.1")) {
+                "LGPL-2.1-or-later", "GPL-3.0-or-later WITH GCC-exception-3.1",
+                "Bitstream-Vera")) {
             assertTrue(notice.contains(id),
                     NOTICE_RESOURCE + " does not state the license id: " + id);
         }
