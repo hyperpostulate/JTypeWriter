@@ -555,6 +555,17 @@ oraya yerleştiriyor; link'in yanında yedek birikmiyor. Testler: yeni
 **417/417**; `analysis.md` §15.4 manuel deneyi → `isSymbolicLink(link)=true`, gerçek hedef
 `yeni`, link dizininde yalnız link.
 
+
+
+**W2-06 · A1c — Taslak yolu ve belge kilidi** · M · D3, D8
+- **Kapsam:** `RecoveryStore.java:333-344`, `InstanceLock`
+- **Yapılacak:** Taslak başlığındaki yol mutlaklık + kanoniklik + izinli kök açısından
+  doğrulanır; geçersizse kurtarma **hedefsiz** açılır (Farklı Kaydet'e zorlar). Belge düzeyinde
+  `FileLock`; `UNAVAILABLE` ise uyarı, sessiz devam yok.
+- **Bitti tanımı:** Geçersiz yol hedef olarak kabul edilmiyor (test); iki süreç aynı dosyayı
+  açtığında ikincisi uyarıyor (test, `ProcessCrashRecoveryTest` deseniyle fork).
+- **Doğrulama:** `mvn test -Dtest=RecoveryStoreTest,InstanceLockTest`.
+
 **Uygulama (6 Kas 2026):** Taslak başlığındaki `original.path.b64` artık doğrudan `Path.of`
 edilmiyor: yeni `service/RecoveryTargetPath` (saf, JavaFX'siz) dört kural uyguluyor — yol
 mutlak olmalı; kanonikleşmeli (`toRealPath()`, yani symlink hedefiyle yargılanıyor); izinli
@@ -594,15 +605,6 @@ hiçbir şey kazandırmazdı: aynı `user.home`'da `InstanceLock` zaten ikinciyi
 `user.home`'da o kayıt defteri de ayrı olurdu. Bu yüzden W2-06 yalnız D3'ü kapatıyor; D8
 kabul edilen bir risk olarak `analysis.md` §6.2'de kalıyor.
 
-**W2-06 · A1c — Taslak yolu ve belge kilidi** · M · D3, D8
-- **Kapsam:** `RecoveryStore.java:333-344`, `InstanceLock`
-- **Yapılacak:** Taslak başlığındaki yol mutlaklık + kanoniklik + izinli kök açısından
-  doğrulanır; geçersizse kurtarma **hedefsiz** açılır (Farklı Kaydet'e zorlar). Belge düzeyinde
-  `FileLock`; `UNAVAILABLE` ise uyarı, sessiz devam yok.
-- **Bitti tanımı:** Geçersiz yol hedef olarak kabul edilmiyor (test); iki süreç aynı dosyayı
-  açtığında ikincisi uyarıyor (test, `ProcessCrashRecoveryTest` deseniyle fork).
-- **Doğrulama:** `mvn test -Dtest=RecoveryStoreTest,InstanceLockTest`.
-
 > **Kapı G2** (`analysis.md` §13.6/1 ve /4):
 > (a) Üzerine yazma güvenliği üç maddesi testli; (b) 10 MB'da istatistik yenilemesi < 5 ms
 > (CI'da < 50 ms) ve FX thread'inde G/Ç yok.
@@ -610,6 +612,18 @@ kabul edilen bir risk olarak `analysis.md` §6.2'de kalıyor.
 ---
 
 ### W3 — "Editör yüzeyi" · ~9 iş günü
+
+
+
+**W3-01 · A4a — `EditorAction` komut katmanı** · M · M1, U13
+- **Kapsam:** yeni `ui/EditorAction`, `KeyboardShortcutHandler`, `ToolbarView`, `MainController`,
+  `ShortcutRows`, `ShortcutTable`
+- **Yapılacak:** 16 kısayol + araç çubuğu düğmeleri tek kaynaktan (kimlik + etiket anahtarı +
+  hızlandırıcı + çalıştırma). Kısayol listesi bu kaynaktan **üretilir** → U13 (liste ile
+  handler iki yönde uyuşmuyor) yapısal olarak imkânsız hâle gelir.
+- **Bitti tanımı:** (1) `resolve()` tablosu ve `ShortcutRows` aynı kaynaktan besleniyor; iki
+  yönlü uyuşmazlık testi yeşil. (2) Hiçbir eylem iki yerde tanımlı değil (`grep` kanıtı).
+- **Doğrulama:** `mvn test -Dtest=KeyboardShortcutHandlerTest,ShortcutRowsTest`.
 
 **Uygulama (6 Kas 2026):** Tek kaynak artık yeni `ui/EditorAction`: 15 komut, 16 akor. Her
 sabit (a) etiketini `Messages` üzerinden okuyor (yeni `shortcut*` anahtarları, altı bundle),
@@ -638,16 +652,6 @@ soyulmuş kod taranıyor — ve araç çubuğunun `actionRunner.accept(...)` üz
 etki testi kırmızı; `ToolbarView`'a `"Ctrl+S"` literali geri konunca kaynak taraması kırmızı
 (üçü de geri alındı). `mvn test -Dtest=KeyboardShortcutHandlerTest,EditorActionTest,ShortcutRowsTest`
 → 15/15 + 6/6 + 7/7; `mvn -B clean test` → **439/439**.
-
-**W3-01 · A4a — `EditorAction` komut katmanı** · M · M1, U13
-- **Kapsam:** yeni `ui/EditorAction`, `KeyboardShortcutHandler`, `ToolbarView`, `MainController`,
-  `ShortcutRows`, `ShortcutTable`
-- **Yapılacak:** 16 kısayol + araç çubuğu düğmeleri tek kaynaktan (kimlik + etiket anahtarı +
-  hızlandırıcı + çalıştırma). Kısayol listesi bu kaynaktan **üretilir** → U13 (liste ile
-  handler iki yönde uyuşmuyor) yapısal olarak imkânsız hâle gelir.
-- **Bitti tanımı:** (1) `resolve()` tablosu ve `ShortcutRows` aynı kaynaktan besleniyor; iki
-  yönlü uyuşmazlık testi yeşil. (2) Hiçbir eylem iki yerde tanımlı değil (`grep` kanıtı).
-- **Doğrulama:** `mvn test -Dtest=KeyboardShortcutHandlerTest,ShortcutRowsTest`.
 
 **W3-02 · A4b — Menü çubuğu** · M · E2
 - **Kapsam:** `MainStage`, yeni `ui/MainMenuBar`, `Messages`, 6 bundle
