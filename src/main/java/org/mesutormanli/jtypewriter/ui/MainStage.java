@@ -57,7 +57,8 @@ public class MainStage {
         } else {
             stage.setMaximized(maximizeOnRestore(true, restoreFullScreen));
         }
-        stage.setFullScreenExitKeyCombination(KeyCombination.valueOf("Escape"));
+        stage.setFullScreenExitKeyCombination(
+                KeyCombination.valueOf(EditorAction.EXIT_FULLSCREEN.primaryChord()));
         stage.setFullScreenExitHint("");
         stage.setFullScreen(restoreFullScreen);
 

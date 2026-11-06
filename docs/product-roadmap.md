@@ -611,6 +611,34 @@ kabul edilen bir risk olarak `analysis.md` §6.2'de kalıyor.
 
 ### W3 — "Editör yüzeyi" · ~9 iş günü
 
+**Uygulama (6 Kas 2026):** Tek kaynak artık yeni `ui/EditorAction`: 15 komut, 16 akor. Her
+sabit (a) etiketini `Messages` üzerinden okuyor (yeni `shortcut*` anahtarları, altı bundle),
+(b) akorlarını bildiriyor (kart metni + kabul edilen `KeyCode`'lar + Ctrl/Shift semantiği),
+(c) etkisini `EditorAction.Context` üzerinden çalıştırıyor. `Ctrl+Shift+Z` ve `Ctrl+Y` aynı
+`REDO` sabitinin iki akoru; `EXIT_FULLSCREEN` listede ama `handledByPlatform()` olduğu için
+`resolve()` onu döndürmüyor (JavaFX'in `fullScreenExitKeyCombination`'ı Escape'i zaten
+tüketiyor). `resolve()` bir `switch` değil, bu tabloda arayan saf bir fonksiyon
+(`Optional<EditorAction>`); `KeyboardShortcutHandler` `Context`'i uyguluyor ve tuş filtresi de
+araç çubuğu da aynı `run(action)` girişini kullanıyor. `ToolbarView` kendi `SHORTCUT_*`
+sabitlerini, `fileService` alanını ve `requestUndo/requestRedo` çağrılarını kaybetti: düğme
+etiketleri `action.label(messages)`, tooltip akorları `action.primaryChord()`, yürütme
+`actionRunner.accept(action)`. Kart artık üretiliyor: `ShortcutRows.fromActions(messages)`
+`EditorAction` sırasını geziyor; `welcomeShortcuts` blob'u, `ShortcutRows.parse` ve onun
+boşluk-hizalama varsayımı silindi. Escape akoru `MainStage`'de de yalnız
+`EditorAction.EXIT_FULLSCREEN.primaryChord()` üzerinden yazılıyor. Davranış korundu:
+`Ctrl+N`/`Ctrl+O` Shift'le de çalışır, `F11` Shift'le de tam ekranı çevirir, sade `Ctrl+C`
+hâlâ tüketilmez (`shift == null` "iki durum da" demek). Testler: yeni `EditorActionTest` (6 —
+kayıt tutan `Context` ile her sabitin tek ve kendi etkisini çalıştırdığı, etki eşlemesinin tam
+olduğu, `EditorAction` dışındaki kaynak dosyalarda akor literali kalmadığı — yorumlar
+soyulmuş kod taranıyor — ve araç çubuğunun `actionRunner.accept(...)` üzerinden gittiği),
+`KeyboardShortcutHandlerTest` 15 (iki yönlü akor sahipliği + kartın envanterden üretildiği),
+`ShortcutRowsTest` 7 (altı dilde iki yönlü kapsam, sıra, tema döngüsü, dil değişimi),
+`MessagesTest` 12, `ThemeCycleTest` 4. Mutasyon kanıtı: `CYCLE_THEME`'e `Ctrl+T` verilince
+"aynı akoru iki komut" testi kırmızı; `CYCLE_THEME`'in etkisi `toggleToolbar`'a çevrilince
+etki testi kırmızı; `ToolbarView`'a `"Ctrl+S"` literali geri konunca kaynak taraması kırmızı
+(üçü de geri alındı). `mvn test -Dtest=KeyboardShortcutHandlerTest,EditorActionTest,ShortcutRowsTest`
+→ 15/15 + 6/6 + 7/7; `mvn -B clean test` → **439/439**.
+
 **W3-01 · A4a — `EditorAction` komut katmanı** · M · M1, U13
 - **Kapsam:** yeni `ui/EditorAction`, `KeyboardShortcutHandler`, `ToolbarView`, `MainController`,
   `ShortcutRows`, `ShortcutTable`
@@ -768,7 +796,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W2-04 | Dış değişiklik | D1, M9 | M | W2-02 | ✅ | `mvn test -Dtest=FileServiceTest,DialogServiceTest,MessagesTest` → 47/47 + 9/9 + 13/13: yüklemeden sonra değişen/silinen dosya sessizce üzerine yazılmıyor, üç seçenekli diyalog (üzerine yaz / farklı kaydet / iptal) akışı testli; aynı boyut + aynı mtime değişikliği SHA-256 ile yakalanıyor; "Farklı Kaydet" iptalinde çıkış `STAY` kalıyor; senkron ve asenkron kaydetme yolları ayrı ayrı doğrulandı. `mvn -B clean test` → 415/415 |
 | W2-05 | Symlink korunumu | D2 | S | W2-04 | ✅ | `mvn test -Dtest=AtomicFilesTest,BackupKeeperTest` → 8/8 + 10/10: symlink'li belge kaydedildikten sonra link korunuyor ve gerçek hedef güncelleniyor, `.bak` gerçek hedefin yanına düşüyor; `mvn -B clean test` → 417/417; `analysis.md` §15.4 manuel deneyi → `isSymbolicLink` true, gerçek içerik yeni |
 | W2-06 | Taslak yolu doğrulama (D3) | D3 (D8 ürün kararıyla kapsam dışı) | M | W2-04 | ✅ | `mvn test -Dtest=RecoveryTargetPathTest,RecoveryStoreTest` → 10/10 + 27/27: mutlaklık, kanoniklik, izinli kök ve veri-dizini ret kuralları; kural tutmayan taslak hedefsiz açılıyor, metin korunuyor; kanonik biçim yalnız karar için (Windows 8.3 kısa adı ve symlink adı korunuyor); mutasyonla (accept→Path.of, toRealPath→toAbsolutePath, canonical→dönen değer) 4 test kırmızı; `mvn -B clean test` → 429/429. D8: `InstanceLock` aynı `user.home`'da ikinci süreci zaten durduruyor ve W2-04 çakışmayı soruyor → dosya başına `.jtwlock` eklenmedi, gerekçe kartta |
-| W3-01 | `EditorAction` katmanı | M1, U13 | M | W1-03 | ☐ | |
+| W3-01 | `EditorAction` katmanı | M1, U13 | M | W1-03 | ✅ | `mvn test -Dtest=KeyboardShortcutHandlerTest,EditorActionTest,ShortcutRowsTest` → 15/15 + 6/6 + 7/7: akor tablosu, etki eşlemesi ve kısayol kartı tek `EditorAction` envanterinden üretiliyor; iki yönlü kapsam ve akor sahipliği testli; `EditorAction` dışındaki kaynak dosyalarda akor literali yok (kaynak taraması); araç çubuğu `actionRunner.accept(...)` üzerinden gidiyor. Mutasyonla (çift akor, yanlış etki, `ToolbarView`'a geri konan `"Ctrl+S"`) 3 test kırmızı. `mvn -B clean test` → 439/439 |
 | W3-02 | Menü çubuğu | E2 | M | W3-01 | ☐ | |
 | W3-03 | CLI argümanı | E3 | S | W3-01 | ☐ | |
 | W3-04 | Sürükle-bırak | E4 | S | W3-01 | ☐ | |

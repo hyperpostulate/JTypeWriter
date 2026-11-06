@@ -59,7 +59,7 @@ public class WelcomeDialog {
         // card to the full content box and keeps the wrapping the long
         // German/French/Italian/Spanish descriptions need.
         var shortcuts = ShortcutTable.build(
-                ShortcutRows.parse(messages.welcomeShortcuts()), CONTENT_WIDTH);
+                ShortcutRows.fromActions(messages), CONTENT_WIDTH);
 
         var startBtn = new Button(messages.welcomeButton());
         startBtn.getStyleClass().add("welcome-button");

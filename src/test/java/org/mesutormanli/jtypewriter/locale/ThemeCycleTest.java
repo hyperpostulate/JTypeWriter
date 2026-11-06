@@ -65,27 +65,22 @@ class ThemeCycleTest {
                     Theme.SEPIA.getDisplayName(messages),
                     Theme.LIGHT.getDisplayName(messages));
 
-            assertEquals(expected, themeNamesIn(messages.welcomeShortcuts()),
-                    "the shortcut list of " + language + " does not match Theme.next() from the default");
+            assertEquals(expected, themeNamesIn(messages.shortcutSwitchTheme()),
+                    "the shortcut label of " + language + " does not match Theme.next() from the default");
         }
     }
 
     /**
-     * The theme names are the last parenthesised group of the shortcut line,
-     * so this does not depend on how many spaces separate the chord from its
-     * description (the bundles pad the columns differently per language).
+     * The theme names are the parenthesised group of the shortcut label, so
+     * this does not depend on the language's wording around it.
      */
-    private static List<String> themeNamesIn(String shortcuts) {
-        var line = shortcuts.lines()
-                .filter(candidate -> candidate.contains("Ctrl+Shift+T"))
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("no theme shortcut in: " + shortcuts));
-        var open = line.lastIndexOf('(');
-        var close = line.indexOf(')', open);
-        assertTrue(open > 0 && close > open, "no theme list in: " + line);
+    private static List<String> themeNamesIn(String label) {
+        var open = label.lastIndexOf('(');
+        var close = label.indexOf(')', open);
+        assertTrue(open > 0 && close > open, "no theme list in: " + label);
 
         var names = new ArrayList<String>();
-        for (var name : line.substring(open + 1, close).split("/")) {
+        for (var name : label.substring(open + 1, close).split("/")) {
             names.add(name.trim());
         }
         return names;

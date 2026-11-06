@@ -173,8 +173,57 @@ public class Messages {
         return bundle.getString("welcomeButton");
     }
 
-    public String welcomeShortcuts() {
-        return bundle.getString("welcomeShortcuts");
+    /*
+     * Shortcut-card labels, one per action. They used to live in a single
+     * padded welcomeShortcuts blob, which meant the card's chord/description
+     * table was a second definition of what the handler did - the two drifted
+     * apart (the card promised "Save / Save As" on Ctrl+S and omitted
+     * Ctrl+Shift+Z). The chords now come from ui.EditorAction; only the
+     * wording lives here, still translated in all six bundles.
+     */
+
+    public String shortcutToggleToolbar() {
+        return bundle.getString("shortcutToggleToolbar");
+    }
+
+    public String shortcutSwitchTheme() {
+        return bundle.getString("shortcutSwitchTheme");
+    }
+
+    public String shortcutYoloMode() {
+        return bundle.getString("shortcutYoloMode");
+    }
+
+    public String shortcutCycleTextColor() {
+        return bundle.getString("shortcutCycleTextColor");
+    }
+
+    public String shortcutFontUp() {
+        return bundle.getString("shortcutFontUp");
+    }
+
+    public String shortcutFontDown() {
+        return bundle.getString("shortcutFontDown");
+    }
+
+    public String shortcutFontReset() {
+        return bundle.getString("shortcutFontReset");
+    }
+
+    public String shortcutNewFile() {
+        return bundle.getString("shortcutNewFile");
+    }
+
+    public String shortcutSaveAs() {
+        return bundle.getString("shortcutSaveAs");
+    }
+
+    public String shortcutToggleFullscreen() {
+        return bundle.getString("shortcutToggleFullscreen");
+    }
+
+    public String shortcutExitFullscreen() {
+        return bundle.getString("shortcutExitFullscreen");
     }
 
     public String fileOpenTitle() {

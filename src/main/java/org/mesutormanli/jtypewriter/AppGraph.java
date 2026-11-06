@@ -82,7 +82,7 @@ public final class AppGraph {
     public final AboutDialog aboutDialog = new AboutDialog(messages, themeManager);
     public final WelcomeDialog welcomeDialog = new WelcomeDialog(messages, themeManager);
     public final ToolbarView toolbarView = new ToolbarView(
-            fileService, themeManager, textColorManager, fontSizeManager,
+            themeManager, textColorManager, fontSizeManager,
             toolbarState, messages, localeManager, aboutDialog);
     public final StatsBar statsBar = new StatsBar(sessionStats, messages, statsBarState, localeManager);
     public final CrashHandler crashHandler = new CrashHandler(dialogService, messages, () -> this.stage);

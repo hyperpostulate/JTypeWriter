@@ -6,14 +6,20 @@
 package org.mesutormanli.jtypewriter.ui;
 
 import javafx.event.EventTarget;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 import org.mesutormanli.jtypewriter.ui.component.ToolbarView;
 
-public class KeyboardShortcutHandler {
+/**
+ * Routes key presses and toolbar buttons to {@link EditorAction}: the chord
+ * table lives in the action inventory, and the effect is this class's
+ * {@link EditorAction.Context} implementation. Both entry points call
+ * {@link #run(EditorAction)}, so a toolbar button and its shortcut cannot end
+ * up doing different things.
+ */
+public class KeyboardShortcutHandler implements EditorAction.Context {
 
     private final FileService fileService;
 
@@ -42,76 +48,129 @@ public class KeyboardShortcutHandler {
         target.addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPress);
     }
 
-    /** Decoded meaning of a shortcut key press. */
-    enum ShortcutAction {
-        NONE, TOGGLE_TOOLBAR, CYCLE_THEME, UNDO, REDO, TOGGLE_YOLO, CYCLE_TEXT_COLOR,
-        OPEN, NEW_DOCUMENT, SAVE, SAVE_AS, FONT_RESET, FONT_UP, FONT_DOWN, TOGGLE_FULLSCREEN
-    }
-
-    /**
-     * Maps a shortcut key to its action. Kept free of UI state so the
-     * shift-sensitive combos can be unit tested headlessly: with two separate
-     * key filters the Ctrl+Shift+Y combination leaked into the Ctrl+Y branch and
-     * ran Redo instead of toggling YOLO mode. Numpad keys are accepted as
-     * equivalents of their main-keyboard neighbours (Ctrl+Num0 resets the font
-     * just like Ctrl+0). Ctrl+N and Ctrl+Shift+N both start a new document.
-     */
-    static ShortcutAction resolve(KeyCode code, boolean shift) {
-        return switch (code) {
-            case T -> shift ? ShortcutAction.CYCLE_THEME : ShortcutAction.TOGGLE_TOOLBAR;
-            case Y -> shift ? ShortcutAction.TOGGLE_YOLO : ShortcutAction.REDO;
-            case Z -> shift ? ShortcutAction.REDO : ShortcutAction.UNDO;
-            case C -> shift ? ShortcutAction.CYCLE_TEXT_COLOR : ShortcutAction.NONE;
-            case O -> ShortcutAction.OPEN;
-            case N -> ShortcutAction.NEW_DOCUMENT;
-            case S -> shift ? ShortcutAction.SAVE_AS : ShortcutAction.SAVE;
-            case DIGIT0, NUMPAD0 -> ShortcutAction.FONT_RESET;
-            case EQUALS, PLUS, ADD -> ShortcutAction.FONT_UP;
-            case MINUS, SUBTRACT -> ShortcutAction.FONT_DOWN;
-            case F11 -> ShortcutAction.TOGGLE_FULLSCREEN;
-            default -> ShortcutAction.NONE;
-        };
+    /** Runs a command; the one entry point shared by the key filter and the toolbar. */
+    public void run(EditorAction action) {
+        action.run(this);
     }
 
     /**
      * The guard accepts the platform shortcut modifier (Ctrl on Windows/Linux)
      * and plain Ctrl as well, so a shortcut is not lost when the JavaFX
-     * {@code shortcutKey} differs from the physical Ctrl key.
+     * {@code shortcutKey} differs from the physical Ctrl key. Only the chords
+     * that do not require Ctrl (F11) pass without a modifier.
      */
     private void handleKeyPress(KeyEvent event) {
-        // F11 is the only modifier-less shortcut, so it passes the guard.
-        if (event.getCode() != KeyCode.F11 && !event.isShortcutDown() && !event.isControlDown()) return;
-
-        switch (resolve(event.getCode(), event.isShiftDown())) {
-            case TOGGLE_TOOLBAR -> onToggleToolbar.run();
-            case CYCLE_THEME -> onThemeCycle.run();
-            case UNDO -> editorArea.requestUndo(); // blocked while YOLO mode is on
-            case REDO -> editorArea.requestRedo();
-            case TOGGLE_YOLO -> toolbarView.toggleYolo();
-            case CYCLE_TEXT_COLOR -> toolbarView.cycleTextColor();
-            case OPEN -> fileService.openFileAsync(stage).thenAccept(opened -> opened.ifPresent(path ->
-                    editorArea.setDocument(fileService.getCurrentContent())));
-            case NEW_DOCUMENT -> fileService.newDocumentAsync(stage).thenAccept(created -> {
-                if (created) {
-                    editorArea.setDocument("");
-                }
-            });
-            case SAVE -> fileService.saveFileAsync(stage, editorArea.getText());
-            case SAVE_AS -> fileService.saveFileAsAsync(stage, editorArea.getText());
-            case FONT_RESET -> toolbarView.resetFontSize();
-            case FONT_UP -> toolbarView.changeFontSize(1);
-            case FONT_DOWN -> toolbarView.changeFontSize(-1);
-            case TOGGLE_FULLSCREEN -> toggleFullScreen();
-            case NONE -> {
-                return; // e.g. plain Ctrl+C (Copy) must never be consumed
-            }
+        var action = EditorAction.resolve(event.getCode(), event.isShiftDown());
+        if (action.isEmpty()) {
+            return; // e.g. plain Ctrl+C (Copy) must never be consumed
         }
+        if (action.get().accelerators().stream().noneMatch(accelerator -> !accelerator.requiresCtrl())
+                && !event.isShortcutDown() && !event.isControlDown()) {
+            return;
+        }
+        run(action.get());
         event.consume();
     }
 
-    private void toggleFullScreen() {
+    // --- EditorAction.Context ------------------------------------------------
+
+    @Override
+    public void toggleToolbar() {
+        onToggleToolbar.run();
+    }
+
+    @Override
+    public void cycleTheme() {
+        onThemeCycle.run();
+    }
+
+    @Override
+    public void undo() {
+        if (editorArea != null) {
+            editorArea.requestUndo(); // blocked while YOLO mode is on
+        }
+    }
+
+    @Override
+    public void redo() {
+        if (editorArea != null) {
+            editorArea.requestRedo();
+        }
+    }
+
+    @Override
+    public void toggleYolo() {
+        if (toolbarView != null) {
+            toolbarView.toggleYolo();
+        }
+    }
+
+    @Override
+    public void cycleTextColor() {
+        if (toolbarView != null) {
+            toolbarView.cycleTextColor();
+        }
+    }
+
+    @Override
+    public void openDocument() {
+        fileService.openFileAsync(stage).thenAccept(opened -> opened.ifPresent(path ->
+                editorArea.setDocument(fileService.getCurrentContent())));
+    }
+
+    @Override
+    public void newDocument() {
+        fileService.newDocumentAsync(stage).thenAccept(created -> {
+            if (created) {
+                editorArea.setDocument("");
+            }
+        });
+    }
+
+    @Override
+    public void save() {
+        fileService.saveFileAsync(stage, editorArea.getText());
+    }
+
+    @Override
+    public void saveAs() {
+        fileService.saveFileAsAsync(stage, editorArea.getText());
+    }
+
+    @Override
+    public void increaseFontSize() {
+        if (toolbarView != null) {
+            toolbarView.changeFontSize(1);
+        }
+    }
+
+    @Override
+    public void decreaseFontSize() {
+        if (toolbarView != null) {
+            toolbarView.changeFontSize(-1);
+        }
+    }
+
+    @Override
+    public void resetFontSize() {
+        if (toolbarView != null) {
+            toolbarView.resetFontSize();
+        }
+    }
+
+    @Override
+    public void toggleFullScreen() {
         if (stage != null) {
             stage.setFullScreen(!stage.isFullScreen());
+        }
+    }
+
+    @Override
+    public void exitFullScreen() {
+        // JavaFX performs this through the stage's fullScreenExitKeyCombination;
+        // the action exists so the shortcut card and the inventory agree.
+        if (stage != null) {
+            stage.setFullScreen(false);
         }
     }
 }

@@ -87,6 +87,8 @@ public class MainController implements Initializable {
         toolbarView.setStage(stage);
         toolbarView.setOnYoloChange(this::refreshTitle);
         shortcutHandler.bind(editorArea, toolbarView, stage, this::toggleToolbar, toolbarView::cycleTheme);
+        // The toolbar buttons and the key filter share this one runner.
+        toolbarView.setActionRunner(shortcutHandler::run);
         editorKeyHandler.bind(editorArea);
         fileService.addListener(new FileService.Listener() {
             @Override

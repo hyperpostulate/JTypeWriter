@@ -149,61 +149,21 @@ class MessagesTest {
     }
 
     @Test
-    void theTurkishWelcomeTextNoLongerMixesInEnglish() {
-        var shortcuts = messagesFor(Language.TR).welcomeShortcuts();
+    void theTurkishShortcutLabelsNoLongerMixInEnglish() {
+        var turkish = messagesFor(Language.TR);
+        var labels = List.of(turkish.shortcutToggleToolbar(), turkish.shortcutFontUp(),
+                turkish.shortcutSwitchTheme(), turkish.shortcutYoloMode());
 
-        assertTrue(shortcuts.contains("Araç çubuğu aç/kapa"), shortcuts);
-        assertTrue(shortcuts.contains("Yazı tipi büyüt"), shortcuts);
-        assertFalse(shortcuts.contains("Toolbar"), shortcuts);
-        assertFalse(shortcuts.contains("Font"), shortcuts);
-        assertFalse(shortcuts.contains("Dark"), shortcuts);
-    }
-
-    /**
-     * The welcome card used to say {@code Ctrl+S  Save / Save As} -
-     * promising a Save As chord the handler does not have - and never listed
-     * {@code Ctrl+Shift+S} or {@code Ctrl+Shift+Z}. The exact chord-to-action
-     * table lives in {@code ShortcutRowsTest}; here only the structure is
-     * pinned, language-neutrally: chords are not translated, so each line can
-     * be split at its space padding and the key column inspected without
-     * reading a single description.
-     *
-     * <p>The combined-row check compares descriptions rather than searching a
-     * line for {@code "Ctrl+S"} and {@code "Ctrl+Shift+S"}: plain substring
-     * matching is ambiguous, because {@code "Ctrl+Shift+S"} itself starts with
-     * {@code "Ctrl+S"} (the S of "Shift").
-     */
-    @Test
-    void theWelcomeCardSplitsSaveFromSaveAsAndListsCtrlShiftZ() {
-        for (var language : Language.values()) {
-            var lines = messagesFor(language).welcomeShortcuts().lines().toList();
-
-            for (var chord : new String[]{"Ctrl+S", "Ctrl+Shift+S", "Ctrl+Shift+Z"}) {
-                assertEquals(1, lines.stream().filter(line -> chord.equals(chordOf(line))).count(),
-                        language + ": the card must list " + chord + " exactly once");
-            }
-
-            var save = descriptionOf(lines, "Ctrl+S");
-            var saveAs = descriptionOf(lines, "Ctrl+Shift+S");
-            assertFalse(save.contains(saveAs),
-                    language + ": Save still carries the Save As text: " + save);
+        assertTrue(labels.get(0).contains("Araç çubuğu aç/kapa"), labels.get(0));
+        assertTrue(labels.get(1).contains("Yazı tipi büyüt"), labels.get(1));
+        for (var label : labels) {
+            assertFalse(label.contains("Toolbar"), label);
+            assertFalse(label.contains("Font"), label);
+            assertFalse(label.contains("Dark"), label);
         }
     }
 
-    /** The chord column of a card row, i.e. everything before the space padding. */
-    private static String chordOf(String line) {
-        return line.split(" {2,}", 2)[0].trim();
-    }
-
-    private static String descriptionOf(List<String> lines, String chord) {
-        return lines.stream()
-                .filter(line -> chord.equals(chordOf(line)))
-                .map(line -> line.split(" {2,}", 2))
-                .filter(parts -> parts.length > 1)
-                .map(parts -> parts[1].trim())
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("no row for " + chord));
-    }
+    /** The chord table itself is generated from {@code EditorAction}; see ShortcutRowsTest. */
 
     /**
      * The list must follow {@link Theme#next()} from the persisted default
@@ -363,11 +323,11 @@ class MessagesTest {
     }
 
     private String themeOrderIn(Messages messages) {
-        var shortcuts = messages.welcomeShortcuts();
-        var open = shortcuts.indexOf('(');
-        var close = shortcuts.indexOf(')', open);
-        assertTrue(open > 0 && close > open, "no theme list in: " + shortcuts);
-        return shortcuts.substring(open + 1, close);
+        var label = messages.shortcutSwitchTheme();
+        var open = label.indexOf('(');
+        var close = label.indexOf(')', open);
+        assertTrue(open > 0 && close > open, "no theme list in: " + label);
+        return label.substring(open + 1, close);
     }
 
     private Messages messagesFor(Language language) {

@@ -71,7 +71,7 @@ public class AboutDialog {
         // wrapping the long German/French/Italian/Spanish descriptions need
         // is handled inside the grid.
         var shortcuts = ShortcutTable.build(
-                ShortcutRows.parse(messages.welcomeShortcuts()), CONTENT_WIDTH);
+                ShortcutRows.fromActions(messages), CONTENT_WIDTH);
 
         var emailLink = new Hyperlink("mesutormanli@gmail.com");
         emailLink.getStyleClass().add("about-email");

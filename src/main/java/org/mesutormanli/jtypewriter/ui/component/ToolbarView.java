@@ -23,8 +23,8 @@ import javafx.util.StringConverter;
 import org.mesutormanli.jtypewriter.locale.Language;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
-import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.ui.AboutDialog;
+import org.mesutormanli.jtypewriter.ui.EditorAction;
 import org.mesutormanli.jtypewriter.ui.theme.FontSizeManager;
 import org.mesutormanli.jtypewriter.ui.theme.TextColor;
 import org.mesutormanli.jtypewriter.ui.theme.TextColorManager;
@@ -33,6 +33,7 @@ import org.mesutormanli.jtypewriter.ui.theme.ThemeManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -55,7 +56,6 @@ import java.util.function.Supplier;
  */
 public class ToolbarView extends HBox {
 
-    private final FileService fileService;
     private final ThemeManager themeManager;
     private final TextColorManager textColorManager;
     private final FontSizeManager fontSizeManager;
@@ -76,20 +76,6 @@ public class ToolbarView extends HBox {
     private final ComboBox<Language> languageCombo;
     private final Button aboutBtn;
 
-    /**
-     * Language-neutral key notation, matching the shortcut list in the
-     * localized {@code welcomeShortcuts} text; only the label part of a
-     * tooltip comes from the bundle.
-     */
-    private static final String SHORTCUT_OPEN = "Ctrl+O";
-    private static final String SHORTCUT_SAVE = "Ctrl+S";
-    private static final String SHORTCUT_UNDO = "Ctrl+Z";
-    private static final String SHORTCUT_REDO = "Ctrl+Y";
-    private static final String SHORTCUT_THEME = "Ctrl+Shift+T";
-    private static final String SHORTCUT_YOLO = "Ctrl+Shift+Y";
-    private static final String SHORTCUT_COLOR = "Ctrl+Shift+C";
-    private static final String SHORTCUT_FONT = "Ctrl++ / Ctrl+- / Ctrl+0";
-
     /** One tooltip and the bundle-derived text behind it, re-read on every {@link #refresh()}. */
     private record TooltipBinding(Tooltip tooltip, Supplier<String> text) {
     }
@@ -109,12 +95,20 @@ public class ToolbarView extends HBox {
     private Runnable onStyleChange;
     private Runnable onYoloChange;
     private Stage stage;
+    /**
+     * The command runner shared with the key handler
+     * ({@link org.mesutormanli.jtypewriter.ui.KeyboardShortcutHandler}). The
+     * buttons do not implement file I/O, undo or save themselves: they invoke
+     * the same {@link EditorAction} constant the shortcut resolves to, so the
+     * two entry points cannot drift apart.
+     */
+    private Consumer<EditorAction> actionRunner = action -> {
+    };
 
-    public ToolbarView(FileService fileService, ThemeManager themeManager,
+    public ToolbarView(ThemeManager themeManager,
                        TextColorManager textColorManager, FontSizeManager fontSizeManager,
                        ToolbarState toolbarState, Messages messages,
                        LocaleManager localeManager, AboutDialog aboutDialog) {
-        this.fileService = fileService;
         this.themeManager = themeManager;
         this.textColorManager = textColorManager;
         this.fontSizeManager = fontSizeManager;
@@ -131,10 +125,10 @@ public class ToolbarView extends HBox {
         setSpacing(3);
         setAlignment(Pos.CENTER_LEFT);
 
-        openBtn = createButton(messages.toolbarOpen());
-        saveBtn = createButton(messages.toolbarSave());
-        undoBtn = createButton(messages.toolbarUndo());
-        redoBtn = createButton(messages.toolbarRedo());
+        openBtn = createButton(EditorAction.OPEN.label(messages));
+        saveBtn = createButton(EditorAction.SAVE.label(messages));
+        undoBtn = createButton(EditorAction.UNDO.label(messages));
+        redoBtn = createButton(EditorAction.REDO.label(messages));
         aboutBtn = createButton(messages.toolbarAbout());
 
         themeCombo = createCombo(ThemeManager.options(), themeName(), value -> {
@@ -188,19 +182,10 @@ public class ToolbarView extends HBox {
         showAsCaptionedCombo(languageCombo, messages::toolbarLanguage);
         languageCombo.getStyleClass().add("toolbar-lang-combo");
 
-        openBtn.setOnAction(e -> fileService.openFileAsync(stage).thenAccept(opened -> opened.ifPresent(path ->
-                editorArea.setDocument(fileService.getCurrentContent()))));
-        saveBtn.setOnAction(e -> {
-            if (editorArea != null) {
-                fileService.saveFileAsync(stage, editorArea.getText());
-            }
-        });
-        undoBtn.setOnAction(e -> {
-            if (editorArea != null) editorArea.requestUndo(); // no-op while YOLO mode is on
-        });
-        redoBtn.setOnAction(e -> {
-            if (editorArea != null) editorArea.requestRedo();
-        });
+        openBtn.setOnAction(e -> actionRunner.accept(EditorAction.OPEN));
+        saveBtn.setOnAction(e -> actionRunner.accept(EditorAction.SAVE));
+        undoBtn.setOnAction(e -> actionRunner.accept(EditorAction.UNDO));
+        redoBtn.setOnAction(e -> actionRunner.accept(EditorAction.REDO));
         aboutBtn.setOnAction(e -> {
             if (stage != null) aboutDialog.show(stage);
         });
@@ -220,18 +205,26 @@ public class ToolbarView extends HBox {
                 languageCombo
         );
 
-        // Tooltips: the localized label plus the language-neutral key hint,
-        // re-read from the bundle in every refresh() so a language switch
-        // cannot leave a stale-language tooltip behind.
-        attachTooltip(openBtn, () -> withShortcut(messages.toolbarOpen(), SHORTCUT_OPEN));
-        attachTooltip(saveBtn, () -> withShortcut(messages.toolbarSave(), SHORTCUT_SAVE));
-        attachTooltip(undoBtn, () -> withShortcut(messages.toolbarUndo(), SHORTCUT_UNDO));
-        attachTooltip(redoBtn, () -> withShortcut(messages.toolbarRedo(), SHORTCUT_REDO));
-        attachTooltip(themeCombo, () -> withShortcut(messages.toolbarTheme(), SHORTCUT_THEME));
-        attachTooltip(yoloCombo, () -> withShortcut(messages.toolbarYolo(), SHORTCUT_YOLO));
+        // Tooltips: the localized label plus the chord from the same
+        // EditorAction the button runs, re-read on every refresh() so neither a
+        // language switch nor a changed accelerator can leave a stale hint.
+        attachTooltip(openBtn, () -> withShortcut(EditorAction.OPEN.label(messages),
+                EditorAction.OPEN.primaryChord()));
+        attachTooltip(saveBtn, () -> withShortcut(EditorAction.SAVE.label(messages),
+                EditorAction.SAVE.primaryChord()));
+        attachTooltip(undoBtn, () -> withShortcut(EditorAction.UNDO.label(messages),
+                EditorAction.UNDO.primaryChord()));
+        attachTooltip(redoBtn, () -> withShortcut(EditorAction.REDO.label(messages),
+                EditorAction.REDO.primaryChord()));
+        attachTooltip(themeCombo, () -> withShortcut(messages.toolbarTheme(),
+                EditorAction.CYCLE_THEME.primaryChord()));
+        attachTooltip(yoloCombo, () -> withShortcut(messages.toolbarYolo(),
+                EditorAction.TOGGLE_YOLO.primaryChord()));
         attachTooltip(soundCombo, messages::toolbarSound);
-        attachTooltip(colorCombo, () -> withShortcut(messages.toolbarColor(), SHORTCUT_COLOR));
-        attachTooltip(fontSizeCombo, () -> withShortcut(messages.toolbarFontSize(), SHORTCUT_FONT));
+        attachTooltip(colorCombo, () -> withShortcut(messages.toolbarColor(),
+                EditorAction.CYCLE_TEXT_COLOR.primaryChord()));
+        attachTooltip(fontSizeCombo, () -> withShortcut(messages.toolbarFontSize(),
+                fontChords()));
         attachTooltip(languageCombo, messages::toolbarLanguage);
         attachTooltip(aboutBtn, messages::toolbarAbout);
 
@@ -311,10 +304,10 @@ public class ToolbarView extends HBox {
         // A null caption is the COMPACT form: the closed dropdown shows the bare value.
         var separator = messages.captionSeparator();
         return List.of(
-                ToolbarFit.Control.button(messages.toolbarOpen()),
-                ToolbarFit.Control.button(messages.toolbarSave()),
-                ToolbarFit.Control.button(messages.toolbarUndo()),
-                ToolbarFit.Control.button(messages.toolbarRedo()),
+                ToolbarFit.Control.button(EditorAction.OPEN.label(messages)),
+                ToolbarFit.Control.button(EditorAction.SAVE.label(messages)),
+                ToolbarFit.Control.button(EditorAction.UNDO.label(messages)),
+                ToolbarFit.Control.button(EditorAction.REDO.label(messages)),
                 ToolbarFit.Control.combo(compact ? null : messages.toolbarTheme(),
                         themeTexts, separator),
                 ToolbarFit.Control.combo(compact ? null : messages.toolbarYolo(),
@@ -387,10 +380,10 @@ public class ToolbarView extends HBox {
     private boolean renderOnce() {
         refreshing = true;
         try {
-            openBtn.setText(messages.toolbarOpen());
-            saveBtn.setText(messages.toolbarSave());
-            undoBtn.setText(messages.toolbarUndo());
-            redoBtn.setText(messages.toolbarRedo());
+            openBtn.setText(EditorAction.OPEN.label(messages));
+            saveBtn.setText(EditorAction.SAVE.label(messages));
+            undoBtn.setText(EditorAction.UNDO.label(messages));
+            redoBtn.setText(EditorAction.REDO.label(messages));
             aboutBtn.setText(messages.toolbarAbout());
 
             resync(themeCombo, themeOptions(), themeManager.getCurrentTheme());
@@ -490,6 +483,15 @@ public class ToolbarView extends HBox {
 
     public void setStage(Stage stage) {
         this.stage = stage;
+    }
+
+    /**
+     * Hands the toolbar the same command runner the key filter uses, so a
+     * button and its accelerator execute one definition
+     * ({@link EditorAction}) instead of two copies of the same call.
+     */
+    public void setActionRunner(Consumer<EditorAction> actionRunner) {
+        this.actionRunner = actionRunner;
     }
 
     public void setOnStyleChange(Runnable callback) {
@@ -663,5 +665,16 @@ public class ToolbarView extends HBox {
     /** Localized label plus the platform-neutral key hint, e.g. {@code "Save (Ctrl+S)"}. */
     private static String withShortcut(String label, String shortcut) {
         return label + " (" + shortcut + ")";
+    }
+
+    /**
+     * The three font-size chords as one hint ({@code "Ctrl++ / Ctrl+- /
+     * Ctrl+0"}), read from the actions that own them: the tooltip cannot drift
+     * from what the key filter actually accepts.
+     */
+    private static String fontChords() {
+        return EditorAction.FONT_UP.primaryChord() + " / "
+                + EditorAction.FONT_DOWN.primaryChord() + " / "
+                + EditorAction.FONT_RESET.primaryChord();
     }
 }

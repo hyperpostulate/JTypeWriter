@@ -5,71 +5,40 @@
 
 package org.mesutormanli.jtypewriter.ui;
 
-import javafx.scene.input.KeyCode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.Language;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
-import org.mesutormanli.jtypewriter.ui.KeyboardShortcutHandler.ShortcutAction;
 import org.mesutormanli.jtypewriter.ui.theme.Theme;
 
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The shortcut bundles pad their columns with space runs and
- * {@link ShortcutRows#parse(String)} reads those runs back as the separator,
- * so the welcome/About cards can lay the list out as a real grid. These tests
- * pin the assumptions the parser makes - one unambiguous separator per line,
- * single-spaced descriptions - against all six shipped bundles, so a
- * translation cannot silently turn a card row inside out. The raw bundle
- * format itself is untouched; {@code MessagesTest} and {@code ThemeCycleTest}
- * keep reading it as before.
+ * The welcome and About cards are generated from {@link EditorAction}, so the
+ * old two-way drift between the hand-written bundle list and the key handler
+ * is structurally impossible: there is no second chord table left to fall out
+ * of step. These tests pin the generation itself (order, two-way coverage,
+ * descriptions in all six languages) rather than a copied table.
  */
 class ShortcutRowsTest {
 
     @TempDir
     Path dir;
 
-    /** Mirrors the separator in {@link ShortcutRows}: two or more spaces. */
-    private static final Pattern SEPARATOR = Pattern.compile(" {2,}");
-
-    /**
-     * The parser only drops blank lines, so equal counts also pin that no
-     * bundle grew a blank line - and the chords assert order survived. The
-     * first and last chords are language-independent (only descriptions are
-     * translated), so they can be checked for every bundle.
-     */
     @Test
-    void everyLineOfEveryBundleBecomesExactlyOneRow() {
+    void everyRowOfEveryLanguageHasAChordAndADescription() {
         for (var language : Language.values()) {
-            var raw = shortcutsFor(language);
-            var lines = raw.lines().toList();
-            var rows = ShortcutRows.parse(raw);
-
-            assertEquals(lines.size(), rows.size(),
-                    language + ": the parse dropped or invented a line");
-            assertEquals("Ctrl+T", rows.get(0).keys(),
-                    language + ": wrong first row");
-            assertEquals("Escape", rows.get(rows.size() - 1).keys(),
-                    language + ": wrong last row");
-        }
-    }
-
-    @Test
-    void everyRowOfEveryBundleHasAKeyAndADescription() {
-        for (var language : Language.values()) {
-            for (var row : ShortcutRows.parse(shortcutsFor(language))) {
+            for (var row : rowsFor(language)) {
                 assertFalse(row.keys().isBlank(),
                         language + ": row lost its chord: " + row);
                 assertFalse(row.description().isBlank(),
@@ -79,38 +48,74 @@ class ShortcutRowsTest {
     }
 
     /**
-     * The split rule is only unambiguous while no key contains a double space
-     * and every description uses single spaces only - splitting the raw line
-     * on space runs must therefore yield exactly two parts. A third part is
-     * either a padded key or a double-spaced description, and either would
-     * have been mis-split before this test existed to catch it.
+     * Two-way coverage: absolutely every chord the inventory declares appears
+     * on the card exactly once, and the card invents nothing. A duplicate
+     * would also be a routing ambiguity, since {@code resolve()} returns the
+     * first match.
      */
     @Test
-    void everyBundleLineSplitsIntoExactlyTwoParts() {
-        for (var language : Language.values()) {
-            for (var line : shortcutsFor(language).lines().toList()) {
-                var parts = SEPARATOR.split(line.trim());
-
-                assertEquals(2, parts.length,
-                        language + ": separator is ambiguous in: " + line);
+    void theCardAndTheInventoryCoverEachOtherExactly() {
+        var inventory = new LinkedHashSet<String>();
+        for (var action : EditorAction.values()) {
+            for (var accelerator : action.accelerators()) {
+                assertTrue(inventory.add(accelerator.chord()),
+                        accelerator.chord() + " is declared twice in EditorAction");
             }
+        }
+
+        for (var language : Language.values()) {
+            var chords = rowsFor(language).stream().map(ShortcutRows.Row::keys).toList();
+            assertEquals(List.copyOf(inventory), chords,
+                    language + ": the card and EditorAction disagree on the chords");
+        }
+    }
+
+    /** The description of each row is exactly the action's localized label. */
+    @Test
+    void eachRowUsesTheActionsLocalizedLabel() {
+        for (var language : Language.values()) {
+            var messages = messagesFor(language);
+            var rows = rowsFor(language);
+
+            var index = 0;
+            for (var action : EditorAction.values()) {
+                for (var accelerator : action.accelerators()) {
+                    var row = rows.get(index++);
+                    assertEquals(accelerator.chord(), row.keys());
+                    assertEquals(action.label(messages), row.description(),
+                            language + " " + accelerator.chord());
+                }
+            }
+            assertEquals(rows.size(), index);
+        }
+    }
+
+    /** Ordering is part of the card: it follows the enum, and it is stable. */
+    @Test
+    void theCardKeepsItsPublishedOrder() {
+        for (var language : Language.values()) {
+            assertEquals(List.of("Ctrl+T", "Ctrl+Shift+T", "Ctrl+Shift+Y", "Ctrl+Shift+C",
+                            "Ctrl++", "Ctrl+-", "Ctrl+0", "Ctrl+Z", "Ctrl+Shift+Z", "Ctrl+Y",
+                            "Ctrl+N", "Ctrl+O", "Ctrl+S", "Ctrl+Shift+S", "F11", "Escape"),
+                    rowsFor(language).stream().map(ShortcutRows.Row::keys).toList(),
+                    language + ": the row order changed");
         }
     }
 
     /**
-     * A parser-level guard: the theme cycle text must land in the
-     * description of the Ctrl+Shift+T row in cycle order (Dark/Sepia/Light),
-     * in every language.
+     * The theme row must describe the real cycle ({@link Theme#next()} from the
+     * persisted default), not the enum declaration order - the bug
+     * {@code ThemeCycleTest} still guards at the bundle level.
      */
     @Test
-    void themeSwitchRowKeepsTheCycleInTheDescription() {
+    void themeRowKeepsTheCycleInTheDescription() {
         for (var language : Language.values()) {
             var messages = messagesFor(language);
             var cycle = Theme.DARK.getDisplayName(messages) + "/"
                     + Theme.SEPIA.getDisplayName(messages) + "/"
                     + Theme.LIGHT.getDisplayName(messages);
 
-            var row = ShortcutRows.parse(shortcutsFor(language)).stream()
+            var row = rowsFor(language).stream()
                     .filter(candidate -> candidate.keys().equals("Ctrl+Shift+T"))
                     .findFirst()
                     .orElseThrow(() -> new AssertionError("no theme shortcut row in " + language));
@@ -120,98 +125,42 @@ class ShortcutRowsTest {
         }
     }
 
-    /** Single spaces inside a description are content, not separator. */
+    /** The card is rebuilt for the current language on every call, not frozen. */
     @Test
-    void singleSpacesInsideADescriptionSurviveTheSplit() {
-        var rows = ShortcutRows.parse("Ctrl+S          Save / Save As");
+    void switchingTheLanguageRebuildsTheDescriptions() {
+        var messages = messagesFor(Language.EN);
+        assertTrue(rowsFor(messages).stream()
+                .anyMatch(row -> row.description().equals("Toggle Toolbar")));
 
-        assertEquals(1, rows.size());
-        assertEquals("Ctrl+S", rows.get(0).keys());
-        assertEquals("Save / Save As", rows.get(0).description());
+        var settings = new AppSettings(dir.resolve("switch.properties"));
+        var localeManager = new LocaleManager(settings);
+        var live = new Messages(localeManager);
+        localeManager.setLanguage(Language.TR);
+
+        assertTrue(ShortcutRows.fromActions(live).stream()
+                        .anyMatch(row -> row.description().equals("Araç çubuğu aç/kapa")),
+                "the card still shows the previous language");
     }
 
-    /**
-     * Defensive path: a line without the separator (a malformed translation,
-     * or a key whose padding was lost) degrades into a key-only row instead
-     * of throwing, so one bad line cannot blank the whole card. Unlike the
-     * six real bundles, this text is authored here, so a descriptionless row
-     * is exactly what the test demands.
-     */
+    /** A chord listed twice would also make routing ambiguous; the card must not. */
     @Test
-    void aLineWithoutTheSeparatorBecomesAKeyWithAnEmptyDescription() {
-        var rows = ShortcutRows.parse("Ctrl+B  Bold\nOrphan line\n\n");
-
-        assertEquals(2, rows.size(), "blank lines are skipped");
-        assertEquals("Ctrl+B", rows.get(0).keys());
-        assertEquals("Bold", rows.get(0).description());
-        assertEquals("Orphan line", rows.get(1).keys());
-        assertEquals("", rows.get(1).description());
-    }
-
-    /**
-     * The card and the handler must tell the same story. The old
-     * list claimed {@code Ctrl+S  Save / Save As} - a shortcut the handler does
-     * not have, since Save As is {@code Ctrl+Shift+S} - and never mentioned
-     * {@code Ctrl+Shift+Z}, which the handler does map to Redo. Chords are
-     * language-independent (only descriptions are translated), so one table
-     * driven by the package-private {@link KeyboardShortcutHandler#resolve}
-     * covers every bundle.
-     *
-     * <p>The row order is pinned too: dropping a chord and duplicating another
-     * would keep a set equal, but the card would still list the wrong thing.
-     * {@code Escape} resolves to {@code NONE} on purpose - it is handled by the
-     * fullscreen exit combination, not by {@code resolve}, and the card must
-     * not promise it any other action.
-     */
-    @Test
-    void theCardListsExactlyTheChordsTheHandlerImplements() {
+    void noChordAppearsTwiceOnTheCard() {
         for (var language : Language.values()) {
-            var rows = ShortcutRows.parse(shortcutsFor(language));
-            var chords = rows.stream().map(ShortcutRows.Row::keys).toList();
-
-            assertEquals(List.copyOf(HANDLER_CHORDS.keySet()), chords,
-                    language + ": the card and the handler disagree on the chords");
-
-            for (var row : rows) {
-                var chord = HANDLER_CHORDS.get(row.keys());
-                assertEquals(chord.action(),
-                        KeyboardShortcutHandler.resolve(chord.code(), chord.shift()),
-                        language + " " + row.keys() + ": the card promises an action the handler does not perform");
+            var chords = new ArrayList<String>();
+            for (var row : rowsFor(language)) {
+                chords.add(row.keys());
             }
+            assertEquals(Set.copyOf(chords).size(), chords.size(),
+                    language + ": a chord is listed twice");
         }
     }
 
-    /** A card chord and how the handler decodes it. */
-    private record Chord(KeyCode code, boolean shift, ShortcutAction action) {
+    private List<ShortcutRows.Row> rowsFor(Language language) {
+        return ShortcutRows.fromActions(messagesFor(language));
     }
 
-    /** The full card, in the order every bundle must list it. */
-    private static final Map<String, Chord> HANDLER_CHORDS = handlerChords();
-
-    private static Map<String, Chord> handlerChords() {
-        var chords = new LinkedHashMap<String, Chord>();
-        chords.put("Ctrl+T", new Chord(KeyCode.T, false, ShortcutAction.TOGGLE_TOOLBAR));
-        chords.put("Ctrl+Shift+T", new Chord(KeyCode.T, true, ShortcutAction.CYCLE_THEME));
-        chords.put("Ctrl+Shift+Y", new Chord(KeyCode.Y, true, ShortcutAction.TOGGLE_YOLO));
-        chords.put("Ctrl+Shift+C", new Chord(KeyCode.C, true, ShortcutAction.CYCLE_TEXT_COLOR));
-        chords.put("Ctrl++", new Chord(KeyCode.EQUALS, false, ShortcutAction.FONT_UP));
-        chords.put("Ctrl+-", new Chord(KeyCode.MINUS, false, ShortcutAction.FONT_DOWN));
-        chords.put("Ctrl+0", new Chord(KeyCode.DIGIT0, false, ShortcutAction.FONT_RESET));
-        chords.put("Ctrl+Z", new Chord(KeyCode.Z, false, ShortcutAction.UNDO));
-        chords.put("Ctrl+Shift+Z", new Chord(KeyCode.Z, true, ShortcutAction.REDO));
-        chords.put("Ctrl+Y", new Chord(KeyCode.Y, false, ShortcutAction.REDO));
-        chords.put("Ctrl+N", new Chord(KeyCode.N, false, ShortcutAction.NEW_DOCUMENT));
-        chords.put("Ctrl+O", new Chord(KeyCode.O, false, ShortcutAction.OPEN));
-        chords.put("Ctrl+S", new Chord(KeyCode.S, false, ShortcutAction.SAVE));
-        chords.put("Ctrl+Shift+S", new Chord(KeyCode.S, true, ShortcutAction.SAVE_AS));
-        chords.put("F11", new Chord(KeyCode.F11, false, ShortcutAction.TOGGLE_FULLSCREEN));
-        // Fullscreen exit is not resolved here; see the test javadoc.
-        chords.put("Escape", new Chord(KeyCode.ESCAPE, false, ShortcutAction.NONE));
-        return Collections.unmodifiableMap(chords);
-    }
-
-    private String shortcutsFor(Language language) {
-        return messagesFor(language).welcomeShortcuts();
+    private List<ShortcutRows.Row> rowsFor(Messages messages) {
+        return ShortcutRows.fromActions(messages);
     }
 
     private Messages messagesFor(Language language) {

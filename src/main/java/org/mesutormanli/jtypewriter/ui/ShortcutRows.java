@@ -5,23 +5,24 @@
 
 package org.mesutormanli.jtypewriter.ui;
 
+import org.mesutormanli.jtypewriter.locale.Messages;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
- * Turns the raw {@code welcomeShortcuts} bundle text into key/description
- * rows for the welcome and About shortcut cards.
+ * Turns the {@link EditorAction} inventory into key/description rows for the
+ * welcome and About shortcut cards.
  *
- * <p>The bundles fake column alignment with runs of spaces
- * ({@code "Ctrl+T          Toggle Toolbar"}), which renders ragged when the
- * whole block is drawn as one label. The parser reads that padding back as a
- * separator so the dialogs can lay the list out as a real two-column grid
- * without the translations gaining a second format to maintain.
+ * <p>The rows used to be a hand-padded {@code welcomeShortcuts} bundle blob
+ * that had to be kept in step with the key handler by hand, and the two did
+ * drift apart. The chords are no longer written anywhere but
+ * {@link EditorAction}; only the descriptions are translated, one bundle key
+ * per action.</p>
  *
- * <p>Deliberately free of JavaFX types, like {@link DialogSizing}: the unit
- * tests parse every shipped bundle without starting a toolkit. The JavaFX
- * side of the card lives in {@link ShortcutTable}.
+ * <p>Deliberately free of JavaFX nodes, like {@link DialogSizing}: the unit
+ * tests build every row of every shipped language without starting a toolkit.
+ * The JavaFX side of the card lives in {@link ShortcutTable}.</p>
  */
 public final class ShortcutRows {
 
@@ -29,36 +30,22 @@ public final class ShortcutRows {
     public record Row(String keys, String description) {
     }
 
-    /**
-     * Key and description are separated by two or more consecutive spaces -
-     * the column padding the bundles were written with. No key contains a
-     * double space and descriptions use single spaces only;
-     * {@code ShortcutRowsTest} pins that for all six bundles rather than
-     * trusting it, so the first run of spaces is an unambiguous separator.
-     */
-    private static final Pattern SEPARATOR = Pattern.compile(" {2,}");
-
     private ShortcutRows() {
     }
 
     /**
-     * Splits the raw bundle text into rows, preserving order. Blank lines are
-     * skipped. A line without the separator degrades into a key-only row
-     * instead of throwing: one malformed translation must not blank out the
-     * whole shortcut card of a dialog.
+     * The card, in {@link EditorAction} declaration order. An action with two
+     * accelerators ({@code Redo}) yields two rows, exactly as the card always
+     * listed it; the label is read in the current UI language on every call,
+     * so a language switch re-renders the card.
      */
-    public static List<Row> parse(String raw) {
+    public static List<Row> fromActions(Messages messages) {
         var rows = new ArrayList<Row>();
-        for (var line : raw.lines().toList()) {
-            if (line.isBlank()) {
-                continue;
+        for (var action : EditorAction.values()) {
+            var description = action.label(messages);
+            for (var accelerator : action.accelerators()) {
+                rows.add(new Row(accelerator.chord(), description));
             }
-            // Split first, trim after: the separator itself is spaces, and
-            // limit 2 keeps any stray run inside a description in its place.
-            var parts = SEPARATOR.split(line.trim(), 2);
-            var keys = parts[0].trim();
-            var description = parts.length > 1 ? parts[1].trim() : "";
-            rows.add(new Row(keys, description));
         }
         return List.copyOf(rows);
     }
