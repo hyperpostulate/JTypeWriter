@@ -11,6 +11,7 @@ import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.Language;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.ui.MainMenu;
 import org.mesutormanli.jtypewriter.ui.component.ToolbarFit.LayoutMode;
 
 import java.nio.file.Path;
@@ -172,6 +173,21 @@ class ToolbarFitTest {
             double saving = requiredRow(language, false) - requiredRow(language, true);
             assertTrue(saving > ToolbarFit.MODE_HYSTERESIS_PX + HEADROOM_PX / 2,
                     language + " collapse only frees " + round(saving) + " px");
+        }
+    }
+
+    /**
+     * The command menu is a child of the toolbar row, so it must be part of
+     * the width model: if it were missing, the fit decision would happily clip
+     * the button that holds {@code New} and {@code Save As}.
+     */
+    @Test
+    void theCommandMenuIsMeasuredAsPartOfRowOne() {
+        for (var compact : new boolean[]{false, true}) {
+            var row = ToolbarView.fitControls(messagesFor(Language.EN), compact);
+            assertEquals(ToolbarFit.Control.button(MainMenu.GLYPH), row.get(0),
+                    "the command menu is not the first measured control");
+            assertTrue(row.size() > 1);
         }
     }
 

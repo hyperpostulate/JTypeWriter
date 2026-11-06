@@ -20,6 +20,7 @@ import org.mesutormanli.jtypewriter.ui.AboutDialog;
 import org.mesutormanli.jtypewriter.ui.CrashHandler;
 import org.mesutormanli.jtypewriter.ui.KeyboardShortcutHandler;
 import org.mesutormanli.jtypewriter.ui.MainController;
+import org.mesutormanli.jtypewriter.ui.MainMenu;
 import org.mesutormanli.jtypewriter.ui.MainStage;
 import org.mesutormanli.jtypewriter.ui.WelcomeDialog;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
@@ -81,15 +82,16 @@ public final class AppGraph {
     // --- views and dialogs ------------------------------------------------
     public final AboutDialog aboutDialog = new AboutDialog(messages, themeManager);
     public final WelcomeDialog welcomeDialog = new WelcomeDialog(messages, themeManager);
+    public final MainMenu mainMenu = new MainMenu(messages, localeManager, aboutDialog);
     public final ToolbarView toolbarView = new ToolbarView(
             themeManager, textColorManager, fontSizeManager,
-            toolbarState, messages, localeManager, aboutDialog);
+            toolbarState, messages, localeManager, aboutDialog, mainMenu.node());
     public final StatsBar statsBar = new StatsBar(sessionStats, messages, statsBarState, localeManager);
     public final CrashHandler crashHandler = new CrashHandler(dialogService, messages, () -> this.stage);
 
     // --- top level assembly ------------------------------------------------
     public final MainController mainController = new MainController(
-            editorArea, toolbarView, statsBar,
+            editorArea, mainMenu, toolbarView, statsBar,
             fileService, messages, localeManager, shortcutHandler, editorKeyHandler,
             autoSaveService, settings, LocalTime::now);
     public final MainStage mainStage = new MainStage(fileService, settings, autoSaveService);

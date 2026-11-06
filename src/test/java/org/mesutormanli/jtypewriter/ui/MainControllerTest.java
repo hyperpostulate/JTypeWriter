@@ -14,6 +14,8 @@ import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.nio.file.Path;
 import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -99,6 +101,65 @@ class MainControllerTest {
         assertEquals("Kaydedildi 12:04", savedStatusFromBundle(Language.TR, LocalTime.of(12, 4), dir));
         assertEquals("Gespeichert um 12:04", savedStatusFromBundle(Language.DE, LocalTime.of(12, 4), dir),
                 "Turkish and German share the 24-hour clock but not the wording");
+    }
+
+    /**
+     * The menu bar is generated from the same inventory as the key filter and
+     * the toolbar, so every command the platform does not perform itself must
+     * appear exactly once - no missing New/Save As, no duplicated command.
+     */
+    @Test
+    void menuLayoutCoversEveryNonPlatformActionExactlyOnce() {
+        var fromMenus = MainMenu.layout().stream()
+                .flatMap(spec -> spec.actions().stream())
+                .toList();
+        var expected = Arrays.stream(EditorAction.values())
+                .filter(action -> !action.handledByPlatform())
+                .toList();
+
+        assertEquals(expected.size(), fromMenus.size(),
+                "one menu entry per command, so no command is repeated");
+        assertEquals(new HashSet<>(expected), new HashSet<>(fromMenus));
+    }
+
+    /** A language switch relabels the menus through the bundles, never with blanks. */
+    @Test
+    void everyMenuTitleAndActionLabelIsNonBlankInEveryLanguage(@TempDir Path dir) {
+        for (var language : Language.values()) {
+            var messages = messagesFor(language, dir);
+            for (var spec : MainMenu.layout()) {
+                assertFalse(spec.page().title(messages).isBlank(),
+                        () -> "blank menu title in " + language);
+                for (var action : spec.actions()) {
+                    assertFalse(action.label(messages).isBlank(),
+                            () -> "blank label for " + action + " in " + language);
+                }
+            }
+        }
+    }
+
+    /**
+     * About is a dialog view, not a document command: giving it an
+     * {@link EditorAction} would force a fake chord into the shortcut card, so
+     * Help carries no actions and only its title comes from the bundle.
+     */
+    @Test
+    void helpMenuCarriesNoEditorActionsButALocalisedTitle(@TempDir Path dir) {
+        var help = MainMenu.layout().stream()
+                .filter(spec -> spec.page() == MainMenu.Page.HELP)
+                .findFirst()
+                .orElseThrow();
+
+        assertTrue(help.actions().isEmpty());
+        assertEquals("Yard\u0131m", help.page().title(messagesFor(Language.TR, dir)));
+        assertEquals("Help", help.page().title(messagesFor(Language.EN, dir)));
+    }
+
+    private static Messages messagesFor(Language language, Path dir) {
+        var localeManager = new LocaleManager(
+                new AppSettings(dir.resolve("menu-settings-" + language.code() + ".properties")));
+        localeManager.setLanguage(language);
+        return new Messages(localeManager);
     }
 
     private static String savedStatusFromBundle(Language language, LocalTime savedAt, Path dir) {

@@ -32,6 +32,7 @@ import java.util.function.Supplier;
 public class MainController implements Initializable {
 
     private final EditorArea editorArea;
+    private final MainMenu mainMenu;
     private final ToolbarView toolbarView;
     private final StatsBar statsBar;
     private final FileService fileService;
@@ -60,13 +61,15 @@ public class MainController implements Initializable {
     @FXML
     private BorderPane rootPane;
 
-    public MainController(EditorArea editorArea, ToolbarView toolbarView, StatsBar statsBar,
+    public MainController(EditorArea editorArea, MainMenu mainMenu, ToolbarView toolbarView,
+                          StatsBar statsBar,
                           FileService fileService, Messages messages, LocaleManager localeManager,
                           KeyboardShortcutHandler shortcutHandler,
                           EditorKeyHandler editorKeyHandler,
                           AutoSaveService autoSaveService,
                           AppSettings settings, Supplier<LocalTime> clock) {
         this.editorArea = editorArea;
+        this.mainMenu = mainMenu;
         this.toolbarView = toolbarView;
         this.statsBar = statsBar;
         this.fileService = fileService;
@@ -89,6 +92,8 @@ public class MainController implements Initializable {
         shortcutHandler.bind(editorArea, toolbarView, stage, this::toggleToolbar, toolbarView::cycleTheme);
         // The toolbar buttons and the key filter share this one runner.
         toolbarView.setActionRunner(shortcutHandler::run);
+        mainMenu.setActionRunner(shortcutHandler::run);
+        mainMenu.setStage(stage);
         editorKeyHandler.bind(editorArea);
         fileService.addListener(new FileService.Listener() {
             @Override
@@ -228,6 +233,8 @@ public class MainController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         rootPane.setCenter(editorArea);
+        // The menu lives inside the toolbar row (see MainMenu), so hiding the
+        // toolbar still leaves nothing but the text.
         rootPane.setTop(toolbarView);
         rootPane.setBottom(statsBar);
 

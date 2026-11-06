@@ -128,6 +128,29 @@
     -fx-background-radius: 4px;
 }
 
+/* The command menu is a MenuButton dressed as a toolbar button, minus its
+   dropdown arrow: the glyph already reads as "more", and an arrow beside it
+   would look like a second affordance next to the plain buttons. Its label is
+   the only text a MenuButton renders, so it needs the theme colour explicitly
+   (Label does not inherit -fx-text-fill from the button). */
+.toolbar-menu-button {
+    -fx-padding: 4px 7px;
+}
+
+.toolbar-menu-button > .label {
+    -fx-text-fill: -toolbar-text;
+}
+
+.toolbar-menu-button > .arrow-button {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+
+.toolbar-menu-button > .arrow-button > .arrow {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+
 /* --- Toolbar dropdowns ----------------------------------------------------
    The six settings pickers. Closed, a dropdown mirrors the flat toolbar
    buttons: transparent fill, theme border, hover wash. Everything resolves

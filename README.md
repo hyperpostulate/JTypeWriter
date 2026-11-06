@@ -25,7 +25,7 @@ JTypeWriter opens a single plain-text document and then stays out of the way: no
 - **A draft you cannot wreck by accident.** YOLO mode turns off Backspace, Delete, Cut and Undo/Redo so you can only move forward. Every save is atomic and keeps rotating backups, and unsaved work is snapshotted every 30 seconds - after a crash the draft is offered back, and closing that prompt never deletes it.
 - **The feel of typing.** A typewriter keystroke for every key you press, three themes (dark, light, sepia) and six text colours, all switchable while you write.
 - **Numbers as you go.** Words, characters with and without spaces, lines, keystrokes, session time and a sustained words-per-minute figure that ignores your breaks.
-- **Only text on screen.** `F11` goes fullscreen, `Ctrl+T` hides the toolbar, and the window title tells you which document is open and whether it is saved.
+- **Only text on screen.** `F11` goes fullscreen, `Ctrl+T` hides the toolbar along with the command menu it hosts, and the window title tells you which document is open and whether it is saved.
 - **A session that comes back.** Language, theme, text colour, font size, last document and window geometry are restored on the next start.
 
 ---
@@ -73,10 +73,14 @@ Live stats bar showing:
 
 - **`F11` takes over the screen, `Escape` gives it back:** `F11` toggles fullscreen and `Escape` leaves it (the platform's default exit hint is suppressed)
 - **The toolbar can disappear completely:** `Ctrl+T` removes it when you want nothing but text on screen
-- **The toolbar never wraps to a second row:** at every width it stays one horizontal row. At the tested window sizes the six dropdowns show a caption with their value ("Theme: Dark", "Size: 16", "Language: Deutsch") and nothing overflows - fully captioned at 1280 px, captions collapsed to the bare value ("Dark", "16", "Deutsch") at 900 px in all six languages, measured from the actual localised labels. Below the collapsed row's own width the dropdowns keep shrinking and can clip, because the window has no minimum width. The five buttons never collapse and always stay visible
-  - **Every control is reachable and explained.** `Tab` follows the pinned visual order: Open, Save, Undo, Redo, Theme, YOLO, Sound, Color, Size, About, Language. The order is set with `viewOrder`; JavaFX documents that property for rendering and picking, so the focus order is an application convention rather than a toolkit guarantee. Each control keeps a visible focus ring and a tooltip from the UI language that includes the shortcut where one exists, such as "Save (Ctrl+S)"
+- **The toolbar never wraps to a second row:** at every width it stays one horizontal row. At the tested window sizes the six dropdowns show a caption with their value ("Theme: Dark", "Size: 16", "Language: Deutsch") and nothing overflows - fully captioned at 1280 px, captions collapsed to the bare value ("Dark", "16", "Deutsch") at 900 px in all six languages, measured from the actual localised labels. Below the collapsed row's own width the dropdowns keep shrinking and can clip, because the window has no minimum width. The command-menu button and the five plain buttons never collapse and always stay visible
+  - **Every control is reachable and explained.** `Tab` follows the pinned visual order: Menu, Open, Save, Undo, Redo, Theme, YOLO, Sound, Color, Size, About, Language. The order is set with `viewOrder`; JavaFX documents that property for rendering and picking, so the focus order is an application convention rather than a toolkit guarantee. Each control keeps a visible focus ring and a tooltip from the UI language that includes the shortcut where one exists, such as "Save (Ctrl+S)"
 - **Your layout is remembered:** the toolbar's shown or hidden state, fullscreen and the status bar's size all survive a restart, and a choice is saved the moment you toggle it rather than only on exit
   - **Fullscreen never fights the window geometry.** A window left in fullscreen comes back in fullscreen; fullscreen wins at startup over the remembered position and size, and leaving it later lands on the remembered position
+
+### Command Menu
+
+The leftmost toolbar control is a `☰` button holding four menus - File, Edit and View with the editor commands, Help with About. It is a menu button rather than a permanent menu strip: a second chrome row would follow you into fullscreen and undermine `Ctrl+T`, so the menu hides with the toolbar it lives in. Every editor command the platform does not handle itself is generated from the same `EditorAction` inventory as the shortcuts and toolbar buttons, so `New` (`Ctrl+N`) and `Save As` (`Ctrl+Shift+S`) are now discoverable instead of keyboard-only. Labels and accelerators follow the UI language (the accelerators are descriptive - the key filter performs them), and Help → About opens the About card. Because the menus are generated rather than hand-written, a command can no longer exist in one entry point and be missing from another.
 
 ### Data Safety & Crash Recovery
 
@@ -333,6 +337,7 @@ org.mesutormanli.jtypewriter
 │   └── SessionStats.java                 # Writing session statistics (WPM, counts)
 ├── ui/
 │   ├── MainController.java               # Root layout controller
+│   ├── MainMenu.java                     # File/Edit/View/Help menu button generated from EditorAction
 │   ├── MainStage.java                    # Stage configuration (fullscreen, close)
 │   ├── AppIcons.java                     # Window/taskbar/dock icon set from /icons/
 │   ├── WelcomeDialog.java                # Welcome screen with shortcuts
@@ -377,6 +382,7 @@ org.mesutormanli.jtypewriter
 | `EditorKeyHandler` | Handles keystroke sound effects and session stats tracking |
 | `StatsBar` | Renders the clock and the *saved at ...* confirmation, both in the UI language's date/time formats, and live session statistics in the bottom bar; shows a persistent warning naming the autosave failure, with separate text for a stale draft, and its text size cycles on double-click |
 | `KeyboardShortcutHandler` | Centralized keyboard shortcut routing |
+| `MainMenu` | File/Edit/View/Help command menu in the toolbar; entries and accelerators are generated from `EditorAction` |
 | `ToolbarView` | Top toolbar with all editor controls |
 | `ToolbarFit` | Toolbar overflow policy: pure, JavaFX-free measurement that collapses the dropdown captions when the captioned row would not fit |
 | `ToolbarState` | Manages YOLO mode and sound on/off state |

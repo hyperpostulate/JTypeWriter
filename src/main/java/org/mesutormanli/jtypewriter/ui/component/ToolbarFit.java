@@ -19,9 +19,10 @@ import java.util.List;
  * <p><strong>The strategy.</strong> The toolbar stays a single row at every
  * width. A {@code FULL} row renders each dropdown as {@code "Theme: Dark"};
  * when that row no longer fits, the policy switches to {@code COMPACT}, which
- * drops the caption and renders just {@code "Dark"}. The five buttons (open,
- * save, undo, redo, about) are never collapsed - they are the priority
- * controls and always stay in row one together with all six dropdowns. A
+ * drops the caption and renders just {@code "Dark"}. The command-menu button
+ * and the five plain buttons (open, save, undo, redo, about) are never
+ * collapsed - they are the priority controls and always stay in row one
+ * together with all six dropdowns. A
  * {@link #MODE_HYSTERESIS_PX}-wide dead band keeps a window dragged right at
  * the threshold from flickering between the two modes.</p>
  */

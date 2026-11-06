@@ -352,6 +352,27 @@ public class Messages {
         return bundle.getString("windowUntitled");
     }
 
+    /** The tooltip/accessible name of the toolbar's command-menu button. */
+    public String toolbarMenu() {
+        return bundle.getString("toolbarMenu");
+    }
+
+    public String menuFile() {
+        return bundle.getString("menuFile");
+    }
+
+    public String menuEdit() {
+        return bundle.getString("menuEdit");
+    }
+
+    public String menuView() {
+        return bundle.getString("menuView");
+    }
+
+    public String menuHelp() {
+        return bundle.getString("menuHelp");
+    }
+
     public String menuCut() {
         return bundle.getString("menuCut");
     }

@@ -14,6 +14,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.ListCell;
+import javafx.scene.control.MenuButton;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -25,6 +26,7 @@ import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.ui.AboutDialog;
 import org.mesutormanli.jtypewriter.ui.EditorAction;
+import org.mesutormanli.jtypewriter.ui.MainMenu;
 import org.mesutormanli.jtypewriter.ui.theme.FontSizeManager;
 import org.mesutormanli.jtypewriter.ui.theme.TextColor;
 import org.mesutormanli.jtypewriter.ui.theme.TextColorManager;
@@ -37,8 +39,9 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * The top toolbar: file and undo actions, an About button and six dropdowns -
- * theme, YOLO mode, sound, text colour, font size and language.
+ * The top toolbar: the command menu, file and undo actions, an About button
+ * and six dropdowns - theme, YOLO mode, sound, text colour, font size and
+ * language.
  *
  * <p>Every dropdown mirrors state owned by a manager ({@link ThemeManager},
  * {@link ToolbarState}, {@link TextColorManager}, {@link FontSizeManager},
@@ -50,9 +53,9 @@ import java.util.function.Supplier;
  *
  * <p>At narrow widths the row never wraps and never clips: {@link ToolbarFit}
  * measures the labels and the dropdowns collapse from
- * {@code "Theme: Dark"} to {@code "Dark"} so the five buttons and all six
- * dropdowns always stay visible. Every control carries a tooltip from the
- * bundle and is Tab-reachable in visual order.</p>
+ * {@code "Theme: Dark"} to {@code "Dark"} so the command-menu button, the five
+ * plain buttons and all six dropdowns always stay visible. Every control
+ * carries a tooltip from the bundle and is Tab-reachable in visual order.</p>
  */
 public class ToolbarView extends HBox {
 
@@ -63,6 +66,14 @@ public class ToolbarView extends HBox {
     private final Messages messages;
     private final LocaleManager localeManager;
     private final AboutDialog aboutDialog;
+
+    /**
+     * The command menu (File/Edit/View/Help) as one toolbar button. It is a
+     * child of this row rather than a menu strip of its own, so hiding the
+     * toolbar hides the menu too - and the menu's width is part of the same
+     * fit measurement as every other control.
+     */
+    private final MenuButton commandMenu;
 
     private final Button openBtn;
     private final Button saveBtn;
@@ -108,7 +119,8 @@ public class ToolbarView extends HBox {
     public ToolbarView(ThemeManager themeManager,
                        TextColorManager textColorManager, FontSizeManager fontSizeManager,
                        ToolbarState toolbarState, Messages messages,
-                       LocaleManager localeManager, AboutDialog aboutDialog) {
+                       LocaleManager localeManager, AboutDialog aboutDialog,
+                       MenuButton commandMenu) {
         this.themeManager = themeManager;
         this.textColorManager = textColorManager;
         this.fontSizeManager = fontSizeManager;
@@ -116,6 +128,7 @@ public class ToolbarView extends HBox {
         this.messages = messages;
         this.localeManager = localeManager;
         this.aboutDialog = aboutDialog;
+        this.commandMenu = commandMenu;
         this.editorArea = null;
 
         getStyleClass().add("toolbar");
@@ -197,6 +210,7 @@ public class ToolbarView extends HBox {
         HBox.setMargin(themeCombo, new Insets(0, 0, 0, 4));
 
         getChildren().addAll(
+                commandMenu,
                 openBtn, saveBtn,
                 undoBtn, redoBtn,
                 themeCombo, yoloCombo, soundCombo, colorCombo, fontSizeCombo,
@@ -208,6 +222,7 @@ public class ToolbarView extends HBox {
         // Tooltips: the localized label plus the chord from the same
         // EditorAction the button runs, re-read on every refresh() so neither a
         // language switch nor a changed accelerator can leave a stale hint.
+        attachTooltip(commandMenu, messages::toolbarMenu);
         attachTooltip(openBtn, () -> withShortcut(EditorAction.OPEN.label(messages),
                 EditorAction.OPEN.primaryChord()));
         attachTooltip(saveBtn, () -> withShortcut(EditorAction.SAVE.label(messages),
@@ -234,6 +249,7 @@ public class ToolbarView extends HBox {
         // and the geometrical traversal methods honour. It follows
         // the child order, so the paint order cannot change.
         var traversalOrder = new Node[]{
+                commandMenu,
                 openBtn, saveBtn, undoBtn, redoBtn,
                 themeCombo, yoloCombo, soundCombo, colorCombo, fontSizeCombo,
                 aboutBtn, languageCombo
@@ -304,6 +320,7 @@ public class ToolbarView extends HBox {
         // A null caption is the COMPACT form: the closed dropdown shows the bare value.
         var separator = messages.captionSeparator();
         return List.of(
+                ToolbarFit.Control.button(MainMenu.GLYPH),
                 ToolbarFit.Control.button(EditorAction.OPEN.label(messages)),
                 ToolbarFit.Control.button(EditorAction.SAVE.label(messages)),
                 ToolbarFit.Control.button(EditorAction.UNDO.label(messages)),
@@ -394,6 +411,7 @@ public class ToolbarView extends HBox {
             resync(fontSizeCombo, fontSizeOptions(size), size);
             resync(languageCombo, languageOptions(), localeManager.getCurrent());
 
+            commandMenu.setAccessibleText(messages.toolbarMenu());
             themeCombo.setAccessibleText(messages.toolbarTheme());
             yoloCombo.setAccessibleText(messages.toolbarYolo());
             soundCombo.setAccessibleText(messages.toolbarSound());

@@ -653,13 +653,51 @@ etki testi kırmızı; `ToolbarView`'a `"Ctrl+S"` literali geri konunca kaynak t
 (üçü de geri alındı). `mvn test -Dtest=KeyboardShortcutHandlerTest,EditorActionTest,ShortcutRowsTest`
 → 15/15 + 6/6 + 7/7; `mvn -B clean test` → **439/439**.
 
-**W3-02 · A4b — Menü çubuğu** · M · E2
-- **Kapsam:** `MainStage`, yeni `ui/MainMenuBar`, `Messages`, 6 bundle
+**W3-02 · A4b — Komut menüsü** · M · E2
+- **Kapsam:** yeni `ui/MainMenu`, `ToolbarView` (düğmeyi satıra alır), `ToolbarFit` (ölçüm),
+  `MainController`, `AppGraph`, `Messages`, 6 bundle, `base.css`
 - **Yapılacak:** Dosya / Düzen / Görünüm / Yardım. **`Yeni` ve `Farklı Kaydet` görünür olur**
   (bugün 14 eylemin 2'si arayüzde yok). Etiketler bundle'dan, hızlandırıcılar komut katmanından.
 - **Bitti tanımı:** (1) Menüdeki her öğe bir `EditorAction`'a bağlı (test: menü ağacı ↔ komut
   kümesi birebir). (2) Altı dilde menü etiketleri var (`MessagesTest` yeşil).
-- **Doğrulama:** `mvn test -Dtest=MainStageTest,MainControllerTest,MessagesTest`.
+- **Doğrulama:** `mvn test -Dtest=MainStageTest,MainControllerTest,ToolbarFitTest,MessagesTest`.
+
+> **Tasarım kararı (6 Kas 2026): menü şeridi değil, araç çubuğunda menü düğmesi.** Ürün
+> kimliği "distraction-free": kalıcı bir `MenuBar` satırı metinden geri alınamayan bir krom
+> satırı ekler, tam ekranda ve `Ctrl+T` sırasında da kalır ve uygulamanın "ekranda yalnızca
+> metin" sözünü bozar. Bu yüzden menü, araç çubuğunun en solundaki tek `☰` `MenuButton`'ıdır:
+> `Ctrl+T` onu da gizler, ayrı satır yoktur, 14 komutun tamamı yine tek yerden keşfedilir.
+> Keşfedilebilirlik kapanmaz; aynı ağaç `layout()` saf fonksiyonundan üretilir, dolayısıyla
+> W4-02 (son dosyalar) ve W4-04 (Görünüm → Ses) bu menüye eklenmeye devam eder.
+
+**Uygulama (6 Kas 2026):** `ui/MainMenu` menü düğmesini (`MenuButton`, etiketi `☰`) üretiyor ve
+sınıf `MenuButton`'ı da miras almıyor, kompozisyon kullanıyor: JavaFX `Control`'ün statik
+başlatıcısı toolkit ister ve saf `layout()` testini "Toolkit not initialized" ile düşürürdü. Saf
+`layout()` dört `MenuSpec` döndürüyor (Dosya 4, Düzen 2, Görünüm 8, Yardım 0) ve 14 platform-dışı
+`EditorAction`'ın her birini tam bir kez içeriyor; `EXIT_FULLSCREEN` JavaFX'in kendi
+`fullScreenExitKeyCombination`'ında kaldığı için menüde yok. Etiketler `action.label(messages)`,
+hızlandırıcılar `action.primaryChord()`; JavaFX `"Ctrl++"` ayrıştıramadığı için yalnız bu akor
+`Ctrl+Plus` olarak veriliyor ve ekranda yine `Ctrl++` görünüyor. Hızlandırıcılar **açıklamadır**:
+tuşu sahne seviyesindeki `KeyboardShortcutHandler` filtrede yakalayıp tüketiyor, menü öğesinin
+kendi akoru hiç çalışmıyor - ikisi de aynı `primaryChord()`'dan beslendiği için yalan söyleyemez.
+`Yardım → Hakkında` bilinçli istisna: dialog bir görünüm, belge komutu değil; `EditorAction`'a
+çevirmek kısayol kartına sahte bir akor eklerdi (gerekçe sınıf Javadoc'unda).
+
+Düğme araç çubuğunun **çocuğu** (ilk sırada, `viewOrder` 10 = `Tab` sırasında ilk): böylece
+`Ctrl+T` menüyü de gizliyor, ayrı bir üst satır kalmıyor ve genişlik `ToolbarFit` modeline dahil
+oluyor (`fitControls()` artık `MainMenu.GLYPH` ile başlıyor; test bunu pinliyor). `ToolbarView`
+düğmenin tooltip'ini ve erişilebilir adını diğer kontrollerle aynı `refresh()` yolundan okuyor.
+`base.css` ona `.toolbar-button` görünümünü verip oku gizliyor (`.toolbar-menu-button`), metin
+rengi `-toolbar-text` olduğundan `ContrastRatioTest`'in mevcut AA ölçümü onu da kapsıyor. Yeni
+anahtar `toolbarMenu` (6 bundle + `Messages`); dört menü başlığı `menuFile/menuEdit/menuView/
+menuHelp`. Ölçülen satır genişlikleri (compact): FR 817 px, ES 866 px - 900 px sınırının altında;
+DE/FR tam satır 1280 px'te sığıyor. Testler: `MainControllerTest` 10/10 (3 yeni: komut kümesi ↔
+menü ağacı birebir, altı dilde boş olmayan başlık/etiket, Yardım'ın komut taşımaması),
+`ToolbarFitTest` 13/13 (1 yeni: menü düğmesi ölçülen satırın ilk kontrolü), `MessagesTest` 12/12.
+Mutasyon: `layout()`'tan `SAVE_AS` çıkarılınca birebir kapsam testi kırmızı (`expected: <14> but
+was: <13>`), `fitControls()`'tan menü satırı çıkarılınca ölçüm testi kırmızı (ikisi de geri
+alındı). `mvn test -Dtest=MainControllerTest,ToolbarFitTest,MessagesTest` → 10/10 + 13/13 + 12/12;
+`mvn -B clean test` → 443/443.
 
 **W3-03 · A4c — CLI / süreç argümanı** · S · E3
 - **Kapsam:** `JTypeWriterApp`/`FxApplication` (`getParameters()`), `package.sh` launcher
@@ -687,16 +725,19 @@ etki testi kırmızı; `ToolbarView`'a `"Ctrl+S"` literali geri konunca kaynak t
 - **Doğrulama:** `mvn test -Dtest=FindModelTest` (yeni).
 
 **W3-06 · A2b — Arama/değiştirme paneli** · M · E1
-- **Kapsam:** yeni panel + `Ctrl+F` / `F3` / `Shift+F3` / `Ctrl+H` + menü öğeleri
+- **Kapsam:** yeni panel + `Ctrl+F` / `F3` / `Shift+F3` / `Ctrl+H` + `MainMenu` öğeleri
 - **Yapılacak:** Panel araması FX thread'inde **tam metin taraması yapmaz** (W2-01/W2-02'nin
   üstüne kurulur); YOLO açıkken "tümünü değiştir" **onay ister**.
 - **Bitti tanımı:** (1) 10 MB belgede arama UI'yı kilitlemiyor (ölçülen süre kaydedilir).
-  (2) YOLO etkileşimi testli (`YoloPolicy` ile aynı dil). (3) Aynı işlevler menüden de erişilir.
+  (2) YOLO etkileşimi testli (`YoloPolicy` ile aynı dil). (3) Aynı işlevler komut menüsünden
+  (araç çubuğundaki `☰`) de erişilir.
 - **Doğrulama:** `mvn test -Dtest=FindModelTest,YoloPolicyTest` + manuel 10 MB ölçümü.
 
 > **Kapı G3** (`analysis.md` §13.6/2 ve /3): `Ctrl+F` bulur, `F3`/`Shift+F3` gezer, `Ctrl+H`
-> bir/tümünü değiştirir; aynı işlevler menüden erişilir; arama 10 MB'da kilitlenmez; tüm
-> tarih/saat gösterimi UI dilini kullanır; bütün `Alert`'ler 768 px'e sığar (W0-01'den miras).
+> bir/tümünü değiştirir; aynı işlevler komut menüsünden (araç çubuğundaki `☰` düğmesi) erişilir
+> ve menüye eklenen her komut bir `EditorAction`'dır (menü ↔ envanter birebir testi); arama
+> 10 MB'da kilitlenmez; tüm tarih/saat gösterimi UI dilini kullanır; bütün `Alert`'ler 768 px'e
+> sığar (W0-01'den miras).
 
 ---
 
@@ -713,7 +754,7 @@ etki testi kırmızı; `ToolbarView`'a `"Ctrl+S"` literali geri konunca kaynak t
   sessizce büyür.
 
 **W4-02 · A7a — Son dosyalar + karşılama opt-out** · M · E5, U7
-- **Kapsam:** `AppSettings`, `WelcomeDialog`, `FxApplication:70`, `MainMenuBar` (Dosya menüsü)
+- **Kapsam:** `AppSettings`, `WelcomeDialog`, `FxApplication:70`, `MainMenu` (Dosya menüsü)
 - **Yapılacak:** En çok 10 son dosya (silinmişse sessizce düşer); karşılamada "bir daha
   gösterme" (ayar olarak).
 - **Bitti tanımı:** Silinmiş dosya listede kalıcı hata üretmiyor (test); opt-out sonrası
@@ -729,7 +770,7 @@ etki testi kırmızı; `ToolbarView`'a `"Ctrl+S"` literali geri konunca kaynak t
 
 **W4-04 · A17 — Ses politikası** · S · U9
 - **Kapsam:** `ui/component/EditorKeyHandler.java:31-40`, `audio/TypewriterSound`,
-  `MainMenuBar` (Görünüm → Ses), `AppSettings`
+  `MainMenu` (Görünüm → Ses), `AppSettings`
 - **Yapılacak:** Ses yalnız **metin üreten** tuşlarda; ok/kısayol tuşları sessiz; ses düzeyi
   ayarı; hızlı yazımda `stop()+play()` yerine kesmesiz çalma.
 - **Bitti tanımı:** (1) Ok tuşu ve kısayol ses çıkarmıyor (saf politika testi). (2) Düzey
@@ -801,7 +842,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W2-05 | Symlink korunumu | D2 | S | W2-04 | ✅ | `mvn test -Dtest=AtomicFilesTest,BackupKeeperTest` → 8/8 + 10/10: symlink'li belge kaydedildikten sonra link korunuyor ve gerçek hedef güncelleniyor, `.bak` gerçek hedefin yanına düşüyor; `mvn -B clean test` → 417/417; `analysis.md` §15.4 manuel deneyi → `isSymbolicLink` true, gerçek içerik yeni |
 | W2-06 | Taslak yolu doğrulama (D3) | D3 (D8 ürün kararıyla kapsam dışı) | M | W2-04 | ✅ | `mvn test -Dtest=RecoveryTargetPathTest,RecoveryStoreTest` → 10/10 + 27/27: mutlaklık, kanoniklik, izinli kök ve veri-dizini ret kuralları; kural tutmayan taslak hedefsiz açılıyor, metin korunuyor; kanonik biçim yalnız karar için (Windows 8.3 kısa adı ve symlink adı korunuyor); mutasyonla (accept→Path.of, toRealPath→toAbsolutePath, canonical→dönen değer) 4 test kırmızı; `mvn -B clean test` → 429/429. D8: `InstanceLock` aynı `user.home`'da ikinci süreci zaten durduruyor ve W2-04 çakışmayı soruyor → dosya başına `.jtwlock` eklenmedi, gerekçe kartta |
 | W3-01 | `EditorAction` katmanı | M1, U13 | M | W1-03 | ✅ | `mvn test -Dtest=KeyboardShortcutHandlerTest,EditorActionTest,ShortcutRowsTest` → 15/15 + 6/6 + 7/7: akor tablosu, etki eşlemesi ve kısayol kartı tek `EditorAction` envanterinden üretiliyor; iki yönlü kapsam ve akor sahipliği testli; `EditorAction` dışındaki kaynak dosyalarda akor literali yok (kaynak taraması); araç çubuğu `actionRunner.accept(...)` üzerinden gidiyor. Mutasyonla (çift akor, yanlış etki, `ToolbarView`'a geri konan `"Ctrl+S"`) 3 test kırmızı. `mvn -B clean test` → 439/439 |
-| W3-02 | Menü çubuğu | E2 | M | W3-01 | ☐ | |
+| W3-02 | Komut menüsü (araç çubuğunda `☰`) | E2 | M | W3-01 | ✅ | `mvn test -Dtest=MainControllerTest,ToolbarFitTest,MessagesTest` → 10/10 + 13/13 + 12/12: `MainMenu.layout()` dört menüde 14 platform-dışı `EditorAction`'ı tam bir kez içeriyor, altı dilde başlık/etiket dolu, Yardım komut taşımıyor (yalnız Hakkında dialogu); menü düğmesi `fitControls()`'un ilk kontrolü olduğu için genişlik modeli onu da ölçüyor (FR compact 817 px < 900). `Ctrl+T` araç çubuğuyla birlikte menüyü de gizliyor (ayrı krom satırı yok). Mutasyon: `SAVE_AS` layout'tan çıkarılınca kapsam testi kırmızı (14→13), menü satırı `fitControls()`'tan çıkarılınca ölçüm testi kırmızı (ikisi de geri alındı). `mvn -B clean test` → 443/443 |
 | W3-03 | CLI argümanı | E3 | S | W3-01 | ☐ | |
 | W3-04 | Sürükle-bırak | E4 | S | W3-01 | ☐ | |
 | W3-05 | `FindModel` | E1 | M | W2-01, W3-01 | ☐ | |
@@ -849,10 +890,10 @@ bash scripts/verify-artifacts.sh --skip-build     # 17/17
 ### G3 — Editör · W3 sonu
 
 ```bash
-mvn test -Dtest='FindModelTest,KeyboardShortcutHandlerTest,ShortcutRowsTest,MainStageTest,DialogSizingTest,MessagesTest'
+mvn test -Dtest='FindModelTest,KeyboardShortcutHandlerTest,ShortcutRowsTest,MainControllerTest,ToolbarFitTest,MainStageTest,DialogSizingTest,MessagesTest'
 ```
 + elle: `Ctrl+F` → bul; `F3`/`Shift+F3` → gez; `Ctrl+H` → bir/tümünü değiştir; aynı işlevler
-menüde; 10 MB belgede arama süresi kaydedildi.
+araç çubuğundaki `☰` komut menüsünde; 10 MB belgede arama süresi kaydedildi.
 
 ### G4 — Sürüm · W4 sonu
 

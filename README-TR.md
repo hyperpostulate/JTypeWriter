@@ -25,7 +25,7 @@ JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap 
 - **Kazara mahvedemeyeceğin bir taslak.** YOLO modu Backspace, Delete, Kes ve Geri Al/İleri Al'ı kapatır; yalnızca ileri yazabilirsin. Her kayıt atomiktir ve dönen yedekler tutar; kaydedilmemiş iş 30 saniyede bir anlık görüntülenir - çökmeden sonra taslak geri teklif edilir ve o iletiyi kapatmak taslağı asla silmez.
 - **Yazma hissi.** Bastığın her tuşta daktilo sesi, üç tema (koyu, açık, sepya) ve altı metin rengi; hepsi yazarken değiştirilebilir.
 - **Yazdıkça sayılar.** Kelime, boşluklu ve boşluksuz karakter, satır, tuş vuruşu, oturum süresi ve molaları saymayan sürdürülebilir kelime/dakika.
-- **Ekranda yalnızca metin.** `F11` tam ekran, `Ctrl+T` araç çubuğunu gizler; pencere başlığı hangi belgenin açık olduğunu ve kaydedilip kaydedilmediğini söyler.
+- **Ekranda yalnızca metin.** `F11` tam ekran, `Ctrl+T` araç çubuğunu ve içinde duran komut menüsünü birlikte gizler; pencere başlığı hangi belgenin açık olduğunu ve kaydedilip kaydedilmediğini söyler.
 - **Kaldığın yerden devam eden oturum.** Dil, tema, metin rengi, yazı boyutu, son belge ve pencere geometrisi bir sonraki açılışta geri yüklenir.
 
 ---
@@ -73,10 +73,14 @@ Canlı istatistik çubuğu:
 
 - **`F11` ekranı devralır, `Escape` geri verir:** tam ekran `F11` ile açılıp kapanır, `Escape` ile çıkılır (platformun varsayılan çıkış ipucu gizlenir)
 - **Araç çubuğu tamamen kaybolabilir:** ekranda yalnızca metin kalsın istediğinizde `Ctrl+T` onu kaldırır
-- **Araç çubuğu ikinci satıra geçmez:** her genişlikte tek yatay satır kalır. Test edilen pencere boyutlarında altı açılır liste de değeriyle birlikte bir başlık gösterir ("Tema: Koyu", "Boyut: 16", "Dil: Deutsch") ve hiçbir şey taşmaz - 1280 px'te tam başlıklı, 900 px'te başlıklar yalın değere iner ("Koyu", "16", "Deutsch"), altı dilin tamamında, gerçek yerelleştirilmiş etiketlerden ölçülür. Daraltılmış satırın kendi genişliğinin altında açılır listeler daralmaya devam eder ve kırpılabilir, çünkü pencerenin minimum genişliği yoktur. Beş düğme hiçbir zaman daralmaz ve her zaman görünür kalır
-  - **Her kontrole ulaşılır ve her kontrol açıklanır.** `Tab` sabitlenmiş görsel sırayı izler: Aç, Kaydet, Geri Al, İleri Al, Tema, YOLO, Ses, Renk, Boyut, Hakkında, Dil. Sıra `viewOrder` ile ayarlanır; JavaFX bu özelliği çizim ve isabet alma için belgeler, yani odak sırası araç takımı garantisi değil uygulama sözleşmesidir. Her kontrol görünür bir odak halkası ve arayüz dilinden gelen, varsa kısayolu da içeren bir tooltip taşır, örneğin "Kaydet (Ctrl+S)"
+- **Araç çubuğu ikinci satıra geçmez:** her genişlikte tek yatay satır kalır. Test edilen pencere boyutlarında altı açılır liste de değeriyle birlikte bir başlık gösterir ("Tema: Koyu", "Boyut: 16", "Dil: Deutsch") ve hiçbir şey taşmaz - 1280 px'te tam başlıklı, 900 px'te başlıklar yalın değere iner ("Koyu", "16", "Deutsch"), altı dilin tamamında, gerçek yerelleştirilmiş etiketlerden ölçülür. Daraltılmış satırın kendi genişliğinin altında açılır listeler daralmaya devam eder ve kırpılabilir, çünkü pencerenin minimum genişliği yoktur. Komut menüsü düğmesi ve beş düz düğme hiçbir zaman daralmaz ve her zaman görünür kalır
+  - **Her kontrole ulaşılır ve her kontrol açıklanır.** `Tab` sabitlenmiş görsel sırayı izler: Menü, Aç, Kaydet, Geri Al, İleri Al, Tema, YOLO, Ses, Renk, Boyut, Hakkında, Dil. Sıra `viewOrder` ile ayarlanır; JavaFX bu özelliği çizim ve isabet alma için belgeler, yani odak sırası araç takımı garantisi değil uygulama sözleşmesidir. Her kontrol görünür bir odak halkası ve arayüz dilinden gelen, varsa kısayolu da içeren bir tooltip taşır, örneğin "Kaydet (Ctrl+S)"
 - **Yerleşiminiz hatırlanır:** araç çubuğunun görünür veya gizli durumu, tam ekran ve durum çubuğunun boyutu yeniden başlatmalarda korunur; bir tercih yalnızca çıkışta değil, her değiştirdiğinizde kaydedilir
   - **Tam ekran pencere geometrisiyle çakışmaz.** Tam ekranda bırakılan bir pencere yeniden tam ekran açılır; açılışta tam ekran, hatırlanan konum ve boyuta karşı kazanır, sonradan çıkıldığında hatırlanan konuma dönülür
+
+### Komut Menüsü
+
+Araç çubuğunun en solundaki kontrol, dört menüyü taşıyan bir `☰` düğmesidir: Dosya, Düzen ve Görünüm editör komutlarını, Yardım ise Hakkında'yı içerir. Kalıcı bir menü şeridi değil bir menü düğmesidir: ikinci bir krom satırı tam ekranda da sizinle gelir ve `Ctrl+T` sözünü bozar; bu yüzden menü, içinde yaşadığı araç çubuğuyla birlikte gizlenir. Platformun kendisinin yürütmediği her editör komutu, kısayollar ve araç çubuğu düğmeleriyle aynı `EditorAction` envanterinden üretilir; böylece `Yeni` (`Ctrl+N`) ve `Farklı Kaydet` (`Ctrl+Shift+S`) yalnız klavyede kalmaz, görünür bir yere de kavuşur. Etiketler ve hızlandırıcılar arayüz dilini izler (hızlandırıcılar açıklamadır - tuşu tuş filtresi yürütür) ve Yardım → Hakkında, Hakkında kartını açar. Menüler elle yazılmadığı için bir komut artık bir giriş noktasında varken diğerinde eksik kalamaz.
 
 ### Veri Güvenliği ve Kurtarma
 
@@ -330,6 +334,7 @@ org.mesutormanli.jtypewriter
 │   └── SessionStats.java                 # Yazma oturumu istatistikleri (WPM, sayımlar)
 ├── ui/
 │   ├── MainController.java               # Kök yerleşim denetleyicisi
+│   ├── MainMenu.java                     # EditorAction'dan üretilen Dosya/Düzen/Görünüm/Yardım menü düğmesi
 │   ├── MainStage.java                    # Sahne yapılandırması (tam ekran, kapatma)
 │   ├── AppIcons.java                     # /icons/ altından pencere/görev çubuğu/dock ikonları
 │   ├── WelcomeDialog.java                # Kısayollarla hoş geldin ekranı
@@ -374,6 +379,7 @@ org.mesutormanli.jtypewriter
 | `EditorKeyHandler` | Tuş vuruşu ses efektleri ve oturum istatistiklerini yönetir |
 | `StatsBar` | Saati ve *kaydedildi ...* onayını arayüz dilinin tarih/saat biçimleriyle alt çubukta gösterir; otomatik kayıt hatasını adlandıran kalıcı bir uyarı gösterir, eski taslak için ayrı metin kullanır ve yazı boyutu çift tıklamayla döner |
 | `KeyboardShortcutHandler` | Merkezi klavye kısayolu yönlendirmesi |
+| `MainMenu` | Araç çubuğundaki Dosya/Düzen/Görünüm/Yardım komut menüsü; girdileri ve hızlandırıcıları `EditorAction`'dan üretilir |
 | `ToolbarView` | Tüm editör kontrollerini içeren üst araç çubuğu |
 | `ToolbarFit` | Araç çubuğu taşma politikası: başlıklı satır sığmadığında açılır liste başlıklarını değere indiren saf, JavaFX'siz ölçüm |
 | `ToolbarState` | YOLO modu ve ses aç/kapa durumunu yönetir |
