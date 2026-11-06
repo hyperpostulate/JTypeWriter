@@ -252,6 +252,54 @@ class ContrastRatioTest {
     }
 
     /**
+     * The command menu's popup is a {@code ContextMenu}, i.e. a second window
+     * of its own - and it shipped painted by Modena, so the ☰ menu looked
+     * identical in all three themes while the toolbar around it followed them.
+     * The surface and the hovered row are read out of base.css, so the theme
+     * tokens (not Modena defaults) are what text sits on.
+     */
+    @Test
+    void commandMenuPopupIsPaintedFromTheThemeTokensInEveryTheme() {
+        var base = readCss("/css/base.css");
+        var surface = lastLayer(cssValue(base, "\\.context-menu\\s*\\{", "-fx-background-color"));
+        var hoverRow = lastLayer(cssValue(base,
+                "\\.context-menu \\.menu-item:focused\\s*\\{", "-fx-background-color"));
+
+        assertEquals("-toolbar-bg", surface, "the menu popup left Modena's grey surface in place");
+        assertEquals("-toolbar-hover", hoverRow, "the highlighted menu row is not the theme wash");
+
+        for (var theme : THEMES) {
+            var css = readCss("/css/" + theme + ".css");
+            var text = color(css, "-toolbar-text");
+            for (var token : new String[]{surface, hoverRow}) {
+                var background = color(css, token);
+                var ratio = ContrastRatio.ratio(text, background);
+                assertTrue(ContrastRatio.meetsAa(ratio, false),
+                        "%s menu row text %s on %s (%s) is %.2f:1, below AA %s:1"
+                                .formatted(theme, text, token, background, ratio, TEXT_MIN));
+            }
+        }
+    }
+
+    /**
+     * The accelerator column is a description of the chord, but it is still
+     * text a user reads: it must resolve through a theme token of its own
+     * rather than Modena's default fill (which is nearly invisible on the dark
+     * popup), and it must not shrink below a legible size.
+     */
+    @Test
+    void commandMenuAcceleratorRowsFollowTheThemeAndStayLegible() {
+        var base = readCss("/css/base.css");
+        var fill = cssValue(base,
+                "\\.context-menu \\.menu-item > \\.right-container > \\.accelerator-text\\s*\\{",
+                "-fx-text-fill");
+        assertEquals("-toolbar-text", fill);
+        assertTrue(cssFontSize(base,
+                        "\\.context-menu \\.menu-item > \\.right-container > \\.accelerator-text\\s*\\{") >= 10,
+                "the accelerator text is no longer legible");
+    }
+
+    /**
      * The text the user reads and writes all day. It was the one surface left
      * out: {@code TextColor.DEFAULT} deliberately carries no inline hex because
      * the theme owns this colour, and nothing measured the theme's own value.

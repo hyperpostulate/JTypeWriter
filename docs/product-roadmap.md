@@ -699,6 +699,21 @@ was: <13>`), `fitControls()`'tan menü satırı çıkarılınca ölçüm testi k
 alındı). `mvn test -Dtest=MainControllerTest,ToolbarFitTest,MessagesTest` → 10/10 + 13/13 + 12/12;
 `mvn -B clean test` → 443/443.
 
+**Takip (6 Kas 2026): menü popup'ı da temalı.** `MenuButton`'ın açtığı şey bir
+`ContextMenu`'dür - combobox listeleri gibi ayrı bir popup penceresi - ve Modena varsayılanıyla
+geliyordu: üç temada da aynı gri kart, çevresindeki temalı araç çubuğunun yanında. `base.css`'e
+`.context-menu` kuralları eklendi (yüzey `-toolbar-border`/`-toolbar-bg`, satır `-toolbar-text`,
+vurgulu satır `-toolbar-hover`, ayırıcı `-toolbar-separator-color`, alt menü/check okları satır
+rengi); hem üst düzey satırlar hem alt menüler aynı `ContextMenu` sınıfını taşıdığı için tek kural
+kümesi ağacın tamamını boyuyor. Hızlandırıcı sütunu `-toolbar-text` + 10 px: `-stats-text` hover
+yıkamasında açık temada 3,18:1'de kalıyordu, yani AA'yı geçmiyordu. İki yeni test:
+`commandMenuPopupIsPaintedFromTheThemeTokensInEveryTheme` (popup yüzeyi ve vurgulu satır base.css'ten
+okunup altı ölçümde AA'ya karşı doğrulanıyor - CSS bloğu silinince "no -fx-background-color found
+for selector \.context-menu" ile kırmızı, geri alındı) ve `commandMenuAcceleratorRowsFollowTheThemeAndStayLegible`.
+`mvn test -Dtest=ContrastRatioTest` → 25/25; `mvn -B clean test` → 445/445. Not: bu makinede
+Xvfb/Monocle yok, popup'ın görsel doğrulaması yapılamadı; doğrulama CSS ayrıştırma (CssParser,
+83 kural, hata yok) + kontrast ölçümü düzeyinde.
+
 **W3-03 · A4c — CLI / süreç argümanı** · S · E3
 - **Kapsam:** `JTypeWriterApp`/`FxApplication` (`getParameters()`), `package.sh` launcher
 - **Yapılacak:** `JTypeWriter <dosya>` belgeyi açar; çift tıklama yolu aynı kodu kullanır.

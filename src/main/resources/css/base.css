@@ -311,6 +311,100 @@
     -fx-padding: 0;
 }
 
+/* --- Command-menu popups --------------------------------------------------
+   The ☰ MenuButton opens a ContextMenu, which is a popup window of its own -
+   exactly like the combo lists above, and exactly like them it started out
+   painted by Modena: the same grey card in all three themes, next to a
+   toolbar that followed the theme. Both levels (the File/Edit/View/Help rows
+   and their submenus) are ContextMenus, so one set of rules themes the whole
+   tree from the same -toolbar-* tokens.
+
+   A menu row is focused the moment the pointer or the arrow key lands on it -
+   JavaFX menus have no separate "selected" state - so the wash and the focus
+   pairing share the row. Both pairings are measured by ContrastRatioTest. */
+.context-menu {
+    -fx-background-color: -toolbar-border, -toolbar-bg;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 0, 3px;
+    -fx-padding: 3;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.28), 10, 0.0, 0, 4);
+}
+
+.context-menu .menu-item {
+    -fx-background-color: transparent;
+    -fx-background-radius: 3px;
+    -fx-padding: 5 10 5 10;
+}
+
+.context-menu .menu-item > .label {
+    -fx-text-fill: -toolbar-text;
+}
+
+/* The accelerator is a description of the chord the key filter performs, so
+   it sits quieter than the label: same theme colour, smaller type, right
+   aligned by its own container. A muted token would look better but none of
+   them clears AA on the hover wash in light (3.18:1). */
+.context-menu .menu-item > .right-container > .accelerator-text {
+    -fx-text-fill: -toolbar-text;
+    -fx-font-size: 10px;
+}
+
+/* Submenu arrows (top-level rows) and the check/radio marks follow the row's
+   own text colour, so they never vanish into a reprinted surface. */
+.context-menu .menu-item > .left-container > .arrow,
+.context-menu .menu-item > .right-container > .arrow,
+.context-menu .menu-item > .left-container > .check,
+.context-menu .menu-item > .left-container > .radio {
+    -fx-background-color: -toolbar-text;
+}
+
+.context-menu .menu-item:hover,
+.context-menu .menu-item:focused {
+    -fx-background-color: -toolbar-hover;
+}
+
+.context-menu .menu-item:hover > .label,
+.context-menu .menu-item:focused > .label,
+.context-menu .menu-item:hover > .right-container > .accelerator-text,
+.context-menu .menu-item:focused > .right-container > .accelerator-text {
+    -fx-text-fill: -toolbar-text;
+}
+
+.context-menu .menu-item:hover > .left-container > .arrow,
+.context-menu .menu-item:hover > .right-container > .arrow,
+.context-menu .menu-item:focused > .left-container > .arrow,
+.context-menu .menu-item:focused > .right-container > .arrow,
+.context-menu .menu-item:hover > .left-container > .check,
+.context-menu .menu-item:hover > .left-container > .radio,
+.context-menu .menu-item:focused > .left-container > .check,
+.context-menu .menu-item:focused > .left-container > .radio {
+    -fx-background-color: -toolbar-text;
+}
+
+.context-menu .menu-item:disabled > .label {
+    -fx-text-fill: -stats-text;
+    -fx-opacity: 1;
+}
+
+.context-menu .separator:horizontal .line {
+    -fx-border-color: -toolbar-separator-color transparent transparent transparent;
+    -fx-border-insets: 1 0 0 0;
+}
+
+/* The thin scroll arrow a tall menu shows at its edge. */
+.context-menu > .scroll-arrow {
+    -fx-background-color: transparent;
+    -fx-padding: 4;
+}
+
+.context-menu > .scroll-arrow > .arrow {
+    -fx-background-color: -toolbar-text;
+}
+
+.context-menu > .scroll-arrow:hover {
+    -fx-background-color: -toolbar-hover;
+}
+
 .stats-bar {
     -fx-background-color: -toolbar-bg;
     -fx-border-color: -toolbar-border;
