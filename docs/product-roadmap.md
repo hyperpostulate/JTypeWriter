@@ -794,6 +794,10 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   `--open-sample` smoke'a eklendi: Linux'ta pencere başlığı `JTypeWriter - cli-sample.txt`
   doğrulanıyor, Windows'ta launcher argümanla ayakta kalıyor; CI smoke adımı artık
   `--skip-build --open-sample` çalıştırıyor ve `CiGatesTest` bunu pinliyor.
+  İlk Windows koşusu bir test kusuru buldu: göreli yol testi `@TempDir` (C:) ile Surefire'ın
+  çalışma dizini (D:) arasında `relativize` çağırıyordu ve Windows farklı köklerde bunu
+  reddediyor. Test artık göreli yolu CWD'nin kendi ağacında (`target/`) kuruyor; üretim kodu
+  değişmedi (`toAbsolutePath()` zaten kök bağımsız).
   **Kanıt:** `mvn -B clean test` → **466/0/0**; `mvn test -Dtest=StartupArgumentsTest,
   JTypeWriterAppTests,CiGatesTest,MessagesTest` → **34/0/0**;
   `scripts/smoke-appimage.sh --open-sample --skip-deb` → **PASS** (imaj 2 s'de, örnek belge

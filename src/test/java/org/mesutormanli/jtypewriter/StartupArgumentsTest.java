@@ -70,16 +70,34 @@ class StartupArgumentsTest {
         assertEquals(file.toString(), resolved.argument());
     }
 
+    /**
+     * The relative name has to be under the process's own working directory, not
+     * in a {@code @TempDir}: on Windows the temp directory lives on the system
+     * drive while Surefire runs from the drive holding the checkout, and
+     * {@link Path#relativize} refuses to span roots ("'other' has different
+     * root"). {@code target/} is the build's own scratch area, already ignored by
+     * git and guaranteed to exist and to sit under the working directory.
+     */
     @Test
-    void aRelativePathIsResolvedAgainstTheWorkingDirectory(@TempDir Path dir) {
-        var file = dir.resolve("relative.txt");
-        write(file);
+    void aRelativePathIsResolvedAgainstTheWorkingDirectory() throws IOException {
         var workingDirectory = Path.of("").toAbsolutePath();
-        var relative = workingDirectory.relativize(file.toAbsolutePath().normalize());
+        var scratch = Files.createDirectories(Path.of("target", "startup-arguments-test"));
+        var file = Files.createTempFile(scratch, "relative-", ".txt");
+        try {
+            Files.writeString(file, "text\n");
+            var absolute = file.toAbsolutePath().normalize();
+            assumeTrue(absolute.startsWith(workingDirectory),
+                    "the build scratch directory is not under the working directory: " + absolute);
+            var relative = workingDirectory.relativize(absolute);
+            assumeTrue(!relative.isAbsolute(), "the path is not expressible as relative: " + relative);
 
-        var resolved = StartupArguments.resolve(List.of(relative.toString()));
+            var resolved = StartupArguments.resolve(List.of(relative.toString()));
 
-        assertEquals(file.toAbsolutePath().normalize(), resolved.document().orElseThrow());
+            assertEquals(absolute, resolved.document().orElseThrow());
+            assertTrue(resolved.problem().isEmpty());
+        } finally {
+            Files.deleteIfExists(file);
+        }
     }
 
     @Test
