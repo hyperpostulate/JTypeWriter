@@ -61,14 +61,25 @@ public final class BackupKeeper {
         if (!Files.isRegularFile(target)) {
             return Optional.empty();
         }
-        var staged = stagingPath(target);
+        // A symbolic link is another name for the same document: the backup
+        // history belongs next to the real file, not next to the link.
+        var realTarget = resolveRealTarget(target);
+        var staged = stagingPath(realTarget);
         try {
-            Files.copy(target, staged,
+            Files.copy(realTarget, staged,
                     StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
-            return Optional.of(new PreparedBackup(target, staged));
+            return Optional.of(new PreparedBackup(realTarget, staged));
         } catch (IOException e) {
             deleteQuietly(staged);
             throw e;
+        }
+    }
+
+    private static Path resolveRealTarget(Path target) {
+        try {
+            return target.toRealPath();
+        } catch (IOException unresolvable) {
+            return target;
         }
     }
 

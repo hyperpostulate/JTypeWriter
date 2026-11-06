@@ -541,6 +541,20 @@ hesaplandığı için dış dosyanın boyutu belleğe alınmıyor (W2-03 sınır
 - **Doğrulama:** `mvn test -Dtest=AtomicFilesTest` (yeni `symlink*` testi) + `analysis.md`
   §15.4'teki manuel deney.
 
+**Uygulama (6 Kas 2026):** `AtomicFiles.writeMoving` artık hedefi temp dosyadan önce
+`toRealPath()` ile çözüyor; temp dosya, fsync, atomik taşıma, dizin fsync'i ve izin kopyası
+gerçek belgenin üzerinde çalışıyor, böylece symlink kaydetmeden sonra da symlink kalıyor (eski
+kusur: link normal dosyayla değişiyordu). Yolu henüz olmayan belge (yeni dosya) veya kırık link
+çözülemiyor; bu durumda adlandırıldığı yol kullanılıyor, yani yeni belge yine oluşturuluyor.
+`BackupKeeper.prepare` da hedefi çözüyor: hazırlık dosyası ve dönen `.bak`/`.bak.N` zinciri
+gerçek hedefin yanına yazılıyor, `PreparedBackup` gerçek hedefi taşıdığı için `install` de
+oraya yerleştiriyor; link'in yanında yedek birikmiyor. Testler: yeni
+`savingThroughASymbolicLinkKeepsTheLinkAndUpdatesItsTarget`,
+`aBackupOfASymbolicLinkLandsNextToItsRealTarget`.
+`mvn test -Dtest=AtomicFilesTest,BackupKeeperTest` → 8/8 + 10/10; `mvn -B clean test` →
+**417/417**; `analysis.md` §15.4 manuel deneyi → `isSymbolicLink(link)=true`, gerçek hedef
+`yeni`, link dizininde yalnız link.
+
 **W2-06 · A1c — Taslak yolu ve belge kilidi** · M · D3, D8
 - **Kapsam:** `RecoveryStore.java:333-344`, `InstanceLock`
 - **Yapılacak:** Taslak başlığındaki yol mutlaklık + kanoniklik + izinli kök açısından
@@ -713,7 +727,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W2-02 | G/Ç executor | X1, X2 | M | W2-01 | ✅ | `mvn test -Dtest=FxThreadIoTest,FileServiceTest,AutoSaveServiceTest` → 5/5 + 36/36 + 15/15: kaydetme ve açma `IoExecutor` işçisinde, `fxThreadTasks()==0`; temiz otomatik kayıt tikinde metin kopyası yok; kaydetme sürerken yazılan metin kirli kalıyor. `AppGraph` paylaşılan `IoExecutor.background()` enjekte ediyor; `FxApplication.stop()` kapanışta işçiyi durduruyor; `savingStatus` altı bundle'da (`MessagesTest` 13/13); `mvn -B clean test` → 401/401 |
 | W2-03 | Bellek/boyut/hata yolu | X4, M10, D7 | M | W2-02 | ✅ | `mvn test -Dtest=FileServiceTest,AtomicFilesTest,AutoSaveServiceTest,MessagesTest` → 38/38 + 7/7 + 17/17 + 13/13: sınır üstü dosya açılmıyor ve altı dilde açıklama gösteriliyor; `OutOfMemoryError` kaydetme hatasına düşüp taslak korunuyor; dolu disk (`usableSpace=0`) temp dosya oluşmadan `IOException` ile reddediliyor ve belge kirli kalıyor. `mvn -B clean test` → 406/406; `mvn -B test -Duser.language=de -Duser.country=DE` → 406/406 |
 | W2-04 | Dış değişiklik | D1, M9 | M | W2-02 | ✅ | `mvn test -Dtest=FileServiceTest,DialogServiceTest,MessagesTest` → 47/47 + 9/9 + 13/13: yüklemeden sonra değişen/silinen dosya sessizce üzerine yazılmıyor, üç seçenekli diyalog (üzerine yaz / farklı kaydet / iptal) akışı testli; aynı boyut + aynı mtime değişikliği SHA-256 ile yakalanıyor; "Farklı Kaydet" iptalinde çıkış `STAY` kalıyor; senkron ve asenkron kaydetme yolları ayrı ayrı doğrulandı. `mvn -B clean test` → 415/415 |
-| W2-05 | Symlink korunumu | D2 | S | W2-04 | ☐ | |
+| W2-05 | Symlink korunumu | D2 | S | W2-04 | ✅ | `mvn test -Dtest=AtomicFilesTest,BackupKeeperTest` → 8/8 + 10/10: symlink'li belge kaydedildikten sonra link korunuyor ve gerçek hedef güncelleniyor, `.bak` gerçek hedefin yanına düşüyor; `mvn -B clean test` → 417/417; `analysis.md` §15.4 manuel deneyi → `isSymbolicLink` true, gerçek içerik yeni |
 | W2-06 | Taslak yolu + belge kilidi | D3, D8 | M | W2-04 | ☐ | |
 | W3-01 | `EditorAction` katmanı | M1, U13 | M | W1-03 | ☐ | |
 | W3-02 | Menü çubuğu | E2 | M | W3-01 | ☐ | |

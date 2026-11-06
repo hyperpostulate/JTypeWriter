@@ -41,6 +41,13 @@ import java.util.logging.Logger;
  * target's permission model is therefore copied onto the temp file (POSIX
  * permissions, DOS attributes or an ACL, whichever the file system supports),
  * so saving a file never changes who may read it.</p>
+ *
+ * <p>A target reached through a symbolic link is resolved with
+ * {@link Path#toRealPath()} first: the temp file and the atomic rename then act
+ * on the real document, so the link survives the save instead of being replaced
+ * by a regular file (roadmap W2-05 / D2). A path that does not exist yet - a
+ * brand-new document, or a dangling link - cannot be resolved and is written as
+ * named.</p>
  */
 public final class AtomicFiles {
 
@@ -63,7 +70,7 @@ public final class AtomicFiles {
      *        one: the pre-check must fail <em>before</em> any temp file exists.
      */
     static void writeMoving(Path target, byte[] bytes, long usableSpace) throws IOException {
-        var absolute = target.toAbsolutePath();
+        var absolute = resolveRealTarget(target);
         var dir = absolute.getParent();
         requireFreeSpace(dir, bytes.length, usableSpace);
         // createTempFile rejects prefixes shorter than three characters, so a
@@ -91,6 +98,21 @@ public final class AtomicFiles {
             if (!moved) {
                 Files.deleteIfExists(temp);
             }
+        }
+    }
+
+    /**
+     * Follows symbolic links to the document they point at, so the atomic rename
+     * replaces the real file and the link stays a link. A missing target has no
+     * real path; the named path is used so a new document is still created.
+     */
+    private static Path resolveRealTarget(Path target) {
+        try {
+            return target.toRealPath();
+        } catch (IOException missingOrUnresolvable) {
+            LOG.log(Level.FINE, "no real path for " + target + "; writing as named",
+                    missingOrUnresolvable);
+            return target.toAbsolutePath();
         }
     }
 

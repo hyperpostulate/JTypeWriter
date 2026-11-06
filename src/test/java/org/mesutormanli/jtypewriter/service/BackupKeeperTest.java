@@ -61,6 +61,31 @@ class BackupKeeperTest {
         assertFalse(Files.exists(BackupKeeper.backupPath(target, 3)));
     }
 
+    /**
+     * A backup taken through a symbolic link must land next to the real
+     * document, not next to the link: the link is just another name for the
+     * same content, and the backup belongs with the bytes it protects.
+     */
+    @Test
+    void aBackupOfASymbolicLinkLandsNextToItsRealTarget(@TempDir Path dir) throws IOException {
+        var realDir = Files.createDirectory(dir.resolve("real"));
+        var linkDir = Files.createDirectory(dir.resolve("link"));
+        var real = realDir.resolve("doc.txt");
+        Files.writeString(real, "v1");
+        var link = linkDir.resolve("doc.txt");
+        try {
+            Files.createSymbolicLink(link, real);
+        } catch (IOException | UnsupportedOperationException e) {
+            org.junit.jupiter.api.Assumptions.abort("symbolic links unavailable: " + e.getMessage());
+        }
+
+        keeper.backup(link);
+
+        assertEquals("v1", Files.readString(BackupKeeper.backupPath(real, 0)));
+        assertFalse(Files.exists(BackupKeeper.backupPath(link, 0)),
+                "no backup may appear next to the link");
+    }
+
     @Test
     void successfulBackupLeavesNoStagingFileBehind(@TempDir Path dir) throws IOException {
         var target = dir.resolve("doc.txt");

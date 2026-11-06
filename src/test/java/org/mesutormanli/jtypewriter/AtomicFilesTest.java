@@ -112,6 +112,35 @@ class AtomicFilesTest {
     }
 
     /**
+     * A document opened through a symbolic link must still be a symbolic link
+     * after saving, and the file it points at must receive the new content
+     * (roadmap W2-05 / D2). Replacing the link with a regular file would break
+     * every other name and sync tool pointing at the real document.
+     */
+    @Test
+    void savingThroughASymbolicLinkKeepsTheLinkAndUpdatesItsTarget(@TempDir Path dir) throws IOException {
+        var realDir = Files.createDirectory(dir.resolve("real"));
+        var linkDir = Files.createDirectory(dir.resolve("link"));
+        var real = realDir.resolve("notes.txt");
+        Files.writeString(real, "v1");
+        var link = linkDir.resolve("notes.txt");
+        try {
+            Files.createSymbolicLink(link, real);
+        } catch (IOException | UnsupportedOperationException e) {
+            Assumptions.abort("symbolic links unavailable: " + e.getMessage());
+        }
+
+        AtomicFiles.writeMoving(link, "v2".getBytes(StandardCharsets.UTF_8));
+
+        assertTrue(Files.isSymbolicLink(link), "the link must survive the save");
+        assertEquals("v2", Files.readString(real), "the real target must get the new content");
+        try (Stream<Path> files = Files.list(linkDir)) {
+            assertTrue(files.noneMatch(p -> p.getFileName().toString().endsWith(".tmp")),
+                    "the temp file belongs next to the real target, not next to the link");
+        }
+    }
+
+    /**
      * Regression: the temp file the JVM creates is owner-only, and the rename
      * used to make the document inherit those tighter permissions. Saving an
      * existing file must never change who may read it.
