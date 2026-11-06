@@ -13,7 +13,8 @@ platforms on purpose.
 
 - JDK 25 + Maven 3.8+ are hard requirements (`maven-enforcer-plugin` at `validate`, floor
   derived from `java.version`). There is deliberately no Maven wrapper — don't add one.
-- `mvn clean test` — full suite (~365 tests, no toolkit, no display needed).
+- `mvn clean test` — full suite (452 tests, no toolkit, no display needed). The number is a
+  floor that moves with every card; don't treat it as a target.
 - `mvn test -Dtest=FileServiceTest` / `-Dtest=FileServiceTest#methodName` — focused run.
 - `mvn clean package` — tests + thin JAR + `jar-with-dependencies`. The fat JAR bundles
   JavaFX natives from the build machine, so it runs only on the OS it was built on.
@@ -118,6 +119,14 @@ suite is the gate, and it enforces several non-code invariants below.
   portable across builds. `--render` is the machine-local pixel comparison; run it after
   regenerating. A hand-edited asset, an edited SVG or an extra PNG in that directory fails
   `--check`.
+- The UI chrome font has one source: `src/main/resources/fonts/` (DejaVu Sans Condensed,
+  Regular + Bold, unmodified). `ui/AppFonts` is the only place that names the family, the
+  resource paths and the AWT metrics provider; `FxApplication` registers the same files with
+  JavaFX and `base.css` names the family, so what `ToolbarFit` measures and what the scene
+  renders are the same bytes. Never fall back to a system alias (`SansSerif` was a host
+  mapping, which made the toolbar's fit decision runner-dependent). Provenance and hashes live
+  in `fonts/PROVENANCE.md`, the licence in `legal/Bitstream-Vera.txt`, and
+  `package.sh`/`verify-artifacts.sh` require that text in the image, the jar and the `.deb`.
 - `releases/` and `target/` are generated — never hand-edit or commit them.
 - Docs are bilingual: update `README.md` and `README-TR.md` (and release notes) together.
 - `.gitattributes` forces LF for text (CRLF only for `.bat/.cmd/.ps1`); keep new text files LF.

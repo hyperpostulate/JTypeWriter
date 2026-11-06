@@ -1,5 +1,13 @@
 # JTypeWriter — Kapsamlı Analiz ve Ürünleştirme Değerlendirmesi (P2 Girişi)
 
+> ## ⚠ Bu belge 2 Kasım 2026 tarihli bir fotoğraftır — güncel durum değildir
+>
+> `main` o günden beri 37 commit ilerledi (W0, W1, W2 tamamen; W3'ün ilk iki kartı), sürüm
+> **`v1.0.2`**'ye çıktı ve test sayısı **350 → 452** oldu. Bu belgedeki **bulgu kimlikleri ve
+> gerekçeler** geçerlidir; **sayılar, skorlar ve "yok" hükümleri** o günün ölçümüdür.
+> Güncel ölçüm tablosu ve hangi hükmün düştüğü: `docs/product-roadmap.md` §1.4.
+> Silinme riskine karşı yazılmış §15 ölçüm protokolü hâlâ bu belgede duruyor ve çalışıyor.
+
 > **Sürüm:** 4.1 · **Tarih:** 2 Kasım 2026 · **Kod tabanı:** `main` @ `f32d3f8` (137 commit, ilk commit 2026-07-02)
 > **Kapsam:** P0, P1, P1.2 ve G0 kapanışının doğrulanması; mevcut ürün durumunun **yeniden ölçülmesi**;
 > P2 için karar girdileri. **Bu belge bir yol haritası değildir.** İş sıralaması, sahiplik, kapılar

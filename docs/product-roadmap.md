@@ -36,11 +36,47 @@ yerleştirilmiştir, ayrı bir kuyruk oluşturmaz — üçü de kapatıldı (W0-
 > **sonra kimlik ver**, çünkü ürünün tek savunulabilir farklılaştırıcısı veri bütünlüğü;
 > **sonra editör yap**, çünkü "metin alanı" ile "editör" arasındaki fark arama ve menüde.
 
+### 1.4 Durum — 7 Kasım 2026 (`main` @ `b5ebe09`)
+
+Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir sayı burada yoksa
+`analysis.md`'den geliyordur ve `analysis.md` 2 Kasım'dan beri güncellenmediği için bayattır.
+
+| Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`b5ebe09`) |
+|---|---:|---:|
+| Commit | 137 | **174** (+37) |
+| Üretim sınıfı / satırı | 51 / 7.611 | **58 / 10.459** |
+| Test dosyası / `@Test` | 42 / 350 | **50 / 452** |
+| Bundle anahtarı | 6 × 90 | **6 × 120** |
+| `mvn -B clean test` | 350/0/0 | **452/0/0** |
+| Tag / Release | 0 / 0 | **3 / 3** (`v1.0.0`, `v1.0.1`, `v1.0.2`) |
+| Release varlığı | — | **6** (5 ikili/kaynak + `SHA256SUMS`) |
+| Release işareti | — | **üçü de `prerelease=true`** |
+| `verify-artifacts` karşılaştırması | 17 | **20** (gömülü font lisansı +2, font kaynağı +1) |
+| Yıldız / çatal / issue | 0 / 0 / 0 | **0 / 0 / 0** |
+
+**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ◐ (W3-01, W3-02 ✅; W3-03…W3-06 ☐) · W4 ☐.
+Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ◐ · G4 ☐**.
+
+İki sayı bu tablodan **türetilmemelidir**:
+
+- `analysis.md` §12 skorları ve §13 aday havuzu 2 Kasım ölçümüdür. Yedi boyutun beşi (motor,
+  deneyim, ambalaj, güven, pazara erişim) o günden beri W0–W3 kartlarıyla hareket etti;
+  güncel skor ancak G4'ten sonra yeniden ölçülür. §2.2'deki "beklenen sonuç" sütunu bu yüzden
+  bir **hedef değil**, bir yön göstergesidir.
+- `analysis.md` §8'in performans tabloları X5 için artık yanlış: 10 MB'da 163,7 ms/s olan
+  istatistik yenilemesi W2-01'den sonra **0,13–0,21 ms** ölçülüyor (`StatsPerfHarnessTest`).
+  Kalan tek sayısal iddia test sayılarıdır ve onlar da bu tablodadır.
+
 ---
 
 ## 2. Taban, Hedef ve Hedefin Niteliği
 
 ### 2.1 Bugünkü ölçüm
+
+> **Bu tablo 2 Kasım 2026'dır, "bugün" değildir.** Skorlar `analysis.md` §12'nin ölçüm anına
+> bağlıdır ve o an `f32d3f8`'dir; tablo bu yüzden yerinde bırakıldı. 7 Kasım itibarıyla gerçek
+> durum §1.4'tedir: motor, deneyim, ambalaj ve güven boyutlarının hepsi W0–W3 ile hareket etti,
+> güncel skor ancak G4'ten sonra ölçülür.
 
 | Boyut | Ağırlık | Bugün | Kaynak |
 |---|---:|---:|---|
@@ -165,6 +201,12 @@ kapıyı beklerken boş kapasiteye biner. **P2, 20 puanda biter (D13 ile 21).**
 **Kural:** Bu tablodaki hiçbir satır "P2 sırasında bir ara" diye bırakılmaz. Her satırın bir kart
 numarası vardır; kart kapanmadan satır kapanmaz. P1'in kısmi kapanış hatası (`analysis.md` §3.2
 "kriter metni geniş, uygulama dar") **tekrar etmeyecek** biçimde burada sabitlenmiştir.
+
+> **Kanıt satırlarındaki sayılar, o koşunun sayılarıdır.** B14 satırındaki `17/17` 3 Kasım'daki
+> `v1.0.0` build'ine aittir; 7 Kasım'da gömülü font eklenince karşılaştırma kümesi **20/20**
+> oldu (`legal/Bitstream-Vera.txt` imajda + jar'da + `.deb` yükünde). Bu yüzden G2/G4
+> kapılarındaki beklenen değer 20'dir; geçmiş bir koşuyu 20'ye "düzeltmek" kanıtı tahrif
+> etmek olurdu, ayrı bir koşu daha iyisini üretmediği sürece satır 17 kalır.
 
 ---
 
@@ -815,8 +857,19 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
 - **Yapılacak:** W1-03'ün tekrarı; bu kez **pre-release işareti kaldırılır** — işaret `release.yml`'deki `gh release create ... --prerelease` satırıdır, kart o satırı kaldırır (`ReleaseNotesTest` bu satırı pinliyor; kart onu da güncellemeli).
 - **Bitti tanımı:** Release'te 6 varlık; notlar iki dilli; `SHA256SUMS` doğrulanıyor.
 - **Doğrulama:** W1-03 ile aynı API sorgusu.
+- **Sürüm numarası — düzeltme (7 Kas 2026):** Kart, "W2 işi `v1.1.0`'a gider" varsayımıyla
+  yazılmıştı. Gerçek akış farklı oldu: W2 sertleştirmesi **`v1.0.1` ve `v1.0.2` patch'leri**
+  olarak yayınlandı (`pom.xml` 1.0.2), çünkü W2'nin tamamı davranış düzeltmesiydi ve kapı G2
+  değişen dış sözleşme getirmedi. Sonuç: `v1.1.0`'ın *minor* gerekçesi artık **W3-06 (arama)**
+  — ürünün ilk yeni kullanıcı yeteneği — ve `v1.1.0` doğru numaradır, ama gerekçesi W2 değil
+  W3'tür. W4-05 W3 kapanmadan yayınlanamaz.
+- **Üç sürüm de pre-release (7 Kas 2026):** `v1.0.0`, `v1.0.1`, `v1.0.2` üçü de
+  `prerelease=true` ve bu yüzden GitHub'da **"Latest release" etiketi yok** — sayfayı açan
+  kişi yayında işe yarar bir sürüm görmüyor. `v1.1.0` bu işareti kaldıran ilk sürüm olacak;
+  patch'ler geriye dönük işaretlenmez (yayınlanmış bir artefaktın meta verisini sonradan
+  değiştirmek "yayınlanan şey değişmez" ilkesini bozar).
 
-> **Kapı G4:** Tam suite yeşil, `verify-artifacts` 17/17, ikon `--check` 11 dosya,
+> **Kapı G4:** Tam suite yeşil, `verify-artifacts` **20/20**, ikon `--check` 11 dosya,
 > `v1.1.0` yayında, §5'teki tüm kartlar `✅`.
 
 ---
@@ -916,10 +969,15 @@ curl -s https://api.github.com/repos/hyperpostulate/JTypeWriter/releases \
 ### G2 — Veri ve akıcılık · W2 sonu
 
 ```bash
-mvn test -Dtest='SessionStatsTest,StatsPerfHarness,FileServiceTest,AtomicFilesTest,RecoveryStoreTest,AutoSaveServiceTest'
-bash scripts/verify-artifacts.sh --skip-build     # 17/17
+mvn test -Dtest='SessionStatsTest,StatsPerfHarnessTest,FileServiceTest,AtomicFilesTest,RecoveryStoreTest,AutoSaveServiceTest'
+bash scripts/verify-artifacts.sh --skip-build     # 20/20 (2 Kasım'da 17'ydi; gömülü font 3 karşılaştırma ekledi)
 ```
-+ `StatsPerfHarness` 10 MB çıktısı: **referansta < 5 ms**, CI'da < 50 ms.
++ `StatsPerfHarnessTest` 10 MB çıktısı: **referansta < 5 ms**, CI'da < 50 ms. 7 Kasım koşusunda
+  **0,133 ms** — eşik regresyonu yakalamak için var, hedef değil (§1.4).
+  *(7 Kasım düzeltmesi: bu satır bir süre `-Dtest=StatsPerfHarness` yazıyordu; Surefire o ada
+  sınıf eşlemediği için komut **hiçbir test koşmadan** `BUILD FAILURE` veriyor ya da
+  `failIfNoSpecifiedTests=false` ile sessizce boş geçiyordu. Gerçek sınıf adı
+  `StatsPerfHarnessTest`.)*
 
 ### G3 — Editör · W3 sonu
 
@@ -933,7 +991,7 @@ araç çubuğundaki `☰` komut menüsünde; 10 MB belgede arama süresi kaydedi
 
 ```bash
 mvn -B clean test
-bash scripts/verify-artifacts.sh --skip-build     # 17/17
+bash scripts/verify-artifacts.sh --skip-build     # 20/20
 python3 scripts/generate-icons.py --check         # 11 dosya
 ```
 + `v1.1.0` Release'i (6 varlık, iki dilli not).
