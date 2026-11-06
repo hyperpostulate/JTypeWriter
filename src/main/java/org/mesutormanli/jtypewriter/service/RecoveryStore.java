@@ -5,6 +5,7 @@
 
 package org.mesutormanli.jtypewriter.service;
 
+import org.mesutormanli.jtypewriter.AppDirs;
 import org.mesutormanli.jtypewriter.AppLogging;
 import org.mesutormanli.jtypewriter.AtomicFiles;
 
@@ -24,6 +25,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -56,6 +58,13 @@ import java.util.logging.Logger;
  * header. The text bytes after the separator are stored untouched. Everything
  * is written through {@link AtomicFiles#writeMoving}, so a crash or power cut
  * cannot leave a truncated draft behind.</p>
+ *
+ * <p>The original path is the target of the next save, so it is validated
+ * before it is offered: it must be absolute, canonicalise and live under one
+ * of the store's allowed roots, and it must not point into the application's
+ * own data directory (see {@link RecoveryTargetPath}). A draft that fails the
+ * check is still restored - without a path, which forces Save As - so a
+ * foreign or tampered draft cannot redirect a save.</p>
  *
  * <p>Loading never discards recoverable text. A file without the magic
  * line, without the separator, or with an unparsable timestamp or path
@@ -137,10 +146,32 @@ public class RecoveryStore {
 
     private final Path dir;
     private final Path ownFile;
+    private final Set<Path> allowedRoots;
 
+    /**
+     * Production store: a draft's original path is accepted only under the
+     * user's home directory. Documents kept elsewhere (a mounted volume, a
+     * removable disk) are still recovered, just without a path - saving them
+     * asks for a location instead of trusting a header.
+     */
     public RecoveryStore(Path dir) {
+        this(dir, defaultAllowedRoots());
+    }
+
+    /**
+     * Test seam for the root policy: the roots are passed explicitly so the
+     * check can be exercised against a temporary directory instead of the real
+     * home directory.
+     */
+    public RecoveryStore(Path dir, Collection<Path> allowedRoots) {
         this.dir = dir;
         this.ownFile = dir.resolve(FILE_PREFIX + UUID.randomUUID() + FILE_SUFFIX);
+        this.allowedRoots = allowedRoots == null ? Set.of() : Set.copyOf(allowedRoots);
+    }
+
+    private static Set<Path> defaultAllowedRoots() {
+        var home = System.getProperty("user.home");
+        return home == null || home.isBlank() ? Set.of() : Set.of(Path.of(home));
     }
 
     /** Stores (or refreshes) this session's single draft slot. */
@@ -426,13 +457,19 @@ public class RecoveryStore {
      * path may contain separators, newlines or NUL characters. An unusable
      * value only loses the link to the file, never the draft text.
      */
-    private static Path parseOriginalPath(Path file, String value) {
+    private Path parseOriginalPath(Path file, String value) {
         if (value.isBlank()) {
             return null;
         }
         try {
             var decoded = new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
-            return decoded.isBlank() ? null : Path.of(decoded);
+            if (decoded.isBlank()) {
+                return null;
+            }
+            // The decoded value becomes the next save's target; a draft from
+            // another machine must not be able to name an arbitrary file.
+            return RecoveryTargetPath.accept(Path.of(decoded), allowedRoots,
+                    List.of(AppDirs.dataDir()));
         } catch (IllegalArgumentException e) { // bad Base64, or InvalidPathException
             LOG.log(Level.WARNING, "unusable original path in recovery draft, dropping it: " + file, e);
             return null;

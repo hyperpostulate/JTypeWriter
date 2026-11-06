@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,7 +37,7 @@ class AutoSaveServiceTest {
 
     @Test
     void openingADocumentDropsTheStaleDraftOfThePreviousOne(@TempDir Path dir) throws Exception {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var fileService = new FileService(mock(DialogService.class), mock(Messages.class));
         newService(store, fileService);
 
@@ -55,7 +56,7 @@ class AutoSaveServiceTest {
 
     @Test
     void aPostponedDraftSurvivesAnExit(@TempDir Path dir) throws Exception {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var service = newService(store, new FileService(mock(DialogService.class), mock(Messages.class)));
 
         store.saveDraft("unanswered recovery draft", null);
@@ -76,7 +77,7 @@ class AutoSaveServiceTest {
      */
     @Test
     void answeredExitDropsAResolvedDraft(@TempDir Path dir) throws Exception {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var service = newService(store, new FileService(mock(DialogService.class), mock(Messages.class)));
 
         store.saveDraft("stale draft", null);
@@ -93,7 +94,7 @@ class AutoSaveServiceTest {
      */
     @Test
     void anUnaskedExitParksTheDraftInsteadOfDeletingIt(@TempDir Path dir) throws Exception {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var service = newService(store, new FileService(mock(DialogService.class), mock(Messages.class)));
 
         store.saveDraft("draft of an exit nobody confirmed", null);
@@ -108,7 +109,7 @@ class AutoSaveServiceTest {
 
     @Test
     void aPostponedDraftNoLongerStopsAutosaveOfTheNewDocument(@TempDir Path dir) throws Exception {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var fileService = mock(FileService.class);
         when(fileService.hasUnsavedChanges()).thenReturn(true);
         var service = newService(store, fileService);
@@ -134,7 +135,7 @@ class AutoSaveServiceTest {
      */
     @Test
     void aCleanExitAfterPostponingDropsOnlyTheLiveDraft(@TempDir Path dir) throws Exception {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var fileService = mock(FileService.class);
         when(fileService.hasUnsavedChanges()).thenReturn(true);
         var service = newService(store, fileService);
@@ -158,7 +159,7 @@ class AutoSaveServiceTest {
      */
     @Test
     void anUnaskedExitAfterPostponingParksBothCopies(@TempDir Path dir) throws Exception {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var fileService = mock(FileService.class);
         when(fileService.hasUnsavedChanges()).thenReturn(true);
         var service = newService(store, fileService);
@@ -252,7 +253,7 @@ class AutoSaveServiceTest {
      */
     @Test
     void aSaveThatFailsWithAnErrorKeepsTheRecoveryDraft(@TempDir Path dir) throws Exception {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var target = dir.resolve("doc.txt");
         Files.writeString(target, "old");
         var messages = mock(Messages.class);
@@ -381,7 +382,7 @@ class AutoSaveServiceTest {
         Files.writeString(doc, "newer text");
         Files.setLastModifiedTime(doc, FileTime.from(Instant.now().plusSeconds(60)));
 
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         store.saveDraft("stale text", doc); // savedAt is now, before the future mtime
         var draft = store.loadDraft().orElseThrow();
 
@@ -397,7 +398,7 @@ class AutoSaveServiceTest {
         var doc = dir.resolve("doc.txt");
         Files.writeString(doc, "older text");
 
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         store.saveDraft("text", doc);
         var draft = store.loadDraft().orElseThrow();
 

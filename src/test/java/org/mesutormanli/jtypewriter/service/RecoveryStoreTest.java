@@ -44,14 +44,14 @@ class RecoveryStoreTest {
 
     @Test
     void roundTripsDraftWithMetadata(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var original = dir.resolve("roman.txt");
 
         store.saveDraft("yarım kalmış bölüm", original);
 
         var draft = store.loadDraft().orElseThrow();
         assertEquals("yarım kalmış bölüm", draft.content());
-        assertEquals(original.toAbsolutePath(), draft.originalFile());
+        assertEquals(dir.toRealPath().resolve("roman.txt"), draft.originalFile());
         assertNotNull(draft.savedAt());
         assertTrue(draft.savedAt().isBefore(Instant.now().plusSeconds(5)));
         // loading must be repeatable (startup may ask twice)
@@ -60,7 +60,7 @@ class RecoveryStoreTest {
 
     @Test
     void draftWithoutOriginalFileIsSupported(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
 
         store.saveDraft("never saved anywhere", null);
 
@@ -71,7 +71,7 @@ class RecoveryStoreTest {
 
     @Test
     void latestDraftWinsWithinOneSession(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
 
         store.saveDraft("first", null);
         store.saveDraft("second", null);
@@ -82,7 +82,7 @@ class RecoveryStoreTest {
 
     @Test
     void savingLeavesNoTempFilesBehind(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         store.saveDraft("some text", null);
 
         try (var files = Files.walk(dir)) {
@@ -93,7 +93,7 @@ class RecoveryStoreTest {
 
     @Test
     void clearRemovesTheDraft(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         store.saveDraft("something", null);
 
         assertTrue(store.clear());
@@ -104,7 +104,7 @@ class RecoveryStoreTest {
 
     @Test
     void emptyStoreHasNothingToOffer(@TempDir Path dir) {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
 
         assertTrue(store.loadDraft().isEmpty());
         assertTrue(store.clear(), "clearing an empty store succeeds: there is no draft left");
@@ -123,7 +123,7 @@ class RecoveryStoreTest {
         assumeFalse("root".equals(System.getProperty("user.name")),
                 "root bypasses directory permissions, so the delete would succeed");
 
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         store.saveDraft("silinemeyen taslak", null);
         var draft = draftFiles(dir).get(0);
 
@@ -171,8 +171,8 @@ class RecoveryStoreTest {
 
     @Test
     void twoStoresOnTheSameDirectoryKeepSeparateSlots(@TempDir Path dir) throws IOException {
-        var storeA = new RecoveryStore(dir);
-        var storeB = new RecoveryStore(dir);
+        var storeA = new RecoveryStore(dir, List.of(dir));
+        var storeB = new RecoveryStore(dir, List.of(dir));
 
         storeA.saveDraft("A içeriği", null);
         storeB.saveDraft("B içeriği", null);
@@ -187,11 +187,11 @@ class RecoveryStoreTest {
 
     @Test
     void aNewSessionAdoptsTheSurvivingDraft(@TempDir Path dir) throws IOException {
-        var sessionA = new RecoveryStore(dir);
+        var sessionA = new RecoveryStore(dir, List.of(dir));
         sessionA.saveDraft("eski taslak", null);
         assertEquals(1, draftFiles(dir).size());
 
-        var sessionB = new RecoveryStore(dir);
+        var sessionB = new RecoveryStore(dir, List.of(dir));
         assertEquals("eski taslak", sessionB.loadDraft().orElseThrow().content());
 
         // the winner was moved into B's slot, so exactly one file remains
@@ -204,7 +204,7 @@ class RecoveryStoreTest {
 
     @Test
     void parkingFreesTheSlotWithoutLosingTheDraft(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         store.saveDraft("ertelenen metin", null);
 
         assertTrue(store.park());
@@ -216,7 +216,7 @@ class RecoveryStoreTest {
 
     @Test
     void snapshotsAfterParkingDoNotOverwriteTheParkedDraft(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         store.saveDraft("ertelenen metin", null);
         assertTrue(store.park());
 
@@ -234,7 +234,7 @@ class RecoveryStoreTest {
 
     @Test
     void clearKeepsParkedDrafts(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         store.saveDraft("ertelenen metin", null);
         assertTrue(store.park());
         store.saveDraft("canlı taslak", null);
@@ -248,7 +248,7 @@ class RecoveryStoreTest {
 
     @Test
     void parkingWithoutADraftIsANoOp(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
 
         assertTrue(store.park()); // nothing to move, slot already free
 
@@ -258,11 +258,11 @@ class RecoveryStoreTest {
 
     @Test
     void aParkedDraftIsAdoptedByTheNextSession(@TempDir Path dir) throws IOException {
-        var first = new RecoveryStore(dir);
+        var first = new RecoveryStore(dir, List.of(dir));
         first.saveDraft("önceki oturumun ertelenen metni", null);
         assertTrue(first.park());
 
-        var second = new RecoveryStore(dir);
+        var second = new RecoveryStore(dir, List.of(dir));
         assertEquals("önceki oturumun ertelenen metni", second.loadDraft().orElseThrow().content());
         assertEquals(1, draftFiles(dir).size()); // adopted into the new session's slot
         assertTrue(parkedFiles(dir).isEmpty());
@@ -273,7 +273,7 @@ class RecoveryStoreTest {
 
     @Test
     void badTimestampKeepsTheTextAndFallsBackToTheFileMtime(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var original = dir.resolve("roman.txt");
         store.saveDraft("kurtarılacak metin", original);
         var file = draftFiles(dir).get(0);
@@ -284,14 +284,14 @@ class RecoveryStoreTest {
         var draft = store.loadDraft().orElseThrow();
 
         assertEquals("kurtarılacak metin", draft.content());
-        assertEquals(original.toAbsolutePath(), draft.originalFile());
+        assertEquals(dir.toRealPath().resolve("roman.txt"), draft.originalFile());
         assertNotNull(draft.savedAt());
         assertEquals(Files.getLastModifiedTime(file).toInstant(), draft.savedAt());
     }
 
     @Test
     void unusableOriginalPathNeverHidesTheText(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         store.saveDraft("yarım kalmış bölüm", null);
         var file = draftFiles(dir).get(0);
 
@@ -305,9 +305,45 @@ class RecoveryStoreTest {
         assertNull(draft.originalFile()); // only the link to the file is lost
     }
 
+    /**
+     * The original path in a draft header becomes the target of the next save,
+     * and a draft can arrive from another machine. A path outside the allowed
+     * roots must therefore lose its target - the text is still recovered, but
+     * saving it asks for a location instead of writing where the header said.
+     */
+    @Test
+    void anOriginalPathOutsideTheAllowedRootsIsDroppedButTheTextIsKept(@TempDir Path dir)
+            throws IOException {
+        var allowed = Files.createDirectory(dir.resolve("izinli"));
+        var outside = Files.writeString(dir.resolve("baska-yer.txt"), "baska");
+        var store = new RecoveryStore(dir, List.of(allowed));
+        store.saveDraft("kurtarilacak metin", null);
+        var file = draftFiles(dir).get(0);
+
+        writeRaw(file, rawDraft("saved.at=" + Instant.now() + "\noriginal.path.b64="
+                + base64(outside.toAbsolutePath().toString()), "kurtarilacak metin"));
+
+        var draft = store.loadDraft().orElseThrow();
+
+        assertEquals("kurtarilacak metin", draft.content());
+        assertNull(draft.originalFile(), "a header must not decide the save target");
+    }
+
+    /** The allowed case still works, so the check is a filter and not a blanket refusal. */
+    @Test
+    void anOriginalPathUnderAnAllowedRootIsKept(@TempDir Path dir) throws IOException {
+        var allowed = Files.createDirectory(dir.resolve("izinli"));
+        var document = Files.writeString(allowed.resolve("roman.txt"), "metin");
+        var store = new RecoveryStore(dir, List.of(allowed));
+
+        store.saveDraft("kurtarilacak metin", document);
+
+        assertEquals(document.toRealPath(), store.loadDraft().orElseThrow().originalFile());
+    }
+
     @Test
     void truncatedFileWithoutSeparatorIsOfferedAsText(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var raw = MAGIC + "\nsaved.at=2024-01-01T00:00:00Z\nno separator here";
         writeRaw(dir.resolve("draft-" + java.util.UUID.randomUUID() + ".jtw"), bytes(raw));
 
@@ -319,7 +355,7 @@ class RecoveryStoreTest {
 
     @Test
     void invalidUtf8StillProducesADraft(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var out = new ByteArrayOutputStream();
         out.writeBytes(bytes(MAGIC + "\nsaved.at=2024-01-01T00:00:00Z\noriginal.path.b64=\n\n"));
         out.writeBytes(new byte[] {'o', 'k', (byte) 0xC3, (byte) 0x28}); // broken UTF-8 sequence
@@ -333,7 +369,7 @@ class RecoveryStoreTest {
 
     @Test
     void draftIsOneFileHoldingTextAndMetadata(@TempDir Path dir) throws IOException {
-        var store = new RecoveryStore(dir);
+        var store = new RecoveryStore(dir, List.of(dir));
         var original = dir.resolve("roman.txt");
 
         store.saveDraft("tek dosya", original);
@@ -495,7 +531,7 @@ class RecoveryStoreTest {
     }
 
     private static RecoveryStore store(Path dir) {
-        return new RecoveryStore(dir);
+        return new RecoveryStore(dir, List.of(dir));
     }
 
     private static void assumeSymlinksCanBeCreated(Path dir) {
