@@ -31,7 +31,7 @@ class RecoveryTargetPathTest {
     void anAbsolutePathUnderAnAllowedRootIsAccepted(@TempDir Path dir) throws IOException {
         var document = Files.writeString(dir.resolve("roman.txt"), "metin");
 
-        assertEquals(document.toRealPath(),
+        assertEquals(document.toAbsolutePath(),
                 RecoveryTargetPath.accept(document, List.of(dir), List.of()));
     }
 
@@ -99,6 +99,28 @@ class RecoveryTargetPathTest {
     }
 
     /**
+     * Validation may follow a link, but the returned identity must not: a
+     * document opened through a link stays known by the name the user used.
+     * Canonicalising the value instead would resurface every document as its
+     * real path - and on Windows it rewrites an 8.3 short name
+     * ({@code RUNNER~1}) into its long form, which the draft's own header never
+     * held.
+     */
+    @Test
+    void anAcceptedSymbolicLinkKeepsItsOwnName(@TempDir Path dir) throws IOException {
+        var real = Files.writeString(dir.resolve("gercek.txt"), "metin");
+        var link = dir.resolve("kisa-yol.txt");
+        try {
+            Files.createSymbolicLink(link, real);
+        } catch (IOException | UnsupportedOperationException e) {
+            org.junit.jupiter.api.Assumptions.abort("symbolic links unavailable: " + e);
+        }
+
+        assertEquals(link.toAbsolutePath(),
+                RecoveryTargetPath.accept(link, List.of(dir), List.of()));
+    }
+
+    /**
      * A document deleted while the editor was closed is still a legitimate
      * target: the draft holds its only text, and the user's intent is to write
      * it back where it was. The file itself cannot be resolved, so its parent
@@ -108,7 +130,7 @@ class RecoveryTargetPathTest {
     void aDocumentThatNoLongerExistsIsAcceptedThroughItsParent(@TempDir Path dir) throws IOException {
         var gone = dir.resolve("silinmis.txt");
 
-        assertEquals(dir.toRealPath().resolve("silinmis.txt"),
+        assertEquals(gone.toAbsolutePath(),
                 RecoveryTargetPath.accept(gone, List.of(dir), List.of()));
     }
 
@@ -142,7 +164,7 @@ class RecoveryTargetPathTest {
         var document = Files.writeString(home.resolve("roman.txt"), "metin");
 
         assertNull(RecoveryTargetPath.accept(settings, List.of(home), List.of(dataDir)));
-        assertEquals(document.toRealPath(),
+        assertEquals(document.toAbsolutePath(),
                 RecoveryTargetPath.accept(document, List.of(home), List.of(dataDir)));
     }
 }

@@ -565,12 +565,22 @@ yolu `null` alıyor, ilk kaydetme Farklı Kaydet'e düşüyor — yani çalınt�
 bir başlık kaydetmeyi keyfi bir dosyaya yönlendiremiyor. Henüz var olmayan belge (silinmiş
 dosyanın taslağı) ebeveyni üzerinden çözülüp kabul ediliyor; kırık symlink reddediliyor
 (W2-05'in yazma yolundaki kararıyla aynı). Üretimde izinli kök `user.home`; başka bir kökte
-(ör. Windows'ta `D:\`) duran belgenin taslağı kurtarılırken hedefsiz açılır. Testler: yeni
-`RecoveryTargetPathTest` (9) ve `RecoveryStoreTest`'e iki vaka — dış kökteki yol düşüyor ama
+(ör. Windows'ta `D:\`) duran belgenin taslağı kurtarılırken hedefsiz açılır.
+
+**Düzeltme (6 Kas 2026, CI):** İlk sürüm `accept()` doğrulamadan geçen **kanonik** yolu
+döndürüyordu; Windows ayağı bunu kırmızıya çevirdi:
+`AutoSaveServiceTest.anOrdinaryDraftStillRestoresOntoItsPath` `RUNNER~1` (8.3 kısa ad) beklerken
+`runneradmin` (uzun ad) aldı, çünkü `toRealPath()` kısa adı genişletiyor. Kanonik biçim artık
+yalnızca **karar** için kullanılıyor; dönen değer taslağın yazdığı yolun mutlak/normalize hâli.
+Bu yalnız Windows kısa adı için değil, symlink'li belge için de doğru: aksi hâlde kurtarılan
+belge hiç açılmadığı bir gerçek yolla anılırdı (yazma zaten W2-05 sayesinde linki takip ediyor).
+Regresyon testi `anAcceptedSymbolicLinkKeepsItsOwnName`; `return canonical`'a geri döndürülünce
+kırmızı. Testler: yeni
+`RecoveryTargetPathTest` (10) ve `RecoveryStoreTest`'e iki vaka — dış kökteki yol düşüyor ama
 metin korunuyor, izinli kökteki yol korunuyor. Mutasyon kanıtı: `accept` yerine `Path.of`
 konunca dış-kök testi kırmızı; kanonikleştirme `toAbsolutePath`'e indirilince symlink ve
 kırık-link testleri kırmızı. `mvn test -Dtest=RecoveryTargetPathTest,RecoveryStoreTest` →
-9/9 + 27/27; `mvn -B clean test` → **428/428**.
+10/10 + 27/27; `mvn -B clean test` → **429/429**.
 
 **Belge kilidi (D8) kapsam dışı bırakıldı — ürün kararı:** `InstanceLock` aynı `user.home`
 ile ikinci süreci zaten başlatmıyor (`JTypeWriterApp:26-29`); kalan boşluk yalnız farklı
@@ -757,7 +767,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W2-03 | Bellek/boyut/hata yolu | X4, M10, D7 | M | W2-02 | ✅ | `mvn test -Dtest=FileServiceTest,AtomicFilesTest,AutoSaveServiceTest,MessagesTest` → 38/38 + 7/7 + 17/17 + 13/13: sınır üstü dosya açılmıyor ve altı dilde açıklama gösteriliyor; `OutOfMemoryError` kaydetme hatasına düşüp taslak korunuyor; dolu disk (`usableSpace=0`) temp dosya oluşmadan `IOException` ile reddediliyor ve belge kirli kalıyor. `mvn -B clean test` → 406/406; `mvn -B test -Duser.language=de -Duser.country=DE` → 406/406 |
 | W2-04 | Dış değişiklik | D1, M9 | M | W2-02 | ✅ | `mvn test -Dtest=FileServiceTest,DialogServiceTest,MessagesTest` → 47/47 + 9/9 + 13/13: yüklemeden sonra değişen/silinen dosya sessizce üzerine yazılmıyor, üç seçenekli diyalog (üzerine yaz / farklı kaydet / iptal) akışı testli; aynı boyut + aynı mtime değişikliği SHA-256 ile yakalanıyor; "Farklı Kaydet" iptalinde çıkış `STAY` kalıyor; senkron ve asenkron kaydetme yolları ayrı ayrı doğrulandı. `mvn -B clean test` → 415/415 |
 | W2-05 | Symlink korunumu | D2 | S | W2-04 | ✅ | `mvn test -Dtest=AtomicFilesTest,BackupKeeperTest` → 8/8 + 10/10: symlink'li belge kaydedildikten sonra link korunuyor ve gerçek hedef güncelleniyor, `.bak` gerçek hedefin yanına düşüyor; `mvn -B clean test` → 417/417; `analysis.md` §15.4 manuel deneyi → `isSymbolicLink` true, gerçek içerik yeni |
-| W2-06 | Taslak yolu doğrulama (D3) | D3 (D8 ürün kararıyla kapsam dışı) | M | W2-04 | ✅ | `mvn test -Dtest=RecoveryTargetPathTest,RecoveryStoreTest` → 9/9 + 27/27: mutlaklık, kanoniklik, izinli kök ve veri-dizini ret kuralları; kural tutmayan taslak hedefsiz açılıyor, metin korunuyor; mutasyonla (accept→Path.of, toRealPath→toAbsolutePath) 3 test kırmızı; `mvn -B clean test` → 428/428. D8: `InstanceLock` aynı `user.home`'da ikinci süreci zaten durduruyor ve W2-04 çakışmayı soruyor → dosya başına `.jtwlock` eklenmedi, gerekçe kartta |
+| W2-06 | Taslak yolu doğrulama (D3) | D3 (D8 ürün kararıyla kapsam dışı) | M | W2-04 | ✅ | `mvn test -Dtest=RecoveryTargetPathTest,RecoveryStoreTest` → 10/10 + 27/27: mutlaklık, kanoniklik, izinli kök ve veri-dizini ret kuralları; kural tutmayan taslak hedefsiz açılıyor, metin korunuyor; kanonik biçim yalnız karar için (Windows 8.3 kısa adı ve symlink adı korunuyor); mutasyonla (accept→Path.of, toRealPath→toAbsolutePath, canonical→dönen değer) 4 test kırmızı; `mvn -B clean test` → 429/429. D8: `InstanceLock` aynı `user.home`'da ikinci süreci zaten durduruyor ve W2-04 çakışmayı soruyor → dosya başına `.jtwlock` eklenmedi, gerekçe kartta |
 | W3-01 | `EditorAction` katmanı | M1, U13 | M | W1-03 | ☐ | |
 | W3-02 | Menü çubuğu | E2 | M | W3-01 | ☐ | |
 | W3-03 | CLI argümanı | E3 | S | W3-01 | ☐ | |

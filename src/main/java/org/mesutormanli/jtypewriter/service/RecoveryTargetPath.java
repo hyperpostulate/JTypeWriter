@@ -53,8 +53,21 @@ final class RecoveryTargetPath {
     }
 
     /**
-     * @return the canonical path when it is acceptable as a save target, or
-     *         {@code null} when the draft must be opened without one
+     * Validates the candidate and returns the path to keep as the document's
+     * identity.
+     *
+     * <p>The canonical form decides only whether the path is <em>allowed</em>;
+     * the value handed back is the candidate as it was written. That matters on
+     * Windows, where {@code toRealPath()} expands an 8.3 short name
+     * ({@code RUNNER~1} becomes {@code runneradmin}), and for a symbolic link,
+     * which would otherwise resurface as its target: the document would
+     * suddenly be known by a path the user never opened. Writing is safe
+     * either way, because {@link org.mesutormanli.jtypewriter.AtomicFiles}
+     * resolves links itself.</p>
+     *
+     * @return the absolute, normalised candidate when it is acceptable as a
+     *         save target, or {@code null} when the draft must be opened
+     *         without one
      */
     static Path accept(Path candidate, Collection<Path> allowedRoots,
                        Collection<Path> deniedRoots) {
@@ -80,7 +93,7 @@ final class RecoveryTargetPath {
                     + " allowed roots: " + canonical);
             return null;
         }
-        return canonical;
+        return candidate.normalize();
     }
 
     /**

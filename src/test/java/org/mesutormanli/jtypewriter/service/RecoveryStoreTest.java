@@ -51,7 +51,7 @@ class RecoveryStoreTest {
 
         var draft = store.loadDraft().orElseThrow();
         assertEquals("yarım kalmış bölüm", draft.content());
-        assertEquals(dir.toRealPath().resolve("roman.txt"), draft.originalFile());
+        assertEquals(original.toAbsolutePath(), draft.originalFile());
         assertNotNull(draft.savedAt());
         assertTrue(draft.savedAt().isBefore(Instant.now().plusSeconds(5)));
         // loading must be repeatable (startup may ask twice)
@@ -284,7 +284,7 @@ class RecoveryStoreTest {
         var draft = store.loadDraft().orElseThrow();
 
         assertEquals("kurtarılacak metin", draft.content());
-        assertEquals(dir.toRealPath().resolve("roman.txt"), draft.originalFile());
+        assertEquals(original.toAbsolutePath(), draft.originalFile());
         assertNotNull(draft.savedAt());
         assertEquals(Files.getLastModifiedTime(file).toInstant(), draft.savedAt());
     }
@@ -338,7 +338,7 @@ class RecoveryStoreTest {
 
         store.saveDraft("kurtarilacak metin", document);
 
-        assertEquals(document.toRealPath(), store.loadDraft().orElseThrow().originalFile());
+        assertEquals(document.toAbsolutePath(), store.loadDraft().orElseThrow().originalFile());
     }
 
     @Test
