@@ -85,7 +85,7 @@ public final class AppGraph {
     public final MainMenu mainMenu = new MainMenu(messages, localeManager, aboutDialog);
     public final ToolbarView toolbarView = new ToolbarView(
             themeManager, textColorManager, fontSizeManager,
-            toolbarState, messages, localeManager, aboutDialog, mainMenu.node());
+            toolbarState, messages, localeManager, aboutDialog, mainMenu);
     public final StatsBar statsBar = new StatsBar(sessionStats, messages, statsBarState, localeManager);
     public final CrashHandler crashHandler = new CrashHandler(dialogService, messages, () -> this.stage);
 

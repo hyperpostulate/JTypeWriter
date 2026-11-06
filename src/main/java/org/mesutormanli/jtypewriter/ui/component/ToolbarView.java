@@ -57,7 +57,7 @@ import java.util.function.Supplier;
  * plain buttons and all six dropdowns always stay visible. Every control
  * carries a tooltip from the bundle and is Tab-reachable in visual order.</p>
  */
-public class ToolbarView extends HBox {
+public class ToolbarView extends HBox implements MainMenu.Settings {
 
     private final ThemeManager themeManager;
     private final TextColorManager textColorManager;
@@ -120,7 +120,7 @@ public class ToolbarView extends HBox {
                        TextColorManager textColorManager, FontSizeManager fontSizeManager,
                        ToolbarState toolbarState, Messages messages,
                        LocaleManager localeManager, AboutDialog aboutDialog,
-                       MenuButton commandMenu) {
+                       MainMenu mainMenu) {
         this.themeManager = themeManager;
         this.textColorManager = textColorManager;
         this.fontSizeManager = fontSizeManager;
@@ -128,7 +128,7 @@ public class ToolbarView extends HBox {
         this.messages = messages;
         this.localeManager = localeManager;
         this.aboutDialog = aboutDialog;
-        this.commandMenu = commandMenu;
+        this.commandMenu = mainMenu.node();
         this.editorArea = null;
 
         getStyleClass().add("toolbar");
@@ -144,47 +144,21 @@ public class ToolbarView extends HBox {
         redoBtn = createButton(EditorAction.REDO.label(messages));
         aboutBtn = createButton(messages.toolbarAbout());
 
-        themeCombo = createCombo(ThemeManager.options(), themeName(), value -> {
-            themeManager.setTheme(getScene(), value);
-            refresh();
-            // The text colour's hex depends on the theme, so re-apply it last.
-            notifyStyleChange();
-        });
+        themeCombo = createCombo(ThemeManager.options(), themeName(), this::selectTheme);
         showAsCaptionedCombo(themeCombo, messages::toolbarTheme);
 
-        yoloCombo = createCombo(ToolbarState.TOGGLE_OPTIONS, onOff(), value -> {
-            if (editorArea == null) {
-                refresh(); // nothing to switch yet: put the dropdown back in step
-                return;
-            }
-            toolbarState.setYolo(value, editorArea);
-            refresh();
-            if (onYoloChange != null) {
-                onYoloChange.run(); // keeps the [YOLO] window title badge honest
-            }
-        });
+        yoloCombo = createCombo(ToolbarState.TOGGLE_OPTIONS, onOff(), this::selectYolo);
         showAsCaptionedCombo(yoloCombo, messages::toolbarYolo);
 
-        soundCombo = createCombo(ToolbarState.TOGGLE_OPTIONS, onOff(), value -> {
-            toolbarState.setSound(value);
-            refresh();
-        });
+        soundCombo = createCombo(ToolbarState.TOGGLE_OPTIONS, onOff(), this::selectSound);
         showAsCaptionedCombo(soundCombo, messages::toolbarSound);
 
-        colorCombo = createCombo(TextColorManager.options(), colourName(), value -> {
-            textColorManager.set(value);
-            refresh();
-            notifyStyleChange();
-        });
+        colorCombo = createCombo(TextColorManager.options(), colourName(), this::selectTextColor);
         showAsCaptionedCombo(colorCombo, messages::toolbarColor);
 
         fontSizeCombo = createCombo(
                 FontSizeManager.optionsFor(fontSizeManager.getCurrentSize()), plainNumber(),
-                value -> {
-                    fontSizeManager.setSize(value);
-                    refresh();
-                    notifyStyleChange();
-                });
+                this::selectFontSize);
         showAsCaptionedCombo(fontSizeCombo, messages::toolbarFontSize);
 
         languageCombo = createCombo(List.of(Language.values()), nativeName(), value -> {
@@ -260,6 +234,9 @@ public class ToolbarView extends HBox {
 
         localeManager.addListener(lang -> refresh());
         refresh();
+        // The View submenus read and write the managers above through this
+        // port, so the menu and the dropdowns can never hold different states.
+        mainMenu.setSettings(this);
 
         // Keep the single row at every width by collapsing the
         // dropdown captions when the fully-captioned row would not fit.
@@ -299,6 +276,79 @@ public class ToolbarView extends HBox {
     /** Language dropdown order: the {@link Language} declaration order. */
     public static List<Language> languageOptions() {
         return List.of(Language.values());
+    }
+
+    // --- the menu's value submenus share this state -------------------------
+
+    /**
+     * The live settings behind {@link MainMenu}'s View submenus. Returning the
+     * same option lists and the same apply paths as the dropdowns is the whole
+     * point: the menu is a second view of one state, not a second state.
+     */
+    @Override
+    public MainMenu.Choice<?> choice(MainMenu.ChoiceKind kind) {
+        return switch (kind) {
+            case THEME -> new MainMenu.Choice<>(themeOptions(),
+                    themeManager.getCurrentTheme(),
+                    theme -> theme.getDisplayName(messages),
+                    this::selectTheme);
+            case YOLO -> new MainMenu.Choice<>(toggleOptions(),
+                    toolbarState.isYoloMode(),
+                    this::onOffLabel,
+                    this::selectYolo);
+            case SOUND -> new MainMenu.Choice<>(toggleOptions(),
+                    toolbarState.isSoundEnabled(),
+                    this::onOffLabel,
+                    this::selectSound);
+            case TEXT_COLOR -> new MainMenu.Choice<>(textColorOptions(),
+                    textColorManager.getCurrent(),
+                    color -> color.getDisplayName(messages),
+                    this::selectTextColor);
+            case FONT_SIZE -> new MainMenu.Choice<>(fontSizeOptions(fontSizeManager.getCurrentSize()),
+                    fontSizeManager.getCurrentSize(),
+                    size -> String.valueOf(size),
+                    this::selectFontSize);
+        };
+    }
+
+    private String onOffLabel(boolean on) {
+        return on ? messages.labelOn() : messages.labelOff();
+    }
+
+    private void selectTheme(Theme theme) {
+        themeManager.setTheme(getScene(), theme);
+        refresh();
+        // The text colour's hex depends on the theme, so re-apply it last.
+        notifyStyleChange();
+    }
+
+    private void selectYolo(boolean on) {
+        if (editorArea == null) {
+            refresh(); // nothing to switch yet: put both entry points back in step
+            return;
+        }
+        toolbarState.setYolo(on, editorArea);
+        refresh();
+        if (onYoloChange != null) {
+            onYoloChange.run(); // keeps the [YOLO] window title badge honest
+        }
+    }
+
+    private void selectSound(boolean on) {
+        toolbarState.setSound(on);
+        refresh();
+    }
+
+    private void selectTextColor(TextColor color) {
+        textColorManager.set(color);
+        refresh();
+        notifyStyleChange();
+    }
+
+    private void selectFontSize(int size) {
+        fontSizeManager.setSize(size);
+        refresh();
+        notifyStyleChange();
     }
 
     // --- overflow fit -------------------------------------------------

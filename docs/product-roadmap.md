@@ -658,8 +658,9 @@ etki testi kırmızı; `ToolbarView`'a `"Ctrl+S"` literali geri konunca kaynak t
   `MainController`, `AppGraph`, `Messages`, 6 bundle, `base.css`
 - **Yapılacak:** Dosya / Düzen / Görünüm / Yardım. **`Yeni` ve `Farklı Kaydet` görünür olur**
   (bugün 14 eylemin 2'si arayüzde yok). Etiketler bundle'dan, hızlandırıcılar komut katmanından.
-- **Bitti tanımı:** (1) Menüdeki her öğe bir `EditorAction`'a bağlı (test: menü ağacı ↔ komut
-  kümesi birebir). (2) Altı dilde menü etiketleri var (`MessagesTest` yeşil).
+- **Bitti tanımı:** (1) Menüdeki her yaprak öğe bir `EditorAction`'a bağlı ve her platform-dışı
+  komut ağaçta tam bir kez görünür; ayar komutları değer alt menüsüyle temsil edilir (test: menü
+  ağacı ↔ komut kümesi birebir). (2) Altı dilde menü etiketleri var (`MessagesTest` yeşil).
 - **Doğrulama:** `mvn test -Dtest=MainStageTest,MainControllerTest,ToolbarFitTest,MessagesTest`.
 
 > **Tasarım kararı (6 Kas 2026): menü şeridi değil, araç çubuğunda menü düğmesi.** Ürün
@@ -713,6 +714,24 @@ for selector \.context-menu" ile kırmızı, geri alındı) ve `commandMenuAccel
 `mvn test -Dtest=ContrastRatioTest` → 25/25; `mvn -B clean test` → 445/445. Not: bu makinede
 Xvfb/Monocle yok, popup'ın görsel doğrulaması yapılamadı; doğrulama CSS ayrıştırma (CssParser,
 83 kural, hata yok) + kontrast ölçümü düzeyinde.
+
+**Takip (6 Kas 2026): Görünüm artık değer alt menüleri.** Görünüm'deki Tema / YOLO / Ses / Renk /
+Boyut satırları sıralı komut değil, ikinci seviye birer alt menü: araç çubuğundaki açılır listelerin
+aynı seçeneklerini listeliyor ve o anki değeri işaretli gösteriyor (radio item). Karar nedeni:
+araç çubuğu zaten doğrudan seçim sunuyor, yani menüdeki `Görünüm → Tema → Koyu` "sıradaki tema"
+değil, Koyu demeli. Altı ayar komutu (`CYCLE_THEME`, `TOGGLE_YOLO`, `CYCLE_TEXT_COLOR`,
+`FONT_UP/DOWN/RESET`) kısayollarını ve kısayol kartı satırlarını koruyor; yalnız menüdeki
+temsilleri değişti. `Sound`'un `EditorAction`'ı yok, bu yüzden alt menüler komuttan değil
+`MainMenu.Settings` portundan üretiliyor; portu `ToolbarView` uyguluyor (`choice(ChoiceKind)`)
+ve aynı `selectTheme/selectYolo/selectSound/selectTextColor/selectFontSize` yollarını kullanıyor -
+menü tek durumun ikinci görünümü, ikinci durumu değil. `MainMenu.layout()` artık `Entry`
+(`ActionEntry` | `ChoiceEntry`) döndürüyor; `submenuBackedActions()` birebir kapsam testinin
+dışladığı kümeyi pinliyor ve test iki yönlü: ne eksik ne tekrar. Popup her açılışta
+(`ON_SHOWING`) yeniden kuruluyor, böylece işaretli satır canlı değeri izliyor. Ayrıca işaretli
+radio/check imleci `-toolbar-text`'e bağlandı (Modena'nın checked kuralı daha yüksek özgüllükte).
+`MainControllerTest` 13/13 (3 yeni: beş alt menü sırası, `resolve()` işaretleme+seçim, alt menü
+kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sırası testi kırmızı
+(`[THEME, YOLO, TEXT_COLOR, FONT_SIZE]`, geri alındı). `mvn -B clean test` → 448/448.
 
 **W3-03 · A4c — CLI / süreç argümanı** · S · E3
 - **Kapsam:** `JTypeWriterApp`/`FxApplication` (`getParameters()`), `package.sh` launcher

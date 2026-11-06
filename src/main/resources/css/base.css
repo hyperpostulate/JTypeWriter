@@ -397,6 +397,15 @@
     -fx-padding: 4;
 }
 
+/* A selected radio row paints its mark from the checked selector, which
+   Modena gives a higher specificity than the base .radio rule above - without
+   this the checkmark stays Modena's default mark colour and can vanish on the
+   dark surface. */
+.context-menu .radio-menu-item:checked > .left-container > .radio,
+.context-menu .check-menu-item:checked > .left-container > .check {
+    -fx-background-color: -toolbar-text;
+}
+
 .context-menu > .scroll-arrow > .arrow {
     -fx-background-color: -toolbar-text;
 }

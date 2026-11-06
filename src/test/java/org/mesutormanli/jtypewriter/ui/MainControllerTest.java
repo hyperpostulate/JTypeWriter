@@ -15,7 +15,9 @@ import org.mesutormanli.jtypewriter.locale.Messages;
 import java.nio.file.Path;
 import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -104,22 +106,91 @@ class MainControllerTest {
     }
 
     /**
-     * The menu bar is generated from the same inventory as the key filter and
-     * the toolbar, so every command the platform does not perform itself must
-     * appear exactly once - no missing New/Save As, no duplicated command.
+     * The menu is generated from the same inventory as the key filter and the
+     * toolbar, so every command the platform does not perform itself must
+     * appear exactly once: as a leaf, or through the View submenu that selects
+     * its value directly. No command may be missing and none may be repeated.
      */
     @Test
     void menuLayoutCoversEveryNonPlatformActionExactlyOnce() {
         var fromMenus = MainMenu.layout().stream()
-                .flatMap(spec -> spec.actions().stream())
+                .flatMap(spec -> spec.entries().stream())
+                .filter(MainMenu.ActionEntry.class::isInstance)
+                .map(entry -> ((MainMenu.ActionEntry) entry).action())
                 .toList();
         var expected = Arrays.stream(EditorAction.values())
                 .filter(action -> !action.handledByPlatform())
+                .filter(action -> !MainMenu.submenuBackedActions().contains(action))
                 .toList();
 
         assertEquals(expected.size(), fromMenus.size(),
                 "one menu entry per command, so no command is repeated");
         assertEquals(new HashSet<>(expected), new HashSet<>(fromMenus));
+    }
+
+    /**
+     * The submenu-backed set is the one thing the leaf test excludes, so it is
+     * pinned here: adding a command to the menu by deleting it from this set
+     * would otherwise be invisible.
+     */
+    @Test
+    void theSubmenuBackedActionsAreExactlyTheSixSettingCommands() {
+        assertEquals(new HashSet<>(List.of(
+                        EditorAction.CYCLE_THEME,
+                        EditorAction.TOGGLE_YOLO,
+                        EditorAction.CYCLE_TEXT_COLOR,
+                        EditorAction.FONT_UP,
+                        EditorAction.FONT_DOWN,
+                        EditorAction.FONT_RESET)),
+                new HashSet<>(MainMenu.submenuBackedActions()));
+    }
+
+    /**
+     * The View menu mirrors the toolbar's five settings as submenus, in the
+     * same order the dropdowns sit in the bar. Sound has no {@code EditorAction}
+     * at all, which is precisely why the submenu is generated from the shared
+     * settings port rather than from a command.
+     */
+    @Test
+    void viewMenuOffersTheFiveToolbarSettingsAsValueSubmenus() {
+        var view = MainMenu.layout().stream()
+                .filter(spec -> spec.page() == MainMenu.Page.VIEW)
+                .findFirst()
+                .orElseThrow();
+        var kinds = view.entries().stream()
+                .filter(MainMenu.ChoiceEntry.class::isInstance)
+                .map(entry -> ((MainMenu.ChoiceEntry) entry).kind())
+                .toList();
+
+        assertEquals(List.of(
+                MainMenu.ChoiceKind.THEME,
+                MainMenu.ChoiceKind.YOLO,
+                MainMenu.ChoiceKind.SOUND,
+                MainMenu.ChoiceKind.TEXT_COLOR,
+                MainMenu.ChoiceKind.FONT_SIZE), kinds);
+    }
+
+    /**
+     * A resolved submenu checks exactly the live value and its rows select
+     * their own value. This is the data half of "the menu is a second view of
+     * one state", testable without a toolkit.
+     */
+    @Test
+    void aResolvedChoiceChecksTheCurrentValueAndItsRowsSelectTheirOwn(@TempDir Path dir) {
+        var messages = messagesFor(Language.EN, dir);
+        var selected = new ArrayList<String>();
+        MainMenu.Settings settings = kind -> new MainMenu.Choice<>(
+                List.of("Light", "Dark", "Sepia"), "Dark", value -> value, selected::add);
+
+        var resolved = MainMenu.resolve(MainMenu.ChoiceKind.THEME, messages, settings);
+
+        assertEquals("Theme", resolved.title());
+        assertEquals(List.of("Light", "Dark", "Sepia"),
+                resolved.options().stream().map(MainMenu.ResolvedOption::label).toList());
+        assertEquals(List.of(false, true, false),
+                resolved.options().stream().map(MainMenu.ResolvedOption::selected).toList());
+        resolved.options().get(2).select().run();
+        assertEquals(List.of("Sepia"), selected);
     }
 
     /** A language switch relabels the menus through the bundles, never with blanks. */
@@ -130,9 +201,15 @@ class MainControllerTest {
             for (var spec : MainMenu.layout()) {
                 assertFalse(spec.page().title(messages).isBlank(),
                         () -> "blank menu title in " + language);
-                for (var action : spec.actions()) {
-                    assertFalse(action.label(messages).isBlank(),
-                            () -> "blank label for " + action + " in " + language);
+                for (var entry : spec.entries()) {
+                    switch (entry) {
+                        case MainMenu.ActionEntry(var action) -> assertFalse(
+                                action.label(messages).isBlank(),
+                                () -> "blank label for " + action + " in " + language);
+                        case MainMenu.ChoiceEntry(var kind) -> assertFalse(
+                                kind.title(messages).isBlank(),
+                                () -> "blank submenu title for " + kind + " in " + language);
+                    }
                 }
             }
         }
@@ -141,7 +218,7 @@ class MainControllerTest {
     /**
      * About is a dialog view, not a document command: giving it an
      * {@link EditorAction} would force a fake chord into the shortcut card, so
-     * Help carries no actions and only its title comes from the bundle.
+     * Help carries no entries and only its title comes from the bundle.
      */
     @Test
     void helpMenuCarriesNoEditorActionsButALocalisedTitle(@TempDir Path dir) {
@@ -150,7 +227,7 @@ class MainControllerTest {
                 .findFirst()
                 .orElseThrow();
 
-        assertTrue(help.actions().isEmpty());
+        assertTrue(help.entries().isEmpty());
         assertEquals("Yard\u0131m", help.page().title(messagesFor(Language.TR, dir)));
         assertEquals("Help", help.page().title(messagesFor(Language.EN, dir)));
     }

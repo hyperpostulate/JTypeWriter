@@ -8,12 +8,17 @@ package org.mesutormanli.jtypewriter.ui;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -28,12 +33,23 @@ import java.util.function.Function;
  * separate permanent row exists. The discoverability the menu exists for is
  * kept: {@code New} and {@code Save As} have a visible home again.</p>
  *
- * <p>The entries are not hand-written: they are generated from the same
+ * <p>The entries are not hand-written: the leaves are generated from the same
  * {@link EditorAction} inventory that drives the key filter, the toolbar
- * buttons and the shortcut card, so a command cannot be visible in one place
- * and missing from another. Before this class {@code New} and
- * {@code Save As} had shortcuts and card rows but no visible entry at all;
- * generating the menus from the inventory is what keeps that from recurring.</p>
+ * buttons and the shortcut card. The five View settings are generated from the
+ * same option lists as the toolbar dropdowns, through the {@link Settings}
+ * port the toolbar implements, so a value list cannot be visible in the bar and
+ * different in the menu. Before this class {@code New} and {@code Save As} had
+ * shortcuts and card rows but no visible entry at all; generating the menus
+ * from the inventory is what keeps that from recurring.</p>
+ *
+ * <p><strong>View is a set of value submenus, not cycling commands.</strong>
+ * {@code Theme}, {@code YOLO}, {@code Sound}, {@code Text Color} and
+ * {@code Font Size} open one level deeper and list the same values the toolbar
+ * dropdowns do, with the current one checked. That is deliberate: the toolbar
+ * already offers direct choice, so {@code View > Theme > Dark} has to mean
+ * {@code Dark}, not "the next theme" as the {@code CYCLE_THEME} shortcut does.
+ * The cycling actions keep their chords (and their shortcut-card rows); they
+ * are simply no longer the menu's way of expressing the setting.</p>
  *
  * <p>Deliberately <em>not</em> a {@link MenuButton} subclass. Extending it
  * would initialise {@code javafx.scene.control.Control}, whose static
@@ -85,42 +101,138 @@ public final class MainMenu {
     }
 
     /**
-     * One menu and its generated commands. Defensive copy: callers cannot
+     * The five settings the View menu mirrors from the toolbar, in toolbar
+     * order. Each one is a submenu of concrete values rather than a cycling
+     * action; the titles reuse the toolbar's bundle keys, so a language switch
+     * relabels both entry points at once.
+     */
+    public enum ChoiceKind {
+        THEME(Messages::toolbarTheme),
+        YOLO(Messages::toolbarYolo),
+        SOUND(Messages::toolbarSound),
+        TEXT_COLOR(Messages::toolbarColor),
+        FONT_SIZE(Messages::toolbarFontSize);
+
+        private final Function<Messages, String> title;
+
+        ChoiceKind(Function<Messages, String> title) {
+            this.title = title;
+        }
+
+        public String title(Messages messages) {
+            return title.apply(messages);
+        }
+    }
+
+    /** One entry of a top-level menu: either a command leaf or a value submenu. */
+    public sealed interface Entry permits ActionEntry, ChoiceEntry {
+    }
+
+    /** A leaf that runs one {@link EditorAction}. */
+    public record ActionEntry(EditorAction action) implements Entry {
+    }
+
+    /** A submenu whose radio items select one value of a settings family. */
+    public record ChoiceEntry(ChoiceKind kind) implements Entry {
+    }
+
+    /**
+     * One menu and its generated entries. Defensive copy: callers cannot
      * mutate the shared layout after it is handed out.
      */
-    public record MenuSpec(Page page, List<EditorAction> actions) {
+    public record MenuSpec(Page page, List<Entry> entries) {
 
         public MenuSpec {
-            actions = List.copyOf(actions);
+            entries = List.copyOf(entries);
+        }
+    }
+
+    /**
+     * One settings family as the menu needs it: the values in display order,
+     * the current one, how a value is named, and what selecting it does.
+     * Built by the toolbar on every rebuild, so the popup cannot keep a second
+     * copy of the state - a change made from either entry point is visible in
+     * the other.
+     */
+    public record Choice<T>(List<T> options, T current,
+                            Function<T, String> label, Consumer<T> select) {
+
+        public Choice {
+            options = List.copyOf(options);
+        }
+    }
+
+    /**
+     * Supplies the live choice lists. The toolbar implements it because it
+     * already owns the managers and the apply paths the dropdowns use; the
+     * menu must not duplicate those writes.
+     */
+    public interface Settings {
+
+        Choice<?> choice(ChoiceKind kind);
+    }
+
+    /** One resolved radio row: its label, whether it is the current value, and its effect. */
+    public record ResolvedOption(String label, boolean selected, Runnable select) {
+    }
+
+    /** A resolved value submenu, free of JavaFX nodes so it can be tested headlessly. */
+    public record ResolvedChoice(String title, List<ResolvedOption> options) {
+
+        public ResolvedChoice {
+            options = List.copyOf(options);
         }
     }
 
     /**
      * The menu structure, independent of JavaFX nodes and of the current
-     * language. Every action that the platform does not perform itself appears
-     * exactly once: {@code EXIT_FULLSCREEN} is owned by JavaFX's
-     * {@code fullScreenExitKeyCombination}, so it gets no menu entry.
+     * language. Every command leaf is an {@link EditorAction}, and every
+     * action the platform does not perform itself appears either as a leaf or
+     * through a value submenu - never twice. {@code EXIT_FULLSCREEN} is owned
+     * by JavaFX's {@code fullScreenExitKeyCombination}, so it gets no entry;
+     * the six setting commands are represented by the submenus that select
+     * their value directly (see the class Javadoc).
      */
     public static List<MenuSpec> layout() {
         return List.of(
                 new MenuSpec(Page.FILE, List.of(
-                        EditorAction.NEW_DOCUMENT,
-                        EditorAction.OPEN,
-                        EditorAction.SAVE,
-                        EditorAction.SAVE_AS)),
+                        command(EditorAction.NEW_DOCUMENT),
+                        command(EditorAction.OPEN),
+                        command(EditorAction.SAVE),
+                        command(EditorAction.SAVE_AS))),
                 new MenuSpec(Page.EDIT, List.of(
-                        EditorAction.UNDO,
-                        EditorAction.REDO)),
+                        command(EditorAction.UNDO),
+                        command(EditorAction.REDO))),
                 new MenuSpec(Page.VIEW, List.of(
-                        EditorAction.TOGGLE_TOOLBAR,
-                        EditorAction.CYCLE_THEME,
-                        EditorAction.TOGGLE_YOLO,
-                        EditorAction.CYCLE_TEXT_COLOR,
-                        EditorAction.FONT_UP,
-                        EditorAction.FONT_DOWN,
-                        EditorAction.FONT_RESET,
-                        EditorAction.TOGGLE_FULLSCREEN)),
+                        command(EditorAction.TOGGLE_TOOLBAR),
+                        new ChoiceEntry(ChoiceKind.THEME),
+                        new ChoiceEntry(ChoiceKind.YOLO),
+                        new ChoiceEntry(ChoiceKind.SOUND),
+                        new ChoiceEntry(ChoiceKind.TEXT_COLOR),
+                        new ChoiceEntry(ChoiceKind.FONT_SIZE),
+                        command(EditorAction.TOGGLE_FULLSCREEN))),
                 new MenuSpec(Page.HELP, List.of()));
+    }
+
+    /**
+     * The commands whose setting the View menu expresses as a value submenu
+     * instead of a leaf: the theme, YOLO and colour cycles plus the font-step
+     * commands. They keep their chords and their shortcut-card rows; pinning
+     * the set here means the menu cannot silently drop one, while a new
+     * settings command has to make the same choice explicitly.
+     */
+    public static Set<EditorAction> submenuBackedActions() {
+        return Set.of(
+                EditorAction.CYCLE_THEME,
+                EditorAction.TOGGLE_YOLO,
+                EditorAction.CYCLE_TEXT_COLOR,
+                EditorAction.FONT_UP,
+                EditorAction.FONT_DOWN,
+                EditorAction.FONT_RESET);
+    }
+
+    private static ActionEntry command(EditorAction action) {
+        return new ActionEntry(action);
     }
 
     private final Messages messages;
@@ -128,6 +240,7 @@ public final class MainMenu {
     private final MenuButton menuButton = new MenuButton(GLYPH);
 
     private Consumer<EditorAction> actionRunner = action -> { };
+    private Settings settings;
     private Stage stage;
 
     public MainMenu(Messages messages, LocaleManager localeManager, AboutDialog aboutDialog) {
@@ -138,6 +251,12 @@ public final class MainMenu {
         // arrow, which would read as a second, competing affordance next to
         // the button labels it sits among.
         menuButton.getStyleClass().addAll("toolbar-button", "toolbar-menu-button");
+        // Rebuild right before the popup opens: the checked row and the option
+        // lists follow the live managers, so a theme changed by the toolbar, a
+        // shortcut or a language switch cannot leave the menu stale. ON_SHOWING
+        // fires before the skin calls popup.show(), so replacing the items here
+        // is safe and the popup never renders a half-old tree.
+        menuButton.setOnShowing(event -> refresh());
         localeManager.addListener(language -> refresh());
         refresh();
     }
@@ -152,24 +271,31 @@ public final class MainMenu {
         this.actionRunner = actionRunner;
     }
 
+    /** Installed by the toolbar, which owns the managers and the apply paths. */
+    public void setSettings(Settings settings) {
+        this.settings = settings;
+        refresh();
+    }
+
     public void setStage(Stage stage) {
         this.stage = stage;
     }
 
     /**
      * Rebuilds the whole popup. A language switch has to relabel menu titles,
-     * item labels and the tooltip; rebuilding is simpler and safer than
-     * mutating an existing tree in place.
+     * item labels and the tooltip; a settings change has to move the checked
+     * radio row. Rebuilding is simpler and safer than mutating an existing
+     * tree in place.
      */
     public void refresh() {
         menuButton.getItems().clear();
         for (var spec : layout()) {
             var menu = new Menu(spec.page().title(messages));
-            for (var action : spec.actions()) {
-                var item = new MenuItem(action.label(messages));
-                item.setAccelerator(acceleratorFor(action));
-                item.setOnAction(e -> actionRunner.accept(action));
-                menu.getItems().add(item);
+            for (var entry : spec.entries()) {
+                switch (entry) {
+                    case ActionEntry(var action) -> menu.getItems().add(commandItem(action));
+                    case ChoiceEntry(var kind) -> menu.getItems().add(choiceMenu(kind));
+                }
             }
             if (spec.page() == Page.HELP) {
                 menu.getItems().add(aboutItem());
@@ -182,9 +308,60 @@ public final class MainMenu {
         // property.
     }
 
+    private MenuItem commandItem(EditorAction action) {
+        var item = new MenuItem(action.label(messages));
+        item.setAccelerator(acceleratorFor(action));
+        item.setOnAction(event -> actionRunner.accept(action));
+        return item;
+    }
+
+    /**
+     * Builds one value submenu. Radio items in an explicit {@link ToggleGroup}
+     * make the current value visible and keep exactly one selected; without a
+     * settings provider (only possible before the toolbar installs itself) the
+     * submenu still exists but is empty, which the tests never see in the live
+     * graph.
+     */
+    private Menu choiceMenu(ChoiceKind kind) {
+        if (settings == null) {
+            return new Menu(kind.title(messages));
+        }
+        var resolved = resolve(kind, messages, settings);
+        var menu = new Menu(resolved.title());
+        var group = new ToggleGroup();
+        for (var option : resolved.options()) {
+            var item = new RadioMenuItem(option.label());
+            item.setToggleGroup(group);
+            item.setSelected(option.selected());
+            item.setOnAction(event -> option.select().run());
+            menu.getItems().add(item);
+        }
+        return menu;
+    }
+
+    /**
+     * Resolves a submenu to plain data: title, option labels, the checked one
+     * and the effect. Pure - no JavaFX node is created - so the radio-row
+     * decision can be tested headlessly with a fake {@link Settings}.
+     */
+    public static ResolvedChoice resolve(ChoiceKind kind, Messages messages, Settings settings) {
+        return resolveChoice(kind, messages, settings.choice(kind));
+    }
+
+    private static <T> ResolvedChoice resolveChoice(ChoiceKind kind, Messages messages, Choice<T> choice) {
+        var options = new ArrayList<ResolvedOption>();
+        for (var value : choice.options()) {
+            options.add(new ResolvedOption(
+                    choice.label().apply(value),
+                    Objects.equals(value, choice.current()),
+                    () -> choice.select().accept(value)));
+        }
+        return new ResolvedChoice(kind.title(messages), options);
+    }
+
     private MenuItem aboutItem() {
         var item = new MenuItem(messages.toolbarAbout());
-        item.setOnAction(e -> {
+        item.setOnAction(event -> {
             if (stage != null) {
                 aboutDialog.show(stage);
             }
