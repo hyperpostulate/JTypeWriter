@@ -121,7 +121,7 @@ The welcome view and the About view are cards in the same top-right corner as th
   - **Saves keep the encoding.** Documents are written back in the same encoding unless you accept the offered switch to UTF-8 when the text no longer fits (e.g. a pasted emoji in a Windows-1254 file) - unmappable characters are never silently replaced with `?`
   - **A BOM-less UTF-16 file is recognised, not guessed or rewritten.** A document without a byte-order mark whose bytes follow the UTF-16 parity pattern is opened as UTF-16LE or UTF-16BE (and logged) instead of being accepted as NUL-heavy UTF-8 and rewritten on the next save; text that fits neither pattern still gets the Windows-1254/UTF-8 question rather than a silent assumption
 - **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` with their full stack trace (including the cause chain); uncaught crashes and a recovery draft that cannot be written or parked also open an error dialog instead of failing silently.
-  - **Some paths log only.** A failed settings write, a failing keystroke sound and a failed undo-history reset are logged without a dialog; a failed draft delete raises a status-bar warning, not a dialog.
+  - **Some paths log only.** A failing keystroke sound and a failed undo-history reset are logged without a dialog; a failed settings write raises one warning that names the file, because otherwise every preference changed from then on would be lost silently. A failed draft delete raises a status-bar warning, not a dialog.
   - **Bad state is set aside, not overwritten.** A corrupt settings file is moved aside as `settings.properties.corrupt` and its content kept for diagnostics.
   - **Logging cannot block startup.** If the log file cannot be created - a home directory the JVM denies or a read-only log location - the app starts with console logging only.
 
@@ -129,6 +129,8 @@ The welcome view and the About view are cards in the same top-right corner as th
 
 - **What is remembered:** language, theme, text colour, font size, sound, the last document and its folder, and the window geometry are persisted to `~/.jtypewriter/settings.properties`, so the next session starts where the last one ended - same look, same document, same window
   - **Nothing blocks startup.** A document that has disappeared in the meantime is skipped silently, and a broken settings file falls back to the defaults instead of blocking startup
+  - **The file carries its own schema version.** `schema.version` lets a file written by an older build open in a newer one without losing values, while a file from a newer build is read as far as this build understands it and is never downgraded. Migration happens in memory; the file is rewritten only by the next real change
+  - **A settings file that cannot be written is reported once.** The window keeps working and your documents are untouched; the warning names the file and says that language, theme, font size and window position will not be remembered after this session
   - **YOLO mode is deliberately *not* persisted.** A mode that blocks deletions should not still be armed at the next start
 
 ### Opening Documents from Outside the App

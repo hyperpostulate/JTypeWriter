@@ -54,7 +54,7 @@ Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir say�
 | `verify-artifacts` karşılaştırması | 17 | **20** (gömülü font lisansı +2, font kaynağı +1) |
 | Yıldız / çatal / issue | 0 / 0 / 0 | **0 / 0 / 0** |
 
-**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ☐.
+**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ◐ (W4-01 ✅; W4-02…W4-05 ☐).
 Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ✅ · G4 ☐**.
 
 **`v1.0.3` notu (7 Kasım 2026):** dördüncü yayın, W3-01…W3-06 ile kart takiplerini
@@ -992,6 +992,31 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
 - **Doğrulama:** `mvn test -Dtest=AppSettingsTest` (yeni göç testleri).
 - **Neden ilk:** K6 — A7'nin eklediği her ayar bu kartı tetikler; önce yapılmazsa göç borcu
   sessizce büyür.
+- **Uygulama (8 Kasım 2026):** Dosya artık kendi şeklini `schema.version` ile adlandırıyor;
+  bu sürümde **1**. Sürüm 0, anahtar yazılmadan önceki her dosyadır ve **şekli sürüm 1'in
+  okuduğu şekille aynıdır** (hiçbir anahtar yeniden adlandırılmadı ya da kaldırılmadı), yani
+  göç tek adımdır: sürümü damgalamak. Göç **yalnız bellekte** koşar (`AppSettings.migrate`,
+  saf ve testli); okuma dosyayı yeniden yazmaz - eski bir yapının yeni bir dosyayı yalnızca
+  bakarak yeniden yazması "yayınlanan şey değişmez" kuralının ihlali olurdu. Daha **yeni**
+  bir sürüm (ör. 99) reddedilmez: bilinmeyen anahtarlar ve sürüm numarası olduğu gibi korunur,
+  sonraki kayıt onları silmez ve sürümü geriye düşürmez; aksi halde eski bir yapı, yeni yapının
+  dosyasını kendi şekli sanıp damgalardı. Sürüm anahtarı yalnızca şekil değişince artar -
+  yeni bir ayar anahtarı eski yapının yok sayacağı bir anahtar olduğu için tek başına bump
+  gerektirmez.
+  Yazma hatası artık sessiz değil: `save()` `IOException` yanında `SecurityException`'ı da
+  yakalar (ikisi de kullanıcı için "yazılmadı" demektir), değeri bellekte bırakır ve
+  `isSettingsWriteFailurePending()` bayrağını kaldırır. Bayrak **hemen gösterilemez**: ayarlar
+  pencere yokken yazılır (tema, geometri, son belge), o yüzden `AppGraph` bayrağı açar -
+  açılışın sonunda ve her belge kaydında - ve diyalog döndükten **sonra** temizler; böylece
+  gösterilemeyen bir uyarı kaybolmaz (depolama izi bildiriminin aynı deseni). Metin altı dilde,
+  dosya adı argüman olarak: kullanıcının eyleme geçebileceği tek bilgi o.
+- **Doğrulama (yeni testler):** `AppSettingsTest` 18 → **23**: şema öncesi dosya değer
+  kaybetmeden okunuyor ve okuma dosyayı yeniden yazmıyor; ilk kayıt sürümü damgalıyor;
+  `schema.version=99` + bilinmeyen anahtar kayıtta korunuyor; bozuk sürüm değeri sürümsüz
+  sayılıyor; POSIX salt-okunur klasörde `setTheme` fırlatmıyor, bayrak kalkıyor ve bir kez
+  raporlanıyor. `SecurityException` dalı unit test edilemiyor - JDK 25'te `SecurityManager`
+  kaldırıldığı için onu üreten bir ortam yok; aynı raporlama yolunu `IOException` dalı
+  (salt-okunur klasör) test ediyor.
 
 **W4-02 · A7a — Son dosyalar + karşılama opt-out** · M · E5, U7
 - **Kapsam:** `AppSettings`, `WelcomeCard`, `FxApplication` (karşılama kartının açıldığı yer), `MainMenu` (Dosya menüsü)
@@ -1125,7 +1150,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W3-04 | Sürükle-bırak | E4 | S | W3-01 | ✅ | `DroppedFiles` (saf karar) + `DropHandler` (sahne filtresi) + `FileService.openPathAsync`: `.txt`/`.md` bırakma Aç ile aynı SAVE/DISCARD/CANCEL matrisinden geçiyor, ret adıyla/adediyle bildiriliyor, dosya taşımayan jest düzenleyiciye bırakılıyor; `mvn -B clean test` → 488/0/0, odaklı DroppedFiles+DropContract+FileService+Messages 13/5/50/13, `ExitDispositionTest,MainStageTest` yeşil |
 | W3-05 | `FindModel` | E1 | M | W2-01, W3-01 | ✅ | `ui/FindModel` (saf): düz metin sorgu/değiştirme (regex yok), çakışmasız soldan sağa tarama, varsayılan yerel ayara bağlı olmayan büyük-küçük harf (`regionMatches`), iki yönde saran ileri/geri, değiştirme sonrası yeniden tarama, sığmayan aralığı reddetme; `findAll` saf statik (W3-06 paneli FX thread'inde taramayacak) ve `install` bayat taramayı atıyor; `mvn test -Dtest=FindModelTest` → 30/30, `mvn -B clean test` → 518/0/0, dört mutasyon kırmızı |
 | W3-06 | Arama paneli | E1 | M | W3-05 | ✅ | `ui/FindPanel` (Notepad++ tarzı yüzen kart) + `FindScanService` (FX dışı tarama) + `FindReplacePolicy` (YOLO onayı) + `FindCommands` portu; `Ctrl+F`/`F3`/`Shift+F3`/`Ctrl+H` + araç çubuğunda `⚲` + Düzen menüsü; tarama worker'da, 10 MiB'da 26–53 ms ve `fxThreadScans()==0`; tümünü değiştir tek geri alma adımı; YOLO açıkken onay diyaloğu; `mvn -B clean test` → 524/0/0 |
-| W4-01 | Ayar şema sürümü | D13, D12 | S | — | ☐ | |
+| W4-01 | Ayar şema sürümü | D13, D12 | S | — | ✅ | `AppSettings`: `schema.version=1` (sürüm 0 = anahtarsız dosya, şekli aynı → göç yalnız damga), göç bellekte ve okuma dosyayı yeniden yazmıyor, daha yeni sürüm ve bilinmeyen anahtarlar kayıtta korunuyor; `save()` `SecurityException`'ı da yakalıyor, `isSettingsWriteFailurePending()` bayrağı `AppGraph` tarafından açılış sonunda ve her kayıtta bir kez gösteriliyor; 6 bundle + `Messages`; `mvn test -Dtest=AppSettingsTest,MessagesTest,DialogServiceTest` → 44/44 |
 | W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ☐ | |
 | W4-03 | Minimum genişlik | U8 | S | — | ☐ | |
 | W4-04 | Ses politikası | U9 | S | W3-02, W4-01 | ☐ | |

@@ -97,6 +97,10 @@ public class FxApplication extends Application {
                 // has to undo a hand-over.
                 app.welcomeCard.show();
             }
+            // Settings are written before this point (theme, geometry, session
+            // restore); a failed write could not be reported then because there
+            // was no window to own the alert yet.
+            app.announceSettingsWriteFailureOnce();
         } catch (Throwable error) {
             app.crashHandler.report("Startup failed", error);
             throw error;

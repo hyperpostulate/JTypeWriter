@@ -349,6 +349,24 @@ public class DialogService {
         show(alert, stage);
     }
 
+    /**
+     * Tells the user once that the preferences file cannot be written.
+     *
+     * <p>A warning rather than an information box: the session still works, but
+     * every setting the user changes from now on will be forgotten, and the
+     * document text is explicitly not part of the loss. The file name is named
+     * because it is the only part of the message the user can act on. It is
+     * shown after the window exists, never from the save path itself.</p>
+     */
+    public void showSettingsWriteFailureNotice(Stage stage, Path settingsFile) {
+        var alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle(messages.settingsWriteFailureTitle());
+        alert.setHeaderText(messages.settingsWriteFailureHeader());
+        alert.setContentText(messages.settingsWriteFailureContent(settingsFile.toString()));
+        alert.getButtonTypes().setAll(DialogButtons.primary(messages.settingsWriteFailureOk()));
+        show(alert, stage);
+    }
+
     public void showError(Stage owner, String header, String content) {
         var alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(messages.errorTitle());

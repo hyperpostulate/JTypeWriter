@@ -21,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,6 +37,17 @@ import java.util.logging.Logger;
  *       convenience, never a data channel. A malformed file is first moved
  *       aside (quarantined) so the evidence is not overwritten by the next
  *       save;</li>
+ *   <li><b>Schema-versioned:</b> the file names its own shape in
+ *       {@code schema.version}. A file without the key predates versioning and
+ *       is migrated in memory to the current version; a file from a newer
+ *       build is read as far as this build understands it and is never
+ *       downgraded or stripped of keys it does not recognise. Migration never
+ *       rewrites the file - the next real save does that;</li>
+ *   <li><b>Write failures are reported:</b> a write that cannot happen (I/O
+ *       error or {@link SecurityException}) is logged, never thrown at the
+ *       setter's caller, and raises {@link #isSettingsWriteFailurePending()}
+ *       so the UI can tell the user once. The in-memory value stays, so the
+ *       session keeps working - only persistence is lost;</li>
  *   <li><b>Defensive reads:</b> unknown or invalid values (e.g. a renamed enum
  *       constant from an older version) fall back to the default instead of
  *       breaking startup.</li>
@@ -64,6 +76,19 @@ public final class AppSettings {
 
     private static final Logger LOG = AppLogging.logger(AppSettings.class);
 
+    /**
+     * The shape of the settings file this build writes. Bump it whenever a
+     * persisted key is renamed, removed or given new meaning, and add the
+     * matching step to {@link #migrate(Properties)} in the same change: a new
+     * setting on its own does not need a bump, because an older build already
+     * ignores keys it does not know.
+     */
+    static final int CURRENT_SCHEMA_VERSION = 1;
+
+    /** Files written before versioning existed; see {@link #migrate(Properties)}. */
+    private static final int UNVERSIONED_SCHEMA = 0;
+
+    private static final String KEY_SCHEMA_VERSION = "schema.version";
     private static final String KEY_LANGUAGE = "language";
     private static final String KEY_THEME = "theme";
     private static final String KEY_TEXT_COLOR = "text.color";
@@ -85,10 +110,15 @@ public final class AppSettings {
 
     private final Path file;
     private final Properties props = new Properties();
+    private final AtomicBoolean saveFailed = new AtomicBoolean();
 
     public AppSettings(Path file) {
         this.file = file;
         readFromDisk();
+        // Even with no file on disk the in-memory properties must carry the
+        // current version, so the very first save writes a versioned file; a
+        // migration is a shape decision, not something a later write triggers.
+        migrate(props);
     }
 
     /** The user's standard settings file ({@link AppDirs#dataDir()}). */
@@ -250,6 +280,56 @@ public final class AppSettings {
 
     // --- storage ----------------------------------------------------------
 
+    /**
+     * Brings the loaded properties up to {@link #CURRENT_SCHEMA_VERSION} in
+     * memory. Never writes: a read must leave the file exactly as it found it,
+     * so an older build cannot rewrite a newer file just by looking at it.
+     *
+     * <p>The steps are cumulative and each one only ever moves forward. There
+     * is exactly one today - version 0 is every file written before the key
+     * existed, and it has the shape version 1 reads, because no key has been
+     * renamed or removed since - so migration is the version stamp and nothing
+     * else. A later change adds its step here instead of special-casing the
+     * read path.</p>
+     *
+     * <p>A file with a <em>higher</em> version is left untouched: this build
+     * does not know what its shape promises, so it keeps the stored number and
+     * every key it cannot interpret. Downgrading would make the next write
+     * claim a version it did not produce, and stripping unknown keys would
+     * destroy the newer build's settings.</p>
+     */
+    static void migrate(Properties props) {
+        var stored = schemaVersionOf(props);
+        if (stored > CURRENT_SCHEMA_VERSION) {
+            LOG.log(Level.FINE, "settings file has schema version " + stored
+                    + ", newer than " + CURRENT_SCHEMA_VERSION + "; reading it as-is");
+            return;
+        }
+        if (stored < CURRENT_SCHEMA_VERSION) {
+            props.setProperty(KEY_SCHEMA_VERSION, String.valueOf(CURRENT_SCHEMA_VERSION));
+        }
+    }
+
+    /**
+     * The version the file declares, or {@link #UNVERSIONED_SCHEMA} when the
+     * key is absent, blank or not a non-negative integer. A hand-edited or
+     * truncated value is treated like a missing one: it predates nothing in
+     * particular, so the safe reading is "oldest known shape".
+     */
+    static int schemaVersionOf(Properties props) {
+        var raw = props.getProperty(KEY_SCHEMA_VERSION);
+        if (raw == null || raw.isBlank()) {
+            return UNVERSIONED_SCHEMA;
+        }
+        try {
+            var version = Integer.parseInt(raw.trim());
+            return version < UNVERSIONED_SCHEMA ? UNVERSIONED_SCHEMA : version;
+        } catch (NumberFormatException e) {
+            LOG.log(Level.FINE, "ignoring malformed settings schema version " + raw);
+            return UNVERSIONED_SCHEMA;
+        }
+    }
+
     private void readFromDisk() {
         if (!Files.isRegularFile(file)) {
             return;
@@ -313,15 +393,48 @@ public final class AppSettings {
         }
     }
 
-    /** Flushes the whole file; a failure is logged and must never break the app. */
+    /**
+     * Flushes the whole file; a failure is logged and must never break the app.
+     *
+     * <p>{@link SecurityException} joins {@link IOException} here on purpose:
+     * both mean "this write did not happen" to the user, and a security policy
+     * that denies the file is exactly the case a preference write must not turn
+     * into a crash on the FX thread. The failure is remembered so the UI can
+     * say so once (see {@link #isSettingsWriteFailurePending()}); the value the
+     * caller just set stays in memory, so the session keeps working.</p>
+     */
     public void save() {
         try {
             var buffer = new ByteArrayOutputStream();
             props.store(buffer, "JTypeWriter settings");
             AtomicFiles.writeMoving(file, buffer.toByteArray());
-        } catch (IOException e) {
+        } catch (IOException | SecurityException e) {
+            saveFailed.set(true);
             LOG.log(Level.WARNING, "cannot write settings to " + file, e);
         }
+    }
+
+    /** The file these preferences live in; also named in the write-failure notice. */
+    public Path getFile() {
+        return file;
+    }
+
+    /**
+     * Whether a settings write has failed since the last
+     * {@link #clearSettingsWriteFailure()}. Settings are written before the
+     * window exists (theme, geometry, the last document), so the failure cannot
+     * be shown where it happens: the composition root reads this flag once a
+     * stage is available and clears it after the notice has been shown, exactly
+     * like the storage-footprint notice. A failure that repeats raises it
+     * again.
+     */
+    public boolean isSettingsWriteFailurePending() {
+        return saveFailed.get();
+    }
+
+    /** Marks the pending write failure as reported; the next failure raises it again. */
+    public void clearSettingsWriteFailure() {
+        saveFailed.set(false);
     }
 
     private void set(String key, String value) {

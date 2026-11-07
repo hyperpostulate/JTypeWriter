@@ -612,6 +612,30 @@ public class Messages {
         return bundle.getString("storageFootprintOk");
     }
 
+    /**
+     * The one-time notice that the preferences file cannot be written, shown
+     * once a window exists (settings are written before the UI is built). The
+     * path is an argument rather than baked into the text because it is the one
+     * piece of the sentence the user can act on - and it must be the same path
+     * the app actually tried, never a second copy that can drift.
+     */
+    public String settingsWriteFailureTitle() {
+        return bundle.getString("settingsWriteFailureTitle");
+    }
+
+    public String settingsWriteFailureHeader() {
+        return bundle.getString("settingsWriteFailureHeader");
+    }
+
+    public String settingsWriteFailureContent(String file) {
+        return format("settingsWriteFailureContent", file);
+    }
+
+    /** The notice's only button; see {@link #storageFootprintOk()} for why it is in the bundle. */
+    public String settingsWriteFailureOk() {
+        return bundle.getString("settingsWriteFailureOk");
+    }
+
     public String encodingTitle() {
         return bundle.getString("encodingTitle");
     }

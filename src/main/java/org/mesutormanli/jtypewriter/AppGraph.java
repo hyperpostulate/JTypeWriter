@@ -126,6 +126,7 @@ public final class AppGraph {
             public void onSaved(java.nio.file.Path file) {
                 settings.rememberFile(file);
                 announceStorageFootprintOnce();
+                announceSettingsWriteFailureOnce();
             }
 
             @Override
@@ -165,5 +166,34 @@ public final class AppGraph {
         dialogService.showStorageFootprintNotice(
                 owner, StorageFootprint.persistentCopies(), StorageFootprint.peakCopies());
         settings.setStorageNoticeShown(true);
+    }
+
+    /**
+     * Tells the user once that the preferences file cannot be written.
+     *
+     * <p>Deferred for a structural reason: settings are written while the
+     * application is still assembling itself - the theme, the restored
+     * geometry, the last document - so the failure is often known before there
+     * is any window to own an alert. The flag therefore lives in
+     * {@link AppSettings} and is drained here, once a stage exists. It is
+     * drained again after every document save, because that is when
+     * {@code settings.rememberFile} writes and a disk that filled up mid-session
+     * becomes visible. The flag is cleared <em>after</em> the dialog returns, so
+     * a failed alert retries instead of the warning being lost unshown.</p>
+     *
+     * <p>No stage means no window: possible in headless tests and before
+     * {@link #setStage}. The flag is kept for the next call rather than
+     * consumed, exactly like {@link #announceStorageFootprintOnce()}.</p>
+     */
+    public void announceSettingsWriteFailureOnce() {
+        if (!settings.isSettingsWriteFailurePending()) {
+            return;
+        }
+        var owner = stage;
+        if (owner == null) {
+            return;
+        }
+        dialogService.showSettingsWriteFailureNotice(owner, settings.getFile());
+        settings.clearSettingsWriteFailure();
     }
 }

@@ -332,4 +332,124 @@ class AppSettingsTest {
         assertEquals(Optional.empty(), settings.getLastFile());
         assertEquals(Optional.empty(), settings.getLastDirectory());
     }
+
+    /**
+     * W4-01 / D13: settings files written before {@code schema.version} existed
+     * have exactly the shape version 1 reads (no key was ever renamed or
+     * removed), so opening one must keep every value - and must not rewrite the
+     * file behind the user's back: a read is not a migration.
+     */
+    @Test
+    void aFileWithoutASchemaVersionIsReadAsVersionOneWithoutLosingValues(@TempDir Path dir)
+            throws IOException {
+        var file = dir.resolve("settings.properties");
+        var onDisk = "theme=LIGHT\nfont.size=19\nsound.enabled=false\nlanguage=TR\n";
+        Files.writeString(file, onDisk);
+
+        var settings = new AppSettings(file);
+
+        assertEquals(Theme.LIGHT, settings.getTheme());
+        assertEquals(19, settings.getFontSize());
+        assertFalse(settings.isSoundEnabled());
+        assertEquals(Optional.of(Language.TR), settings.getLanguage());
+        assertEquals(onDisk, Files.readString(file),
+                "reading a settings file must not rewrite it");
+    }
+
+    /**
+     * The migration is in memory only, so the version marker has to appear on
+     * the first real write - otherwise a first-run file would stay unversioned
+     * until the user happened to change a setting.
+     */
+    @Test
+    void theFirstSaveStampsTheCurrentSchemaVersionAndKeepsTheMigratedValues(@TempDir Path dir)
+            throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "theme=LIGHT\nfont.size=19\n");
+        var settings = new AppSettings(file);
+
+        settings.setSoundEnabled(false);
+
+        var rewritten = Files.readString(file);
+        assertTrue(rewritten.contains("schema.version=" + AppSettings.CURRENT_SCHEMA_VERSION),
+                rewritten);
+        assertTrue(rewritten.contains("theme=LIGHT"), rewritten);
+        assertTrue(rewritten.contains("font.size=19"), rewritten);
+    }
+
+    /**
+     * A file from a newer build must neither break this one nor be downgraded
+     * by a save: the version number and the keys this build does not know are
+     * preserved verbatim, so the newer build still recognises its own file after
+     * an older build has written to it.
+     */
+    @Test
+    void aNewerSchemaIsToleratedAndNeverDowngradedByASave(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "schema.version=99\ntheme=SEPIA\nfuture.setting=kept\n");
+        var settings = new AppSettings(file);
+
+        assertEquals(Theme.SEPIA, settings.getTheme(), "a newer schema must still be read");
+
+        settings.setFontSize(20);
+
+        var rewritten = Files.readString(file);
+        assertTrue(rewritten.contains("schema.version=99"),
+                "the newer version must survive: " + rewritten);
+        assertTrue(rewritten.contains("future.setting=kept"),
+                "a key this build does not know must survive: " + rewritten);
+        assertTrue(rewritten.contains("theme=SEPIA"), rewritten);
+        assertTrue(rewritten.contains("font.size=20"), rewritten);
+    }
+
+    /** A garbage version is the same shape as a missing one: unversioned. */
+    @Test
+    void aMalformedSchemaVersionIsTreatedAsUnversioned(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "schema.version=not-a-number\ntheme=LIGHT\n");
+
+        var settings = new AppSettings(file);
+
+        assertEquals(Theme.LIGHT, settings.getTheme());
+        assertFalse(settings.isSettingsWriteFailurePending());
+        settings.setFontSize(21);
+        assertTrue(Files.readString(file).contains(
+                "schema.version=" + AppSettings.CURRENT_SCHEMA_VERSION));
+    }
+
+    /**
+     * W4-01 / D12: preferences live in a folder the user (or a policy) may make
+     * read-only. The setter has already changed the in-memory value, so a failed
+     * write must not throw on the caller's thread - it must raise a flag the UI
+     * can turn into one notice. The session keeps the change either way; only
+     * persistence is lost.
+     */
+    @Test
+    void anUnwritableSettingsFolderRaisesTheReportableFlagInsteadOfThrowing(@TempDir Path dir)
+            throws IOException {
+        Assumptions.assumeTrue(dir.getFileSystem().supportedFileAttributeViews().contains("posix"),
+                "requires a POSIX file system");
+        var folder = Files.createDirectory(dir.resolve("settings"));
+        var file = folder.resolve("settings.properties");
+        var settings = new AppSettings(file);
+        assertFalse(settings.isSettingsWriteFailurePending(), "a fresh instance has nothing to report");
+
+        var original = Files.getPosixFilePermissions(folder);
+        try {
+            Files.setPosixFilePermissions(folder, PosixFilePermissions.fromString("r-xr-xr-x"));
+            Assumptions.assumeFalse(Files.isWritable(folder),
+                    "privileges ignore directory permissions, cannot simulate a failed write");
+
+            assertDoesNotThrow(() -> settings.setTheme(Theme.SEPIA));
+
+            assertEquals(Theme.SEPIA, settings.getTheme(), "the session must keep the change");
+            assertTrue(settings.isSettingsWriteFailurePending(), "the failed write must be reportable");
+
+            settings.clearSettingsWriteFailure();
+            assertFalse(settings.isSettingsWriteFailurePending(),
+                    "a reported failure must not be reported again");
+        } finally {
+            Files.setPosixFilePermissions(folder, original);
+        }
+    }
 }

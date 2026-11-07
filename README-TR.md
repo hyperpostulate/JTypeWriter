@@ -121,7 +121,7 @@ Hoş geldin ekranı ve Hakkında görünümü artık ayrı pencereler değil, ar
   - **Kayıt kodlamayı korur.** Belgeler aynı kodlamayla geri yazılır; yalnızca metin o kodlamaya sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) sunulan UTF-8'e geçişi kabul ederseniz kodlama değişir - temsil edilemeyen karakterler asla sessizce `?` yapılmaz
   - **BOM'suz UTF-16 dosyası tahmin edilmez, tanınır.** Bayt sıra işareti olmayan ve baytları UTF-16 parite düzenine uyan bir belge, NUL yüklü UTF-8 olarak kabul edilip sonraki kayıtta yeniden yazılmak yerine UTF-16LE veya UTF-16BE olarak açılır (ve loglanır); iki düzene de uymayan metin sessiz bir varsayım yerine yine Windows-1254/UTF-8 sorusunu alır
 - **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına tam yığın iziyle (neden zinciri dahil) yazılır; yakalanmamış çökmeler ve yazılamayan veya park edilemeyen bir kurtarma taslağı da sessizce kaybolmak yerine hata diyaloğu açar.
-  - **Bazı yollar yalnızca loglanır.** Başarısız bir ayar yazımı, başarısız bir tuş sesi ve başarısız bir geri alma geçmişi sıfırlaması diyalog olmadan loglanır; başarısız bir taslak silme diyalog değil durum çubuğu uyarısı gösterir.
+  - **Bazı yollar yalnızca loglanır.** Başarısız bir tuş sesi ve başarısız bir geri alma geçmişi sıfırlaması diyalog olmadan loglanır; başarısız bir ayar yazımı ise dosyayı adlandıran tek bir uyarı açar, çünkü aksi halde o andan sonra değiştirilen her tercih sessizce kaybolurdu. Başarısız bir taslak silme diyalog değil durum çubuğu uyarısı gösterir.
   - **Bozuk durum üzerine yazılmaz, kenara alınır.** Bozuk ayar dosyası `settings.properties.corrupt` olarak kenara alınır ve içeriği tanılama için korunur.
   - **Loglama açılışı engelleyemez.** Log dosyası oluşturulamazsa - JVM ev dizinine erişimi reddederse veya log konumu salt okunursa - uygulama yalnızca konsol loglamasıyla açılır.
 
@@ -129,6 +129,8 @@ Hoş geldin ekranı ve Hakkında görünümü artık ayrı pencereler değil, ar
 
 - **Neler hatırlanır:** dil, tema, metin rengi, font boyutu, ses, son belge ve klasörü ile pencere geometrisi `~/.jtypewriter/settings.properties` dosyasına kaydedilir; bir sonraki oturum öncekinin bittiği yerden başlar - aynı görünüm, aynı belge, aynı pencere
   - **Hiçbir şey açılışı engellemez.** Aradan geçen sürede silinmiş bir belge sessizce atlanır, bozuk bir ayar dosyası ise başlangıcı engellemek yerine varsayılanlara döner
+  - **Dosya kendi şema sürümünü taşır.** `schema.version`, eski bir sürümün yazdığı dosyanın yeni sürümde değer kaybetmeden açılmasını sağlar; daha yeni bir sürümün dosyası ise bu sürümün anladığı kadarıyla okunur ve asla geriye düşürülmez. Göç bellekte yapılır; dosya ancak bir sonraki gerçek değişiklikte yeniden yazılır
+  - **Yazılamayan ayar dosyası bir kez bildirilir.** Pencere çalışmaya devam eder ve belgelerinize dokunulmaz; uyarı dosyayı adlandırır ve dil, tema, yazı tipi boyutu ile pencere konumunun bu oturumdan sonra hatırlanmayacağını söyler
   - **YOLO modu bilinçli olarak *kaydedilmez*.** Silmeyi engelleyen bir modun bir sonraki açılışta hâlâ etkin olması istenmez
 
 ### Uygulama Dışından Belge Açma
