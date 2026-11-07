@@ -50,7 +50,8 @@ class EditorActionTest {
     private enum Effect {
         TOGGLE_TOOLBAR, CYCLE_THEME, UNDO, REDO, TOGGLE_YOLO, CYCLE_TEXT_COLOR,
         OPEN_DOCUMENT, NEW_DOCUMENT, SAVE, SAVE_AS, INCREASE_FONT, DECREASE_FONT,
-        RESET_FONT, TOGGLE_FULLSCREEN, EXIT_FULLSCREEN
+        RESET_FONT, OPEN_FIND, OPEN_REPLACE, FIND_NEXT, FIND_PREVIOUS,
+        TOGGLE_FULLSCREEN, EXIT_FULLSCREEN
     }
 
     @Test
@@ -163,6 +164,10 @@ class EditorActionTest {
             case OPEN -> Effect.OPEN_DOCUMENT;
             case SAVE -> Effect.SAVE;
             case SAVE_AS -> Effect.SAVE_AS;
+            case FIND -> Effect.OPEN_FIND;
+            case FIND_NEXT -> Effect.FIND_NEXT;
+            case FIND_PREVIOUS -> Effect.FIND_PREVIOUS;
+            case REPLACE -> Effect.OPEN_REPLACE;
             case TOGGLE_FULLSCREEN -> Effect.TOGGLE_FULLSCREEN;
             case EXIT_FULLSCREEN -> Effect.EXIT_FULLSCREEN;
         };
@@ -225,6 +230,26 @@ class EditorActionTest {
         @Override
         public void saveAs() {
             record(Effect.SAVE_AS);
+        }
+
+        @Override
+        public void openFind() {
+            record(Effect.OPEN_FIND);
+        }
+
+        @Override
+        public void openReplace() {
+            record(Effect.OPEN_REPLACE);
+        }
+
+        @Override
+        public void findNext() {
+            record(Effect.FIND_NEXT);
+        }
+
+        @Override
+        public void findPrevious() {
+            record(Effect.FIND_PREVIOUS);
         }
 
         @Override

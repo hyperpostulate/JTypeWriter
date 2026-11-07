@@ -19,6 +19,8 @@ import org.mesutormanli.jtypewriter.stats.SessionStats;
 import org.mesutormanli.jtypewriter.ui.AboutDialog;
 import org.mesutormanli.jtypewriter.ui.CrashHandler;
 import org.mesutormanli.jtypewriter.ui.DropHandler;
+import org.mesutormanli.jtypewriter.ui.FindPanel;
+import org.mesutormanli.jtypewriter.ui.FindScanService;
 import org.mesutormanli.jtypewriter.ui.KeyboardShortcutHandler;
 import org.mesutormanli.jtypewriter.ui.MainController;
 import org.mesutormanli.jtypewriter.ui.MainMenu;
@@ -78,7 +80,15 @@ public final class AppGraph {
     // --- editor and its handlers -----------------------------------------
     public final EditorArea editorArea = new EditorArea(messages);
     public final EditorKeyHandler editorKeyHandler = new EditorKeyHandler(typewriterSound, sessionStats);
+    public final FindScanService findScanService = FindScanService.background();
     public final KeyboardShortcutHandler shortcutHandler = new KeyboardShortcutHandler(fileService);
+    /**
+     * The find/replace card that floats over the editor. Declared with the
+     * editor because it acts on it; the key filter and the command menu reach
+     * it through the {@code FindCommands} port the controller installs.
+     */
+    public final FindPanel findPanel = new FindPanel(
+            messages, localeManager, editorArea, dialogService, findScanService);
 
     // --- views and dialogs ------------------------------------------------
     public final AboutDialog aboutDialog = new AboutDialog(messages, themeManager);
@@ -96,7 +106,7 @@ public final class AppGraph {
     public final MainController mainController = new MainController(
             editorArea, mainMenu, toolbarView, statsBar,
             fileService, messages, localeManager, shortcutHandler, editorKeyHandler,
-            autoSaveService, settings, LocalTime::now);
+            autoSaveService, findPanel, settings, LocalTime::now);
     public final MainStage mainStage = new MainStage(
             fileService, settings, autoSaveService, dropHandler);
 

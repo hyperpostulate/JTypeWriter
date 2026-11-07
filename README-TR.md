@@ -73,14 +73,26 @@ Canlı istatistik çubuğu:
 
 - **`F11` ekranı devralır, `Escape` geri verir:** tam ekran `F11` ile açılıp kapanır, `Escape` ile çıkılır (platformun varsayılan çıkış ipucu gizlenir)
 - **Araç çubuğu tamamen kaybolabilir:** ekranda yalnızca metin kalsın istediğinizde `Ctrl+T` onu kaldırır
-- **Araç çubuğu ikinci satıra geçmez:** her genişlikte tek yatay satır kalır. Test edilen pencere boyutlarında altı açılır liste de değeriyle birlikte bir başlık gösterir ("Tema: Koyu", "Boyut: 16", "Dil: Deutsch") ve hiçbir şey taşmaz - 1280 px'te tam başlıklı, 900 px'te başlıklar yalın değere iner ("Koyu", "16", "Deutsch"), altı dilin tamamında, gerçek yerelleştirilmiş etiketlerden ölçülür. Daraltılmış satırın kendi genişliğinin altında açılır listeler daralmaya devam eder ve kırpılabilir, çünkü pencerenin minimum genişliği yoktur. Komut menüsü düğmesi ve beş düz düğme hiçbir zaman daralmaz ve her zaman görünür kalır
-  - **Her kontrole ulaşılır ve her kontrol açıklanır.** `Tab` sabitlenmiş görsel sırayı izler: Menü, Aç, Kaydet, Geri Al, İleri Al, Tema, YOLO, Ses, Renk, Boyut, Hakkında, Dil. Sıra `viewOrder` ile ayarlanır; JavaFX bu özelliği çizim ve isabet alma için belgeler, yani odak sırası araç takımı garantisi değil uygulama sözleşmesidir. Her kontrol görünür bir odak halkası ve arayüz dilinden gelen, varsa kısayolu da içeren bir tooltip taşır, örneğin "Kaydet (Ctrl+S)"
+- **Araç çubuğu ikinci satıra geçmez:** her genişlikte tek yatay satır kalır. Test edilen pencere boyutlarında altı açılır liste de değeriyle birlikte bir başlık gösterir ("Tema: Koyu", "Boyut: 16", "Dil: Deutsch") ve hiçbir şey taşmaz - 1280 px'te tam başlıklı, 900 px'te başlıklar yalın değere iner ("Koyu", "16", "Deutsch"), altı dilin tamamında, gerçek yerelleştirilmiş etiketlerden ölçülür. Daraltılmış satırın kendi genişliğinin altında açılır listeler daralmaya devam eder ve kırpılabilir, çünkü pencerenin minimum genişliği yoktur. Komut menüsü düğmesi ve altı düz düğme (ara, aç, kaydet, geri al, ileri al, hakkında) hiçbir zaman daralmaz ve her zaman görünür kalır
+  - **Her kontrole ulaşılır ve her kontrol açıklanır.** `Tab` sabitlenmiş görsel sırayı izler: Menü, Ara, Aç, Kaydet, Geri Al, İleri Al, Tema, YOLO, Ses, Renk, Boyut, Hakkında, Dil. Sıra `viewOrder` ile ayarlanır; JavaFX bu özelliği çizim ve isabet alma için belgeler, yani odak sırası araç takımı garantisi değil uygulama sözleşmesidir. Her kontrol görünür bir odak halkası ve arayüz dilinden gelen, varsa kısayolu da içeren bir tooltip taşır, örneğin "Kaydet (Ctrl+S)"
 - **Yerleşiminiz hatırlanır:** araç çubuğunun görünür veya gizli durumu, tam ekran ve durum çubuğunun boyutu yeniden başlatmalarda korunur; bir tercih yalnızca çıkışta değil, her değiştirdiğinizde kaydedilir
   - **Tam ekran pencere geometrisiyle çakışmaz.** Tam ekranda bırakılan bir pencere yeniden tam ekran açılır; açılışta tam ekran, hatırlanan konum ve boyuta karşı kazanır, sonradan çıkıldığında hatırlanan konuma dönülür
 
 ### Komut Menüsü
 
 Araç çubuğunun en solundaki kontrol, dört menüyü taşıyan bir `☰` düğmesidir: Dosya, Düzen ve Görünüm editör komutlarını, Yardım ise Hakkında'yı içerir. Kalıcı bir menü şeridi değil bir menü düğmesidir: ikinci bir krom satırı tam ekranda da sizinle gelir ve `Ctrl+T` sözünü bozar; bu yüzden menü, içinde yaşadığı araç çubuğuyla birlikte gizlenir. Platformun kendisinin yürütmediği her editör komutu, kısayollar ve araç çubuğu düğmeleriyle aynı `EditorAction` envanterinden üretilir; böylece `Yeni` (`Ctrl+N`) ve `Farklı Kaydet` (`Ctrl+Shift+S`) yalnız klavyede kalmaz, görünür bir yere de kavuşur. Görünüm bir sıralı-komut listesi değil: Tema, YOLO, Ses, Renk ve Boyut'un her biri, araç çubuğundaki açılır listelerin aynı değerlerini listeleyen ve o anki değeri işaretli gösteren ikinci seviye bir alt menü açar - `Görünüm → Tema → Koyu` gerçekten Koyu demektir, "sıradaki tema" değil. Bu alt menüler araç çubuğuyla aynı seçenek listelerinden üretilir ve aynı uygulama yolundan yazar, yani iki giriş noktası çelişemez. Etiketler ve hızlandırıcılar arayüz dilini izler (hızlandırıcılar açıklamadır - tuşu tuş filtresi yürütür), açılan menü araç çubuğundaki açılır listelerle aynı tema belirteçlerinden boyanır (Koyu, Açık ve Sepya ile değişir) ve Yardım → Hakkında, Hakkında kartını açar. Menüler elle yazılmadığı için bir komut artık bir giriş noktasında varken diğerinde eksik kalamaz.
+
+### Ara ve Değiştir
+
+`Ctrl+F` pencerenin sağ üst köşesinde, metnin üzerinde kompakt bir ara/değiştir kartı açar; `Ctrl+H` aynı kartı değiştirme alanı odaklı açar. Notepad++'ın diyaloğu örnek alındı: tek "Aranan" alanı, tek "Yeni metin" alanı, "Büyük/küçük harf duyarlı" onay kutusu, Sonrakini bul / Öncekini bul / Değiştir / Tümünü değiştir düğmeleri ve canlı bir durum satırı ("3 / 12", "12 eşleşme", "Eşleşme yok"). Kart bir modal pencere değil panel: arama bir kiptir, belge görünür kalır, sorguyu yazıp `F3` ile art arda gezilir ve kart `Escape` ya da Kapat düğmesiyle kapansa bile sorgu bir sonraki `F3` için saklanır.
+
+- **Aynı komutlar her yerde:** araç çubuğundaki `⚲` düğmesi, Düzen menüsü (`Ara`, `Sonrakini bul`, `Öncekini bul`, `Değiştir`) ve dört kısayol tek bir `EditorAction` yürütür, yani birbirinden kopamaz.
+- **F3 ve Shift+F3 eşleşmeler arasında gezer** ve iki yönde sarar; kart kapandıktan sonra da çalışır. Henüz sorgu yoksa `F3` hiçbir şey yapmamak yerine kartı açar.
+- **Arama düz metindir, regex değil:** `a.*b` o beş karakteri, `$1` dört karakteri anlatır; geçersiz desen diye ikinci bir hata yolu yoktur.
+- **10 MB'lık belge pencereyi kilitlemez.** Tarama kendi iş parçacığında koşar ve yalnızca hâlâ güncel metni, sorguyu ve harf duyarlılığını anlatıyorsa FX thread'inde kurulur; siz bir karakter daha yazdıktan sonra gelen sonuç atılır. Gerçek modelle 10 MiB'lık belgede ölçüldü: tam belge taraması 26-53 ms (0 eşleşme, 197 845 eşleşme ve tek harflik sorguda 1 187 069 eşleşme), hiçbiri FX thread'inde değil.
+- **Tümünü değiştir tek geri alma adımıdır:** yeni metin özgün eşleşmelerden hesaplanır ve tek düzenleme olarak uygulanır, böylece `Ctrl+Z` belgeyi tek hamlede geri alır. Değiştirme kendi çıktısını taramaz, yani `a` yerine `aa` yazmak sonlanır.
+- **YOLO modu önce sorar.** Mod, hiçbir düzenlemenin karakter silmediği sözünü verir; değiştirme eşleşen aralığı siler, bu yüzden YOLO açıkken kart her işlem için bir kez sorar ve iptal hiçbir şey yazmaz. Değişiklik sonrasında normal ve geri alınabilir bir düzenlemedir.
+- **Kart temayı izler:** yüzey, kenarlık, alanlar, onay kutusu, düğmeler ve durum satırı araç çubuğuyla aynı belirteçlerden çözülür; Koyu, Sepya ve Açık'ta yerel görünür - Modena'nın koyu temada beyaz boyayacağı giriş alanları dahil.
 
 ### Veri Güvenliği ve Kurtarma
 
@@ -173,6 +185,10 @@ Kısayollar Windows ve Linux'ta `Ctrl` ile çalışır. Numpad `+`, `-` ve `0` t
 | `Ctrl+O` | Dosya aç |
 | `Ctrl+S` | Dosyayı kaydet |
 | `Ctrl+Shift+S` | Farklı kaydet |
+| `Ctrl+F` | Ara/değiştir kartını aç |
+| `F3` | Sonraki eşleşme (sarar) |
+| `Shift+F3` | Önceki eşleşme (sarar) |
+| `Ctrl+H` | Ara/değiştir kartını değiştirme alanı odaklı aç |
 | `F11` | Tam ekranı aç/kapat |
 | `Escape` | Tam ekrandan çık |
 
@@ -471,8 +487,10 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `AutosaveHealthTest` | Yapışkan hata durumu (`DRAFT_WRITE` / `DRAFT_PARK` / `DRAFT_DELETE`); tekrarlanan hatalar boyunca korunur, başarılı bir yazımda temizlenir ve her gerçek geçişte tek bir bildirim gönderir |
 | `ProcessCrashRecoveryTest` | Yalnızca Linux'ta çalışan uçtan uca öldürme testi: `CrashHarness` (test sınıfı değil, yardımcı) alt JVM'de JavaFX'i başlatmadan gerçek servis grafiğini kurar ve kirli bir belgenin anlık görüntüsünü üretim otomatik kayıt yoluyla alır; ardından üst süreç onu `SIGKILL` ile (`Process.destroyForcibly`) öldürür ve ikinci bir JVM tam olarak aynı ASCII dışı metni kurtarmak zorundadır. Eşleştirilmiş bir durum, yanıtlanmış bir kapatmanın taslağı yine de sildiğini kanıtlar; `-Duser.home` ise loglamayı geçici bir ev dizininde tutar. Eşzamanlama `Thread.sleep` değil, stdout işareti ve `waitFor` ile yapılır |
 | `YoloPolicyTest` | YOLO modu düzenleme politikası (silme engelli, ekleme serbest, güvenli değiştirme) |
+| `FindReplacePolicyTest` | Bir değiştirmenin ne zaman kullanıcı onayı istediği: YOLO açıkken sorar, kapalıyken hiçbir şey sormaz |
+| `FindScanServiceTest` | Taramanın FX thread'i dışında koştuğu ve sonucun yalnızca enjekte edilen FX dağıtıcısından geldiği (`fxThreadScans()` sıfır kalır) |
 | `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S), yeni belge için Ctrl+N ve numpad eşdeğerleri |
-| `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti) ve komut menüsü sözleşmesi: `MainMenu.layout()` dört sayfada her platformdan bağımsız `EditorAction`'ı tam bir kez taşıyor (altı ayar komutu yerine değer alt menüsüyle temsil ediliyor), Görünüm alt menüleri araç çubuğu açılır listelerinin sunduğu aynı değerleri listeliyor ve işaretliyor, her sayfa başlığı ve satır etiketi altı dilde dolu |
+| `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti), Düzen menüsündeki ara/değiştir komutlarının sırası ve komut menüsü sözleşmesi: `MainMenu.layout()` dört sayfada her platformdan bağımsız `EditorAction`'ı tam bir kez taşıyor (altı ayar komutu yerine değer alt menüsüyle temsil ediliyor), Görünüm alt menüleri araç çubuğu açılır listelerinin sunduğu aynı değerleri listeliyor ve işaretliyor, her sayfa başlığı ve satır etiketi altı dilde dolu |
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
 | `AppIconsTest` | Classpath'teki ikon seti: her PNG bildirilen boyutta çözülüyor, `.ico` dosyası beklenen sihirli baytlarla başlıyor (saf bayt kontrolü, toolkit yok) |
 | `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması |

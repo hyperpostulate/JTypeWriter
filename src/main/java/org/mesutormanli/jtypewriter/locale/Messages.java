@@ -218,6 +218,22 @@ public class Messages {
         return bundle.getString("shortcutSaveAs");
     }
 
+    public String shortcutFind() {
+        return bundle.getString("shortcutFind");
+    }
+
+    public String shortcutFindNext() {
+        return bundle.getString("shortcutFindNext");
+    }
+
+    public String shortcutFindPrevious() {
+        return bundle.getString("shortcutFindPrevious");
+    }
+
+    public String shortcutReplace() {
+        return bundle.getString("shortcutReplace");
+    }
+
     public String shortcutToggleFullscreen() {
         return bundle.getString("shortcutToggleFullscreen");
     }
@@ -416,6 +432,69 @@ public class Messages {
     /** The tooltip/accessible name of the toolbar's command-menu button. */
     public String toolbarMenu() {
         return bundle.getString("toolbarMenu");
+    }
+
+    /** Toolbar button and panel accessible title: find and replace. */
+    public String findPanelTitle() {
+        return bundle.getString("findPanelTitle");
+    }
+
+    public String findWhat() {
+        return bundle.getString("findWhat");
+    }
+
+    public String findReplaceWith() {
+        return bundle.getString("findReplaceWith");
+    }
+
+    public String findMatchCase() {
+        return bundle.getString("findMatchCase");
+    }
+
+    public String findReplaceAll() {
+        return bundle.getString("findReplaceAll");
+    }
+
+    public String findClose() {
+        return bundle.getString("findClose");
+    }
+
+    /** Total number of matches, no selection yet. */
+    public String findMatchCount(int total) {
+        return format("findMatchCount", total);
+    }
+
+    /** Position of the selected match among the total, e.g. {@code "3 of 12"}. */
+    public String findMatchPosition(int current, int total) {
+        return format("findMatchPosition", current, total);
+    }
+
+    public String findNoMatches() {
+        return bundle.getString("findNoMatches");
+    }
+
+    public String findSearching() {
+        return bundle.getString("findSearching");
+    }
+
+    public String findYoloReplaceTitle() {
+        return bundle.getString("findYoloReplaceTitle");
+    }
+
+    public String findYoloReplaceHeader() {
+        return bundle.getString("findYoloReplaceHeader");
+    }
+
+    public String findYoloReplaceContent() {
+        return bundle.getString("findYoloReplaceContent");
+    }
+
+    public String findYoloReplaceConfirm() {
+        return bundle.getString("findYoloReplaceConfirm");
+    }
+
+    public String findYoloReplaceCancel() {
+        return bundle.getString("findYoloReplaceCancel");
     }
 
     public String menuFile() {

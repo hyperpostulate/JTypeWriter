@@ -7,7 +7,10 @@ package org.mesutormanli.jtypewriter.ui;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
@@ -41,6 +44,7 @@ public class MainController implements Initializable {
     private final KeyboardShortcutHandler shortcutHandler;
     private final EditorKeyHandler editorKeyHandler;
     private final AutoSaveService autoSaveService;
+    private final FindPanel findPanel;
     private final AppSettings settings;
     private final Supplier<LocalTime> clock;
 
@@ -67,6 +71,7 @@ public class MainController implements Initializable {
                           KeyboardShortcutHandler shortcutHandler,
                           EditorKeyHandler editorKeyHandler,
                           AutoSaveService autoSaveService,
+                          FindPanel findPanel,
                           AppSettings settings, Supplier<LocalTime> clock) {
         this.editorArea = editorArea;
         this.mainMenu = mainMenu;
@@ -78,6 +83,7 @@ public class MainController implements Initializable {
         this.shortcutHandler = shortcutHandler;
         this.editorKeyHandler = editorKeyHandler;
         this.autoSaveService = autoSaveService;
+        this.findPanel = findPanel;
         this.settings = settings;
         this.clock = clock;
         // The toolbar comes back exactly as visible (or hidden) as the
@@ -94,6 +100,10 @@ public class MainController implements Initializable {
         toolbarView.setActionRunner(shortcutHandler::run);
         mainMenu.setActionRunner(shortcutHandler::run);
         mainMenu.setStage(stage);
+        // The find panel owns its own state; the key filter and the menu only
+        // reach it through the four-command port.
+        findPanel.setStage(stage);
+        shortcutHandler.setFindCommands(findPanel);
         editorKeyHandler.bind(editorArea);
         fileService.addListener(new FileService.Listener() {
             @Override
@@ -232,7 +242,14 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        rootPane.setCenter(editorArea);
+        // The find panel floats over the text in the window's top-right corner
+        // (Notepad++'s placement) instead of taking a row of its own: the
+        // editor keeps the full height, and the card only covers text while it
+        // is open.
+        var editorStack = new StackPane(editorArea, findPanel);
+        StackPane.setAlignment(findPanel, Pos.TOP_RIGHT);
+        StackPane.setMargin(findPanel, new Insets(12));
+        rootPane.setCenter(editorStack);
         // The menu lives inside the toolbar row (see MainMenu), so hiding the
         // toolbar still leaves nothing but the text.
         rootPane.setTop(toolbarView);

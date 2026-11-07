@@ -113,6 +113,28 @@ public class EditorArea extends TextArea {
     }
 
     /**
+     * Applies a replacement <em>without</em> the YOLO funnel of
+     * {@link #replaceText(int, int, String)}.
+     *
+     * <p>This is the only sanctioned bypass, and only the find panel calls it.
+     * The panel asks {@link org.mesutormanli.jtypewriter.ui.FindReplacePolicy}
+     * first: while YOLO mode is on that returns {@code REQUIRED}, and nothing
+     * is written until {@link org.mesutormanli.jtypewriter.service.DialogService#confirmReplaceInYolo}
+     * has been accepted. With YOLO off every replacement is an ordinary edit,
+     * so the funnel would already apply it unchanged.</p>
+     *
+     * <p>Without this bypass YOLO's {@code INSERT_WITHOUT_DELETION} branch would
+     * keep the matched characters and insert the replacement beside them,
+     * duplicating text instead of replacing it - the opposite of what the user
+     * asked for and of what {@code FindModel} computed. The find panel's whole
+     * job is to remove exactly the range it matched, so the deletion it applies
+     * is the one deletion YOLO has explicitly consented to.</p>
+     */
+    public void replaceConfirmed(int start, int end, String text) {
+        super.replaceText(start, end, text);
+    }
+
+    /**
      * The edit applied by the most recent {@link #replaceText}, or {@code null}
      * when the change came from a path that bypasses it. Consumed exactly once
      * by the text listener, so a hint can never describe a later edit.

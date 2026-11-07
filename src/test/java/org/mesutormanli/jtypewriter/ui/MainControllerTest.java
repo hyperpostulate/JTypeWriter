@@ -129,6 +129,33 @@ class MainControllerTest {
     }
 
     /**
+     * The find/replace leaves are pinned as a block so a future Edit-menu edit
+     * cannot silently drop one or reorder the flow Find -> Next -> Previous ->
+     * Replace.
+     */
+    @Test
+    void editMenuOffersTheFindAndReplaceCommandsInOrder() {
+        var edit = MainMenu.layout().stream()
+                .filter(spec -> spec.page() == MainMenu.Page.EDIT)
+                .findFirst()
+                .orElseThrow();
+        var findReplace = java.util.EnumSet.of(
+                EditorAction.FIND, EditorAction.FIND_NEXT,
+                EditorAction.FIND_PREVIOUS, EditorAction.REPLACE);
+        var actions = edit.entries().stream()
+                .filter(MainMenu.ActionEntry.class::isInstance)
+                .map(entry -> ((MainMenu.ActionEntry) entry).action())
+                .filter(findReplace::contains)
+                .toList();
+
+        assertEquals(List.of(
+                EditorAction.FIND,
+                EditorAction.FIND_NEXT,
+                EditorAction.FIND_PREVIOUS,
+                EditorAction.REPLACE), actions);
+    }
+
+    /**
      * The submenu-backed set is the one thing the leaf test excludes, so it is
      * pinned here: adding a command to the menu by deleting it from this set
      * would otherwise be invisible.

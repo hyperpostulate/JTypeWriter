@@ -41,21 +41,21 @@ yerleştirilmiştir, ayrı bir kuyruk oluşturmaz — üçü de kapatıldı (W0-
 Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir sayı burada yoksa
 `analysis.md`'den geliyordur ve `analysis.md` 2 Kasım'dan beri güncellenmediği için bayattır.
 
-| Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`W3-05 sonrası`) |
+| Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`W3-06 sonrası`) |
 |---|---:|---:|
-| Commit | 137 | **178** (+41) |
-| Üretim sınıfı / satırı | 51 / 7.611 | **62 / 11.362** |
-| Test dosyası / `@Test` | 42 / 350 | **54 / 518** |
-| Bundle anahtarı | 6 × 90 | **6 × 131** |
-| `mvn -B clean test` | 350/0/0 | **518/0/0** |
+| Commit | 137 | **180** (+43) |
+| Üretim sınıfı / satırı | 51 / 7.611 | **66 / 12.293** |
+| Test dosyası / `@Test` | 42 / 350 | **56 / 524** |
+| Bundle anahtarı | 6 × 90 | **6 × 150** |
+| `mvn -B clean test` | 350/0/0 | **524/0/0** |
 | Tag / Release | 0 / 0 | **3 / 3** (`v1.0.0`, `v1.0.1`, `v1.0.2`) |
 | Release varlığı | — | **6** (5 ikili/kaynak + `SHA256SUMS`) |
 | Release işareti | — | **üçü de `prerelease=true`** |
 | `verify-artifacts` karşılaştırması | 17 | **20** (gömülü font lisansı +2, font kaynağı +1) |
 | Yıldız / çatal / issue | 0 / 0 / 0 | **0 / 0 / 0** |
 
-**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ◐ (W3-01…W3-05 ✅; W3-06 ☐) · W4 ☐.
-Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ◐ · G4 ☐**.
+**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ☐.
+Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ✅ · G4 ☐**.
 
 İki sayı bu tablodan **türetilmemelidir**:
 
@@ -881,6 +881,49 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   (2) YOLO etkileşimi testli (`YoloPolicy` ile aynı dil). (3) Aynı işlevler komut menüsünden
   (araç çubuğundaki `☰`) de erişilir.
 - **Doğrulama:** `mvn test -Dtest=FindModelTest,YoloPolicyTest` + manuel 10 MB ölçümü.
+- **Uygulama (7 Kasım):** Panel bir modal pencere değil, düzenleyicinin üstünde sağ üstte
+  duran **yüzen bir kart** (`MainController` onu bir `StackPane` içinde `TOP_RIGHT` hizalar):
+  arama bir kiptir, belge görünür kalmalı ve `F3` ile art arda gezilirken pencere her adımda
+  yeniden açılmamalıdır. Düzen Notepad++ diyaloğundan alındı: tek "Aranan" alanı, tek "Yeni
+  metin" alanı, "Büyük/küçük harf duyarlı" onay kutusu, Sonrakini/Öncekini bul · Değiştir ·
+  Tümünü değiştir ve canlı durum satırı ("3 / 12", "12 eşleşme", "Eşleşme yok", "Aranıyor...").
+  Nedenler: (1) **Tarama FX thread'inde değil** — `FindScanService` kendi daemon worker'ında
+  `FindModel.findAll` çağırıyor, sonucu FX thread'ine dağıtıyor; panel bir **nesil sayacı** ile
+  eski tamamlanmayı düşürüyor ve model de `install(...)` ile ikinci kez doğruluyor, yani bir
+  karakter daha yazıldıktan sonra gelen tarama seçim yapamıyor. Yazma 120 ms'lik bir
+  `PauseTransition` ile birleştiriliyor. (2) **Kendi worker'ı, paylaşılan `IoExecutor` değil** —
+  10 MB'lık bir tarama bir kaydetmenin önüne geçmemeli; disk işlerini serileştiren kuyruğun
+  arama ile ilgisi yok. (3) **`F3`/`Shift+F3` kart kapalıyken de çalışır**; sorgu boşsa kart
+  açılır, tarama sürüyorsa yön saklanıp sonuç kurulunca yürütülür. (4) **`F3` ile `Shift+F3`
+  ayrı hızlandırıcılar** — `plain("F3")` her Shift durumunu kabul ettiği için `resolve` önce
+  `FIND_NEXT`'e dönüyor ve `Shift+F3` ulaşılamaz kalıyordu; `FIND_NEXT` artık `noShift(...)`
+  kullanıyor, `FIND_PREVIOUS` ise `shiftOnly(...)`; `KeyboardShortcutHandlerTest` bu ikisinin
+  ayrı kaldığını pinliyor. (5) **YOLO onayı** — değiştirme eşleşen aralığı siler, yani YOLO'nun
+  "hiçbir kullanıcı düzenlemesi karakter silmez" sözünün tam kapsamına girer; `FindReplacePolicy`
+  açık/kapalı kararı veriyor (saf, testli) ve YOLO açıkken `DialogService.confirmReplaceInYolo`
+  bir kez soruyor; iptal hiçbir şey yazmıyor. Değiştirme `EditorArea.replaceConfirmed` üzerinden
+  gidiyor — YOLO hunisinden geçseydi `INSERT_WITHOUT_DELETION` eşleşmeyi koruyup yanına yeni
+  metni ekler, yani metni çoğaltırdı; bu tek ve belgelenmiş baypas. (6) **Tümünü değiştir tek
+  geri alma adımı** — yeni belge `0..length` aralığına tek düzenleme olarak yazılıyor (setText
+  değil, o geri alma geçmişini silerdi); model kendi çıktısını taramadığı için `a` → `aa`
+  sonlanıyor. (7) **Tema** — kart yalnızca mevcut belirteçlerden boyanıyor ve üç tema dosyasının
+  belirteç seçicisine `.find-panel` eklendi; kart bir `.dialog-pane` olmadığı için Modena'nın
+  metin alanı/onay kutusu renkleri koyu temada beyaz sızardı, bu yüzden alanlar açıkça
+  boyandı. (8) **Menü ve araç çubuğu** — dört komut da `EditorAction` envanterinde, yani
+  `Ctrl+F`/`F3`/`Shift+F3`/`Ctrl+H`, araç çubuğundaki `⚲` düğmesi ve Düzen menüsü tek tanımı
+  paylaşıyor; `MainControllerTest` Düzen menüsündeki dört yaprağın sırasını pinliyor.
+  (9) **Panelin kendi düzenlemesi taramayı yeniden başlatmaz** — değiştirme belgeyi yazar ve
+  model o metni zaten benimsemiştir (imleç eklenen metnin ardında durur); belge dinleyicisi
+  yalnızca modelin anlatmadığı yeni metinde tarama planlar. Aksi hâlde her `Değiştir` imleci
+  -1'e düşürür ve sonraki `Değiştir` eklenen metnin içine inerdi (`a` → `aa` her tıklamada
+  büyürdü). Değiştirme yolları ayrıca bayat modele karşı kapılıdır: belge kullanıcı tarafından
+  değişmişse işlem taze taramanın üstünde yeniden çalışır, eski anlık görüntüden üretilmiş bir
+  belge asla yazılmaz.
+  **Ölçüm:** gerçek modelle 10 MiB belgede tam tarama 26–53 ms (0 eşleşme / 197 845 eşleşme /
+  tek harf 1 187 069 eşleşme), hiçbiri FX thread'inde değil; `FindScanServiceTest`
+  `fxThreadScans() == 0` diyor.
+  **Kanıt:** `mvn -B clean test` → **524/0/0**; `mvn test -Dtest=FindModelTest,ToolbarFitTest,EditorActionTest,KeyboardShortcutHandlerTest,ShortcutRowsTest,FindReplacePolicyTest,FindScanServiceTest,MainControllerTest,MessagesTest`
+  → **103/103**; taşma testleri DE/FR compact satırları ≤ 836 px, tüm diller ≤ 900 px.
 
 > **Kapı G3** (`analysis.md` §13.6/2 ve /3): `Ctrl+F` bulur, `F3`/`Shift+F3` gezer, `Ctrl+H`
 > bir/tümünü değiştirir; aynı işlevler komut menüsünden (araç çubuğundaki `☰` düğmesi) erişilir
@@ -1006,7 +1049,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W3-03 | CLI argümanı | E3 | S | W3-01 | ✅ | `StartupArguments` + `FxApplication` bağlantısı: argümanlı başlatma belgeyi açıyor, geçersiz yol arayüz dilinde adıyla bildiriliyor, ikinci örnek devri yok; `mvn -B clean test` → 466/0/0, odaklı 34/0/0; paketli `smoke-appimage.sh --open-sample --skip-deb` → PASS (başlık `JTypeWriter - cli-sample.txt`); `verify-artifacts.sh --skip-build` → 20/20 |
 | W3-04 | Sürükle-bırak | E4 | S | W3-01 | ✅ | `DroppedFiles` (saf karar) + `DropHandler` (sahne filtresi) + `FileService.openPathAsync`: `.txt`/`.md` bırakma Aç ile aynı SAVE/DISCARD/CANCEL matrisinden geçiyor, ret adıyla/adediyle bildiriliyor, dosya taşımayan jest düzenleyiciye bırakılıyor; `mvn -B clean test` → 488/0/0, odaklı DroppedFiles+DropContract+FileService+Messages 13/5/50/13, `ExitDispositionTest,MainStageTest` yeşil |
 | W3-05 | `FindModel` | E1 | M | W2-01, W3-01 | ✅ | `ui/FindModel` (saf): düz metin sorgu/değiştirme (regex yok), çakışmasız soldan sağa tarama, varsayılan yerel ayara bağlı olmayan büyük-küçük harf (`regionMatches`), iki yönde saran ileri/geri, değiştirme sonrası yeniden tarama, sığmayan aralığı reddetme; `findAll` saf statik (W3-06 paneli FX thread'inde taramayacak) ve `install` bayat taramayı atıyor; `mvn test -Dtest=FindModelTest` → 30/30, `mvn -B clean test` → 518/0/0, dört mutasyon kırmızı |
-| W3-06 | Arama paneli | E1 | M | W3-05 | ☐ | |
+| W3-06 | Arama paneli | E1 | M | W3-05 | ✅ | `ui/FindPanel` (Notepad++ tarzı yüzen kart) + `FindScanService` (FX dışı tarama) + `FindReplacePolicy` (YOLO onayı) + `FindCommands` portu; `Ctrl+F`/`F3`/`Shift+F3`/`Ctrl+H` + araç çubuğunda `⚲` + Düzen menüsü; tarama worker'da, 10 MiB'da 26–53 ms ve `fxThreadScans()==0`; tümünü değiştir tek geri alma adımı; YOLO açıkken onay diyaloğu; `mvn -B clean test` → 524/0/0 |
 | W4-01 | Ayar şema sürümü | D13, D12 | S | — | ☐ | |
 | W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ☐ | |
 | W4-03 | Minimum genişlik | U8 | S | — | ☐ | |

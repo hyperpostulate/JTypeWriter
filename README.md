@@ -73,14 +73,26 @@ Live stats bar showing:
 
 - **`F11` takes over the screen, `Escape` gives it back:** `F11` toggles fullscreen and `Escape` leaves it (the platform's default exit hint is suppressed)
 - **The toolbar can disappear completely:** `Ctrl+T` removes it when you want nothing but text on screen
-- **The toolbar never wraps to a second row:** at every width it stays one horizontal row. At the tested window sizes the six dropdowns show a caption with their value ("Theme: Dark", "Size: 16", "Language: Deutsch") and nothing overflows - fully captioned at 1280 px, captions collapsed to the bare value ("Dark", "16", "Deutsch") at 900 px in all six languages, measured from the actual localised labels. Below the collapsed row's own width the dropdowns keep shrinking and can clip, because the window has no minimum width. The command-menu button and the five plain buttons never collapse and always stay visible
-  - **Every control is reachable and explained.** `Tab` follows the pinned visual order: Menu, Open, Save, Undo, Redo, Theme, YOLO, Sound, Color, Size, About, Language. The order is set with `viewOrder`; JavaFX documents that property for rendering and picking, so the focus order is an application convention rather than a toolkit guarantee. Each control keeps a visible focus ring and a tooltip from the UI language that includes the shortcut where one exists, such as "Save (Ctrl+S)"
+- **The toolbar never wraps to a second row:** at every width it stays one horizontal row. At the tested window sizes the six dropdowns show a caption with their value ("Theme: Dark", "Size: 16", "Language: Deutsch") and nothing overflows - fully captioned at 1280 px, captions collapsed to the bare value ("Dark", "16", "Deutsch") at 900 px in all six languages, measured from the actual localised labels. Below the collapsed row's own width the dropdowns keep shrinking and can clip, because the window has no minimum width. The command-menu button and the six plain buttons (find, open, save, undo, redo, about) never collapse and always stay visible
+  - **Every control is reachable and explained.** `Tab` follows the pinned visual order: Menu, Find, Open, Save, Undo, Redo, Theme, YOLO, Sound, Color, Size, About, Language. The order is set with `viewOrder`; JavaFX documents that property for rendering and picking, so the focus order is an application convention rather than a toolkit guarantee. Each control keeps a visible focus ring and a tooltip from the UI language that includes the shortcut where one exists, such as "Save (Ctrl+S)"
 - **Your layout is remembered:** the toolbar's shown or hidden state, fullscreen and the status bar's size all survive a restart, and a choice is saved the moment you toggle it rather than only on exit
   - **Fullscreen never fights the window geometry.** A window left in fullscreen comes back in fullscreen; fullscreen wins at startup over the remembered position and size, and leaving it later lands on the remembered position
 
 ### Command Menu
 
 The leftmost toolbar control is a `☰` button holding four menus - File, Edit and View with the editor commands, Help with About. It is a menu button rather than a permanent menu strip: a second chrome row would follow you into fullscreen and undermine `Ctrl+T`, so the menu hides with the toolbar it lives in. Every editor command the platform does not handle itself is generated from the same `EditorAction` inventory as the shortcuts and toolbar buttons, so `New` (`Ctrl+N`) and `Save As` (`Ctrl+Shift+S`) are now discoverable instead of keyboard-only. View is not a list of cycling commands: Theme, YOLO, Sound, Text Color and Font Size each open a second-level submenu listing the same values as the toolbar dropdowns, with the current one checked - `View → Theme → Dark` means Dark, not "the next theme". They are generated from the same option lists and write through the same apply paths as the dropdowns, so the two entry points can never disagree. Labels and accelerators follow the UI language (the accelerators are descriptive - the key filter performs them), the open popup is painted from the same theme tokens as the toolbar dropdowns so it follows Dark, Light and Sepia, and Help → About opens the About card. Because the menus are generated rather than hand-written, a command can no longer exist in one entry point and be missing from another.
+
+### Find & Replace
+
+`Ctrl+F` opens a compact find/replace card in the window's top-right corner, over the text; `Ctrl+H` opens the same card with the replace field focused. It is modelled on Notepad++'s dialog: one "Find what" field, one "Replace with" field, a "Match case" checkbox, Find Next / Find Previous / Replace / Replace All, and a live status line ("3 of 12", "12 matches", "No matches"). The card is a panel rather than a modal window because finding is a mode: the document stays visible while you type a query and press `F3` repeatedly, and closing the card with `Escape` or its Close button keeps the query for the next `F3`.
+
+- **The same commands exist everywhere:** the toolbar's `⚲` button, the Edit menu (`Find`, `Find Next`, `Find Previous`, `Replace`) and the four shortcuts all run one `EditorAction`, so they cannot drift.
+- **F3 and Shift+F3 walk the matches** and wrap in both directions, and they keep working after the card is closed. With no query yet, `F3` opens the card instead of doing nothing.
+- **Search is literal text, never a regex:** `a.*b` means those five characters and `$1` is four characters, so there is no invalid-pattern mode and no second error path.
+- **A 10 MB document never freezes the window.** The scan runs on its own worker and is installed back on the FX thread only if it still describes the current text, query and case mode; a result that arrives after you typed another character is dropped. Measured with the real model on a 10 MiB document: 26-53 ms for a whole-document scan (0 matches, 197 845 matches, and 1 187 069 matches for a single-letter query), none of it on the FX thread.
+- **Replace All is one undo step:** the new text is computed from the original matches and applied as a single edit, so `Ctrl+Z` takes the document back in one move. Replacing does not search its own output, so replacing `a` with `aa` terminates.
+- **YOLO mode asks first.** The mode promises that no edit removes characters; a replacement removes the matched range, so with YOLO on the card asks once per operation and cancelling writes nothing. The change is then a normal, undoable edit.
+- **The card follows the theme:** surface, border, fields, checkbox, buttons and status line resolve through the same tokens as the toolbar, so it is native in Dark, Sepia and Light - including the input backgrounds, which Modena would otherwise paint white in the dark theme.
 
 ### Data Safety & Crash Recovery
 
@@ -172,6 +184,10 @@ Shortcuts use `Ctrl` on Windows and Linux. Numpad `+`, `-` and `0` are accepted 
 | `Ctrl+O` | Open file |
 | `Ctrl+S` | Save file |
 | `Ctrl+Shift+S` | Save file as |
+| `Ctrl+F` | Find and replace card |
+| `F3` | Find next (wraps) |
+| `Shift+F3` | Find previous (wraps) |
+| `Ctrl+H` | Find and replace card, replace field focused |
 | `F11` | Toggle fullscreen |
 | `Escape` | Exit fullscreen |
 
@@ -474,8 +490,10 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `AutosaveHealthTest` | Sticky failure state (`DRAFT_WRITE` / `DRAFT_PARK` / `DRAFT_DELETE`) that survives repeated failures, clears on a successful write and notifies once per real transition |
 | `ProcessCrashRecoveryTest` | Linux-only end-to-end kill test: `CrashHarness` (a helper, not a test class) builds the real service graph in a child JVM without starting JavaFX and snapshots a dirty document through the production autosave path; the parent then kills it with `SIGKILL` (`Process.destroyForcibly`) and a second JVM must recover the exact non-ASCII text. A paired case proves an answered close still drops the draft, and `-Duser.home` keeps logging inside a temp home. Synchronisation is the stdout marker plus `waitFor`, never `Thread.sleep` |
 | `YoloPolicyTest` | YOLO mode edit policy (deletions blocked, insertions allowed, safe replacement) |
-| `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S), Ctrl+N for a new document and numpad equivalents |
-| `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge), and the command-menu contract: `MainMenu.layout()` carries every platform-independent `EditorAction` exactly once across the four pages (six settings commands are represented by their value submenu instead), the View submenus list and check the same values the toolbar dropdowns offer, and every page title and row label is non-empty in all six languages |
+| `FindReplacePolicyTest` | When a replacement needs the user's consent: YOLO on requires the prompt, YOLO off asks nothing |
+| `FindScanServiceTest` | The scan runs off the FX thread and its result is delivered only through the injected FX dispatcher (`fxThreadScans()` stays zero) |
+| `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S), Ctrl+N for a new document, the find chords (Ctrl+F / F3 / Shift+F3 / Ctrl+H, where F3 and Shift+F3 must stay distinct) and numpad equivalents |
+| `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge), the Edit menu's find/replace placement, and the command-menu contract: `MainMenu.layout()` carries every platform-independent `EditorAction` exactly once across the four pages (six settings commands are represented by their value submenu instead), the View submenus list and check the same values the toolbar dropdowns offer, and every page title and row label is non-empty in all six languages |
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
 | `AppIconsTest` | The icon set on the classpath: every PNG decodes to the declared size, and the `.ico` file starts with its expected magic bytes (pure byte checks, no toolkit) |
 | `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it |

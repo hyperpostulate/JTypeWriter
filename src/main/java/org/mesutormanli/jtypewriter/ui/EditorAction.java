@@ -78,6 +78,18 @@ public enum EditorAction {
     SAVE_AS(List.of(ctrlShift("Ctrl+Shift+S", KeyCode.S)),
             Messages::shortcutSaveAs, Context::saveAs),
 
+    FIND(List.of(ctrl("Ctrl+F", KeyCode.F)),
+            Messages::shortcutFind, Context::openFind),
+
+    FIND_NEXT(List.of(noShift("F3", KeyCode.F3)),
+            Messages::shortcutFindNext, Context::findNext),
+
+    FIND_PREVIOUS(List.of(shiftOnly("Shift+F3", KeyCode.F3)),
+            Messages::shortcutFindPrevious, Context::findPrevious),
+
+    REPLACE(List.of(ctrl("Ctrl+H", KeyCode.H)),
+            Messages::shortcutReplace, Context::openReplace),
+
     TOGGLE_FULLSCREEN(List.of(plain("F11", KeyCode.F11)),
             Messages::shortcutToggleFullscreen, Context::toggleFullScreen),
 
@@ -106,6 +118,18 @@ public enum EditorAction {
         void save();
 
         void saveAs();
+
+        /** Opens the find/replace panel with the find field focused. */
+        void openFind();
+
+        /** Opens the find/replace panel with the replace field focused. */
+        void openReplace();
+
+        /** Selects the next match of the current query and reveals it. */
+        void findNext();
+
+        /** Selects the previous match of the current query and reveals it. */
+        void findPrevious();
 
         void increaseFontSize();
 
@@ -216,5 +240,26 @@ public enum EditorAction {
 
     private static Accelerator plain(String chord, KeyCode... codes) {
         return new Accelerator(chord, false, null, List.of(codes));
+    }
+
+    /**
+     * Modifier-free with Shift required. Used for {@code Shift+F3}: its
+     * unshifted twin owns the same key, so neither may accept "either state"
+     * the way F11 does.
+     */
+    private static Accelerator shiftOnly(String chord, KeyCode... codes) {
+        return new Accelerator(chord, false, true, List.of(codes));
+    }
+
+    /**
+     * Modifier-free with Shift forbidden. {@code F3} shares its key with
+     * {@code Shift+F3}; {@link #plain} accepts either Shift state (what F11
+     * wants), but here that would make {@code Shift+F3} resolve to
+     * {@code FIND_NEXT}, because {@link #resolve} returns the first match in
+     * declaration order. Declaring the state explicitly is what keeps the two
+     * directions distinct.
+     */
+    private static Accelerator noShift(String chord, KeyCode... codes) {
+        return new Accelerator(chord, false, false, List.of(codes));
     }
 }

@@ -2,7 +2,7 @@
 
 /* The .dialog-pane selector carries the tokens onto Alert panes, which have no
    .root ancestor: dialogs are themed even where .root never matches. */
-.root, .dialog-pane {
+.root, .dialog-pane, .find-panel {
     -editor-bg: #ffffff;
     -toolbar-bg: #f5f5f5;
     -toolbar-border: #e0e0e0;

@@ -202,7 +202,11 @@ public final class MainMenu {
                         command(EditorAction.SAVE_AS))),
                 new MenuSpec(Page.EDIT, List.of(
                         command(EditorAction.UNDO),
-                        command(EditorAction.REDO))),
+                        command(EditorAction.REDO),
+                        command(EditorAction.FIND),
+                        command(EditorAction.FIND_NEXT),
+                        command(EditorAction.FIND_PREVIOUS),
+                        command(EditorAction.REPLACE))),
                 new MenuSpec(Page.VIEW, List.of(
                         command(EditorAction.TOGGLE_TOOLBAR),
                         new ChoiceEntry(ChoiceKind.THEME),

@@ -193,5 +193,6 @@ public class FxApplication extends Application {
         }
         app.autoSaveService.shutdown();
         app.ioExecutor.close(); // the draft decision above already blocked on this worker
+        app.findScanService.close(); // a late scan result must not outlive the window
     }
 }

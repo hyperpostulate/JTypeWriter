@@ -241,6 +241,33 @@ public class DialogService {
         return result.isPresent() && result.get() == openButton;
     }
 
+    /**
+     * Asks whether the find panel may delete matched text while YOLO mode is
+     * on.
+     *
+     * <p>YOLO normally refuses every destructive edit, and a replacement is
+     * exactly that: the matched characters are removed and the new text takes
+     * their place. The panel must not silently rewrite the promise, so the one
+     * moment text is about to disappear is the one moment it asks. Cancelling
+     * (or closing the prompt) writes nothing, which is why Cancel carries the
+     * escape semantics.</p>
+     *
+     * @return {@code true} when the user accepts the deletion
+     */
+    public boolean confirmReplaceInYolo(Stage stage) {
+        var alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(messages.findYoloReplaceTitle());
+        alert.setHeaderText(messages.findYoloReplaceHeader());
+        alert.setContentText(messages.findYoloReplaceContent());
+
+        var replaceButton = DialogButtons.primary(messages.findYoloReplaceConfirm());
+        var cancelButton = DialogButtons.cancel(messages.findYoloReplaceCancel());
+        alert.getButtonTypes().setAll(replaceButton, cancelButton);
+
+        var result = show(alert, stage);
+        return result.isPresent() && result.get() == replaceButton;
+    }
+
     public EncodingChoice showEncodingDialog(Stage stage, java.nio.file.Path file) {
         var alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle(messages.encodingTitle());

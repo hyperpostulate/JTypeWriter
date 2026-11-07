@@ -28,6 +28,28 @@ public class KeyboardShortcutHandler implements EditorAction.Context {
     private Stage stage;
     private Runnable onToggleToolbar;
     private Runnable onThemeCycle;
+    /**
+     * The find/replace panel. Optional so a unit test can record the key
+     * routing without constructing any JavaFX control; the live graph always
+     * installs the real panel.
+     */
+    private FindCommands findCommands = new FindCommands() {
+        @Override
+        public void openFind() {
+        }
+
+        @Override
+        public void openReplace() {
+        }
+
+        @Override
+        public void findNext() {
+        }
+
+        @Override
+        public void findPrevious() {
+        }
+    };
 
     public KeyboardShortcutHandler(FileService fileService) {
         this.fileService = fileService;
@@ -46,6 +68,15 @@ public class KeyboardShortcutHandler implements EditorAction.Context {
         var scene = stage != null ? stage.getScene() : null;
         EventTarget target = scene != null ? scene : editorArea;
         target.addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPress);
+    }
+
+    /**
+     * Installs the find/replace panel. Named explicitly rather than passed to
+     * {@link #bind} because the panel needs the stage (for its own dialogs)
+     * which is only known once {@code MainController.setStage} runs.
+     */
+    public void setFindCommands(FindCommands findCommands) {
+        this.findCommands = findCommands == null ? this.findCommands : findCommands;
     }
 
     /** Runs a command; the one entry point shared by the key filter and the toolbar. */
@@ -135,6 +166,26 @@ public class KeyboardShortcutHandler implements EditorAction.Context {
     @Override
     public void saveAs() {
         fileService.saveFileAsAsync(stage, editorArea.getText());
+    }
+
+    @Override
+    public void openFind() {
+        findCommands.openFind();
+    }
+
+    @Override
+    public void openReplace() {
+        findCommands.openReplace();
+    }
+
+    @Override
+    public void findNext() {
+        findCommands.findNext();
+    }
+
+    @Override
+    public void findPrevious() {
+        findCommands.findPrevious();
     }
 
     @Override

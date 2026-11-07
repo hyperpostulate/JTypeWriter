@@ -118,9 +118,19 @@ class KeyboardShortcutHandlerTest {
     }
 
     @Test
+    void findAndReplaceShortcutsResolve() {
+        assertEquals(Optional.of(EditorAction.FIND), resolve(KeyCode.F, false));
+        assertEquals(Optional.of(EditorAction.FIND_NEXT), resolve(KeyCode.F3, false));
+        assertEquals(Optional.of(EditorAction.FIND_PREVIOUS), resolve(KeyCode.F3, true));
+        assertEquals(Optional.of(EditorAction.REPLACE), resolve(KeyCode.H, false));
+    }
+
+    @Test
     void unrelatedKeysAreNotShortcuts() {
         assertEquals(Optional.empty(), resolve(KeyCode.A, true));
         assertEquals(Optional.empty(), resolve(KeyCode.F1, true));
+        assertEquals(Optional.empty(), resolve(KeyCode.F4, false));
+        assertEquals(Optional.empty(), resolve(KeyCode.G, false));
     }
 
     /**
@@ -174,7 +184,8 @@ class KeyboardShortcutHandlerTest {
         assertEquals(inventoryChords, cardChords);
         assertEquals(List.of("Ctrl+T", "Ctrl+Shift+T", "Ctrl+Shift+Y", "Ctrl+Shift+C",
                         "Ctrl++", "Ctrl+-", "Ctrl+0", "Ctrl+Z", "Ctrl+Shift+Z", "Ctrl+Y",
-                        "Ctrl+N", "Ctrl+O", "Ctrl+S", "Ctrl+Shift+S", "F11", "Escape"),
+                        "Ctrl+N", "Ctrl+O", "Ctrl+S", "Ctrl+Shift+S",
+                        "Ctrl+F", "F3", "Shift+F3", "Ctrl+H", "F11", "Escape"),
                 cardChords, "the published card order is part of the contract");
     }
 

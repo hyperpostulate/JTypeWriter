@@ -76,6 +76,7 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
     private final MenuButton commandMenu;
 
     private final Button openBtn;
+    private final Button findBtn;
     private final Button saveBtn;
     private final Button undoBtn;
     private final Button redoBtn;
@@ -139,6 +140,9 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
         setAlignment(Pos.CENTER_LEFT);
 
         openBtn = createButton(EditorAction.OPEN.label(messages));
+        // The find glyph is a bundle-independent symbol (verified present in the
+        // bundled DejaVu Sans Condensed), so it is not re-localised in refresh().
+        findBtn = createButton("\u26B2");
         saveBtn = createButton(EditorAction.SAVE.label(messages));
         undoBtn = createButton(EditorAction.UNDO.label(messages));
         redoBtn = createButton(EditorAction.REDO.label(messages));
@@ -170,6 +174,7 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
         languageCombo.getStyleClass().add("toolbar-lang-combo");
 
         openBtn.setOnAction(e -> actionRunner.accept(EditorAction.OPEN));
+        findBtn.setOnAction(e -> actionRunner.accept(EditorAction.FIND));
         saveBtn.setOnAction(e -> actionRunner.accept(EditorAction.SAVE));
         undoBtn.setOnAction(e -> actionRunner.accept(EditorAction.UNDO));
         redoBtn.setOnAction(e -> actionRunner.accept(EditorAction.REDO));
@@ -177,15 +182,16 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
             if (stage != null) aboutDialog.show(stage);
         });
 
-        // Visual grouping replaces the old "Label("|")" separators: file
-        // actions, edit actions, the settings dropdowns, and About + language.
+        // Visual grouping replaces the old "Label("|")" separators: find next
+        // to the file actions, then edit actions, the settings dropdowns, and
+        // About + language.
         var spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox.setMargin(themeCombo, new Insets(0, 0, 0, 4));
 
         getChildren().addAll(
                 commandMenu,
-                openBtn, saveBtn,
+                findBtn, openBtn, saveBtn,
                 undoBtn, redoBtn,
                 themeCombo, yoloCombo, soundCombo, colorCombo, fontSizeCombo,
                 spacer,
@@ -199,6 +205,8 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
         attachTooltip(commandMenu, messages::toolbarMenu);
         attachTooltip(openBtn, () -> withShortcut(EditorAction.OPEN.label(messages),
                 EditorAction.OPEN.primaryChord()));
+        attachTooltip(findBtn, () -> withShortcut(messages.findPanelTitle(),
+                EditorAction.FIND.primaryChord()));
         attachTooltip(saveBtn, () -> withShortcut(EditorAction.SAVE.label(messages),
                 EditorAction.SAVE.primaryChord()));
         attachTooltip(undoBtn, () -> withShortcut(EditorAction.UNDO.label(messages),
@@ -224,7 +232,7 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
         // the child order, so the paint order cannot change.
         var traversalOrder = new Node[]{
                 commandMenu,
-                openBtn, saveBtn, undoBtn, redoBtn,
+                findBtn, openBtn, saveBtn, undoBtn, redoBtn,
                 themeCombo, yoloCombo, soundCombo, colorCombo, fontSizeCombo,
                 aboutBtn, languageCombo
         };
@@ -371,6 +379,7 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
         var separator = messages.captionSeparator();
         return List.of(
                 ToolbarFit.Control.button(MainMenu.GLYPH),
+                ToolbarFit.Control.button("\u26B2"),
                 ToolbarFit.Control.button(EditorAction.OPEN.label(messages)),
                 ToolbarFit.Control.button(EditorAction.SAVE.label(messages)),
                 ToolbarFit.Control.button(EditorAction.UNDO.label(messages)),
