@@ -2,8 +2,8 @@
 
 > ## ⚠ Bu belge 2 Kasım 2026 tarihli bir fotoğraftır — güncel durum değildir
 >
-> `main` o günden beri 37 commit ilerledi (W0, W1, W2 tamamen; W3'ün ilk iki kartı), sürüm
-> **`v1.0.2`**'ye çıktı ve test sayısı **350 → 452** oldu. Bu belgedeki **bulgu kimlikleri ve
+> `main` o günden beri 47 commit ilerledi (W0, W1, W2 ve W3 tamamen), sürüm
+> **`v1.0.3`**'e çıktı ve test sayısı **350 → 528** oldu. Bu belgedeki **bulgu kimlikleri ve
 > gerekçeler** geçerlidir; **sayılar, skorlar ve "yok" hükümleri** o günün ölçümüdür.
 > Güncel ölçüm tablosu ve hangi hükmün düştüğü: `docs/product-roadmap.md` §1.4.
 > Silinme riskine karşı yazılmış §15 ölçüm protokolü hâlâ bu belgede duruyor ve çalışıyor.

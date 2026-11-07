@@ -36,30 +36,37 @@ yerleştirilmiştir, ayrı bir kuyruk oluşturmaz — üçü de kapatıldı (W0-
 > **sonra kimlik ver**, çünkü ürünün tek savunulabilir farklılaştırıcısı veri bütünlüğü;
 > **sonra editör yap**, çünkü "metin alanı" ile "editör" arasındaki fark arama ve menüde.
 
-### 1.4 Durum — 7 Kasım 2026 (`main` @ `b5ebe09`)
+### 1.4 Durum — 7 Kasım 2026 (`main` @ `2df2324`)
 
 Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir sayı burada yoksa
 `analysis.md`'den geliyordur ve `analysis.md` 2 Kasım'dan beri güncellenmediği için bayattır.
 
-| Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`W3-06 sonrası`) |
+| Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`2df2324`) |
 |---|---:|---:|
-| Commit | 137 | **183** (+46) |
+| Commit | 137 | **184** (+47) |
 | Üretim sınıfı / satırı | 51 / 7.611 | **68 / 12.514** |
 | Test dosyası / `@Test` | 42 / 350 | **58 / 528** |
 | Bundle anahtarı | 6 × 90 | **6 × 146** |
 | `mvn -B clean test` | 350/0/0 | **528/0/0** |
-| Tag / Release | 0 / 0 | **3 / 3** (`v1.0.0`, `v1.0.1`, `v1.0.2`) |
+| Tag / Release | 0 / 0 | **4 / 4** (`v1.0.0`, `v1.0.1`, `v1.0.2`, `v1.0.3`) |
 | Release varlığı | — | **6** (5 ikili/kaynak + `SHA256SUMS`) |
-| Release işareti | — | **üçü de `prerelease=true`** |
+| Release işareti | — | **dördü de `prerelease=true`** |
 | `verify-artifacts` karşılaştırması | 17 | **20** (gömülü font lisansı +2, font kaynağı +1) |
 | Yıldız / çatal / issue | 0 / 0 / 0 | **0 / 0 / 0** |
 
 **Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ☐.
 Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ✅ · G4 ☐**.
 
+**`v1.0.3` notu (7 Kasım 2026):** dördüncü yayın, W3-01…W3-06 ile kart takiplerini
+(`ded67d9`, `0634a49`, `0738f18`) taşıyan bir **patch** sürümüdür; `v1.0.2..v1.0.3` aralığı
+arama panelini de (`12945b2`) içerir, yani `Ctrl+F`/`F3`/`Ctrl+H` ilk kez bu sürümle kullanıcıya
+ulaştı. Bu, W4-05'in sürüm numarası gerekçesini değiştirir (kartın içindeki düzeltmeye bakınız).
+Tablodaki sayılar `2df2324` anındadır; **bu bölümü senkronlayan commit tabloya dahil
+edilmemiştir** (sayıyı her belge düzeltmesinde bir artırmak tabloyu ölçüm olmaktan çıkarırdı).
+
 İki sayı bu tablodan **türetilmemelidir**:
 
-- `analysis.md` §12 skorları ve §13 aday havuzu 2 Kasım ölçümüdür. Yedi boyutun beşi (motor,
+- `analysis.md` §12 skorları ve §13 aday havuzu 2 Kasım ölçümüdür. Beş boyutun beşi (motor,
   deneyim, ambalaj, güven, pazara erişim) o günden beri W0–W3 kartlarıyla hareket etti;
   güncel skor ancak G4'ten sonra yeniden ölçülür. §2.2'deki "beklenen sonuç" sütunu bu yüzden
   bir **hedef değil**, bir yön göstergesidir.
@@ -995,15 +1002,25 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
 - **Doğrulama:** `mvn test -Dtest=AppSettingsTest,MainControllerTest`.
 
 **W4-03 · A7b — Minimum pencere genişliği** · S · U8
-- **Kapsam:** `MainStage.java:53-54`, `ToolbarFit`
-- **Yapılacak:** `setMinWidth`; araç çubuğu kırpılması biter.
+- **Kapsam:** `MainStage.configure()` (geometri geri yükleme, `MainStage.java:44-62`),
+  `ToolbarFit`, `README.md` + `README-TR.md`
+- **Yapılacak:** `setMinWidth`; araç çubuğu kırpılması biter. Değer sihirli sayı olmaz:
+  en geniş **compact** satırın ölçülen genişliğinden türetilir (`ToolbarFit` altı dilin
+  tamamını ölçüyor; 7 Kasım ölçümünde en genişi ES).
 - **Bitti tanımı:** Minimum genişlikte hiçbir araç çubuğu öğesi kırpılmıyor (`ToolbarFit`
-  testiyle).
+  testiyle); kayıtlı geometri minimumdan darsa JavaFX kırpar, ayar sonraki kayıtta kendini
+  onarır (test).
+- **Kaynak referansı (7 Kasım 2026):** kartın verdiği `MainStage.java:53-54` eskimiştir;
+  geometri geri yükleme `configure()` içinde `MainStage.java:44-62`'ye taşındı.
 - **Doğrulama:** `mvn test -Dtest=ToolbarFitTest,MainStageTest`.
 
 **W4-04 · A17 — Ses politikası** · S · U9
-- **Kapsam:** `ui/component/EditorKeyHandler.java:31-40`, `audio/TypewriterSound`,
-  `MainMenu` (Görünüm → Ses), `AppSettings`
+- **Kapsam:** `ui/component/EditorKeyHandler.java:41-52` (`handleKeyPressed`/`handleKeyTyped`),
+  `audio/TypewriterSound.java:39,55` (sabit `volume`, `stop()+play()`), `AppSettings`
+- **Durum notu (7 Kasım 2026):** Kartın "`MainMenu` (Görünüm → Ses)" maddesi **büyük ölçüde
+  karşılanmıştır**: W3-02 takibiyle Görünüm → Ses artık bir değer alt menüsü (`ChoiceEntry`),
+  yani aç/kapat satırı menüde var. Eksik olan **düzey** satırıdır; o yüzden bu kart yeni bir
+  `EditorAction` değil, `MainMenu.Settings` portuna (`ChoiceKind`) bir değer kümesi ekler.
 - **Yapılacak:** Ses yalnız **metin üreten** tuşlarda; ok/kısayol tuşları sessiz; ses düzeyi
   ayarı; hızlı yazımda `stop()+play()` yerine kesmesiz çalma.
 - **Bitti tanımı:** (1) Ok tuşu ve kısayol ses çıkarmıyor (saf politika testi). (2) Düzey
@@ -1011,18 +1028,35 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
 - **Doğrulama:** `mvn test -Dtest=AudioAssetTest` + yeni `SoundPolicyTest`.
 
 **W4-05 — `v1.1.0` yayını** · S · B2
+- **Kapsam:** `pom.xml` (sürüm), `docs/release-notes-template.md` (erken erişim cümlesi),
+  `.github/workflows/release.yml` (`--prerelease`), `ReleaseNotesTest` (iki pin), tag
 - **Yapılacak:** W1-03'ün tekrarı; bu kez **pre-release işareti kaldırılır** — işaret `release.yml`'deki `gh release create ... --prerelease` satırıdır, kart o satırı kaldırır (`ReleaseNotesTest` bu satırı pinliyor; kart onu da güncellemeli).
-- **Bitti tanımı:** Release'te 6 varlık; notlar iki dilli; `SHA256SUMS` doğrulanıyor.
-- **Doğrulama:** W1-03 ile aynı API sorgusu.
-- **Sürüm numarası — düzeltme (7 Kas 2026):** Kart, "W2 işi `v1.1.0`'a gider" varsayımıyla
+  **Bayrak tek başına kaldırılamaz:** `docs/release-notes-template.md:5-7` iki yarıda da
+  "Early access / pre-release" diyor ve `ReleaseNotesTest.theNoteMarksEarlyAccessAndMeasuresTheDownloadSizes`
+  bu cümleyi **pinliyor**. Yalnız bayrağı silmek, W1-03'te düzeltilen kusuru **ters yönde**
+  yeniden üretir: sayfa "Latest" der, gövdesi "pre-release" der. Üçü **tek commit'te** değişir:
+  bayrak, şablon metni, iki test pinı.
+- **Bitti tanımı:** Release'te 6 varlık; notlar iki dilli; `SHA256SUMS` doğrulanıyor; notta
+  erken erişim işareti **yok** ve `ReleaseNotesTest` yeni sözleşmeyi (bayrak yok ↔ metin yok)
+  iki yönde pinliyor; `pom.xml` sürümü tag ile aynı.
+- **Doğrulama:** W1-03 ile aynı API sorgusu + `git tag -l | tail -1` = `v1.1.0` +
+  `mvn test -Dtest=ReleaseNotesTest`.
+- **Sürüm numarası — birinci düzeltme (7 Kas 2026):** Kart, "W2 işi `v1.1.0`'a gider" varsayımıyla
   yazılmıştı. Gerçek akış farklı oldu: W2 sertleştirmesi **`v1.0.1` ve `v1.0.2` patch'leri**
-  olarak yayınlandı (`pom.xml` 1.0.2), çünkü W2'nin tamamı davranış düzeltmesiydi ve kapı G2
-  değişen dış sözleşme getirmedi. Sonuç: `v1.1.0`'ın *minor* gerekçesi artık **W3-06 (arama)**
-  — ürünün ilk yeni kullanıcı yeteneği — ve `v1.1.0` doğru numaradır, ama gerekçesi W2 değil
-  W3'tür. W4-05 W3 kapanmadan yayınlanamaz.
-- **Üç sürüm de pre-release (7 Kas 2026):** `v1.0.0`, `v1.0.1`, `v1.0.2` üçü de
+  olarak yayınlandı, çünkü W2'nin tamamı davranış düzeltmesiydi ve kapı G2 değişen dış sözleşme
+  getirmedi.
+- **Sürüm numarası — ikinci düzeltme (7 Kasım 2026, `2df2324`):** Bir önceki düzeltme `v1.1.0`'ın
+  *minor* gerekçesini **W3-06 (arama)** diye yazmıştı; o gerekçe artık **geçersiz**, çünkü arama
+  başka bir sürümde değil **`v1.0.3` patch'inde** yayınlandı (`v1.0.2..v1.0.3`, §1.4). Yani
+  numara iki seçenekten birine bağlıdır ve **karar verilmeden kart yazılmamalıdır**:
+  (a) **`v1.1.0`** — W4-02 (son dosyalar, karşılama opt-out) ve W4-04 (ses düzeyi + politika)
+  yeni *kullanıcıya görünen yetenek* getirdiği için minor; (b) **`v1.0.4`** — W4 "davranış
+  düzeltmesi + cila" sayılıyorsa patch. Semver'i belirleyen kart sayısı değil, **dış sözleşmede
+  yeni yetenek olup olmadığıdır**; bu yüzden karar W4-02 ve W4-04 bitmeden verilemez.
+  Yol haritasının geri kalanındaki `v1.1.0` adı bu karar verilene kadar **çalışma adıdır**.
+- **Dört sürüm de pre-release (7 Kasım 2026):** `v1.0.0`, `v1.0.1`, `v1.0.2`, `v1.0.3` dördü de
   `prerelease=true` ve bu yüzden GitHub'da **"Latest release" etiketi yok** — sayfayı açan
-  kişi yayında işe yarar bir sürüm görmüyor. `v1.1.0` bu işareti kaldıran ilk sürüm olacak;
+  kişi yayında işe yarar bir sürüm görmüyor. W4-05 bu işareti kaldıran ilk sürüm olacak;
   patch'ler geriye dönük işaretlenmez (yayınlanmış bir artefaktın meta verisini sonradan
   değiştirmek "yayınlanan şey değişmez" ilkesini bozar).
 
