@@ -41,20 +41,20 @@ yerleştirilmiştir, ayrı bir kuyruk oluşturmaz — üçü de kapatıldı (W0-
 Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir sayı burada yoksa
 `analysis.md`'den geliyordur ve `analysis.md` 2 Kasım'dan beri güncellenmediği için bayattır.
 
-| Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`W3-04 sonrası`) |
+| Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`W3-05 sonrası`) |
 |---|---:|---:|
-| Commit | 137 | **177** (+40) |
-| Üretim sınıfı / satırı | 51 / 7.611 | **61 / 10.961** |
-| Test dosyası / `@Test` | 42 / 350 | **53 / 488** |
+| Commit | 137 | **178** (+41) |
+| Üretim sınıfı / satırı | 51 / 7.611 | **62 / 11.362** |
+| Test dosyası / `@Test` | 42 / 350 | **54 / 518** |
 | Bundle anahtarı | 6 × 90 | **6 × 131** |
-| `mvn -B clean test` | 350/0/0 | **488/0/0** |
+| `mvn -B clean test` | 350/0/0 | **518/0/0** |
 | Tag / Release | 0 / 0 | **3 / 3** (`v1.0.0`, `v1.0.1`, `v1.0.2`) |
 | Release varlığı | — | **6** (5 ikili/kaynak + `SHA256SUMS`) |
 | Release işareti | — | **üçü de `prerelease=true`** |
 | `verify-artifacts` karşılaştırması | 17 | **20** (gömülü font lisansı +2, font kaynağı +1) |
 | Yıldız / çatal / issue | 0 / 0 / 0 | **0 / 0 / 0** |
 
-**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ◐ (W3-01…W3-04 ✅; W3-05, W3-06 ☐) · W4 ☐.
+**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ◐ (W3-01…W3-05 ✅; W3-06 ☐) · W4 ☐.
 Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ◐ · G4 ☐**.
 
 İki sayı bu tablodan **türetilmemelidir**:
@@ -843,6 +843,35 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
 - **Bitti tanımı:** Model toolkit açmadan test ediliyor; boş desen, regex yok, taşan aralık,
   değiştir-sonrası-kayma senaryoları testli.
 - **Doğrulama:** `mvn test -Dtest=FindModelTest` (yeni).
+- **Uygulama (7 Kasım):** `ui/FindModel` tek dosyada üç kayıt + iki eşleşme kuralı taşıyor:
+  `Match(start,end)` yarım-açık aralık, `Replacement(document,count,current)` sonucu.
+  Kararlar: (1) **Sorgu düz metindir, regex değil** — `a.*b` beş karakter olarak aranıyor,
+  `$1` dört karakter olarak yazılıyor; regex sözdizimi hiçbir yerde yorumlanmadığı için geçersiz
+  desen diye ikinci bir hata yolu da yok. (2) **Eşleşmeler çakışmasız ve soldan sağa** —
+  `aaaa` içinde `aa` iki eşleşme; her eşleşmeden sonra tarama onun sonundan devam ediyor, bu da
+  "tümünü değiştir"i doğrusal tutuyor. (3) **Büyük-küçük harf varsayılan yerel ayara bağlı
+  değil** — `regionMatches(...)` kullanılıyor, `toLowerCase()` değil; Türkçe varsayılanda `I`,
+  `toLowerCase()` ile `ı` olurdu ve aynı sorgu makineye göre farklı metin bulurdu (test `tr-TR`
+  varsayılanı altında koşuyor). (4) **Sarmalama iki yönde** — son eşleşmede `F3` ilkine, ilk
+  eşleşmede `Shift+F3` sonuncusuna; arama ilk eşleşmenin *önünde* başlıyor ki ilk `F3` onu
+  atlamasın. Eşleşme yoksa her iki yön de boş kalıyor (boş liste üzerinde sarmak sahte bir
+  isabet olurdu). (5) **Değiştirme indeksleri elle kaydırmıyor, yeniden tarıyor** — eşleşme
+  boyu değiştiği için tek geçişte yeni metin kuruluyor, ardından liste yeniden taranıyor; "tek
+  değiştir" imleci eklenen metnin *ötesindeki* ilk eşleşmeye koyuyor, yani bir sonraki
+  `Değiştir` kendi çıktısına basmıyor. "Tümünü değiştir" kendi çıktısını **taramasının
+  sürücüsü yapmıyor** (`a` → `aa` sonsuz döngü olurdu); geçiş özgün metnin eşleşmeleriyle
+  sürülüyor ve dönen sayı tam. (6) **Sığmayan aralık kırpılmıyor, reddediliyor** — panel
+  önceki metnin taramasını tutarken kullanıcı yazmaya devam edebilir; belge sonunu aşan bir
+  aralık `substring` ile `StringIndexOutOfBoundsException` atardı, bu yüzden `replace(...)`
+  boş dönüyor ve `install(...)` sığmayan aralıkları düşürüyor.
+  Thread sınırı da modelde: `findAll(document, needle, caseSensitive)` **saf statik** ve her
+  iş parçacığında güvenli (W3-06 paneli 10 MB taramayı FX thread'inde yapmayacak), sonuç
+  `install(...)` ile geri veriliyor; tarama sırasında belge ya da sorgu değiştiyse kurulum
+  reddediliyor (bayat sonuç sessizce uygulanmıyor).
+  **Kanıt:** `mvn test -Dtest=FindModelTest` → **30/30**; `mvn -B clean test` → **518/0/0**.
+  Mutasyon: tarama `at + 1` ile ilerletilince (çakışan aralıklar) 3 test kırmızı;
+  `startsWith` ile büyük-küçük harf duyarsızlığı atılınca 2 test kırmızı; değiştirme sonrası
+  imleç `start`'ta bırakılınca 1 test kırmızı; taşma koruması kaldırılınca 1 hata (exception).
 
 **W3-06 · A2b — Arama/değiştirme paneli** · M · E1
 - **Kapsam:** yeni panel + `Ctrl+F` / `F3` / `Shift+F3` / `Ctrl+H` + `MainMenu` öğeleri
@@ -976,7 +1005,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W3-02 | Komut menüsü (araç çubuğunda `☰`) | E2 | M | W3-01 | ✅ | `mvn test -Dtest=MainControllerTest,ToolbarFitTest,MessagesTest` → 10/10 + 13/13 + 12/12: `MainMenu.layout()` dört menüde 14 platform-dışı `EditorAction`'ı tam bir kez içeriyor, altı dilde başlık/etiket dolu, Yardım komut taşımıyor (yalnız Hakkında dialogu); menü düğmesi `fitControls()`'un ilk kontrolü olduğu için genişlik modeli onu da ölçüyor (FR compact 817 px < 900). `Ctrl+T` araç çubuğuyla birlikte menüyü de gizliyor (ayrı krom satırı yok). Mutasyon: `SAVE_AS` layout'tan çıkarılınca kapsam testi kırmızı (14→13), menü satırı `fitControls()`'tan çıkarılınca ölçüm testi kırmızı (ikisi de geri alındı). `mvn -B clean test` → 443/443 |
 | W3-03 | CLI argümanı | E3 | S | W3-01 | ✅ | `StartupArguments` + `FxApplication` bağlantısı: argümanlı başlatma belgeyi açıyor, geçersiz yol arayüz dilinde adıyla bildiriliyor, ikinci örnek devri yok; `mvn -B clean test` → 466/0/0, odaklı 34/0/0; paketli `smoke-appimage.sh --open-sample --skip-deb` → PASS (başlık `JTypeWriter - cli-sample.txt`); `verify-artifacts.sh --skip-build` → 20/20 |
 | W3-04 | Sürükle-bırak | E4 | S | W3-01 | ✅ | `DroppedFiles` (saf karar) + `DropHandler` (sahne filtresi) + `FileService.openPathAsync`: `.txt`/`.md` bırakma Aç ile aynı SAVE/DISCARD/CANCEL matrisinden geçiyor, ret adıyla/adediyle bildiriliyor, dosya taşımayan jest düzenleyiciye bırakılıyor; `mvn -B clean test` → 488/0/0, odaklı DroppedFiles+DropContract+FileService+Messages 13/5/50/13, `ExitDispositionTest,MainStageTest` yeşil |
-| W3-05 | `FindModel` | E1 | M | W2-01, W3-01 | ☐ | |
+| W3-05 | `FindModel` | E1 | M | W2-01, W3-01 | ✅ | `ui/FindModel` (saf): düz metin sorgu/değiştirme (regex yok), çakışmasız soldan sağa tarama, varsayılan yerel ayara bağlı olmayan büyük-küçük harf (`regionMatches`), iki yönde saran ileri/geri, değiştirme sonrası yeniden tarama, sığmayan aralığı reddetme; `findAll` saf statik (W3-06 paneli FX thread'inde taramayacak) ve `install` bayat taramayı atıyor; `mvn test -Dtest=FindModelTest` → 30/30, `mvn -B clean test` → 518/0/0, dört mutasyon kırmızı |
 | W3-06 | Arama paneli | E1 | M | W3-05 | ☐ | |
 | W4-01 | Ayar şema sürümü | D13, D12 | S | — | ☐ | |
 | W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ☐ | |

@@ -353,6 +353,7 @@ org.mesutormanli.jtypewriter
 │   ├── CrashHandler.java                 # Global crash net: log + error dialog
 │   ├── DropHandler.java                  # Scene-level file drop glue (resolve, open, report)
 │   ├── DroppedFiles.java                 # Drop decision: one readable .txt/.md (pure)
+│   ├── FindModel.java                    # Find/replace scan, cursor and replace decisions (pure)
 │   ├── SingleInstanceWarning.java        # "Already running" warning window
 │   ├── component/
 │   │   ├── EditorArea.java               # TextArea enforcing the YOLO policy
@@ -391,6 +392,7 @@ org.mesutormanli.jtypewriter
 | `YoloPolicy` | YOLO mode edit policy (blocks deletions, allows insertions) |
 | `DroppedFiles` | Pure decision behind a file drop: exactly one readable `.txt`/`.md` becomes the document to open; no file, several files, another type, a folder or a vanished path becomes a localized refusal |
 | `DropHandler` | Scene-level drag glue: accepts the gesture as an event filter (so the text area cannot treat it as dragged text), resolves it through `DroppedFiles` and opens the document through the same unsaved-changes gate as Open |
+| `FindModel` | Pure find/replace model: literal (non-regex) non-overlapping matches, case-sensitive or not without depending on the default locale, wrapping next/previous, replace-one and replace-all that re-scan after an edit, and a range that no longer fits the document is refused instead of applied |
 | `StartupArguments` | Pure resolution of the process argument behind `JTypeWriter <file>`: a regular file becomes the document to open, while a missing path, a directory, an unparsable path or more than one argument becomes a localized refusal instead of a silent empty editor; a symbolic link keeps its own name |
 | `EditorKeyHandler` | Handles keystroke sound effects and session stats tracking |
 | `StatsBar` | Renders the clock and the *saved at ...* confirmation, both in the UI language's date/time formats, and live session statistics in the bottom bar; shows a persistent warning naming the autosave failure, with separate text for a stale draft, and its text size cycles on double-click |
@@ -466,6 +468,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `AutoSaveServiceTest` | Opening or creating a document drops the previous document's stale recovery draft; a postponed draft survives an exit and no longer silences autosave of the new document (regression); an answered exit clears the draft, an unasked exit parks it, a frozen slot keeps the file untouched, and failed snapshots or parked drafts report health; a failed delete keeps the warning without a dialog and a later successful delete withdraws it; a draft older than the document on disk is restored without its path |
 | `ExitDispositionTest` | The four-way exit matrix: answered vs unasked exit against a live vs frozen slot, with a frozen slot winning over every other signal |
 | `DroppedFilesTest` | The drop decision: `null`/empty file list, one file, `.md`, an upper-case extension, several files (refused with the count), a PDF and an extension-less file, a path that vanished before the drop, a directory named `*.txt`, a symlink that keeps its name, and the suffix check rejecting names that only end with the same letters |
+| `FindModelTest` | The find/replace model: literal query and replacement, non-overlapping scan, case sensitivity under a Turkish default, wrapping in both directions, a search restarting before the first match, a background scan that is stale or oversize being dropped, replace-all not rescanning its own output, replace-one selecting the next match past the inserted text, and a range past the end being refused |
 | `DropContractTest` | Source-level contract for the drop: `MainStage` installs it, it filters `DRAG_OVER`/`DRAG_DROPPED` on the whole scene, it opens only through `FileService.openPathAsync` (no second save prompt, no direct save), it hands the loaded text to the editor, and no source outside `FileService` asks the unsaved-changes question |
 | `StartupArgumentsTest` | The `JTypeWriter <file>` decision: no/blank argument, an existing regular file, a relative path, a missing path, a directory, two arguments, a symlink that keeps its name, and text the platform cannot parse |
 | `AutosaveHealthTest` | Sticky failure state (`DRAFT_WRITE` / `DRAFT_PARK` / `DRAFT_DELETE`) that survives repeated failures, clears on a successful write and notifies once per real transition |

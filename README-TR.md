@@ -348,6 +348,9 @@ org.mesutormanli.jtypewriter
 │   ├── AboutDialog.java                  # Yazar bilgisiyle hakkında dialogu
 │   ├── KeyboardShortcutHandler.java      # Merkezi klavye kısayolu yönetimi
 │   ├── CrashHandler.java                 # Global çökme ağı: log + hata diyaloğu
+│   ├── DropHandler.java                  # Sahne düzeyinde dosya bırakma tutkalı (çöz, aç, bildir)
+│   ├── DroppedFiles.java                 # Bırakma kararı: tek okunabilir .txt/.md (saf)
+│   ├── FindModel.java                    # Arama/değiştirme taraması, imleç ve değiştirme kararları (saf)
 │   ├── SingleInstanceWarning.java        # "Zaten çalışıyor" uyarı penceresi
 │   ├── component/
 │   │   ├── EditorArea.java               # YOLO politikasını uygulayan TextArea
@@ -386,6 +389,7 @@ org.mesutormanli.jtypewriter
 | `YoloPolicy` | YOLO modu düzenleme politikası (silmeyi engeller, eklemeye izin verir) |
 | `DroppedFiles` | Dosya bırakmanın arkasındaki saf karar: tam olarak bir okunabilir `.txt`/`.md` açılacak belge olur; dosya olmaması, birden çok dosya, başka bir tür, bir klasör ya da kaybolmuş yol arayüz dilinde bir ret bildirimine dönüşür |
 | `DropHandler` | Sahne düzeyinde sürükleme tutkalı: jesti olay filtresi olarak kabul eder (böylece metin alanı onu sürüklenen metin sanamaz), `DroppedFiles` ile çözer ve belgeyi Aç ile aynı kaydedilmemiş değişiklik kapısından geçirerek açar |
+| `FindModel` | Saf ara/değiştir modeli: düz metin (regex değil) ve çakışmasız eşleşmeler, varsayılan yerel ayara bağlı olmayan büyük-küçük harf duyarlılığı, iki yönde saran ileri/geri, düzenlemeden sonra yeniden tarayan tek/tümünü değiştir; artık belgeye sığmayan aralık uygulanmaz, reddedilir |
 | `StartupArguments` | `JTypeWriter <dosya>` arkasındaki süreç argümanının saf çözümü: normal bir dosya açılacak belge olur; olmayan yol, dizin, çözülemeyen yol ya da birden çok argüman sessizce boş bir düzenleyici yerine arayüz dilinde bir ret bildirimi olur; sembolik bağlantı kendi adını korur |
 | `EditorKeyHandler` | Tuş vuruşu ses efektleri ve oturum istatistiklerini yönetir |
 | `StatsBar` | Saati ve *kaydedildi ...* onayını arayüz dilinin tarih/saat biçimleriyle alt çubukta gösterir; otomatik kayıt hatasını adlandıran kalıcı bir uyarı gösterir, eski taslak için ayrı metin kullanır ve yazı boyutu çift tıklamayla döner |
@@ -461,6 +465,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `AutoSaveServiceTest` | Belge açıldığında veya yeni belge oluşturulduğunda önceki belgenin bayat kurtarma taslağının silinmesi; ertelenen taslağın çıkışta korunması ve yeni belgenin otomatik kaydını artık susturmaması (regresyon); yanıtlanmış çıkışın taslağı silmesi, sorulmamış çıkışın taslağı park etmesi, dondurulmuş slotun dosyayı olduğu gibi koruması ve başarısız anlık görüntü veya park işlemlerinin sağlık durumunu bildirmesi; başarısız bir silmenin uyarıyı diyalog olmadan koruması ve sonraki başarılı silmenin uyarıyı kaldırması; diskteki belgeden daha eski bir taslağın yolu olmadan geri yüklenmesi |
 | `ExitDispositionTest` | Dört yönlü çıkış matrisi: canlı ve dondurulmuş slot karşısında yanıtlanmış ve sorulmamış çıkış; dondurulmuş slot diğer tüm sinyallerin önüne geçer |
 | `DroppedFilesTest` | Bırakma kararı: `null`/boş dosya listesi, tek dosya, `.md`, büyük harfli uzantı, birden çok dosya (sayıyla reddedilir), PDF ve uzantısız dosya, bırakmadan önce kaybolmuş yol, `*.txt` adlı bir klasör, adını koruyan symlink ve yalnız aynı harflerle biten adları reddeden sonek kontrolü |
+| `FindModelTest` | Ara/değiştir modeli: düz sorgu ve değiştirme, çakışmasız tarama, Türkçe varsayılan altında büyük-küçük harf, iki yönde sarma, aramanın ilk eşleşmeden önce yeniden başlaması, eski ya da taşan bir arka plan taramasının atılması, tümünü değiştirmenin kendi çıktısını yeniden taramaması, tek değiştirmenin eklenen metnin ötesindeki sonraki eşleşmeyi seçmesi ve belge sonunu aşan aralığın reddedilmesi |
 | `DropContractTest` | Bırakma için kaynak düzeyinde sözleşme: `MainStage` onu kuruyor, tüm sahnede `DRAG_OVER`/`DRAG_DROPPED` filtreliyor, yalnız `FileService.openPathAsync` üzerinden açıyor (ikinci kaydetme sorusu ve doğrudan kaydetme yok), yüklenen metni düzenleyiciye veriyor ve `FileService` dışında hiçbir kaynak kaydedilmemiş değişiklik sorusunu sormuyor |
 | `StartupArgumentsTest` | `JTypeWriter <dosya>` kararı: argümansız/boş argüman, var olan normal dosya, göreli yol, olmayan yol, dizin, iki argüman, adını koruyan symlink ve platformun yol olarak çözemediği metin |
 | `AutosaveHealthTest` | Yapışkan hata durumu (`DRAFT_WRITE` / `DRAFT_PARK` / `DRAFT_DELETE`); tekrarlanan hatalar boyunca korunur, başarılı bir yazımda temizlenir ve her gerçek geçişte tek bir bildirim gönderir |
