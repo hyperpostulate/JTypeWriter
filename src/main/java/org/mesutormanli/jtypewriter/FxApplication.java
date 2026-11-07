@@ -86,16 +86,15 @@ public class FxApplication extends Application {
             app.autoSaveService.attach(primaryStage, app.editorArea);
             // A document named on the command line is what the user asked for;
             // the welcome card would be the answer to a question nobody asked.
-            // Every other path keeps the historical behaviour (see W4-02, which
-            // gives the card an opt-out of its own).
-            if (openedFromArguments) {
-                // No card over the text: the first keystroke goes into it.
-                app.editorArea.requestFocus();
-            } else {
+            if (greetsAtStartup(openedFromArguments, app.settings.isWelcomeCardEnabled())) {
                 // The card takes focus itself (Escape and Enter dismiss it) and
                 // hands it back to the editor when it closes, so nothing here
                 // has to undo a hand-over.
                 app.welcomeCard.show();
+            } else {
+                // Either the user opted out, or the text is what they asked for:
+                // in both cases the first keystroke belongs in the editor.
+                app.editorArea.requestFocus();
             }
             // Settings are written before this point (theme, geometry, session
             // restore); a failed write could not be reported then because there
@@ -105,6 +104,18 @@ public class FxApplication extends Application {
             app.crashHandler.report("Startup failed", error);
             throw error;
         }
+    }
+
+    /**
+     * The startup greeting policy: greet unless the text is what the user asked
+     * for, and unless they have turned the card off. Pure so both rules are
+     * pinned without a toolkit - the opt-out is a preference, not a hidden
+     * branch in the startup sequence, and a document named on the command line
+     * outranks a greeting in every case (the card would cover the text the user
+     * asked to see).
+     */
+    static boolean greetsAtStartup(boolean openedFromArguments, boolean welcomeEnabled) {
+        return !openedFromArguments && welcomeEnabled;
     }
 
     /**

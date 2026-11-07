@@ -160,6 +160,16 @@ public class Messages {
         return bundle.getString("welcomeTitle");
     }
 
+    /** The checkbox on the welcome card: "don't show this again". */
+    public String welcomeOptOut() {
+        return bundle.getString("welcomeOptOut");
+    }
+
+    /** The heading above the welcome card's recent-document rows. */
+    public String welcomeRecentTitle() {
+        return bundle.getString("welcomeRecentTitle");
+    }
+
     /** The one-line description of the app shown under the title in both cards. */
     public String appTagline() {
         return bundle.getString("appTagline");
@@ -491,6 +501,11 @@ public class Messages {
 
     public String menuFile() {
         return bundle.getString("menuFile");
+    }
+
+    /** The File menu's view command that reopens the welcome card. */
+    public String menuShowWelcome() {
+        return bundle.getString("menuShowWelcome");
     }
 
     public String menuEdit() {

@@ -506,6 +506,55 @@
     -fx-padding: 0 4px 10px 4px;
 }
 
+/* W4-02: the recent-document rows and the opt-out under the shortcut card.
+   They reuse the welcome card's own text/muted tokens so the three themes keep
+   their contrast guarantees; only the hover/focus surfaces are shared with the
+   find panel's quiet buttons. */
+.welcome-recent-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-text-fill: -welcome-muted;
+}
+
+.welcome-recent-item {
+    -fx-font-size: 12px;
+    -fx-text-fill: -welcome-text;
+    -fx-background-color: transparent;
+    -fx-border-color: -welcome-card-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 5px 9px;
+    -fx-cursor: hand;
+}
+
+.welcome-recent-item:hover {
+    -fx-background-color: -welcome-card-bg;
+}
+
+.welcome-recent-item:focused {
+    -fx-border-color: -focus-ring;
+}
+
+/* The opt-out mirrors .find-option: it is the same kind of quiet, small
+   checkbox, just on a different surface. */
+.welcome-option {
+    -fx-font-size: 11px;
+    -fx-text-fill: -welcome-muted;
+}
+
+.welcome-option > .box {
+    -fx-border-color: -welcome-card-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 2px;
+    -fx-background-color: -welcome-card-bg;
+    -fx-background-radius: 2px;
+}
+
+.welcome-option:selected .mark {
+    -fx-background-color: -welcome-text;
+}
+
 /* Surface of the two-column shortcut card built by ShortcutTable (a GridPane).
    The typography used to live here while the card was one wide Label; with
    per-column child labels it moved to .shortcut-key / .shortcut-description,

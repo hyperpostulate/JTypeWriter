@@ -20,6 +20,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -103,6 +104,10 @@ public final class AppSettings {
     private static final String KEY_TOOLBAR_VISIBLE = "toolbar.visible";
     private static final String KEY_STATS_SIZE = "stats.size";
     private static final String KEY_STORAGE_NOTICE = "notice.storage.shown";
+    private static final String KEY_WELCOME_ENABLED = "welcome.enabled";
+
+    /** Recent documents are stored one per indexed key, in display order. */
+    private static final String KEY_RECENT_PREFIX = "recent.file.";
     private static final String KEY_LAST_FILE = "last.file";
     private static final String KEY_LAST_DIR = "last.directory";
     private static final String KEY_WINDOW_MAXIMIZED = "window.maximized";
@@ -214,6 +219,62 @@ public final class AppSettings {
         set(KEY_STORAGE_NOTICE, String.valueOf(shown));
     }
 
+    /**
+     * Whether the welcome card is greeted with at launch (default: shown).
+     *
+     * <p>The card's own checkbox writes this, and the File menu's "Show
+     * welcome" clears it again - one preference, two entry points, so the
+     * opt-out can never become a door the user cannot reopen.</p>
+     */
+    public boolean isWelcomeCardEnabled() {
+        return getBool(KEY_WELCOME_ENABLED, true);
+    }
+
+    public void setWelcomeCardEnabled(boolean enabled) {
+        set(KEY_WELCOME_ENABLED, String.valueOf(enabled));
+    }
+
+    // --- recent documents -------------------------------------------------
+
+    /**
+     * The documents the welcome card offers, newest first: at most
+     * {@link RecentFiles#MAX}, one row per document, and only those that still
+     * exist. A document deleted outside the app leaves the list silently rather
+     * than becoming a row that fails when clicked.
+     *
+     * <p>Gaps are allowed: an unusable entry (a hand-edited path, a value the
+     * file system rejects) is skipped instead of ending the list, so one bad key
+     * cannot hide the rest.</p>
+     */
+    public List<Path> getRecentFiles() {
+        var stored = new ArrayList<Path>();
+        for (var index = 0; index < RecentFiles.MAX; index++) {
+            var raw = props.getProperty(KEY_RECENT_PREFIX + index);
+            if (raw == null || raw.isBlank()) {
+                continue;
+            }
+            try {
+                stored.add(Path.of(raw.trim()));
+            } catch (InvalidPathException e) {
+                LOG.log(Level.FINE, "ignoring unusable recent document " + raw);
+            }
+        }
+        return RecentFiles.keepingOnly(RecentFiles.normalized(stored), Files::isRegularFile);
+    }
+
+    private void writeRecentFiles(List<Path> documents) {
+        // Clear every slot first: the list only ever shrinks by dropping its
+        // tail, and a stale key beyond the new size would come back as a
+        // document the user did not open.
+        for (var index = 0; index < RecentFiles.MAX; index++) {
+            props.remove(KEY_RECENT_PREFIX + index);
+        }
+        for (var index = 0; index < documents.size() && index < RecentFiles.MAX; index++) {
+            props.setProperty(KEY_RECENT_PREFIX + index,
+                    documents.get(index).toAbsolutePath().toString());
+        }
+    }
+
     // --- session restore --------------------------------------------------
 
     /** The document that was open when the application last exited. */
@@ -243,6 +304,10 @@ public final class AppSettings {
         if (parent != null) {
             props.setProperty(KEY_LAST_DIR, parent.toString());
         }
+        // Opening or saving a document is the one event both the session restore
+        // and the welcome card's recent list care about, so they are written
+        // together - one save, one file state.
+        writeRecentFiles(RecentFiles.withNewest(getRecentFiles(), absolute));
         save();
     }
 

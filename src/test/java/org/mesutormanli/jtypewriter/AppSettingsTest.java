@@ -499,4 +499,113 @@ class AppSettingsTest {
             Files.setPosixFilePermissions(folder, original);
         }
     }
+
+    /**
+     * W4-02: the welcome card offers recently opened documents, so opening one
+     * has to be remembered in the order it happened - the card's whole value is
+     * that "the one I was just writing" is at the top.
+     */
+    @Test
+    void recentDocumentsSurviveARestartNewestFirst(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        var settings = new AppSettings(file);
+        var first = Files.writeString(dir.resolve("first.txt"), "one");
+        var second = Files.writeString(dir.resolve("second.txt"), "two");
+
+        settings.rememberFile(first);
+        settings.rememberFile(second);
+
+        var reloaded = new AppSettings(file).getRecentFiles();
+        assertEquals(List.of(second.toAbsolutePath(), first.toAbsolutePath()), reloaded);
+    }
+
+    /**
+     * Reopening a document moves it back to the top instead of listing it
+     * twice, and the list stops at {@link RecentFiles#MAX} entries: the card is
+     * a greeting, not a file manager.
+     */
+    @Test
+    void theRecentListIsCappedAndDeduplicated(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        var settings = new AppSettings(file);
+        var documents = new ArrayList<Path>();
+        for (var index = 0; index < RecentFiles.MAX + 3; index++) {
+            documents.add(Files.writeString(dir.resolve("doc-" + index + ".txt"), "text " + index));
+        }
+
+        for (var document : documents) {
+            settings.rememberFile(document);
+        }
+        settings.rememberFile(documents.get(0)); // reopened: back to the front, still one row
+
+        var recent = new AppSettings(file).getRecentFiles();
+        assertEquals(RecentFiles.MAX, recent.size(), "the list must not grow past the cap");
+        assertEquals(documents.get(0).toAbsolutePath(), recent.get(0),
+                "the reopened document must be first");
+        assertEquals(1,
+                recent.stream().filter(path -> path.equals(documents.get(0).toAbsolutePath())).count(),
+                "a reopened document must appear exactly once");
+        assertFalse(recent.contains(documents.get(1).toAbsolutePath()),
+                "the entries that fell off the cap are the oldest, not the reopened one");
+    }
+
+    /**
+     * A document deleted outside the app must silently leave the list. The card
+     * cannot offer a row that fails when clicked: that would be a permanent
+     * error the user has no way to clear, on a surface shown at every launch.
+     */
+    @Test
+    void aDeletedDocumentSilentlyLeavesTheRecentList(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        var settings = new AppSettings(file);
+        var kept = Files.writeString(dir.resolve("kept.txt"), "keep me");
+        var removed = Files.writeString(dir.resolve("removed.txt"), "delete me");
+        settings.rememberFile(kept);
+        settings.rememberFile(removed);
+
+        Files.delete(removed);
+
+        var recent = assertDoesNotThrow(() -> new AppSettings(file).getRecentFiles());
+        assertEquals(List.of(kept.toAbsolutePath()), recent);
+    }
+
+    /** A hand-edited or half-written entry is skipped, not fatal. */
+    @Test
+    void anUnusableRecentEntryIsIgnored(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        var kept = Files.writeString(dir.resolve("kept.txt"), "text");
+        Files.writeString(file, "recent.file.0=" + kept + "\nrecent.file.1=bad" + (char) 0 + "name\n");
+
+        var recent = new AppSettings(file).getRecentFiles();
+
+        assertEquals(List.of(kept), recent);
+    }
+
+    /**
+     * W4-02: the greeting is on until the user says otherwise, and the opt-out
+     * is a stored preference - an in-memory flag would bring the card back at
+     * the next launch, which is exactly the nag the checkbox exists to stop.
+     */
+    @Test
+    void theWelcomeCardIsShownUntilTheUserOptsOut(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        var settings = new AppSettings(file);
+        assertTrue(settings.isWelcomeCardEnabled(), "a fresh install greets the user");
+
+        settings.setWelcomeCardEnabled(false);
+
+        assertFalse(new AppSettings(file).isWelcomeCardEnabled());
+    }
+
+    /** Asking for the card again re-enables it, so the checkbox is not a one-way door. */
+    @Test
+    void theWelcomeCardCanBeTurnedBackOn(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        var settings = new AppSettings(file);
+        settings.setWelcomeCardEnabled(false);
+
+        settings.setWelcomeCardEnabled(true);
+
+        assertTrue(new AppSettings(file).isWelcomeCardEnabled());
+    }
 }

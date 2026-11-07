@@ -102,6 +102,8 @@ The welcome view and the About view are cards in the same top-right corner as th
 - **`Escape` and `Enter` dismiss it**, exactly as they did when it was a dialog, and so does the `Close` button in the card's top-right corner - a word, like the find panel's. That button is the card's only one: the content is there to be read, not to be dismissed through a second call-to-action at the bottom. The close button takes focus when the card opens, so either key works immediately; `Tab` still walks the card's controls.
 - **It is bounded by the window, not by the screen.** A card taller than a short window shrinks to it and scrolls, instead of running past the edge, and it is painted from the same theme tokens as the toolbar, so it is native in Dark, Sepia and Light.
 - **It speaks the language it is opened in.** The content is rebuilt from the bundle on every opening and on a language switch, so a card that is up cannot keep the previous language after you change it.
+- **Recent documents are one click away.** The card lists your last ten documents, newest first, and opens one through the same unsaved-changes gate as `Open` and drag-and-drop - Cancel, a failing save and the encoding question all behave exactly as they do there. A document deleted outside the app leaves the list silently instead of becoming a row that fails when clicked.
+- **It can stop greeting you.** The "don't show this again" checkbox on the card is a stored preference, so the card no longer opens at launch once it is ticked. `File → Show Welcome Card` is the way back: it clears the preference and opens the card immediately, so the opt-out is never a door you cannot reopen.
 
 ### Data Safety & Crash Recovery
 
@@ -135,7 +137,7 @@ The welcome view and the About view are cards in the same top-right corner as th
 
 ### Opening Documents from Outside the App
 
-`JTypeWriter notes.txt` opens that document directly, and a file association or double-click hands the same path through the same code, so both entry points behave alike. Only one file can be named: a second argument is refused with a dialog that names it, rather than silently picking the first. A path that does not exist, is not a regular file, or cannot be parsed as a path is reported in the UI language - startup never silently falls back to an empty editor, which would look exactly like a lost document. With no argument the welcome card appears as before. A recovered draft still wins over the command-line document: it is the only copy of that text, while the named file is still on disk. A symbolic link keeps its own name; the save path already follows the link to its target. Starting a second instance while one is running is still refused by the single-instance lock - there is no hand-off, so the already-running window is not asked to open the file.
+`JTypeWriter notes.txt` opens that document directly, and a file association or double-click hands the same path through the same code, so both entry points behave alike. Only one file can be named: a second argument is refused with a dialog that names it, rather than silently picking the first. A path that does not exist, is not a regular file, or cannot be parsed as a path is reported in the UI language - startup never silently falls back to an empty editor, which would look exactly like a lost document. With no argument the welcome card appears unless you turned it off with its own checkbox (the File menu reopens it). A recovered draft still wins over the command-line document: it is the only copy of that text, while the named file is still on disk. A symbolic link keeps its own name; the save path already follows the link to its target. Starting a second instance while one is running is still refused by the single-instance lock - there is no hand-off, so the already-running window is not asked to open the file.
 
 **Dropping a file works too, and means the same thing.** Drag a `.txt` or `.md` onto the window - the text, the status bar, anywhere - and it opens through the same code as Open: a dirty document is asked about first, and Cancel or a cancelled save leaves the editor exactly as it was, so a drop is never a shortcut past the save prompt. The whole window is the target because that is where the pointer happens to be, and the gesture is intercepted before the text area can treat it as dragged text. Plain-text drags inside the editor still work as before. Zero files, several files at once, a folder, a PDF or a file that vanished between the drag and the drop are each refused with a dialog naming what was dropped - a drop that silently did nothing would look like a broken window.
 
@@ -374,7 +376,7 @@ org.mesutormanli.jtypewriter
 │   ├── MainStage.java                    # Stage configuration (fullscreen, close)
 │   ├── AppIcons.java                     # Window/taskbar/dock icon set from /icons/
 │   ├── AppFonts.java                     # Bundled UI font + headless measurement face
-│   ├── WelcomeCard.java                  # Welcome card with shortcuts
+│   ├── WelcomeCard.java                  # Welcome card: shortcuts, recent files, opt-out
 │   ├── AboutCard.java                    # About card with author info
 │   ├── KeyboardShortcutHandler.java      # Centralized keyboard shortcut handling
 │   ├── CrashHandler.java                 # Global crash net: log + error dialog
@@ -406,6 +408,7 @@ org.mesutormanli.jtypewriter
 ├── AppVersion.java                       # App version, filtered from pom.xml at build time
 ├── AtomicFiles.java                      # Durable atomic writes (fsync + rename)
 ├── InstanceLock.java                     # Per-user instance lock (single instance)
+├── RecentFiles.java                      # Welcome card's recent-document list (pure)
 ├── StartupArguments.java                 # Resolves the CLI/file-association argument (pure)
 └── FxApplication.java                    # JavaFX application lifecycle bridge
 ```
@@ -507,7 +510,9 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge), the Edit menu's find/replace placement, and the command-menu contract: `MainMenu.layout()` carries every platform-independent `EditorAction` exactly once across the four pages (six settings commands are represented by their value submenu instead), the View submenus list and check the same values the toolbar dropdowns offer, and every page title and row label is non-empty in all six languages |
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
 | `AppIconsTest` | The icon set on the classpath: every PNG decodes to the declared size, and the `.ico` file starts with its expected magic bytes (pure byte checks, no toolkit) |
-| `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it |
+| `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it, the settings schema version, and the recent-document list plus the welcome opt-out |
+| `StartupGreetingTest` | When the welcome card may arrive on its own: a fresh install is greeted, a stored opt-out keeps it away, and a document named on the command line is never covered by it |
+| `RecentFilesTest` | The welcome card's recent-document list as pure list operations: newest first, one row per document by absolute normalised path, the ten-entry cap dropping the oldest entry, vanished documents filtered out, and empty/null handled |
 | `StatsBarStateTest` | Persisted status-bar size: starts from the setting, a fresh install starts at medium, cycling persists each step, a corrupt value degrades to medium, the mapping covers both enums both ways |
 | `FontSizeManagerTest` | The font-size ladder, off-ladder sizes inserted without changing the setting, ladder stepping for Ctrl+±, clamping to the supported range and the persisted reset to the default size |
 | `ToolbarOptionListsTest` | The six toolbar dropdowns: option order, no duplicates, and every dropdown able to display its own current value |

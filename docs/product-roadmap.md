@@ -54,7 +54,7 @@ Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir say�
 | `verify-artifacts` karşılaştırması | 17 | **20** (gömülü font lisansı +2, font kaynağı +1) |
 | Yıldız / çatal / issue | 0 / 0 / 0 | **0 / 0 / 0** |
 
-**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ◐ (W4-01 ✅; W4-02…W4-05 ☐).
+**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ◐ (W4-01 ✅, W4-02 ✅; W4-03…W4-05 ☐).
 Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ✅ · G4 ☐**.
 
 **`v1.0.3` notu (7 Kasım 2026):** dördüncü yayın, W3-01…W3-06 ile kart takiplerini
@@ -718,7 +718,7 @@ etki testi kırmızı; `ToolbarView`'a `"Ctrl+S"` literali geri konunca kaynak t
 > metin" sözünü bozar. Bu yüzden menü, araç çubuğunun en solundaki tek `☰` `MenuButton`'ıdır:
 > `Ctrl+T` onu da gizler, ayrı satır yoktur, 14 komutun tamamı yine tek yerden keşfedilir.
 > Keşfedilebilirlik kapanmaz; aynı ağaç `layout()` saf fonksiyonundan üretilir, dolayısıyla
-> W4-02 (son dosyalar) ve W4-04 (Görünüm → Ses) bu menüye eklenmeye devam eder.
+> W4-02 (karşılama kartını yeniden açma) bu menüye eklendi; W4-04 (Görünüm → Ses) aynı yolu izleyecek.
 
 **Uygulama (6 Kas 2026):** `ui/MainMenu` menü düğmesini (`MenuButton`, etiketi `☰`) üretiyor ve
 sınıf `MenuButton`'ı da miras almıyor, kompozisyon kullanıyor: JavaFX `Control`'ün statik
@@ -1040,6 +1040,42 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
 - **Bitti tanımı:** Silinmiş dosya listede kalıcı hata üretmiyor (test); opt-out sonrası
   karşılama açılmıyor (test, saf model).
 - **Doğrulama:** `mvn test -Dtest=AppSettingsTest,MainControllerTest`.
+- **Uygulama (8 Kasım 2026):** Liste kararının tamamı saf bir modelde: `RecentFiles`
+  (`withNewest`, `normalized`, `keepingOnly`, `MAX = 10`). Kimlik **mutlak ve normalize
+  yol**tur, yani aynı dosya göreli bir yolla ya da `..` üzerinden açıldığında ikinci bir satır
+  olmaz, başa taşınır. Sıra yeniden-eskiyedir ve tavan aşıldığında **kuyruk** (en eski) düşer.
+  Silinmiş dosya `Files::isRegularFile` ile süzülür: karşılama kartı her açılışta göründüğü
+  için tıklandığında hata veren bir satır, kullanıcının temizleyemediği kalıcı bir hata olurdu;
+  var olmayan belge bu yüzden **sessizce** düşer - oturum geri yüklemenin kaybolmuş son belge
+  için zaten izlediği kural. Bozuk/el ile düzenlenmiş bir anahtar (`InvalidPathException`)
+  listenin geri kalanını gizlemez, atlanır.
+  Depolama `recent.file.0…9` indeksli anahtarlardadır; yazarken önce **tüm** yuvalar silinir,
+  çünkü liste yalnız kuyruğundan küçülür ve yeni boyutun ötesinde kalan eski bir anahtar
+  kullanıcının açmadığı bir belge olarak geri gelirdi. `rememberFile` (açma **ve** kaydetme)
+  son belgeyi ve son klasörü yazarken son dosya listesini de **aynı kayıtta** günceller: iki
+  tüketici tek olayı paylaşıyor, tek dosya durumu kalıyor.
+  Opt-out `welcome.enabled` (varsayılan açık) olarak saklanır; karttaki onay kutusu bunu
+  **anında** yazar ve `FxApplication` açılışta yalnız bu değere bakar. Onay kutusu bir kez
+  yönlü kapı değildir: `Dosya → Karşılama Kartını Göster` tercihi temizleyip kartı hemen
+  açar, yani kart açıldığında onay kutusu yine işaretsizdir. Onay kutusu bir **düğme değil**:
+  düğme "Kapat" ile "bir daha gösterme"nin aynı jest olup olmadığını tahmin etmek zorunda
+  kalırdı; onay kutusu tercihi kendisi söyler ve kapatma sıradan bir Kapat olarak kalır.
+  Son dosya satırları `Open` ve sürükle-bırakla **aynı** kapıdan geçer
+  (`FileService.openPathAsync`): İptal, başarısız kaydetme ve kodlama sorusu oradakiyle
+  birebir aynıdır, kart düzenleyiciyi sessizce değiştiren ikinci bir yol olmaz.
+  Metin altı dilde: `welcomeOptOut`, `welcomeRecentTitle`, `menuShowWelcome` (6 bundle + üç
+  `Messages` erişimcisi).
+- **Doğrulama (yeni testler):** `RecentFilesTest` **6**: en yeni başta; yeniden açılan belge
+  çoğalmaz, başa taşınır; tavan aşılmaz ve düşen **en eski**dir; var olmayan belge süzülür;
+  boş liste iki yönde de geçerli; `null` yol yok sayılır. `AppSettingsTest` 25 → **31**:
+  son dosyalar yeniden başlatmada en yeni başta; tavan + tekrar aynı testte; silinen belge
+  listeden sessizce düşer ve okuma fırlatmaz; kullanılamayan girdi atlanır; karşılama
+  varsayılan açık ve opt-out kalıcı; tercih geri açılabiliyor. Dosya silme/erişim testleri
+  `@TempDir` altında gerçek dosyalarla koşar, gerçek `~/.jtypewriter`'a dokunmaz.
+  `StartupGreetingTest` **3**: taze kurulum karşılanıyor; opt-out sonrası karşılama
+  açılmıyor; komut satırında adlandırılan belge hiçbir durumda kartın altında kalmıyor. Karar
+  `FxApplication.greetsAtStartup` içinde tek bir saf fonksiyondur, açılış sırasındaki gizli bir
+  dal değil - yani "opt-out sonrası açılmıyor" iddiası toolkit olmadan pinlenmiş olur.
 
 **W4-03 · A7b — Minimum pencere genişliği** · S · U8
 - **Kapsam:** `MainStage.configure()` (geometri geri yükleme, `MainStage.java:44-62`),
@@ -1166,7 +1202,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W3-05 | `FindModel` | E1 | M | W2-01, W3-01 | ✅ | `ui/FindModel` (saf): düz metin sorgu/değiştirme (regex yok), çakışmasız soldan sağa tarama, varsayılan yerel ayara bağlı olmayan büyük-küçük harf (`regionMatches`), iki yönde saran ileri/geri, değiştirme sonrası yeniden tarama, sığmayan aralığı reddetme; `findAll` saf statik (W3-06 paneli FX thread'inde taramayacak) ve `install` bayat taramayı atıyor; `mvn test -Dtest=FindModelTest` → 30/30, `mvn -B clean test` → 518/0/0, dört mutasyon kırmızı |
 | W3-06 | Arama paneli | E1 | M | W3-05 | ✅ | `ui/FindPanel` (Notepad++ tarzı yüzen kart) + `FindScanService` (FX dışı tarama) + `FindReplacePolicy` (YOLO onayı) + `FindCommands` portu; `Ctrl+F`/`F3`/`Shift+F3`/`Ctrl+H` + araç çubuğunda `⚲` + Düzen menüsü; tarama worker'da, 10 MiB'da 26–53 ms ve `fxThreadScans()==0`; tümünü değiştir tek geri alma adımı; YOLO açıkken onay diyaloğu; `mvn -B clean test` → 524/0/0 |
 | W4-01 | Ayar şema sürümü | D13, D12 | S | — | ✅ | `AppSettings`: `schema.version` = **ürün sürümü** (`pom.xml`, tek kaynak; filtrelenmiş `version.properties` ile taşınıyor), anahtarsız/bozuk = sürümsüz → bellekte damgalanır, daha yeni sürüm ve bilinmeyen anahtarlar kayıtta korunuyor, karşılaştırma sayısal parçalarla; `save()` `SecurityException`'ı da yakalıyor, `isSettingsWriteFailurePending()` bayrağı `AppGraph` tarafından açılış sonunda ve her kayıtta bir kez gösteriliyor; About artık "dev" değil sürümü gösteriyor; 6 bundle + `Messages`; `mvn test -Dtest=AppSettingsTest,AppVersionTest,MessagesTest,DialogServiceTest` → yeşil |
-| W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ☐ | |
+| W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ✅ | `RecentFiles` saf model (en yeni başta, mutlak+normalize kimlikle tekilleştirme, `MAX = 10`, kuyruktan düşme); `AppSettings.getRecentFiles`/`writeRecentFiles` (`recent.file.N`), `rememberFile` listeyi aynı kayıtta güncelliyor, silinmiş belge sessizce düşüyor; `welcome.enabled` opt-out (`WelcomeCard` onay kutusu) + `Dosya → Karşılama Kartını Göster`; satırlar `FileService.openPathAsync` ile aynı kaydedilmemiş-değişiklik kapısından; 6 bundle + 3 `Messages`; `mvn test -Dtest=RecentFilesTest,AppSettingsTest,StartupGreetingTest,MessagesTest,MainControllerTest` → yeşil |
 | W4-03 | Minimum genişlik | U8 | S | — | ☐ | |
 | W4-04 | Ses politikası | U9 | S | W3-02, W4-01 | ☐ | |
 | W4-05 | `v1.1.0` | B2 | S | hepsi | ☐ | |

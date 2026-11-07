@@ -92,7 +92,7 @@ public final class AppGraph {
 
     // --- views and dialogs ------------------------------------------------
     public final AboutCard aboutCard = new AboutCard(messages);
-    public final WelcomeCard welcomeCard = new WelcomeCard(messages);
+    public final WelcomeCard welcomeCard = new WelcomeCard(messages, settings);
     public final MainMenu mainMenu = new MainMenu(messages, localeManager, aboutCard);
     public final ToolbarView toolbarView = new ToolbarView(
             themeManager, textColorManager, fontSizeManager,

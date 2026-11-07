@@ -102,6 +102,8 @@ Hoş geldin ekranı ve Hakkında görünümü artık ayrı pencereler değil, ar
 - **`Escape` ve `Enter` kartı kapatır**, diyalog olduğu zamanki gibi; kartın sağ üst köşesindeki `Kapat` düğmesi de aynısını yapar - ara paneldeki gibi bir simge değil, bir sözcük. Kartın tek düğmesi odur: içerik okunmak için vardır, alttaki ikinci bir eylem düğmesiyle kapatılmak için değil. Kart açılırken odağı bu düğme alır, yani bu tuşlar hemen çalışır; `Tab` yine kartın kontrollerini gezer.
 - **Sınırı ekran değil pencere.** Kısa bir pencerede karttan daha uzun bir kart pencereye sığacak kadar küçülür ve kaydırılır, kenardan taşmaz; araç çubuğuyla aynı tema belirteçlerinden boyandığı için Koyu, Sepya ve Açık'ta yerel görünür.
 - **Açıldığı dilde konuşur.** İçerik her açılışta ve dil değişiminde paketten yeniden kurulur, yani açık kalan bir kart dili değiştirdikten sonra önceki dilde kalamaz.
+- **Son belgeler tek tıkla.** Kart son on belgenizi en yenisi başta olacak şekilde listeler ve birini `Aç` ile sürükle-bırakla aynı kaydedilmemiş-değişiklik kapısından açar: İptal, başarısız bir kaydetme ve kodlama sorusu oradakiyle birebir aynı davranır. Uygulama dışında silinen bir belge, tıklandığında hata veren bir satıra dönüşmek yerine listeden sessizce düşer.
+- **Sizi karşılamayı bırakabilir.** Karttaki "bir daha gösterme" onay kutusu kalıcı bir tercihtir; işaretlendiğinde kart açılışta bir daha açılmaz. Geri dönüş yolu `Dosya → Karşılama Kartını Göster`'dir: tercihi temizler ve kartı hemen açar, yani vazgeçme bir daha açılamayan bir kapı olmaz.
 
 ### Veri Güvenliği ve Kurtarma
 
@@ -135,7 +137,7 @@ Hoş geldin ekranı ve Hakkında görünümü artık ayrı pencereler değil, ar
 
 ### Uygulama Dışından Belge Açma
 
-`JTypeWriter notlar.txt` belgeyi doğrudan açar; dosya ilişkilendirmesi veya çift tıklama aynı yolu aynı koddan geçirir, böylece iki giriş noktası aynı davranır. Yalnızca bir dosya adlandırılabilir: ikinci argüman sessizce ilkini seçmek yerine adını söyleyen bir iletişim kutusuyla reddedilir. Var olmayan, normal bir dosya olmayan ya da yol olarak çözülemeyen bir metin arayüz dilinde bildirilir - başlangıç asla sessizce boş bir düzenleyiciye düşmez, çünkü bu tam olarak kaybolmuş bir belge gibi görünürdü. Argüman yoksa karşılama kartı eskisi gibi görünür. Kurtarılan taslak komut satırındaki belgeden yine önce gelir: o metnin tek kopyası odur, adlandırılan dosya ise hâlâ diskte. Sembolik bağlantı kendi adını korur; kaydetme yolu bağlantıyı hedefine kadar zaten izler. Bir örnek çalışırken ikinci örnek başlatmak tek örnek kilidi tarafından yine reddedilir - devir yoktur, yani çalışan pencereye dosyayı açması söylenmez.
+`JTypeWriter notlar.txt` belgeyi doğrudan açar; dosya ilişkilendirmesi veya çift tıklama aynı yolu aynı koddan geçirir, böylece iki giriş noktası aynı davranır. Yalnızca bir dosya adlandırılabilir: ikinci argüman sessizce ilkini seçmek yerine adını söyleyen bir iletişim kutusuyla reddedilir. Var olmayan, normal bir dosya olmayan ya da yol olarak çözülemeyen bir metin arayüz dilinde bildirilir - başlangıç asla sessizce boş bir düzenleyiciye düşmez, çünkü bu tam olarak kaybolmuş bir belge gibi görünürdü. Argüman yoksa, kendi onay kutusuyla kapatmadığınız sürece karşılama kartı görünür (Dosya menüsü onu yeniden açar). Kurtarılan taslak komut satırındaki belgeden yine önce gelir: o metnin tek kopyası odur, adlandırılan dosya ise hâlâ diskte. Sembolik bağlantı kendi adını korur; kaydetme yolu bağlantıyı hedefine kadar zaten izler. Bir örnek çalışırken ikinci örnek başlatmak tek örnek kilidi tarafından yine reddedilir - devir yoktur, yani çalışan pencereye dosyayı açması söylenmez.
 
 **Dosya sürükleyip bırakmak da aynı anlama gelir.** Bir `.txt` veya `.md` dosyasını pencerenin üzerine - metne, durum çubuğuna, herhangi bir yere - sürükleyin; dosya Aç ile aynı koddan geçerek açılır: kirli belge için önce sorulur ve İptal ya da iptal edilen bir kaydetme düzenleyiciyi olduğu gibi bırakır, yani bırakma kaydetme sorusunu atlayan bir kısayol değildir. Hedef tüm penceredir çünkü imleç oradadır ve jest, metin alanı onu sürüklenen metin sanmadan önce yakalanır. Düzenleyici içindeki düz metin sürüklemeleri eskisi gibi çalışır. Hiç dosya olmaması, aynı anda birden çok dosya, bir klasör, bir PDF ya da sürükleme ile bırakma arasında kaybolmuş bir dosya, neyin bırakıldığını söyleyen bir diyalogla reddedilir - sessizce hiçbir şey yapmayan bir bırakma, bozuk bir pencere gibi görünürdü.
 
@@ -371,7 +373,7 @@ org.mesutormanli.jtypewriter
 │   ├── MainStage.java                    # Sahne yapılandırması (tam ekran, kapatma)
 │   ├── AppIcons.java                     # /icons/ altından pencere/görev çubuğu/dock ikonları
 │   ├── AppFonts.java                     # Paketlenen arayüz fontu + başsız ölçüm yüzü
-│   ├── WelcomeCard.java                  # Kısayollarla hoş geldin kartı
+│   ├── WelcomeCard.java                  # Hoş geldin kartı: kısayollar, son dosyalar, opt-out
 │   ├── AboutCard.java                    # Yazar bilgisiyle hakkında kartı
 │   ├── KeyboardShortcutHandler.java      # Merkezi klavye kısayolu yönetimi
 │   ├── CrashHandler.java                 # Global çökme ağı: log + hata diyaloğu
@@ -403,6 +405,7 @@ org.mesutormanli.jtypewriter
 ├── AppVersion.java                       # pom.xml'den derleme anında filtrelenen uygulama sürümü
 ├── AtomicFiles.java                      # Dayanıklı atomik dosya yazımı (fsync + rename)
 ├── InstanceLock.java                     # Kullanıcı başına örnek kilidi (tek örnek)
+├── RecentFiles.java                      # Karşılama kartının son dosya listesi (saf)
 ├── StartupArguments.java                 # CLI/dosya ilişkilendirme argümanını çözer (saf)
 └── FxApplication.java                    # JavaFX yaşam döngüsü köprüsü
 ```
@@ -504,7 +507,9 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti), Düzen menüsündeki ara/değiştir komutlarının sırası ve komut menüsü sözleşmesi: `MainMenu.layout()` dört sayfada her platformdan bağımsız `EditorAction`'ı tam bir kez taşıyor (altı ayar komutu yerine değer alt menüsüyle temsil ediliyor), Görünüm alt menüleri araç çubuğu açılır listelerinin sunduğu aynı değerleri listeliyor ve işaretliyor, her sayfa başlığı ve satır etiketi altı dilde dolu |
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
 | `AppIconsTest` | Classpath'teki ikon seti: her PNG bildirilen boyutta çözülüyor, `.ico` dosyası beklenen sihirli baytlarla başlıyor (saf bayt kontrolü, toolkit yok) |
-| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması |
+| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması, ayar şema sürümü, son dosya listesi ve karşılama opt-out'u |
+| `StartupGreetingTest` | Karşılama kartının kendi kendine ne zaman gelebileceği: taze kurulum karşılanır, saklanan opt-out kartı uzak tutar, komut satırında adlandırılan belge asla kartın altında kalmaz |
+| `RecentFilesTest` | Karşılama kartının son dosya listesi saf liste işlemleri olarak: en yeni başta, mutlak ve normalleştirilmiş yolla belge başına tek satır, on girişlik tavan en eskiyi düşürüyor, kaybolan belgeler süzülüyor, boş/`null` durumlar ele alınıyor |
 | `StatsBarStateTest` | Kalıcı durum çubuğu boyutu: ayardan başlar, yeni kurulum orta boyutta başlar, her döngü adımı kalıcıdır, bozuk değer orta boyuta düşer, eşleme her iki enum'u iki yönde kapsar |
 | `FontSizeManagerTest` | Yazı boyutu kademeleri, kademede olmayan boyutun ayarı değiştirmeden listeye eklenmesi, Ctrl+± için kademe adımlama, desteklenen aralığa kısıtlama ve varsayılan boyuta kalıcı sıfırlama |
 | `ToolbarOptionListsTest` | Altı araç çubuğu açılır listesi: seçenek sırası, yinelenen seçenek olmaması ve her listenin kendi güncel değerini gösterebilmesi |

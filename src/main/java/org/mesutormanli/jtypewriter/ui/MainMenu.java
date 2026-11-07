@@ -9,6 +9,7 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.KeyCombination;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
@@ -243,6 +244,7 @@ public final class MainMenu {
     private final MenuButton menuButton = new MenuButton(GLYPH);
 
     private Consumer<EditorAction> actionRunner = action -> { };
+    private Runnable welcomeRunner = () -> { };
     private Settings settings;
 
     public MainMenu(Messages messages, LocaleManager localeManager, AboutCard aboutCard) {
@@ -273,6 +275,16 @@ public final class MainMenu {
         this.actionRunner = actionRunner;
     }
 
+    /**
+     * The File menu's "Show welcome card" command. It is a view action, not a
+     * document command, so it has no {@link EditorAction} - and therefore no
+     * chord in the key filter or row on the shortcut card, exactly like About.
+     * Installed by the controller, which owns the card and the preference.
+     */
+    public void setWelcomeRunner(Runnable welcomeRunner) {
+        this.welcomeRunner = Objects.requireNonNull(welcomeRunner, "welcomeRunner");
+    }
+
     /** Installed by the toolbar, which owns the managers and the apply paths. */
     public void setSettings(Settings settings) {
         this.settings = settings;
@@ -294,6 +306,11 @@ public final class MainMenu {
                     case ActionEntry(var action) -> menu.getItems().add(commandItem(action));
                     case ChoiceEntry(var kind) -> menu.getItems().add(choiceMenu(kind));
                 }
+            }
+            if (spec.page() == Page.FILE) {
+                // A separator, because "Show welcome card" is a view command
+                // sitting under the document commands, not one of them.
+                menu.getItems().addAll(new SeparatorMenuItem(), welcomeItem());
             }
             if (spec.page() == Page.HELP) {
                 menu.getItems().add(aboutItem());
@@ -360,6 +377,12 @@ public final class MainMenu {
     private MenuItem aboutItem() {
         var item = new MenuItem(messages.toolbarAbout());
         item.setOnAction(event -> aboutCard.show());
+        return item;
+    }
+
+    private MenuItem welcomeItem() {
+        var item = new MenuItem(messages.menuShowWelcome());
+        item.setOnAction(event -> welcomeRunner.run());
         return item;
     }
 

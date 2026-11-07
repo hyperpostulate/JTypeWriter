@@ -104,6 +104,19 @@ public class MainController implements Initializable {
         // The toolbar buttons and the key filter share this one runner.
         toolbarView.setActionRunner(shortcutHandler::run);
         mainMenu.setActionRunner(shortcutHandler::run);
+        // A recent row on the welcome card names the next document, so it goes
+        // through the same unsaved-changes gate as Open and drop: the card must
+        // not become a second, quieter way to discard the editor.
+        welcomeCard.setOnOpenRecent(path -> fileService.openPathAsync(stage, path)
+                .thenAccept(opened -> opened.ifPresent(ignored ->
+                        editorArea.setDocument(fileService.getCurrentContent()))));
+        // "Show welcome" is the way back out of the checkbox's opt-out: it
+        // clears the stored preference before showing the card, so the card's
+        // own checkbox is unchecked again.
+        mainMenu.setWelcomeRunner(() -> {
+            settings.setWelcomeCardEnabled(true);
+            welcomeCard.show();
+        });
         // The find panel owns its own state; the key filter and the menu only
         // reach it through the four-command port.
         findPanel.setStage(stage);
