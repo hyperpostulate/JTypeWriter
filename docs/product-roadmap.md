@@ -718,7 +718,7 @@ etki testi kırmızı; `ToolbarView`'a `"Ctrl+S"` literali geri konunca kaynak t
 > metin" sözünü bozar. Bu yüzden menü, araç çubuğunun en solundaki tek `☰` `MenuButton`'ıdır:
 > `Ctrl+T` onu da gizler, ayrı satır yoktur, 14 komutun tamamı yine tek yerden keşfedilir.
 > Keşfedilebilirlik kapanmaz; aynı ağaç `layout()` saf fonksiyonundan üretilir, dolayısıyla
-> W4-02 (karşılama kartını yeniden açma) bu menüye eklendi; W4-04 (Görünüm → Ses) aynı yolu izleyecek.
+> W4-02 iki görünüm komutu ekledi (`Son Dosyalar`, `Karşılama Kartını Göster`); W4-04 (Görünüm → Ses) aynı yolu izleyecek.
 
 **Uygulama (6 Kas 2026):** `ui/MainMenu` menü düğmesini (`MenuButton`, etiketi `☰`) üretiyor ve
 sınıf `MenuButton`'ı da miras almıyor, kompozisyon kullanıyor: JavaFX `Control`'ün statik
@@ -1044,11 +1044,11 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   (`withNewest`, `normalized`, `keepingOnly`, `MAX = 10`). Kimlik **mutlak ve normalize
   yol**tur, yani aynı dosya göreli bir yolla ya da `..` üzerinden açıldığında ikinci bir satır
   olmaz, başa taşınır. Sıra yeniden-eskiyedir ve tavan aşıldığında **kuyruk** (en eski) düşer.
-  Silinmiş dosya `Files::isRegularFile` ile süzülür: karşılama kartı her açılışta göründüğü
-  için tıklandığında hata veren bir satır, kullanıcının temizleyemediği kalıcı bir hata olurdu;
-  var olmayan belge bu yüzden **sessizce** düşer - oturum geri yüklemenin kaybolmuş son belge
-  için zaten izlediği kural. Bozuk/el ile düzenlenmiş bir anahtar (`InvalidPathException`)
-  listenin geri kalanını gizlemez, atlanır.
+  Silinmiş dosya `Files::isRegularFile` ile süzülür: kart her açılışta değil ama tek tıkla
+  açıldığı için tıklandığında hata veren bir satır, kullanıcının temizleyemediği kalıcı bir
+  hata olurdu; var olmayan belge bu yüzden **sessizce** düşer - oturum geri yüklemenin
+  kaybolmuş son belge için zaten izlediği kural. Bozuk/el ile düzenlenmiş bir anahtar
+  (`InvalidPathException`) listenin geri kalanını gizlemez, atlanır.
   Depolama `recent.file.0…9` indeksli anahtarlardadır; yazarken önce **tüm** yuvalar silinir,
   çünkü liste yalnız kuyruğundan küçülür ve yeni boyutun ötesinde kalan eski bir anahtar
   kullanıcının açmadığı bir belge olarak geri gelirdi. `rememberFile` (açma **ve** kaydetme)
@@ -1060,11 +1060,18 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   açar, yani kart açıldığında onay kutusu yine işaretsizdir. Onay kutusu bir **düğme değil**:
   düğme "Kapat" ile "bir daha gösterme"nin aynı jest olup olmadığını tahmin etmek zorunda
   kalırdı; onay kutusu tercihi kendisi söyler ve kapatma sıradan bir Kapat olarak kalır.
-  Son dosya satırları `Open` ve sürükle-bırakla **aynı** kapıdan geçer
-  (`FileService.openPathAsync`): İptal, başarısız kaydetme ve kodlama sorusu oradakiyle
-  birebir aynıdır, kart düzenleyiciyi sessizce değiştiren ikinci bir yol olmaz.
-  Metin altı dilde: `welcomeOptOut`, `welcomeRecentTitle`, `menuShowWelcome` (6 bundle + üç
-  `Messages` erişimcisi).
+  **Liste ayrı bir karttadır** (kullanıcı kararı, 8 Kasım 2026): ilk uygulama listeyi hoş
+  geldin kartına koymuştu, ama bu, listeyi kullanıcının kapatabileceği bir karşılamaya
+  bağlıyordu - karşılanmak istemeyen biri belgelerini yine de ister. `RecentFilesCard` dördüncü
+  köşe yüzeyidir (`OverlaySlot`), `Dosya → Son Dosyalar` ile her an açılır, `welcome.enabled`
+  kapalıyken de erişilebilir kalır. Satır **dosya adıyla** adlandırılır (tam yol ipucu ve
+  erişilebilir ad olarak kalır): mutlak yollardan oluşan bir liste okunmaz ve ev dizinini her
+  ekran görüntüsüne taşır. Boş liste boş panel göstermek yerine bunu söyler (`recentEmpty`).
+  Satırlar `Open` ve sürükle-bırakla **aynı** kapıdan geçer (`FileService.openPathAsync`):
+  İptal, başarısız kaydetme ve kodlama sorusu oradakiyle birebir aynıdır, kart düzenleyiciyi
+  sessizce değiştiren ikinci bir yol olmaz.
+  Metin altı dilde: `welcomeOptOut`, `recentTitle`, `recentEmpty`, `menuRecentFiles`,
+  `menuShowWelcome` (6 bundle × 155 anahtar + beş `Messages` erişimcisi).
 - **Doğrulama (yeni testler):** `RecentFilesTest` **6**: en yeni başta; yeniden açılan belge
   çoğalmaz, başa taşınır; tavan aşılmaz ve düşen **en eski**dir; var olmayan belge süzülür;
   boş liste iki yönde de geçerli; `null` yol yok sayılır. `AppSettingsTest` 25 → **31**:
@@ -1076,6 +1083,10 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   açılmıyor; komut satırında adlandırılan belge hiçbir durumda kartın altında kalmıyor. Karar
   `FxApplication.greetsAtStartup` içinde tek bir saf fonksiyondur, açılış sırasındaki gizli bir
   dal değil - yani "opt-out sonrası açılmıyor" iddiası toolkit olmadan pinlenmiş olur.
+  `RecentFilesCardTest` **2**: satır dosya adıyla adlandırılır; son öğesi olmayan bir yol
+  (kök) boş satır üretmek yerine tam yolu gösterir. `DialogSizingTest` kart listesine
+  `RecentFilesCard` eklendi: dördüncü yüzey de `OverlayCard`'ın ortak kaydırma kabını ve
+  arka planını kullanır, kendi yerleşim kuralını kurmaz.
 
 **W4-03 · A7b — Minimum pencere genişliği** · S · U8
 - **Kapsam:** `MainStage.configure()` (geometri geri yükleme, `MainStage.java:44-62`),
@@ -1202,7 +1213,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W3-05 | `FindModel` | E1 | M | W2-01, W3-01 | ✅ | `ui/FindModel` (saf): düz metin sorgu/değiştirme (regex yok), çakışmasız soldan sağa tarama, varsayılan yerel ayara bağlı olmayan büyük-küçük harf (`regionMatches`), iki yönde saran ileri/geri, değiştirme sonrası yeniden tarama, sığmayan aralığı reddetme; `findAll` saf statik (W3-06 paneli FX thread'inde taramayacak) ve `install` bayat taramayı atıyor; `mvn test -Dtest=FindModelTest` → 30/30, `mvn -B clean test` → 518/0/0, dört mutasyon kırmızı |
 | W3-06 | Arama paneli | E1 | M | W3-05 | ✅ | `ui/FindPanel` (Notepad++ tarzı yüzen kart) + `FindScanService` (FX dışı tarama) + `FindReplacePolicy` (YOLO onayı) + `FindCommands` portu; `Ctrl+F`/`F3`/`Shift+F3`/`Ctrl+H` + araç çubuğunda `⚲` + Düzen menüsü; tarama worker'da, 10 MiB'da 26–53 ms ve `fxThreadScans()==0`; tümünü değiştir tek geri alma adımı; YOLO açıkken onay diyaloğu; `mvn -B clean test` → 524/0/0 |
 | W4-01 | Ayar şema sürümü | D13, D12 | S | — | ✅ | `AppSettings`: `schema.version` = **ürün sürümü** (`pom.xml`, tek kaynak; filtrelenmiş `version.properties` ile taşınıyor), anahtarsız/bozuk = sürümsüz → bellekte damgalanır, daha yeni sürüm ve bilinmeyen anahtarlar kayıtta korunuyor, karşılaştırma sayısal parçalarla; `save()` `SecurityException`'ı da yakalıyor, `isSettingsWriteFailurePending()` bayrağı `AppGraph` tarafından açılış sonunda ve her kayıtta bir kez gösteriliyor; About artık "dev" değil sürümü gösteriyor; 6 bundle + `Messages`; `mvn test -Dtest=AppSettingsTest,AppVersionTest,MessagesTest,DialogServiceTest` → yeşil |
-| W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ✅ | `RecentFiles` saf model (en yeni başta, mutlak+normalize kimlikle tekilleştirme, `MAX = 10`, kuyruktan düşme); `AppSettings.getRecentFiles`/`writeRecentFiles` (`recent.file.N`), `rememberFile` listeyi aynı kayıtta güncelliyor, silinmiş belge sessizce düşüyor; `welcome.enabled` opt-out (`WelcomeCard` onay kutusu) + `Dosya → Karşılama Kartını Göster`; satırlar `FileService.openPathAsync` ile aynı kaydedilmemiş-değişiklik kapısından; 6 bundle + 3 `Messages`; `mvn test -Dtest=RecentFilesTest,AppSettingsTest,StartupGreetingTest,MessagesTest,MainControllerTest` → yeşil |
+| W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ✅ | `RecentFiles` saf model (en yeni başta, mutlak+normalize kimlikle tekilleştirme, `MAX = 10`, kuyruktan düşme); `AppSettings.getRecentFiles`/`writeRecentFiles` (`recent.file.N`), `rememberFile` listeyi aynı kayıtta güncelliyor, silinmiş belge sessizce düşüyor; son dosyalar **ayrı kartta** (`RecentFilesCard`, `Dosya → Son Dosyalar`) ve `welcome.enabled` opt-out (`WelcomeCard` onay kutusu) + `Dosya → Karşılama Kartını Göster`; satırlar `FileService.openPathAsync` ile aynı kaydedilmemiş-değişiklik kapısından; 6 bundle × 155 + 5 `Messages`; `mvn test -Dtest=RecentFilesTest,RecentFilesCardTest,AppSettingsTest,StartupGreetingTest,MessagesTest,MainControllerTest` → yeşil |
 | W4-03 | Minimum genişlik | U8 | S | — | ☐ | |
 | W4-04 | Ses politikası | U9 | S | W3-02, W4-01 | ☐ | |
 | W4-05 | `v1.1.0` | B2 | S | hepsi | ☐ | |

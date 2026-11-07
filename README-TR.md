@@ -94,16 +94,22 @@ Araç çubuğunun en solundaki kontrol, dört menüyü taşıyan bir `☰` düğ
 - **YOLO modu önce sorar.** Mod, hiçbir düzenlemenin karakter silmediği sözünü verir; değiştirme eşleşen aralığı siler, bu yüzden YOLO açıkken kart her işlem için bir kez sorar ve iptal hiçbir şey yazmaz. Değişiklik sonrasında normal ve geri alınabilir bir düzenlemedir.
 - **Kart temayı izler:** yüzey, kenarlık, alanlar, onay kutusu, düğmeler ve durum satırı araç çubuğuyla aynı belirteçlerden çözülür; Koyu, Sepya ve Açık'ta yerel görünür - Modena'nın koyu temada beyaz boyayacağı giriş alanları dahil.
 
-### Hoş Geldin ve Hakkında Kartları
+### Hoş Geldin, Son Dosyalar ve Hakkında Kartları
 
-Hoş geldin ekranı ve Hakkında görünümü artık ayrı pencereler değil, ara/değiştir panelinin durduğu sağ üst köşede birer kart. Köşeyi onunla paylaşıyorlar: biri açıldığında orada duran kart kapanır, yani gördüğünüz her zaman en son istediğiniz karttır.
+Hoş geldin ekranı, son dosyalar görünümü ve Hakkında görünümü artık ayrı pencereler değil, ara/değiştir panelinin durduğu sağ üst köşede birer kart. Köşeyi onunla paylaşıyorlar: biri açıldığında orada duran kart kapanır, yani gördüğünüz her zaman en son istediğiniz karttır.
 
 - **Belge kullanılabilir kalır.** Kart modal değil, yani açıkken içinden bir kısayol kopyalayabilirsiniz; kart kapandığında imleç metne geri döner.
 - **`Escape` ve `Enter` kartı kapatır**, diyalog olduğu zamanki gibi; kartın sağ üst köşesindeki `Kapat` düğmesi de aynısını yapar - ara paneldeki gibi bir simge değil, bir sözcük. Kartın tek düğmesi odur: içerik okunmak için vardır, alttaki ikinci bir eylem düğmesiyle kapatılmak için değil. Kart açılırken odağı bu düğme alır, yani bu tuşlar hemen çalışır; `Tab` yine kartın kontrollerini gezer.
 - **Sınırı ekran değil pencere.** Kısa bir pencerede karttan daha uzun bir kart pencereye sığacak kadar küçülür ve kaydırılır, kenardan taşmaz; araç çubuğuyla aynı tema belirteçlerinden boyandığı için Koyu, Sepya ve Açık'ta yerel görünür.
 - **Açıldığı dilde konuşur.** İçerik her açılışta ve dil değişiminde paketten yeniden kurulur, yani açık kalan bir kart dili değiştirdikten sonra önceki dilde kalamaz.
-- **Son belgeler tek tıkla.** Kart son on belgenizi en yenisi başta olacak şekilde listeler ve birini `Aç` ile sürükle-bırakla aynı kaydedilmemiş-değişiklik kapısından açar: İptal, başarısız bir kaydetme ve kodlama sorusu oradakiyle birebir aynı davranır. Uygulama dışında silinen bir belge, tıklandığında hata veren bir satıra dönüşmek yerine listeden sessizce düşer.
-- **Sizi karşılamayı bırakabilir.** Karttaki "bir daha gösterme" onay kutusu kalıcı bir tercihtir; işaretlendiğinde kart açılışta bir daha açılmaz. Geri dönüş yolu `Dosya → Karşılama Kartını Göster`'dir: tercihi temizler ve kartı hemen açar, yani vazgeçme bir daha açılamayan bir kapı olmaz.
+- **Karşılama sizi karşılamayı bırakabilir.** Hoş geldin kartındaki "bir daha gösterme" onay kutusu kalıcı bir tercihtir; işaretlendiğinde kart açılışta bir daha açılmaz. Geri dönüş yolu `Dosya → Karşılama Kartını Göster`'dir: tercihi temizler ve kartı hemen açar, yani vazgeçme bir daha açılamayan bir kapı olmaz.
+
+**Son dosya listesi kendi kartındadır**, `Dosya → Son Dosyalar` ile açılır. Önceden hoş geldin kartının içindeydi ve listeyi, kullanıcının kapatabileceği bir karşılamaya bağlıyordu: karşılanmak istemeyen biri belgelerini yine de ister. İkisini ayırmak, karşılamanın kalıcı olarak kapatılabilmesini listeyi kaybetmeden sağlar; liste de her an yeniden açılabilir.
+
+- **On belge, en yenisi başta.** Aynı belgeyi yeniden açmak ikinci bir satır eklemek yerine onu başa taşır; göreli bir yolla ya da `..` üzerinden ulaşılan aynı dosya da aynı belge sayılır. Liste dolduğunda düşen **en eski** girdidir, asla en yenisi.
+- **Satır dosya adıyla adlandırılır**, böylece liste okunur kalır ve ev dizininiz ekrana gelmez; tam yol satırın ipucudur. Boş bir kart boş bir panel göstermek yerine bunu söyler.
+- **`Aç` ile aynı kapıdan açar.** İptal, başarısız bir kaydetme ve kodlama sorusu menüden veya sürükle-bırakla açmaktakiyle birebir aynı davranır - kart sonraki belgeyi adlandırır, düzenleyicideki belgeyi atmanın ikinci bir yolu değildir.
+- **Uygulama dışında silinen belge** listeden sessizce düşer, tıklandığında hata veren bir satıra dönüşmez.
 
 ### Veri Güvenliği ve Kurtarma
 
@@ -373,7 +379,8 @@ org.mesutormanli.jtypewriter
 │   ├── MainStage.java                    # Sahne yapılandırması (tam ekran, kapatma)
 │   ├── AppIcons.java                     # /icons/ altından pencere/görev çubuğu/dock ikonları
 │   ├── AppFonts.java                     # Paketlenen arayüz fontu + başsız ölçüm yüzü
-│   ├── WelcomeCard.java                  # Hoş geldin kartı: kısayollar, son dosyalar, opt-out
+│   ├── WelcomeCard.java                  # Hoş geldin kartı: kısayollar + karşılama opt-out'u
+│   ├── RecentFilesCard.java              # Son dosyalar kartı (Dosya menüsünden açılır)
 │   ├── AboutCard.java                    # Yazar bilgisiyle hakkında kartı
 │   ├── KeyboardShortcutHandler.java      # Merkezi klavye kısayolu yönetimi
 │   ├── CrashHandler.java                 # Global çökme ağı: log + hata diyaloğu
@@ -509,7 +516,8 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `AppIconsTest` | Classpath'teki ikon seti: her PNG bildirilen boyutta çözülüyor, `.ico` dosyası beklenen sihirli baytlarla başlıyor (saf bayt kontrolü, toolkit yok) |
 | `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması, ayar şema sürümü, son dosya listesi ve karşılama opt-out'u |
 | `StartupGreetingTest` | Karşılama kartının kendi kendine ne zaman gelebileceği: taze kurulum karşılanır, saklanan opt-out kartı uzak tutar, komut satırında adlandırılan belge asla kartın altında kalmaz |
-| `RecentFilesTest` | Karşılama kartının son dosya listesi saf liste işlemleri olarak: en yeni başta, mutlak ve normalleştirilmiş yolla belge başına tek satır, on girişlik tavan en eskiyi düşürüyor, kaybolan belgeler süzülüyor, boş/`null` durumlar ele alınıyor |
+| `RecentFilesCardTest` | Son dosya satırının adlandırılması: dosya adı, son öğesi olmayan bir yolda tam yol |
+| `RecentFilesTest` | Son dosyalar kartının belge listesi saf liste işlemleri olarak: en yeni başta, mutlak ve normalleştirilmiş yolla belge başına tek satır, on girişlik tavan en eskiyi düşürüyor, kaybolan belgeler süzülüyor, boş/`null` durumlar ele alınıyor |
 | `StatsBarStateTest` | Kalıcı durum çubuğu boyutu: ayardan başlar, yeni kurulum orta boyutta başlar, her döngü adımı kalıcıdır, bozuk değer orta boyuta düşer, eşleme her iki enum'u iki yönde kapsar |
 | `FontSizeManagerTest` | Yazı boyutu kademeleri, kademede olmayan boyutun ayarı değiştirmeden listeye eklenmesi, Ctrl+± için kademe adımlama, desteklenen aralığa kısıtlama ve varsayılan boyuta kalıcı sıfırlama |
 | `ToolbarOptionListsTest` | Altı araç çubuğu açılır listesi: seçenek sırası, yinelenen seçenek olmaması ve her listenin kendi güncel değerini gösterebilmesi |

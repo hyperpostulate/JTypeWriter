@@ -47,6 +47,7 @@ public class MainController implements Initializable {
     private final FindPanel findPanel;
     private final OverlaySlot overlaySlot = new OverlaySlot();
     private final WelcomeCard welcomeCard;
+    private final RecentFilesCard recentCard;
     private final AboutCard aboutCard;
     private final AppSettings settings;
     private final Supplier<LocalTime> clock;
@@ -75,7 +76,7 @@ public class MainController implements Initializable {
                           EditorKeyHandler editorKeyHandler,
                           AutoSaveService autoSaveService,
                           FindPanel findPanel,
-                          WelcomeCard welcomeCard, AboutCard aboutCard,
+                          WelcomeCard welcomeCard, RecentFilesCard recentCard, AboutCard aboutCard,
                           AppSettings settings, Supplier<LocalTime> clock) {
         this.editorArea = editorArea;
         this.mainMenu = mainMenu;
@@ -89,6 +90,7 @@ public class MainController implements Initializable {
         this.autoSaveService = autoSaveService;
         this.findPanel = findPanel;
         this.welcomeCard = welcomeCard;
+        this.recentCard = recentCard;
         this.aboutCard = aboutCard;
         this.settings = settings;
         this.clock = clock;
@@ -104,10 +106,10 @@ public class MainController implements Initializable {
         // The toolbar buttons and the key filter share this one runner.
         toolbarView.setActionRunner(shortcutHandler::run);
         mainMenu.setActionRunner(shortcutHandler::run);
-        // A recent row on the welcome card names the next document, so it goes
-        // through the same unsaved-changes gate as Open and drop: the card must
-        // not become a second, quieter way to discard the editor.
-        welcomeCard.setOnOpenRecent(path -> fileService.openPathAsync(stage, path)
+        // A recent row names the next document, so it goes through the same
+        // unsaved-changes gate as Open and drop: the card must not become a
+        // second, quieter way to discard the editor.
+        recentCard.setOnOpenRecent(path -> fileService.openPathAsync(stage, path)
                 .thenAccept(opened -> opened.ifPresent(ignored ->
                         editorArea.setDocument(fileService.getCurrentContent()))));
         // "Show welcome" is the way back out of the checkbox's opt-out: it
@@ -117,6 +119,9 @@ public class MainController implements Initializable {
             settings.setWelcomeCardEnabled(true);
             welcomeCard.show();
         });
+        // The recent list is a working surface, so it has a menu entry of its
+        // own and does not depend on the greeting being switched on.
+        mainMenu.setRecentRunner(recentCard::show);
         // The find panel owns its own state; the key filter and the menu only
         // reach it through the four-command port.
         findPanel.setStage(stage);
@@ -170,6 +175,7 @@ public class MainController implements Initializable {
             refreshAutosaveWarning(); // the warning is bundle text too
             // A card that is open is text from the bundle like any other label.
             welcomeCard.relocalise();
+            recentCard.relocalise();
             aboutCard.relocalise();
         });
         autoSaveService.health().addListener(this::refreshAutosaveWarning);
@@ -262,15 +268,16 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // The find panel, the welcome card and the About card all float over
-        // the text in the window's top-right corner (Notepad++'s placement for
-        // the find panel) instead of taking a row of their own: the editor
-        // keeps the full height, and a card only covers text while it is open.
-        // They share one corner - OverlaySlot makes sure at most one is up.
-        var editorStack = new StackPane(editorArea, findPanel, welcomeCard, aboutCard);
+        // The find panel and the three cards all float over the text in the
+        // window's top-right corner (Notepad++'s placement for the find panel)
+        // instead of taking a row of their own: the editor keeps the full
+        // height, and a card only covers text while it is open. They share one
+        // corner - OverlaySlot makes sure at most one is up.
+        var editorStack = new StackPane(
+                editorArea, findPanel, welcomeCard, recentCard, aboutCard);
         StackPane.setAlignment(findPanel, Pos.TOP_RIGHT);
         StackPane.setMargin(findPanel, new Insets(OverlayCard.EDGE_MARGIN));
-        for (var card : new OverlayCard[]{welcomeCard, aboutCard}) {
+        for (var card : new OverlayCard[]{welcomeCard, recentCard, aboutCard}) {
             StackPane.setAlignment(card, Pos.TOP_RIGHT);
             StackPane.setMargin(card, new Insets(OverlayCard.EDGE_MARGIN));
             // The window, not the screen, is the card's bound now: a card is
@@ -281,6 +288,7 @@ public class MainController implements Initializable {
         }
         findPanel.setOverlaySlot(overlaySlot);
         welcomeCard.setOverlaySlot(overlaySlot);
+        recentCard.setOverlaySlot(overlaySlot);
         aboutCard.setOverlaySlot(overlaySlot);
         rootPane.setCenter(editorStack);
         // The menu lives inside the toolbar row (see MainMenu), so hiding the

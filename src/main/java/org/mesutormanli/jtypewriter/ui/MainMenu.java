@@ -245,6 +245,7 @@ public final class MainMenu {
 
     private Consumer<EditorAction> actionRunner = action -> { };
     private Runnable welcomeRunner = () -> { };
+    private Runnable recentRunner = () -> { };
     private Settings settings;
 
     public MainMenu(Messages messages, LocaleManager localeManager, AboutCard aboutCard) {
@@ -285,6 +286,16 @@ public final class MainMenu {
         this.welcomeRunner = Objects.requireNonNull(welcomeRunner, "welcomeRunner");
     }
 
+    /**
+     * The File menu's "Recent Files" command, the other view action on this
+     * menu. It sits beside "Show Welcome Card" because the two used to be one
+     * surface: the list is a working view, so it keeps its own entry no matter
+     * whether the greeting is switched off.
+     */
+    public void setRecentRunner(Runnable recentRunner) {
+        this.recentRunner = Objects.requireNonNull(recentRunner, "recentRunner");
+    }
+
     /** Installed by the toolbar, which owns the managers and the apply paths. */
     public void setSettings(Settings settings) {
         this.settings = settings;
@@ -308,9 +319,9 @@ public final class MainMenu {
                 }
             }
             if (spec.page() == Page.FILE) {
-                // A separator, because "Show welcome card" is a view command
-                // sitting under the document commands, not one of them.
-                menu.getItems().addAll(new SeparatorMenuItem(), welcomeItem());
+                // A separator, because the two view commands below it are not
+                // document commands.
+                menu.getItems().addAll(new SeparatorMenuItem(), recentItem(), welcomeItem());
             }
             if (spec.page() == Page.HELP) {
                 menu.getItems().add(aboutItem());
@@ -377,6 +388,12 @@ public final class MainMenu {
     private MenuItem aboutItem() {
         var item = new MenuItem(messages.toolbarAbout());
         item.setOnAction(event -> aboutCard.show());
+        return item;
+    }
+
+    private MenuItem recentItem() {
+        var item = new MenuItem(messages.menuRecentFiles());
+        item.setOnAction(event -> recentRunner.run());
         return item;
     }
 

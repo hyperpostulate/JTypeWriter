@@ -94,16 +94,22 @@ The leftmost toolbar control is a `☰` button holding four menus - File, Edit a
 - **YOLO mode asks first.** The mode promises that no edit removes characters; a replacement removes the matched range, so with YOLO on the card asks once per operation and cancelling writes nothing. The change is then a normal, undoable edit.
 - **The card follows the theme:** surface, border, fields, checkbox, buttons and status line resolve through the same tokens as the toolbar, so it is native in Dark, Sepia and Light - including the input backgrounds, which Modena would otherwise paint white in the dark theme.
 
-### Welcome and About Cards
+### Welcome, Recent Files and About Cards
 
-The welcome view and the About view are cards in the same top-right corner as the find panel, not windows of their own. They share that corner with it: opening one closes whatever card was there, so what you see is always exactly the card you last asked for.
+The welcome view, the recent-files view and the About view are cards in the same top-right corner as the find panel, not windows of their own. They share that corner with it: opening one closes whatever card was there, so what you see is always exactly the card you last asked for.
 
 - **The document stays usable.** The card is not modal, so a shortcut can be copied out of it while it is open, and closing it puts the caret back in the text.
 - **`Escape` and `Enter` dismiss it**, exactly as they did when it was a dialog, and so does the `Close` button in the card's top-right corner - a word, like the find panel's. That button is the card's only one: the content is there to be read, not to be dismissed through a second call-to-action at the bottom. The close button takes focus when the card opens, so either key works immediately; `Tab` still walks the card's controls.
 - **It is bounded by the window, not by the screen.** A card taller than a short window shrinks to it and scrolls, instead of running past the edge, and it is painted from the same theme tokens as the toolbar, so it is native in Dark, Sepia and Light.
 - **It speaks the language it is opened in.** The content is rebuilt from the bundle on every opening and on a language switch, so a card that is up cannot keep the previous language after you change it.
-- **Recent documents are one click away.** The card lists your last ten documents, newest first, and opens one through the same unsaved-changes gate as `Open` and drag-and-drop - Cancel, a failing save and the encoding question all behave exactly as they do there. A document deleted outside the app leaves the list silently instead of becoming a row that fails when clicked.
-- **It can stop greeting you.** The "don't show this again" checkbox on the card is a stored preference, so the card no longer opens at launch once it is ticked. `File → Show Welcome Card` is the way back: it clears the preference and opens the card immediately, so the opt-out is never a door you cannot reopen.
+- **The greeting can stop greeting you.** The "don't show this again" checkbox on the welcome card is a stored preference, so the card no longer opens at launch once it is ticked. `File → Show Welcome Card` is the way back: it clears the preference and opens the card immediately, so the opt-out is never a door you cannot reopen.
+
+**The recent list is a card of its own**, opened from `File → Recent Files`. It used to sit on the welcome card, which tied the list to a greeting the user might switch off: someone who does not want to be greeted still wants their files. Keeping the two apart means the greeting can be dismissed for good without losing the list, and the list can be reopened at any time.
+
+- **Ten documents, newest first.** Opening the same document again moves it to the top instead of adding a second row, and the same file reached through a relative path or `..` is recognised as the same document. When the list is full, the oldest entry falls off - never the newest.
+- **A row is named by its file name**, so the list stays readable and does not put your home directory on screen; the full path is the row's tooltip. A card with nothing in it says so rather than showing an empty panel.
+- **It opens through the same gate as `Open`.** Cancel, a failing save and the encoding question all behave exactly as they do from the menu or a drop - the card names the next document, it is not a second way to discard the one in the editor.
+- **A document deleted outside the app leaves the list silently** instead of becoming a row that fails when clicked.
 
 ### Data Safety & Crash Recovery
 
@@ -376,7 +382,8 @@ org.mesutormanli.jtypewriter
 │   ├── MainStage.java                    # Stage configuration (fullscreen, close)
 │   ├── AppIcons.java                     # Window/taskbar/dock icon set from /icons/
 │   ├── AppFonts.java                     # Bundled UI font + headless measurement face
-│   ├── WelcomeCard.java                  # Welcome card: shortcuts, recent files, opt-out
+│   ├── WelcomeCard.java                  # Welcome card: shortcuts + greeting opt-out
+│   ├── RecentFilesCard.java              # Recent documents card (opened from the File menu)
 │   ├── AboutCard.java                    # About card with author info
 │   ├── KeyboardShortcutHandler.java      # Centralized keyboard shortcut handling
 │   ├── CrashHandler.java                 # Global crash net: log + error dialog
@@ -512,7 +519,8 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `AppIconsTest` | The icon set on the classpath: every PNG decodes to the declared size, and the `.ico` file starts with its expected magic bytes (pure byte checks, no toolkit) |
 | `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it, the settings schema version, and the recent-document list plus the welcome opt-out |
 | `StartupGreetingTest` | When the welcome card may arrive on its own: a fresh install is greeted, a stored opt-out keeps it away, and a document named on the command line is never covered by it |
-| `RecentFilesTest` | The welcome card's recent-document list as pure list operations: newest first, one row per document by absolute normalised path, the ten-entry cap dropping the oldest entry, vanished documents filtered out, and empty/null handled |
+| `RecentFilesCardTest` | How a recent-document row is named: the file name, falling back to the whole path when a path has no last element |
+| `RecentFilesTest` | The recent-files card's document list as pure list operations: newest first, one row per document by absolute normalised path, the ten-entry cap dropping the oldest entry, vanished documents filtered out, and empty/null handled |
 | `StatsBarStateTest` | Persisted status-bar size: starts from the setting, a fresh install starts at medium, cycling persists each step, a corrupt value degrades to medium, the mapping covers both enums both ways |
 | `FontSizeManagerTest` | The font-size ladder, off-ladder sizes inserted without changing the setting, ladder stepping for Ctrl+±, clamping to the supported range and the persisted reset to the default size |
 | `ToolbarOptionListsTest` | The six toolbar dropdowns: option order, no duplicates, and every dropdown able to display its own current value |

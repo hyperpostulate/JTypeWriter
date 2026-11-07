@@ -165,9 +165,14 @@ public class Messages {
         return bundle.getString("welcomeOptOut");
     }
 
-    /** The heading above the welcome card's recent-document rows. */
-    public String welcomeRecentTitle() {
-        return bundle.getString("welcomeRecentTitle");
+    /** The title of the recent-files card. */
+    public String recentTitle() {
+        return bundle.getString("recentTitle");
+    }
+
+    /** What the recent-files card says when no document has been opened yet. */
+    public String recentEmpty() {
+        return bundle.getString("recentEmpty");
     }
 
     /** The one-line description of the app shown under the title in both cards. */
@@ -506,6 +511,11 @@ public class Messages {
     /** The File menu's view command that reopens the welcome card. */
     public String menuShowWelcome() {
         return bundle.getString("menuShowWelcome");
+    }
+
+    /** The File menu's view command that opens the recent-files card. */
+    public String menuRecentFiles() {
+        return bundle.getString("menuRecentFiles");
     }
 
     public String menuEdit() {

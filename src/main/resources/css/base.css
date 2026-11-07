@@ -506,17 +506,11 @@
     -fx-padding: 0 4px 10px 4px;
 }
 
-/* W4-02: the recent-document rows and the opt-out under the shortcut card.
-   They reuse the welcome card's own text/muted tokens so the three themes keep
-   their contrast guarantees; only the hover/focus surfaces are shared with the
-   find panel's quiet buttons. */
-.welcome-recent-title {
-    -fx-font-size: 11px;
-    -fx-font-weight: 700;
-    -fx-text-fill: -welcome-muted;
-}
-
-.welcome-recent-item {
+/* W4-02: the recent-files card's rows and the greeting's opt-out. They reuse
+   the cards' own text/muted tokens so the three themes keep their contrast
+   guarantees; only the hover/focus surfaces are shared with the find panel's
+   quiet buttons. */
+.recent-item {
     -fx-font-size: 12px;
     -fx-text-fill: -welcome-text;
     -fx-background-color: transparent;
@@ -528,12 +522,21 @@
     -fx-cursor: hand;
 }
 
-.welcome-recent-item:hover {
+.recent-item:hover {
     -fx-background-color: -welcome-card-bg;
 }
 
-.welcome-recent-item:focused {
+.recent-item:focused {
     -fx-border-color: -focus-ring;
+}
+
+/* The "nothing opened yet" line: muted like the tagline, so it reads as an
+   explanation rather than as a missing card. */
+.recent-empty {
+    -fx-font-size: 12px;
+    -fx-text-fill: -welcome-muted;
+    -fx-text-alignment: center;
+    -fx-padding: 6px 0 0 0;
 }
 
 /* The opt-out mirrors .find-option: it is the same kind of quiet, small

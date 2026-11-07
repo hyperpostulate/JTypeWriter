@@ -25,6 +25,7 @@ import org.mesutormanli.jtypewriter.ui.KeyboardShortcutHandler;
 import org.mesutormanli.jtypewriter.ui.MainController;
 import org.mesutormanli.jtypewriter.ui.MainMenu;
 import org.mesutormanli.jtypewriter.ui.MainStage;
+import org.mesutormanli.jtypewriter.ui.RecentFilesCard;
 import org.mesutormanli.jtypewriter.ui.WelcomeCard;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 import org.mesutormanli.jtypewriter.ui.component.EditorKeyHandler;
@@ -93,6 +94,11 @@ public final class AppGraph {
     // --- views and dialogs ------------------------------------------------
     public final AboutCard aboutCard = new AboutCard(messages);
     public final WelcomeCard welcomeCard = new WelcomeCard(messages, settings);
+    /**
+     * The recent-document list, a card of its own: it stays reachable from the
+     * File menu when the greeting is switched off.
+     */
+    public final RecentFilesCard recentCard = new RecentFilesCard(messages, settings);
     public final MainMenu mainMenu = new MainMenu(messages, localeManager, aboutCard);
     public final ToolbarView toolbarView = new ToolbarView(
             themeManager, textColorManager, fontSizeManager,
@@ -106,7 +112,8 @@ public final class AppGraph {
     public final MainController mainController = new MainController(
             editorArea, mainMenu, toolbarView, statsBar,
             fileService, messages, localeManager, shortcutHandler, editorKeyHandler,
-            autoSaveService, findPanel, welcomeCard, aboutCard, settings, LocalTime::now);
+            autoSaveService, findPanel, welcomeCard, recentCard, aboutCard,
+            settings, LocalTime::now);
     public final MainStage mainStage = new MainStage(
             fileService, settings, autoSaveService, dropHandler);
 

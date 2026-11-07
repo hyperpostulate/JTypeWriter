@@ -101,14 +101,16 @@ class DialogSizingTest {
     }
 
     /**
-     * Both overlay cards are built on {@link OverlayCard}, which hosts their
+     * Every overlay card is built on {@link OverlayCard}, which hosts its
      * content in the shared {@code dialog-scroll} pane. Pinned by source
      * because the alternative - each card growing its own scroll pane and its
-     * own background - is exactly the drift this card base removed.
+     * own background - is exactly the drift this card base removed. The
+     * recent-files card is included: the list is a fourth corner surface, not
+     * an excuse for a fourth layout rule.
      */
     @Test
-    void bothCardsShareTheOverlayCardScrollHost() {
-        for (var source : new String[]{"WelcomeCard.java", "AboutCard.java"}) {
+    void everyCardSharesTheOverlayCardScrollHost() {
+        for (var source : new String[]{"WelcomeCard.java", "RecentFilesCard.java", "AboutCard.java"}) {
             var text = readSource(source);
             assertTrue(text.contains("extends OverlayCard"),
                     source + " is not an OverlayCard");

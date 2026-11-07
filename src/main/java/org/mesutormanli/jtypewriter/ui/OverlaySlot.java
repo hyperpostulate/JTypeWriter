@@ -13,14 +13,14 @@ import java.util.Objects;
  * The window's top-right corner as a single slot: at most one overlay card is
  * visible there at a time.
  *
- * <p><strong>Why one slot instead of stacking.</strong> Three views want that
- * corner - the find panel, the welcome card and the About card - and they are
- * all taller than a comfortable offset stack: the welcome card alone is 750 px
- * on a 1080 px screen. Stacking them would push the lower one off the window
- * (or squeeze both), while placing them beside each other would cover the
- * editor twice. Hiding the one that is being replaced also keeps the corner
- * honest: whatever the user sees there is exactly the card they last asked
- * for, never a half-covered hybrid.</p>
+ * <p><strong>Why one slot instead of stacking.</strong> Four views want that
+ * corner - the find panel, the welcome card, the recent-files card and the
+ * About card - and they are all taller than a comfortable offset stack: the
+ * welcome card alone is 750 px on a 1080 px screen. Stacking them would push
+ * the lower one off the window (or squeeze both), while placing them beside
+ * each other would cover the editor twice. Hiding the one that is being
+ * replaced also keeps the corner honest: whatever the user sees there is
+ * exactly the card they last asked for, never a half-covered hybrid.</p>
  *
  * <p><strong>Why the members hide themselves.</strong> Each card owns its own
  * visibility, focus hand-back and state, so this object is only the rule that
