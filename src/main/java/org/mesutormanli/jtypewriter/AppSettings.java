@@ -19,11 +19,13 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 /**
  * Persisted user preferences in {@code ~/.jtypewriter/settings.properties}.
@@ -37,12 +39,13 @@ import java.util.logging.Logger;
  *       convenience, never a data channel. A malformed file is first moved
  *       aside (quarantined) so the evidence is not overwritten by the next
  *       save;</li>
- *   <li><b>Schema-versioned:</b> the file names its own shape in
- *       {@code schema.version}. A file without the key predates versioning and
- *       is migrated in memory to the current version; a file from a newer
- *       build is read as far as this build understands it and is never
- *       downgraded or stripped of keys it does not recognise. Migration never
- *       rewrites the file - the next real save does that;</li>
+ *   <li><b>Schema-versioned:</b> the file names the build that wrote it in
+ *       {@code schema.version}, and that value is the product version from
+ *       {@code pom.xml} - one number, one source. A file without the key
+ *       predates versioning and is migrated in memory to the current version;
+ *       a file from a newer build is read as far as this build understands it
+ *       and is never downgraded or stripped of keys it does not recognise.
+ *       Migration never rewrites the file - the next real save does that;</li>
  *   <li><b>Write failures are reported:</b> a write that cannot happen (I/O
  *       error or {@link SecurityException}) is logged, never thrown at the
  *       setter's caller, and raises {@link #isSettingsWriteFailurePending()}
@@ -77,16 +80,19 @@ public final class AppSettings {
     private static final Logger LOG = AppLogging.logger(AppSettings.class);
 
     /**
-     * The shape of the settings file this build writes. Bump it whenever a
-     * persisted key is renamed, removed or given new meaning, and add the
-     * matching step to {@link #migrate(Properties)} in the same change: a new
-     * setting on its own does not need a bump, because an older build already
-     * ignores keys it does not know.
+     * The version of the settings file this build writes: the product version,
+     * not a separate counter.
+     *
+     * <p>Deliberately the same number the About card shows. A second scheme
+     * ("schema 3" beside "release 1.1.0") would have to be kept in step by
+     * hand, and the file would then answer two questions - which build wrote
+     * me, and what shape am I - with two numbers that can disagree. One number
+     * answers both, because a release is the only thing that may change the
+     * persisted shape: a new setting is a key older builds ignore, which needs
+     * no migration at all, while a rename or removal ships in a release and
+     * therefore in a new version.</p>
      */
-    static final int CURRENT_SCHEMA_VERSION = 1;
-
-    /** Files written before versioning existed; see {@link #migrate(Properties)}. */
-    private static final int UNVERSIONED_SCHEMA = 0;
+    static final String CURRENT_SCHEMA_VERSION = AppVersion.get();
 
     private static final String KEY_SCHEMA_VERSION = "schema.version";
     private static final String KEY_LANGUAGE = "language";
@@ -105,6 +111,9 @@ public final class AppSettings {
     private static final String KEY_WINDOW_Y = "window.y";
     private static final String KEY_WINDOW_WIDTH = "window.width";
     private static final String KEY_WINDOW_HEIGHT = "window.height";
+
+    /** A run of digits: one numeric segment of a dotted version. */
+    private static final Pattern VERSION_PART = Pattern.compile("\\d+");
 
     static final int DEFAULT_FONT_SIZE = org.mesutormanli.jtypewriter.ui.theme.FontSizeManager.DEFAULT_SIZE;
 
@@ -285,49 +294,85 @@ public final class AppSettings {
      * memory. Never writes: a read must leave the file exactly as it found it,
      * so an older build cannot rewrite a newer file just by looking at it.
      *
-     * <p>The steps are cumulative and each one only ever moves forward. There
-     * is exactly one today - version 0 is every file written before the key
-     * existed, and it has the shape version 1 reads, because no key has been
-     * renamed or removed since - so migration is the version stamp and nothing
-     * else. A later change adds its step here instead of special-casing the
-     * read path.</p>
+     * <p>There is exactly one step today, because no persisted key has ever
+     * been renamed or removed: a file with no {@code schema.version} at all was
+     * written before versioning existed, and it already has the shape this
+     * build reads, so migrating it is stamping the version and nothing else. A
+     * later change adds its step here, keyed to the versions it separates,
+     * instead of special-casing the read path.</p>
      *
-     * <p>A file with a <em>higher</em> version is left untouched: this build
-     * does not know what its shape promises, so it keeps the stored number and
-     * every key it cannot interpret. Downgrading would make the next write
+     * <p>A file stamped with a <em>higher</em> version is left untouched: this
+     * build does not know what its shape promises, so it keeps the stored value
+     * and every key it cannot interpret. Downgrading would make the next write
      * claim a version it did not produce, and stripping unknown keys would
      * destroy the newer build's settings.</p>
      */
     static void migrate(Properties props) {
-        var stored = schemaVersionOf(props);
-        if (stored > CURRENT_SCHEMA_VERSION) {
-            LOG.log(Level.FINE, "settings file has schema version " + stored
+        var stored = props.getProperty(KEY_SCHEMA_VERSION);
+        if (versionSegments(stored).length == 0) {
+            // No usable marker: an unversioned file, or a hand edit that
+            // replaced it with something that is not a version at all.
+            props.setProperty(KEY_SCHEMA_VERSION, CURRENT_SCHEMA_VERSION);
+            return;
+        }
+        var order = compareVersions(stored, CURRENT_SCHEMA_VERSION);
+        if (order > 0) {
+            LOG.log(Level.FINE, "settings file was written by " + stored.trim()
                     + ", newer than " + CURRENT_SCHEMA_VERSION + "; reading it as-is");
             return;
         }
-        if (stored < CURRENT_SCHEMA_VERSION) {
-            props.setProperty(KEY_SCHEMA_VERSION, String.valueOf(CURRENT_SCHEMA_VERSION));
+        if (order < 0) {
+            props.setProperty(KEY_SCHEMA_VERSION, CURRENT_SCHEMA_VERSION);
         }
     }
 
     /**
-     * The version the file declares, or {@link #UNVERSIONED_SCHEMA} when the
-     * key is absent, blank or not a non-negative integer. A hand-edited or
-     * truncated value is treated like a missing one: it predates nothing in
-     * particular, so the safe reading is "oldest known shape".
+     * Compares two dotted version strings by their numeric segments, missing
+     * segments counting as zero, so {@code 1.0.3 < 1.1.0 < 99} and
+     * {@code 1.0 == 1.0.0}. This is deliberately not a general SemVer
+     * implementation: the only question asked here is "was this file written
+     * by an older or a newer build than me", and a pre-release suffix such as
+     * {@code -SNAPSHOT} is not part of a releasable version anyway
+     * ({@code package.sh} rejects it).
      */
-    static int schemaVersionOf(Properties props) {
-        var raw = props.getProperty(KEY_SCHEMA_VERSION);
-        if (raw == null || raw.isBlank()) {
-            return UNVERSIONED_SCHEMA;
+    static int compareVersions(String left, String right) {
+        var first = versionSegments(left);
+        var second = versionSegments(right);
+        for (var index = 0; index < Math.max(first.length, second.length); index++) {
+            var a = index < first.length ? first[index] : 0L;
+            var b = index < second.length ? second[index] : 0L;
+            if (a != b) {
+                return Long.compare(a, b);
+            }
         }
-        try {
-            var version = Integer.parseInt(raw.trim());
-            return version < UNVERSIONED_SCHEMA ? UNVERSIONED_SCHEMA : version;
-        } catch (NumberFormatException e) {
-            LOG.log(Level.FINE, "ignoring malformed settings schema version " + raw);
-            return UNVERSIONED_SCHEMA;
+        return 0;
+    }
+
+    /**
+     * The numeric segments of a version, empty when it contains none. Empty is
+     * the "no usable marker" signal for {@link #migrate}: a blank value, a
+     * comment pasted into the wrong place and a word are all the same thing
+     * here - no build ever wrote a version like that.
+     */
+    private static long[] versionSegments(String version) {
+        if (version == null) {
+            return new long[0];
         }
+        var matcher = VERSION_PART.matcher(version);
+        var segments = new ArrayList<Long>();
+        while (matcher.find()) {
+            try {
+                segments.add(Long.parseLong(matcher.group()));
+            } catch (NumberFormatException overflow) {
+                LOG.log(Level.FINE, "ignoring unreadable settings schema version " + version);
+                return new long[0];
+            }
+        }
+        var values = new long[segments.size()];
+        for (var index = 0; index < segments.size(); index++) {
+            values[index] = segments.get(index);
+        }
+        return values;
     }
 
     private void readFromDisk() {

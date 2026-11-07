@@ -340,7 +340,7 @@ class AppSettingsTest {
      * file behind the user's back: a read is not a migration.
      */
     @Test
-    void aFileWithoutASchemaVersionIsReadAsVersionOneWithoutLosingValues(@TempDir Path dir)
+    void aFileWithoutASchemaVersionKeepsEveryValueAndIsNotRewrittenOnRead(@TempDir Path dir)
             throws IOException {
         var file = dir.resolve("settings.properties");
         var onDisk = "theme=LIGHT\nfont.size=19\nsound.enabled=false\nlanguage=TR\n";
@@ -359,7 +359,8 @@ class AppSettingsTest {
     /**
      * The migration is in memory only, so the version marker has to appear on
      * the first real write - otherwise a first-run file would stay unversioned
-     * until the user happened to change a setting.
+     * until the user happened to change a setting. The marker is the product
+     * version, the same number About shows.
      */
     @Test
     void theFirstSaveStampsTheCurrentSchemaVersionAndKeepsTheMigratedValues(@TempDir Path dir)
@@ -375,6 +376,52 @@ class AppSettingsTest {
                 rewritten);
         assertTrue(rewritten.contains("theme=LIGHT"), rewritten);
         assertTrue(rewritten.contains("font.size=19"), rewritten);
+    }
+
+    /**
+     * A file stamped by an older <em>release</em> is migrated forward the same
+     * way an unversioned one is, and keeps every value: the only migration step
+     * that exists is the stamp, because no persisted key has ever been renamed.
+     */
+    @Test
+    void aFileFromAnOlderReleaseIsStampedForwardOnTheNextSave(@TempDir Path dir)
+            throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "schema.version=0.9.9\ntheme=SEPIA\nfont.size=17\n");
+        var settings = new AppSettings(file);
+
+        assertEquals(Theme.SEPIA, settings.getTheme());
+        assertEquals(17, settings.getFontSize());
+        assertEquals("schema.version=0.9.9", Files.readString(file).lines()
+                        .filter(line -> line.startsWith("schema.version"))
+                        .findFirst()
+                        .orElseThrow(),
+                "reading must not touch the file");
+
+        settings.setTextColor(TextColor.SAGE);
+
+        var rewritten = Files.readString(file);
+        assertTrue(rewritten.contains("schema.version=" + AppSettings.CURRENT_SCHEMA_VERSION),
+                rewritten);
+        assertTrue(rewritten.contains("theme=SEPIA"), rewritten);
+        assertTrue(rewritten.contains("font.size=17"), rewritten);
+    }
+
+    /**
+     * Versions are compared by their numeric segments, so the question the
+     * migration asks - older, equal or newer than this build - answers the same
+     * way for {@code 1.0}, {@code 1.0.0} and {@code 1.0.0.0}, and a two-digit
+     * segment is not read as a string.
+     */
+    @Test
+    void versionsCompareByNumericSegmentsWithMissingSegmentsTreatedAsZero() {
+        assertEquals(0, AppSettings.compareVersions("1.0", "1.0.0"));
+        assertEquals(0, AppSettings.compareVersions("1.0.3", "1.0.3"));
+        assertTrue(AppSettings.compareVersions("1.0.3", "1.1.0") < 0);
+        assertTrue(AppSettings.compareVersions("1.1.0", "1.0.3") > 0);
+        assertTrue(AppSettings.compareVersions("1.0.10", "1.0.9") > 0,
+                "a segment is a number, not text");
+        assertTrue(AppSettings.compareVersions("99", "1.0.3") > 0);
     }
 
     /**

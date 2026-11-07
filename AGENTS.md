@@ -13,7 +13,7 @@ platforms on purpose.
 
 - JDK 25 + Maven 3.8+ are hard requirements (`maven-enforcer-plugin` at `validate`, floor
   derived from `java.version`). There is deliberately no Maven wrapper — don't add one.
-- `mvn clean test` — full suite (533 tests, no toolkit, no display needed). The number is a
+- `mvn clean test` — full suite (536 tests, no toolkit, no display needed). The number is a
   floor that moves with every card; don't treat it as a target.
 - `mvn test -Dtest=FileServiceTest` / `-Dtest=FileServiceTest#methodName` — focused run.
 - `mvn clean package` — tests + thin JAR + `jar-with-dependencies`. The fat JAR bundles
@@ -111,7 +111,13 @@ suite is the gate, and it enforces several non-code invariants below.
 ## Housekeeping
 
 - Version has one source: `pom.xml`. Release tag must be `v<version>`; `package.sh` rejects
-  versions jpackage cannot use (`0.x`, `-SNAPSHOT`).
+  versions jpackage cannot use (`0.x`, `-SNAPSHOT`). At runtime the value arrives through a
+  filtered resource (`src/main/version/…/version.properties`, written at `process-resources`),
+  never a hard-coded constant: Maven's own `pom.properties` is written at `package` into the
+  archive only, so a program running from `target/classes` (`mvn javafx:run`, the IDE, tests)
+  found no version and About said "dev". `AppVersionTest` fails if the resource is missing or
+  disagrees with `pom.xml`. The settings schema version **is** this same number; don't
+  introduce a second counter.
 - Icons have one source: `src/main/resources/icons/jtypewriter.svg`.
   `scripts/generate-icons.py` regenerates the PNG/ICO set plus `icons.manifest` (needs
   ImageMagick 7 `magick` or 6 `convert`). `--check` compares hashes against that manifest and

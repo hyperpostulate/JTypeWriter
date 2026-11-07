@@ -13,20 +13,40 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The application version shown in the About card.
+ * The product version: the value of {@code <version>} in {@code pom.xml}, which
+ * is its one and only source.
  *
- * <p>The value is never hard-coded: it comes from the {@code pom.properties}
- * that Maven writes into {@code META-INF/maven/<groupId>/<artifactId>/} of
- * every artifact. Reading the same resource in a test run (where the file may
- * not exist yet) or in an unpacked IDE build must not fail, so every failure
- * degrades to {@link #FALLBACK} and only logs at {@code FINE}.</p>
+ * <p>The number reaches the program through a filtered resource,
+ * {@code org/mesutormanli/jtypewriter/version.properties}, written by
+ * {@code maven-resources-plugin} at {@code process-resources}. Maven's own
+ * {@code pom.properties} descriptor is not enough for that job: it is written
+ * by {@code maven-jar-plugin} at {@code package}, into the archive only, so a
+ * program running from the class directory - {@code mvn javafx:run}, the IDE,
+ * the test run - finds no descriptor at all. That is where "dev" came from: the
+ * version existed in the jar and nowhere the user was actually running the app.
+ * A filtered resource lands in {@code target/classes} before compilation and is
+ * then packed into every archive, so all four paths read the same number.</p>
+ *
+ * <p>The descriptor is still read as a fallback, because a plain
+ * {@code mvn package} jar is a legitimate way to run the app. When neither
+ * resource is present the classpath was assembled without the build, and
+ * {@link #UNSTAMPED} is returned: a version that is older than every release,
+ * so the settings-schema migration treats such a file as needing a stamp.</p>
  */
 public final class AppVersion {
 
-    /** Shown when the Maven metadata is absent: an unpacked build is not a release. */
-    static final String FALLBACK = "dev";
+    /**
+     * Shown when no build metadata is on the classpath at all: an unpacked
+     * class directory that Maven did not produce. Numerically older than every
+     * release, which is exactly its meaning for schema migration. A Maven
+     * build always has a real value - {@code AppVersionTest} fails if the
+     * filtered resource is missing or disagrees with {@code pom.xml}.
+     */
+    static final String UNSTAMPED = "0.0.0";
 
-    private static final String RESOURCE =
+    private static final String RESOURCE = "org/mesutormanli/jtypewriter/version.properties";
+
+    private static final String MAVEN_DESCRIPTOR =
             "META-INF/maven/org.mesutormanli/jtypewriter/pom.properties";
 
     private static final Logger LOG = AppLogging.logger(AppVersion.class);
@@ -56,32 +76,38 @@ public final class AppVersion {
     }
 
     /**
-     * Lazy holder: the resource is read on first use, not when the class is
+     * Lazy holder: the resources are read on first use, not when the class is
      * loaded, so unrelated code paths pay nothing. The static initializer
-     * cannot throw - every failure is logged and mapped to {@link #FALLBACK}.
+     * cannot throw - every failure is logged and mapped to the next source.
      */
     private static final class Holder {
 
         private static final String VERSION = load();
 
         private static String load() {
-            try (InputStream stream = AppVersion.class.getClassLoader().getResourceAsStream(RESOURCE)) {
+            for (var resource : new String[]{RESOURCE, MAVEN_DESCRIPTOR}) {
+                var version = read(resource);
+                if (version.isPresent()) {
+                    return version.get();
+                }
+            }
+            LOG.warning("no build metadata on the classpath (" + RESOURCE + ", "
+                    + MAVEN_DESCRIPTOR + "); reporting the version as " + UNSTAMPED);
+            return UNSTAMPED;
+        }
+
+        private static Optional<String> read(String resource) {
+            try (InputStream stream = AppVersion.class.getClassLoader().getResourceAsStream(resource)) {
                 if (stream == null) {
-                    LOG.fine(() -> "no " + RESOURCE + " on the classpath, showing " + FALLBACK);
-                    return FALLBACK;
+                    return Optional.empty();
                 }
                 var properties = new Properties();
                 properties.load(stream);
-                var version = versionFrom(properties);
-                if (version.isEmpty()) {
-                    LOG.fine(() -> "blank version in " + RESOURCE + ", showing " + FALLBACK);
-                    return FALLBACK;
-                }
-                return version.get();
+                return versionFrom(properties);
             } catch (IOException | RuntimeException e) {
                 // A broken artifact must not take the About card down with it.
-                LOG.log(Level.FINE, "could not read " + RESOURCE + ", showing " + FALLBACK, e);
-                return FALLBACK;
+                LOG.log(Level.FINE, "could not read " + resource, e);
+                return Optional.empty();
             }
         }
     }

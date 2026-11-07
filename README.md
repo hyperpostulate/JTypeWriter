@@ -403,7 +403,7 @@ org.mesutormanli.jtypewriter
 ├── AppGraph.java                         # Composition root (manual dependency injection)
 ├── AppLogging.java                       # Rotating log setup (java.util.logging)
 ├── AppSettings.java                      # Persisted preferences (settings.properties)
-├── AppVersion.java                       # App version read from META-INF/maven pom.properties
+├── AppVersion.java                       # App version, filtered from pom.xml at build time
 ├── AtomicFiles.java                      # Durable atomic writes (fsync + rename)
 ├── InstanceLock.java                     # Per-user instance lock (single instance)
 ├── StartupArguments.java                 # Resolves the CLI/file-association argument (pure)
@@ -443,7 +443,7 @@ org.mesutormanli.jtypewriter
 | `InstanceLock` | Advisory file lock that rejects a second instance per user |
 | `SingleInstanceWarning` | Minimal window that shows the "already running" warning and exits |
 | `AppSettings` | Persisted preferences under `~/.jtypewriter/settings.properties` |
-| `AppVersion` | Reads the application version from `META-INF/maven/org.mesutormanli/jtypewriter/pom.properties` for the About card |
+| `AppVersion` | The application version from `pom.xml`, delivered as a filtered resource so About, the settings schema version and the release tag are one number |
 | `AtomicFiles` | Durable atomic file writes (fsync, rename, directory flush) |
 | `ThemeManager` | CSS theme loading and switching |
 | `FontSizeManager` | Editor font size state (10-48px) |

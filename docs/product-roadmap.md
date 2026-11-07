@@ -992,17 +992,29 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
 - **Doğrulama:** `mvn test -Dtest=AppSettingsTest` (yeni göç testleri).
 - **Neden ilk:** K6 — A7'nin eklediği her ayar bu kartı tetikler; önce yapılmazsa göç borcu
   sessizce büyür.
-- **Uygulama (8 Kasım 2026):** Dosya artık kendi şeklini `schema.version` ile adlandırıyor;
-  bu sürümde **1**. Sürüm 0, anahtar yazılmadan önceki her dosyadır ve **şekli sürüm 1'in
-  okuduğu şekille aynıdır** (hiçbir anahtar yeniden adlandırılmadı ya da kaldırılmadı), yani
-  göç tek adımdır: sürümü damgalamak. Göç **yalnız bellekte** koşar (`AppSettings.migrate`,
-  saf ve testli); okuma dosyayı yeniden yazmaz - eski bir yapının yeni bir dosyayı yalnızca
-  bakarak yeniden yazması "yayınlanan şey değişmez" kuralının ihlali olurdu. Daha **yeni**
-  bir sürüm (ör. 99) reddedilmez: bilinmeyen anahtarlar ve sürüm numarası olduğu gibi korunur,
-  sonraki kayıt onları silmez ve sürümü geriye düşürmez; aksi halde eski bir yapı, yeni yapının
-  dosyasını kendi şekli sanıp damgalardı. Sürüm anahtarı yalnızca şekil değişince artar -
-  yeni bir ayar anahtarı eski yapının yok sayacağı bir anahtar olduğu için tek başına bump
-  gerektirmez.
+- **Uygulama (8 Kasım 2026):** Dosya artık kendisini yazan yapıyı `schema.version` ile
+  adlandırıyor ve bu değer **ürün sürümüdür** - `pom.xml`'deki `<version>`. Ayrı bir "şema
+  sayacı" yok: iki numara, "beni kim yazdı" ile "şeklim ne" sorusunu iki ayrı cevapla
+  yanıtlar ve er geç çelişir. Tek numara ikisini de yanıtlar, çünkü kalıcı şekli yalnızca bir
+  **sürüm** değiştirebilir: yeni bir ayar anahtarı eski yapının yok sayacağı bir anahtardır
+  (göç gerekmez), yeniden adlandırma/kaldırma ise bir sürümle çıkar. Sürümün tek kaynağı
+  `pom.xml`: çalışan programa değer, `maven-resources-plugin`'in `process-resources`'ta
+  filtreleyip yazdığı `org/mesutormanli/jtypewriter/version.properties` üzerinden gider.
+  Neden Maven'ın kendi `pom.properties` dosyası yetmedi: onu `maven-jar-plugin` `package`'ta ve
+  yalnız **arşivin içine** yazıyor; sınıf dizininden (`target/classes`) çalışan her yol -
+  `mvn javafx:run`, IDE, test koşusu - hiçbir sürüm dosyası bulamıyordu. Hakkında'da **"dev"**
+  görülmesinin nedeni buydu: sürüm jar'ın içinde vardı, kullanıcının uygulamayı çalıştırdığı
+  yerde yoktu. Filtrelenmiş kaynak derlemeden önce `target/classes`'a düşer ve her arşive
+  paketlenir, yani dört yol da aynı numarayı okur.
+  Göç tek adımdır: anahtarsız dosya (ya da sürüm olmayan değer) sürümsüzdür ve şekli bu
+  yapının okuduğu şekille aynıdır (hiçbir anahtar yeniden adlandırılmadı/kaldırılmadı), yani
+  göç sürümü damgalamaktır. Göç **yalnız bellekte** koşar (`AppSettings.migrate`, saf ve
+  testli); okuma dosyayı yeniden yazmaz - eski bir yapının yeni bir dosyayı yalnızca bakarak
+  yeniden yazması "yayınlanan şey değişmez" kuralının ihlali olurdu. Daha **yeni** bir sürüm
+  (ör. `99`) reddedilmez: bilinmeyen anahtarlar ve sürüm değeri olduğu gibi korunur, sonraki
+  kayıt onları silmez ve sürümü geriye düşürmez; aksi halde eski bir yapı, yeni yapının
+  dosyasını kendi şekli sanıp damgalardı. Karşılaştırma sayısal parçalar üzerinden yapılır
+  (`1.0 == 1.0.0`, `1.0.10 > 1.0.9`); eksik parça sıfır sayılır.
   Yazma hatası artık sessiz değil: `save()` `IOException` yanında `SecurityException`'ı da
   yakalar (ikisi de kullanıcı için "yazılmadı" demektir), değeri bellekte bırakır ve
   `isSettingsWriteFailurePending()` bayrağını kaldırır. Bayrak **hemen gösterilemez**: ayarlar
@@ -1010,13 +1022,16 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   açılışın sonunda ve her belge kaydında - ve diyalog döndükten **sonra** temizler; böylece
   gösterilemeyen bir uyarı kaybolmaz (depolama izi bildiriminin aynı deseni). Metin altı dilde,
   dosya adı argüman olarak: kullanıcının eyleme geçebileceği tek bilgi o.
-- **Doğrulama (yeni testler):** `AppSettingsTest` 18 → **23**: şema öncesi dosya değer
-  kaybetmeden okunuyor ve okuma dosyayı yeniden yazmıyor; ilk kayıt sürümü damgalıyor;
+- **Doğrulama (yeni testler):** `AppSettingsTest` 18 → **25**: şema öncesi dosya değer
+  kaybetmeden okunuyor ve okuma dosyayı yeniden yazmıyor; ilk kayıt ürün sürümünü damgalıyor;
+  eski bir sürümün (`0.9.9`) dosyası ilk kayıtta ileri damgalanıyor ve değerler korunuyor;
   `schema.version=99` + bilinmeyen anahtar kayıtta korunuyor; bozuk sürüm değeri sürümsüz
-  sayılıyor; POSIX salt-okunur klasörde `setTheme` fırlatmıyor, bayrak kalkıyor ve bir kez
-  raporlanıyor. `SecurityException` dalı unit test edilemiyor - JDK 25'te `SecurityManager`
-  kaldırıldığı için onu üreten bir ortam yok; aynı raporlama yolunu `IOException` dalı
-  (salt-okunur klasör) test ediyor.
+  sayılıyor; sürüm karşılaştırması sayısal parça testleriyle pinli; POSIX salt-okunur klasörde
+  `setTheme` fırlatmıyor, bayrak kalkıyor ve bir kez raporlanıyor. `AppVersionTest` 4 → **5**:
+  `pom.xml` sürümü = çalışan sürüm = şema sürümü, ve filtrelenmiş kaynak **var** (bu test
+  olmasaydı eksik kaynak sessizce "dev"e düşerdi). `SecurityException` dalı unit test
+  edilemiyor - JDK 25'te `SecurityManager` kaldırıldığı için onu üreten bir ortam yok; aynı
+  raporlama yolunu `IOException` dalı (salt-okunur klasör) test ediyor.
 
 **W4-02 · A7a — Son dosyalar + karşılama opt-out** · M · E5, U7
 - **Kapsam:** `AppSettings`, `WelcomeCard`, `FxApplication` (karşılama kartının açıldığı yer), `MainMenu` (Dosya menüsü)
@@ -1150,7 +1165,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W3-04 | Sürükle-bırak | E4 | S | W3-01 | ✅ | `DroppedFiles` (saf karar) + `DropHandler` (sahne filtresi) + `FileService.openPathAsync`: `.txt`/`.md` bırakma Aç ile aynı SAVE/DISCARD/CANCEL matrisinden geçiyor, ret adıyla/adediyle bildiriliyor, dosya taşımayan jest düzenleyiciye bırakılıyor; `mvn -B clean test` → 488/0/0, odaklı DroppedFiles+DropContract+FileService+Messages 13/5/50/13, `ExitDispositionTest,MainStageTest` yeşil |
 | W3-05 | `FindModel` | E1 | M | W2-01, W3-01 | ✅ | `ui/FindModel` (saf): düz metin sorgu/değiştirme (regex yok), çakışmasız soldan sağa tarama, varsayılan yerel ayara bağlı olmayan büyük-küçük harf (`regionMatches`), iki yönde saran ileri/geri, değiştirme sonrası yeniden tarama, sığmayan aralığı reddetme; `findAll` saf statik (W3-06 paneli FX thread'inde taramayacak) ve `install` bayat taramayı atıyor; `mvn test -Dtest=FindModelTest` → 30/30, `mvn -B clean test` → 518/0/0, dört mutasyon kırmızı |
 | W3-06 | Arama paneli | E1 | M | W3-05 | ✅ | `ui/FindPanel` (Notepad++ tarzı yüzen kart) + `FindScanService` (FX dışı tarama) + `FindReplacePolicy` (YOLO onayı) + `FindCommands` portu; `Ctrl+F`/`F3`/`Shift+F3`/`Ctrl+H` + araç çubuğunda `⚲` + Düzen menüsü; tarama worker'da, 10 MiB'da 26–53 ms ve `fxThreadScans()==0`; tümünü değiştir tek geri alma adımı; YOLO açıkken onay diyaloğu; `mvn -B clean test` → 524/0/0 |
-| W4-01 | Ayar şema sürümü | D13, D12 | S | — | ✅ | `AppSettings`: `schema.version=1` (sürüm 0 = anahtarsız dosya, şekli aynı → göç yalnız damga), göç bellekte ve okuma dosyayı yeniden yazmıyor, daha yeni sürüm ve bilinmeyen anahtarlar kayıtta korunuyor; `save()` `SecurityException`'ı da yakalıyor, `isSettingsWriteFailurePending()` bayrağı `AppGraph` tarafından açılış sonunda ve her kayıtta bir kez gösteriliyor; 6 bundle + `Messages`; `mvn test -Dtest=AppSettingsTest,MessagesTest,DialogServiceTest` → 44/44 |
+| W4-01 | Ayar şema sürümü | D13, D12 | S | — | ✅ | `AppSettings`: `schema.version` = **ürün sürümü** (`pom.xml`, tek kaynak; filtrelenmiş `version.properties` ile taşınıyor), anahtarsız/bozuk = sürümsüz → bellekte damgalanır, daha yeni sürüm ve bilinmeyen anahtarlar kayıtta korunuyor, karşılaştırma sayısal parçalarla; `save()` `SecurityException`'ı da yakalıyor, `isSettingsWriteFailurePending()` bayrağı `AppGraph` tarafından açılış sonunda ve her kayıtta bir kez gösteriliyor; About artık "dev" değil sürümü gösteriyor; 6 bundle + `Messages`; `mvn test -Dtest=AppSettingsTest,AppVersionTest,MessagesTest,DialogServiceTest` → yeşil |
 | W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ☐ | |
 | W4-03 | Minimum genişlik | U8 | S | — | ☐ | |
 | W4-04 | Ses politikası | U9 | S | W3-02, W4-01 | ☐ | |

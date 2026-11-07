@@ -400,7 +400,7 @@ org.mesutormanli.jtypewriter
 ├── AppGraph.java                         # Kompozisyon kökü (manuel bağımlılık enjeksiyonu)
 ├── AppLogging.java                       # Dönen log kurulumu (java.util.logging)
 ├── AppSettings.java                      # Kalıcı tercihler (settings.properties)
-├── AppVersion.java                       # META-INF/maven pom.properties'ten okunan uygulama sürümü
+├── AppVersion.java                       # pom.xml'den derleme anında filtrelenen uygulama sürümü
 ├── AtomicFiles.java                      # Dayanıklı atomik dosya yazımı (fsync + rename)
 ├── InstanceLock.java                     # Kullanıcı başına örnek kilidi (tek örnek)
 ├── StartupArguments.java                 # CLI/dosya ilişkilendirme argümanını çözer (saf)
@@ -440,7 +440,7 @@ org.mesutormanli.jtypewriter
 | `InstanceLock` | İkinci örneği kullanıcı başına reddeden danışma amaçlı dosya kilidi |
 | `SingleInstanceWarning` | "Zaten çalışıyor" uyarısını gösterip kapanan minimal pencere |
 | `AppSettings` | `~/.jtypewriter/settings.properties` altında kalıcı tercihler |
-| `AppVersion` | About diyaloğu için uygulama sürümünü `META-INF/maven/org.mesutormanli/jtypewriter/pom.properties` dosyasından okur |
+| `AppVersion` | Uygulama sürümünü `pom.xml`'den alır ve filtrelenmiş bir kaynak olarak taşır; böylece Hakkında, ayar şema sürümü ve yayın tag'i tek bir numaradır |
 | `AtomicFiles` | Dayanıklı atomik dosya yazımı (fsync, rename, dizin flush) |
 | `ThemeManager` | CSS tema yükleme ve değiştirme |
 | `FontSizeManager` | Editör font boyutu durumu (10-48px) |

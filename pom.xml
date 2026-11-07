@@ -96,6 +96,26 @@
     </dependencies>
 
     <build>
+        <!--
+            The version lives in exactly one place: <version> above. The
+            filtered copy below is how the running program learns it. It is a
+            resource rather than Maven's own descriptor because
+            maven-jar-plugin writes pom.properties at `package` and into the
+            archive only, so anything running from the class directory -
+            mvn javafx:run, the IDE, the test run - had no version at all and
+            About said "dev". process-resources runs before compile, so one
+            filtered file covers all of those paths and both archives.
+        -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+            </resource>
+            <resource>
+                <directory>src/main/version</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <!--
                 Fail at `validate` - before a single class is compiled - when the
