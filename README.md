@@ -94,6 +94,15 @@ The leftmost toolbar control is a `☰` button holding four menus - File, Edit a
 - **YOLO mode asks first.** The mode promises that no edit removes characters; a replacement removes the matched range, so with YOLO on the card asks once per operation and cancelling writes nothing. The change is then a normal, undoable edit.
 - **The card follows the theme:** surface, border, fields, checkbox, buttons and status line resolve through the same tokens as the toolbar, so it is native in Dark, Sepia and Light - including the input backgrounds, which Modena would otherwise paint white in the dark theme.
 
+### Welcome and About Cards
+
+The welcome view and the About view are cards in the same top-right corner as the find panel, not windows of their own. They share that corner with it: opening one closes whatever card was there, so what you see is always exactly the card you last asked for.
+
+- **The document stays usable.** The card is not modal, so a shortcut can be copied out of it while it is open, and closing it puts the caret back in the text.
+- **`Escape` and `Enter` dismiss it**, exactly as they did when it was a dialog, and the corner `×` does the same. The card takes focus when it opens, so those keys work immediately; `Tab` still walks its controls.
+- **It is bounded by the window, not by the screen.** A card taller than a short window shrinks to it and scrolls, instead of running past the edge, and it is painted from the same theme tokens as the toolbar, so it is native in Dark, Sepia and Light.
+- **It speaks the language it is opened in.** The content is rebuilt from the bundle on every opening and on a language switch, so a card that is up cannot keep the previous language after you change it.
+
 ### Data Safety & Crash Recovery
 
 - **Atomic, durable saves with backups:** every save is written to a temp file, fsynced and then renamed into place, so a crash mid-save or a power cut cannot leave a truncated document
@@ -154,7 +163,7 @@ Six text colors (one default plus five accents): Default, Sage, Lavender, Sand, 
 
 ## Your Data
 
-Everything JTypeWriter keeps stays on your machine. There is no account, no telemetry, no update check and no network request: the application itself sends nothing, and the only outbound action is the e-mail link in the About dialog, which hands a `mailto:` address to your own mail client.
+Everything JTypeWriter keeps stays on your machine. There is no account, no telemetry, no update check and no network request: the application itself sends nothing, and the only outbound action is the e-mail link in the About card, which hands a `mailto:` address to your own mail client.
 
 - **Where it lives:** `~/.jtypewriter/` - `settings.properties` (language, theme, text colour, font size, sound, toolbar visibility, status-bar size, window geometry, and the last document and folder as absolute paths), `recovery/` (crash-recovery drafts), `logs/`, and `instance.lock`, the advisory single-instance lock that carries no document content.
 - **Drafts contain your text.** Each `recovery/draft-<uuid>.jtw` holds the unsaved document verbatim; a postponed draft is parked as `pending-<uuid>.jtw` and survives a clean exit. A draft also records the absolute path the text came from, Base64-encoded so separators and newlines survive - that is encoding, not encryption - so a draft can outlive the document it came from. The scan only reads plain files: a symlink named like a draft is ignored rather than followed, and a file above 64 MiB is skipped instead of being loaded at startup. Parked drafts are housekeeping - they expire after 30 days, and the set is capped at 10 files / 64 MiB - while an active `draft-<uuid>.jtw` is never expired, because it may belong to another running instance.
@@ -363,8 +372,8 @@ org.mesutormanli.jtypewriter
 │   ├── MainStage.java                    # Stage configuration (fullscreen, close)
 │   ├── AppIcons.java                     # Window/taskbar/dock icon set from /icons/
 │   ├── AppFonts.java                     # Bundled UI font + headless measurement face
-│   ├── WelcomeDialog.java                # Welcome screen with shortcuts
-│   ├── AboutDialog.java                  # About dialog with author info
+│   ├── WelcomeCard.java                  # Welcome card with shortcuts
+│   ├── AboutCard.java                    # About card with author info
 │   ├── KeyboardShortcutHandler.java      # Centralized keyboard shortcut handling
 │   ├── CrashHandler.java                 # Global crash net: log + error dialog
 │   ├── DropHandler.java                  # Scene-level file drop glue (resolve, open, report)
@@ -432,7 +441,7 @@ org.mesutormanli.jtypewriter
 | `InstanceLock` | Advisory file lock that rejects a second instance per user |
 | `SingleInstanceWarning` | Minimal window that shows the "already running" warning and exits |
 | `AppSettings` | Persisted preferences under `~/.jtypewriter/settings.properties` |
-| `AppVersion` | Reads the application version from `META-INF/maven/org.mesutormanli/jtypewriter/pom.properties` for the About dialog |
+| `AppVersion` | Reads the application version from `META-INF/maven/org.mesutormanli/jtypewriter/pom.properties` for the About card |
 | `AtomicFiles` | Durable atomic file writes (fsync, rename, directory flush) |
 | `ThemeManager` | CSS theme loading and switching |
 | `FontSizeManager` | Editor font size state (10-48px) |

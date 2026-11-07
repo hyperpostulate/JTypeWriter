@@ -8,34 +8,26 @@ package org.mesutormanli.jtypewriter.ui.theme;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 public enum Theme {
-    LIGHT("css/light.css", "#f8f6f2", "#ffffff"),
-    DARK("css/dark.css", "#252526", "#1a1a1a"),
-    SEPIA("css/sepia.css", "#efe6d4", "#f4ecd8");
+    LIGHT("css/light.css", "#ffffff"),
+    DARK("css/dark.css", "#1a1a1a"),
+    SEPIA("css/sepia.css", "#f4ecd8");
 
     private final String cssPath;
 
     /**
-     * Surface colours mirrored from the CSS ({@code -welcome-bg} and the
-     * {@code .editor-area} background). Opaque borderless windows paint their
-     * scene with these so every anti-aliased edge blends into an identical
-     * colour and can never form a white fringe or flash.
+     * The canvas colour mirrored from the CSS ({@code .editor-area}). The
+     * window paints its scene with it so a resize never flashes another colour
+     * before the editor lays itself out.
      */
-    private final String dialogFill;
     private final String editorFill;
 
-    Theme(String cssPath, String dialogFill, String editorFill) {
+    Theme(String cssPath, String editorFill) {
         this.cssPath = cssPath;
-        this.dialogFill = dialogFill;
         this.editorFill = editorFill;
     }
 
     public String getCssPath() {
         return cssPath;
-    }
-
-    /** Matches {@code -welcome-bg}: dialog surface and scene fill colour. */
-    public String getDialogFill() {
-        return dialogFill;
     }
 
     /** Matches the {@code .editor-area} background: editor canvas colour. */

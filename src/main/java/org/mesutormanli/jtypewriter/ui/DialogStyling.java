@@ -24,9 +24,9 @@ public final class DialogStyling {
     }
 
     /**
-     * Copies the scene's stylesheets onto the dialog pane - the pattern the
-     * welcome and about dialogs use. A null scene (or pane) is a no-op, so a
-     * dialog shown before the main scene exists cannot fail here.
+     * Copies the scene's stylesheets onto the dialog pane - the pattern every
+     * {@code Alert} uses. A null scene (or pane) is a no-op, so a dialog shown
+     * before the main scene exists cannot fail here.
      */
     public static void applyFromScene(DialogPane pane, Scene scene) {
         if (pane == null || scene == null) {

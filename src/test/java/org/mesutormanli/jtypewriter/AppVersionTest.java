@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The About dialog must show a real version. The value lives in the
+ * The About card must show a real version. The value lives in the
  * Maven {@code pom.properties}; the parsing seam is tested directly because
  * that resource is not guaranteed to be on the test classpath (the jar plugin
  * adds it at {@code package}, after {@code test}).

@@ -67,7 +67,7 @@ class AppIconsTest {
     }
 
     /**
-     * The welcome and about windows draw {@link AppIcons#dialogIconResource()}
+     * The welcome and about cards draw {@link AppIcons#dialogIconResource()}
      * as an {@code ImageView} inside the scene, so the dialog artwork must be
      * the single high-resolution PNG the code advertises.
      */

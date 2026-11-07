@@ -77,30 +77,7 @@ class DialogServiceTest {
     }
 
     /**
-     * The window titles of the welcome and about windows must exist, be
-     * non-blank and name the application in every bundled locale (the task
-     * switcher falls back to a blank/"Stage" entry otherwise). This covers the
-     * resource lookup only: applying the title needs a live {@code Stage}, and
-     * the error dialog's owner cannot be observed without an {@code Alert} -
-     * both need a JavaFX toolkit, so this headless suite deliberately does not
-     * test them.
-     */
-    @Test
-    void windowTitlesResolveInEveryBundledLocale() {
-        for (var language : Language.values()) {
-            var messages = messagesFor(language);
-            var welcomeTitle = messages.welcomeWindowTitle();
-            var aboutTitle = messages.aboutWindowTitle();
-
-            assertFalse(welcomeTitle.isBlank(), "blank welcome window title in " + language);
-            assertFalse(aboutTitle.isBlank(), "blank about window title in " + language);
-            assertTrue(welcomeTitle.contains("JTypeWriter"), "welcome title names the app in " + language);
-            assertTrue(aboutTitle.contains("JTypeWriter"), "about title names the app in " + language);
-        }
-    }
-
-    /**
-     * The tagline is drawn as text inside both helper windows (welcome and
+     * The tagline is drawn as text inside both overlay cards (welcome and
      * about), so it must resolve non-blank in every bundled locale. This
      * covers the resource lookup only; wrapping it needs a live {@code Label},
      * so this headless suite deliberately does not test the layout.

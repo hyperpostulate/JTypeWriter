@@ -18,10 +18,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The welcome/About dialogs must fit the display instead of opening taller
- * than a 768 px screen. The clamping is pure maths so it is verified
- * headlessly; the shared scroll style class is checked by reading the two
- * dialog sources as plain text.
+ * The helper views must fit the display they are opened on instead of spilling
+ * past a 768 px screen. The clamping is pure maths so it is verified
+ * headlessly; the shared scroll host of the two overlay cards is checked by
+ * reading their sources as plain text.
  */
 class DialogSizingTest {
 
@@ -77,7 +77,7 @@ class DialogSizingTest {
 
     /**
      * An Alert must fit a 768 px-wide screen once the shared margin is taken
-     * off both sides - the same rule the welcome/About cards already follow.
+     * off both sides.
      */
     @Test
     void alertWidthFitsA768PixelWideScreenInsideTheSharedMargin() {
@@ -100,15 +100,26 @@ class DialogSizingTest {
         assertTrue(contentWidth < dialogWidth, "the content cannot be wider than its dialog");
     }
 
+    /**
+     * Both overlay cards are built on {@link OverlayCard}, which hosts their
+     * content in the shared {@code dialog-scroll} pane. Pinned by source
+     * because the alternative - each card growing its own scroll pane and its
+     * own background - is exactly the drift this card base removed.
+     */
     @Test
-    void bothDialogsUseTheSharedScrollStyleClass() {
-        for (var source : new String[]{"WelcomeDialog.java", "AboutDialog.java"}) {
+    void bothCardsShareTheOverlayCardScrollHost() {
+        for (var source : new String[]{"WelcomeCard.java", "AboutCard.java"}) {
             var text = readSource(source);
-            assertTrue(text.contains("\"dialog-scroll\""),
-                    source + " does not use the shared dialog-scroll style class");
-            assertFalse(text.contains("\"about-scroll\""),
-                    source + " still uses the old about-scroll style class");
+            assertTrue(text.contains("extends OverlayCard"),
+                    source + " is not an OverlayCard");
+            assertFalse(text.contains("ScrollPane"),
+                    source + " builds its own scroll host instead of using OverlayCard's");
         }
+        var base = readSource("OverlayCard.java");
+        assertTrue(base.contains("\"dialog-scroll\""),
+                "OverlayCard does not use the shared dialog-scroll style class");
+        assertFalse(base.contains("\"about-scroll\""),
+                "OverlayCard still uses the old about-scroll style class");
     }
 
     private static String readSource(String name) {

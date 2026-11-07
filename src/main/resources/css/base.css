@@ -485,7 +485,7 @@
     -fx-padding: 0;
 }
 
-/* Application mark drawn inside the helper dialogs. The pixel size is set in
+/* Application mark drawn inside the overlay cards. The pixel size is set in
    code (fitWidth); this class carries only spacing so themes can tune it. */
 .dialog-icon {
     -fx-padding: 0 0 2px 0;
@@ -619,12 +619,30 @@
     -fx-text-fill: -welcome-button-hover;
 }
 
+/* Corner close affordance of the floating welcome and About cards, the same
+   idea as the find panel's .find-close: a quiet glyph in the card's muted
+   colour, so the card's own button stays the primary way out. */
+.overlay-card-close {
+    -fx-font-size: 14px;
+    -fx-text-fill: -welcome-muted;
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 1 7 3 7;
+    -fx-cursor: hand;
+}
+
+.overlay-card-close:hover {
+    -fx-background-color: -welcome-card-bg;
+    -fx-background-radius: 4px;
+    -fx-text-fill: -welcome-text;
+}
+
 /* --- Alert / Dialog chrome -------------------------------------------------
    Every Alert used to fall back to Modena's white box with black text: no one
    ever put the scene stylesheets on the dialog pane. The themes now define
    their tokens on .dialog-pane too (see the .root, .dialog-pane selectors in
    light/dark/sepia), and these rules paint the pane, header and buttons from
-   the same -welcome-* / -toolbar-* colours as the welcome dialogs, so an
+   the same -welcome-* / -toolbar-* colours as the overlay cards, so an
    error or confirmation matches the window it belongs to. */
 .dialog-pane {
     -fx-background-color: -welcome-bg;

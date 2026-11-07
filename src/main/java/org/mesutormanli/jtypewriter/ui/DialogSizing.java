@@ -6,12 +6,17 @@
 package org.mesutormanli.jtypewriter.ui;
 
 /**
- * Pure sizing maths shared by the helper dialogs.
+ * Pure sizing maths for the {@code Alert}s this product raises.
  *
- * <p>The welcome/About windows used to open at their preferred size whatever
- * the display was, so on a 768 px-tall screen (and even more so with a
- * taskbar) their lower edge - including the dismiss button - landed off
- * screen. These methods fit a preferred size into the visual bounds instead.
+ * <p>An Alert used to size itself from its text whatever the display was, so on
+ * a 768 px-tall screen (and even more so with a taskbar) a long German or
+ * French sentence pushed its lower edge - including the buttons - off screen.
+ * These methods fit a preferred size into the visual bounds instead.
+ *
+ * <p>The welcome and About views no longer use this: as overlay cards their
+ * bound is the window, and a card that outgrows it scrolls (see
+ * {@link OverlayCard}). The clamping stayed because {@code DialogService} still
+ * raises real Alerts for save/recovery questions.
  *
  * <p>Kept free of JavaFX types on purpose: the tests run headless, so the
  * clamping has to be reachable without a toolkit.

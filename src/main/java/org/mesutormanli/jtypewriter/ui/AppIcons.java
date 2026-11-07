@@ -37,9 +37,9 @@ public final class AppIcons {
             "/icons/jtypewriter-256.png");
 
     /**
-     * The single artwork used by the helper windows (welcome, about). They are
-     * small, undecorated and shown one at a time, so one high-resolution image
-     * covers every window list and title-bar size without juggling a set.
+     * The single artwork drawn inside the overlay cards (welcome, about). A
+     * card is small and only ever one is on screen, so one high-resolution
+     * image covers the drawn mark without juggling a set.
      */
     private static final String DIALOG_ICON = "/icons/jtypewriter-512.png";
 
@@ -51,16 +51,16 @@ public final class AppIcons {
         return WINDOW_ICONS;
     }
 
-    /** The classpath name of the single icon used by the helper windows. */
+    /** The classpath name of the single icon drawn inside the overlay cards. */
     public static String dialogIconResource() {
         return DIALOG_ICON;
     }
 
     /**
-     * Loads the image drawn inside the helper windows (welcome, about). Like
+     * Loads the image drawn inside the overlay cards (welcome, about). Like
      * the window icons this is best-effort: a missing resource or a corrupt
      * image is logged and reported as {@code null} so the caller simply shows
-     * no picture instead of failing to open the dialog.
+     * no picture instead of failing to open the card.
      */
     public static Image dialogIcon() {
         try {

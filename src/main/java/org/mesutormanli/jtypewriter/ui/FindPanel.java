@@ -98,6 +98,9 @@ public class FindPanel extends VBox implements FindCommands {
 
     private Stage stage;
 
+    /** The corner this panel shares with the welcome and About cards; may be {@code null} in tests. */
+    private OverlaySlot overlaySlot;
+
     public FindPanel(Messages messages, LocaleManager localeManager, EditorArea editorArea,
                      DialogService dialogService, FindScanService scanService) {
         this.messages = messages;
@@ -201,6 +204,14 @@ public class FindPanel extends VBox implements FindCommands {
         this.stage = stage;
     }
 
+    /** Joins the shared top-right slot, so opening this panel closes the other cards. */
+    public void setOverlaySlot(OverlaySlot overlaySlot) {
+        this.overlaySlot = overlaySlot;
+        if (overlaySlot != null) {
+            overlaySlot.register(this, this::hide);
+        }
+    }
+
     @Override
     public void openFind() {
         showPanel();
@@ -224,13 +235,26 @@ public class FindPanel extends VBox implements FindCommands {
     }
 
     private void showPanel() {
+        // One card in the corner: opening the find panel closes a welcome or
+        // About card that is still up (see OverlaySlot).
+        if (overlaySlot != null) {
+            overlaySlot.aboutToShow(this);
+        }
         setVisible(true);
         setManaged(true);
         model.setDocument(editorArea.getText());
         rescan();
     }
 
+    /**
+     * Hides the panel and hands the caret back. A panel that was already hidden
+     * does nothing, so {@link OverlaySlot} hiding it on every other card's show
+     * cannot steal focus from the card that is opening.
+     */
     private void hide() {
+        if (!isVisible()) {
+            return;
+        }
         setVisible(false);
         setManaged(false);
         editorArea.requestFocus();
@@ -446,9 +470,9 @@ public class FindPanel extends VBox implements FindCommands {
      */
     private void relocalise() {
         titleLabel.setText(messages.findPanelTitle());
-        closeButton.setText(messages.findClose());
-        closeButton.setAccessibleText(messages.findClose());
-        closeButton.setTooltip(new Tooltip(messages.findClose()));
+        closeButton.setText(messages.overlayClose());
+        closeButton.setAccessibleText(messages.overlayClose());
+        closeButton.setTooltip(new Tooltip(messages.overlayClose()));
 
         findWhatLabel.setText(messages.findWhat());
         replaceLabel.setText(messages.findReplaceWith());

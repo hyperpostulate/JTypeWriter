@@ -43,11 +43,11 @@ Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir say�
 
 | Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`W3-06 sonrası`) |
 |---|---:|---:|
-| Commit | 137 | **180** (+43) |
-| Üretim sınıfı / satırı | 51 / 7.611 | **66 / 12.293** |
-| Test dosyası / `@Test` | 42 / 350 | **56 / 524** |
-| Bundle anahtarı | 6 × 90 | **6 × 150** |
-| `mvn -B clean test` | 350/0/0 | **524/0/0** |
+| Commit | 137 | **181** (+44) |
+| Üretim sınıfı / satırı | 51 / 7.611 | **68 / 12.507** |
+| Test dosyası / `@Test` | 42 / 350 | **58 / 528** |
+| Bundle anahtarı | 6 × 90 | **6 × 148** |
+| `mvn -B clean test` | 350/0/0 | **528/0/0** |
 | Tag / Release | 0 / 0 | **3 / 3** (`v1.0.0`, `v1.0.1`, `v1.0.2`) |
 | Release varlığı | — | **6** (5 ikili/kaynak + `SHA256SUMS`) |
 | Release işareti | — | **üçü de `prerelease=true`** |
@@ -924,6 +924,25 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   `fxThreadScans() == 0` diyor.
   **Kanıt:** `mvn -B clean test` → **524/0/0**; `mvn test -Dtest=FindModelTest,ToolbarFitTest,EditorActionTest,KeyboardShortcutHandlerTest,ShortcutRowsTest,FindReplacePolicyTest,FindScanServiceTest,MainControllerTest,MessagesTest`
   → **103/103**; taşma testleri DE/FR compact satırları ≤ 836 px, tüm diller ≤ 900 px.
+- **Tasarım takibi (7 Kasım):** Hoş geldin ve Hakkında görünümleri de aynı köşeye taşındı.
+  İkisi de çerçevesiz, modal, ayrı `Stage`'lerdi: ürünün ikinci penceresi, ikinci sahnesi ve
+  ikinci stil sayfası listesi, üstelik belgeyi kilitliyorlardı - kullanıcı karttan bir kısayolu
+  kopyalayamıyor, kapatınca imleç metne dönmüyordu. Artık `OverlayCard` (ortak kart tabanı:
+  `welcome-root` yüzeyi, `dialog-scroll` kaydırma kabı, `Escape`/`Enter` kapatma, odak geri
+  verme) ve `WelcomeCard`/`AboutCard` onun üzerinde. Köşe tek: `OverlaySlot` hangi kart
+  açılırsa açılsın diğerlerini (ara paneli dahil) kapatıyor - iki kart yan yana o marginlere
+  sığmadığı, üst üste de belgeyi iki kez örttüğü için tek yuva kuralı. Kartların sınırı ekran
+  değil pencere: `maxHeight` sahne yığınının yüksekliğine bağlı, içerik kaydırılıyor. İçerik
+  her açılışta paketten yeniden kurulduğu için dil değişimi açık kartı bayat bırakamıyor;
+  odak bir darbe sonrasına erteleniyor çünkü menüden açılan kart, açılır listenin kapanırken
+  odağı kendi düğmesine geri vermesiyle yarışıyor. Bu taşınma `DialogSizing.clampHeight`/
+  `clampWidth`'i kartlardan çıkardı (`Theme.getDialogFill` de ölü kaldı ve silindi; Alert
+  yolu aynı kelepçeleri kullanmaya devam ediyor) ve iki pencere başlığı anahtarını
+  (`welcomeWindowTitle`, `aboutWindowTitle`) gereksiz bıraktı; köşe kapatma etiketi tek bir
+  `overlayClose` anahtarı (`findClose` yerine) olarak yaşıyor.
+  **Kanıt:** `mvn -B clean test` → **528/0/0**; `OverlaySlotTest` üç kuralı (biri açılınca
+  diğerleri kapanır, aynı kart iki kez kaydolursa bir kez kapanır, kayıtsız sahip hepsini
+  kapatır), `OverlayCardTest` `Escape`/`Enter` dışındaki tuşların karta bırakıldığını pinliyor.
 
 > **Kapı G3** (`analysis.md` §13.6/2 ve /3): `Ctrl+F` bulur, `F3`/`Shift+F3` gezer, `Ctrl+H`
 > bir/tümünü değiştirir; aynı işlevler komut menüsünden (araç çubuğundaki `☰` düğmesi) erişilir
@@ -946,7 +965,7 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   sessizce büyür.
 
 **W4-02 · A7a — Son dosyalar + karşılama opt-out** · M · E5, U7
-- **Kapsam:** `AppSettings`, `WelcomeDialog`, `FxApplication:70`, `MainMenu` (Dosya menüsü)
+- **Kapsam:** `AppSettings`, `WelcomeCard`, `FxApplication` (karşılama kartının açıldığı yer), `MainMenu` (Dosya menüsü)
 - **Yapılacak:** En çok 10 son dosya (silinmişse sessizce düşer); karşılamada "bir daha
   gösterme" (ayar olarak).
 - **Bitti tanımı:** Silinmiş dosya listede kalıcı hata üretmiyor (test); opt-out sonrası

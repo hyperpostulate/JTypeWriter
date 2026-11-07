@@ -11,7 +11,6 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.KeyCombination;
-import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
@@ -240,16 +239,15 @@ public final class MainMenu {
     }
 
     private final Messages messages;
-    private final AboutDialog aboutDialog;
+    private final AboutCard aboutCard;
     private final MenuButton menuButton = new MenuButton(GLYPH);
 
     private Consumer<EditorAction> actionRunner = action -> { };
     private Settings settings;
-    private Stage stage;
 
-    public MainMenu(Messages messages, LocaleManager localeManager, AboutDialog aboutDialog) {
+    public MainMenu(Messages messages, LocaleManager localeManager, AboutCard aboutCard) {
         this.messages = messages;
-        this.aboutDialog = aboutDialog;
+        this.aboutCard = aboutCard;
         // Both style classes matter: .toolbar-button gives the flat, themed
         // look and the focus ring; .toolbar-menu-button removes the dropdown
         // arrow, which would read as a second, competing affordance next to
@@ -279,10 +277,6 @@ public final class MainMenu {
     public void setSettings(Settings settings) {
         this.settings = settings;
         refresh();
-    }
-
-    public void setStage(Stage stage) {
-        this.stage = stage;
     }
 
     /**
@@ -365,11 +359,7 @@ public final class MainMenu {
 
     private MenuItem aboutItem() {
         var item = new MenuItem(messages.toolbarAbout());
-        item.setOnAction(event -> {
-            if (stage != null) {
-                aboutDialog.show(stage);
-            }
-        });
+        item.setOnAction(event -> aboutCard.show());
         return item;
     }
 

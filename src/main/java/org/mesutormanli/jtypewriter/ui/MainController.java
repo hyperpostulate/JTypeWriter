@@ -45,6 +45,9 @@ public class MainController implements Initializable {
     private final EditorKeyHandler editorKeyHandler;
     private final AutoSaveService autoSaveService;
     private final FindPanel findPanel;
+    private final OverlaySlot overlaySlot = new OverlaySlot();
+    private final WelcomeCard welcomeCard;
+    private final AboutCard aboutCard;
     private final AppSettings settings;
     private final Supplier<LocalTime> clock;
 
@@ -72,6 +75,7 @@ public class MainController implements Initializable {
                           EditorKeyHandler editorKeyHandler,
                           AutoSaveService autoSaveService,
                           FindPanel findPanel,
+                          WelcomeCard welcomeCard, AboutCard aboutCard,
                           AppSettings settings, Supplier<LocalTime> clock) {
         this.editorArea = editorArea;
         this.mainMenu = mainMenu;
@@ -84,6 +88,8 @@ public class MainController implements Initializable {
         this.editorKeyHandler = editorKeyHandler;
         this.autoSaveService = autoSaveService;
         this.findPanel = findPanel;
+        this.welcomeCard = welcomeCard;
+        this.aboutCard = aboutCard;
         this.settings = settings;
         this.clock = clock;
         // The toolbar comes back exactly as visible (or hidden) as the
@@ -93,13 +99,11 @@ public class MainController implements Initializable {
 
     public void setStage(Stage stage) {
         this.stage = stage;
-        toolbarView.setStage(stage);
         toolbarView.setOnYoloChange(this::refreshTitle);
         shortcutHandler.bind(editorArea, toolbarView, stage, this::toggleToolbar, toolbarView::cycleTheme);
         // The toolbar buttons and the key filter share this one runner.
         toolbarView.setActionRunner(shortcutHandler::run);
         mainMenu.setActionRunner(shortcutHandler::run);
-        mainMenu.setStage(stage);
         // The find panel owns its own state; the key filter and the menu only
         // reach it through the four-command port.
         findPanel.setStage(stage);
@@ -151,6 +155,9 @@ public class MainController implements Initializable {
             refreshTitle();
             refreshSaveStatus();
             refreshAutosaveWarning(); // the warning is bundle text too
+            // A card that is open is text from the bundle like any other label.
+            welcomeCard.relocalise();
+            aboutCard.relocalise();
         });
         autoSaveService.health().addListener(this::refreshAutosaveWarning);
         refreshTitle();
@@ -242,13 +249,26 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // The find panel floats over the text in the window's top-right corner
-        // (Notepad++'s placement) instead of taking a row of its own: the
-        // editor keeps the full height, and the card only covers text while it
-        // is open.
-        var editorStack = new StackPane(editorArea, findPanel);
+        // The find panel, the welcome card and the About card all float over
+        // the text in the window's top-right corner (Notepad++'s placement for
+        // the find panel) instead of taking a row of their own: the editor
+        // keeps the full height, and a card only covers text while it is open.
+        // They share one corner - OverlaySlot makes sure at most one is up.
+        var editorStack = new StackPane(editorArea, findPanel, welcomeCard, aboutCard);
         StackPane.setAlignment(findPanel, Pos.TOP_RIGHT);
-        StackPane.setMargin(findPanel, new Insets(12));
+        StackPane.setMargin(findPanel, new Insets(OverlayCard.EDGE_MARGIN));
+        for (var card : new OverlayCard[]{welcomeCard, aboutCard}) {
+            StackPane.setAlignment(card, Pos.TOP_RIGHT);
+            StackPane.setMargin(card, new Insets(OverlayCard.EDGE_MARGIN));
+            // The window, not the screen, is the card's bound now: a card is
+            // taller than a short window, so it shrinks to it and scrolls.
+            card.maxHeightProperty().bind(
+                    editorStack.heightProperty().subtract(2 * OverlayCard.EDGE_MARGIN));
+            card.setOnClosed(editorArea::requestFocus);
+        }
+        findPanel.setOverlaySlot(overlaySlot);
+        welcomeCard.setOverlaySlot(overlaySlot);
+        aboutCard.setOverlaySlot(overlaySlot);
         rootPane.setCenter(editorStack);
         // The menu lives inside the toolbar row (see MainMenu), so hiding the
         // toolbar still leaves nothing but the text.

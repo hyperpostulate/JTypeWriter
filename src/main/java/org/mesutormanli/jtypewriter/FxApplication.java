@@ -88,14 +88,15 @@ public class FxApplication extends Application {
             // the welcome card would be the answer to a question nobody asked.
             // Every other path keeps the historical behaviour (see W4-02, which
             // gives the card an opt-out of its own).
-            if (!openedFromArguments) {
-                app.welcomeDialog.show(primaryStage);
+            if (openedFromArguments) {
+                // No card over the text: the first keystroke goes into it.
+                app.editorArea.requestFocus();
+            } else {
+                // The card takes focus itself (Escape and Enter dismiss it) and
+                // hands it back to the editor when it closes, so nothing here
+                // has to undo a hand-over.
+                app.welcomeCard.show();
             }
-
-            // The welcome card is modal and closes without returning focus to
-            // the window behind it. Without this hand-back the first character
-            // typed after startup goes nowhere until the user clicks the text.
-            app.editorArea.requestFocus();
         } catch (Throwable error) {
             app.crashHandler.report("Startup failed", error);
             throw error;

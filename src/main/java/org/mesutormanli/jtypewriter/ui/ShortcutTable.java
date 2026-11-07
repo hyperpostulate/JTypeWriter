@@ -16,7 +16,7 @@ import javafx.scene.text.TextAlignment;
 import java.util.List;
 
 /**
- * The two-column shortcut card shared by the welcome and About dialogs.
+ * The two-column shortcut grid shared by the welcome and About cards.
  *
  * <p>Both dialogs used to drop the whole bundle string into one monospace
  * {@code Label} and let hand-counted space runs align the columns, which read

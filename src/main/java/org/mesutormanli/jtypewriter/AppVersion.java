@@ -13,7 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The application version shown in the About dialog.
+ * The application version shown in the About card.
  *
  * <p>The value is never hard-coded: it comes from the {@code pom.properties}
  * that Maven writes into {@code META-INF/maven/<groupId>/<artifactId>/} of
@@ -79,7 +79,7 @@ public final class AppVersion {
                 }
                 return version.get();
             } catch (IOException | RuntimeException e) {
-                // A broken artifact must not take the About dialog down with it.
+                // A broken artifact must not take the About card down with it.
                 LOG.log(Level.FINE, "could not read " + RESOURCE + ", showing " + FALLBACK, e);
                 return FALLBACK;
             }

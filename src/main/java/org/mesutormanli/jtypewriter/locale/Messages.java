@@ -160,13 +160,9 @@ public class Messages {
         return bundle.getString("welcomeTitle");
     }
 
-    /** The one-line description of the app shown under the title in both helper windows. */
+    /** The one-line description of the app shown under the title in both cards. */
     public String appTagline() {
         return bundle.getString("appTagline");
-    }
-
-    public String welcomeWindowTitle() {
-        return bundle.getString("welcomeWindowTitle");
     }
 
     public String welcomeButton() {
@@ -455,8 +451,8 @@ public class Messages {
         return bundle.getString("findReplaceAll");
     }
 
-    public String findClose() {
-        return bundle.getString("findClose");
+    public String overlayClose() {
+        return bundle.getString("overlayClose");
     }
 
     /** Total number of matches, no selection yet. */
@@ -539,10 +535,6 @@ public class Messages {
 
     public String toolbarAbout() {
         return bundle.getString("toolbarAbout");
-    }
-
-    public String aboutWindowTitle() {
-        return bundle.getString("aboutWindowTitle");
     }
 
     public String aboutClose() {

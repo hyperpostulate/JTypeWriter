@@ -19,12 +19,11 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.stage.Stage;
 import javafx.util.StringConverter;
 import org.mesutormanli.jtypewriter.locale.Language;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
-import org.mesutormanli.jtypewriter.ui.AboutDialog;
+import org.mesutormanli.jtypewriter.ui.AboutCard;
 import org.mesutormanli.jtypewriter.ui.EditorAction;
 import org.mesutormanli.jtypewriter.ui.MainMenu;
 import org.mesutormanli.jtypewriter.ui.theme.FontSizeManager;
@@ -65,7 +64,7 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
     private final ToolbarState toolbarState;
     private final Messages messages;
     private final LocaleManager localeManager;
-    private final AboutDialog aboutDialog;
+    private final AboutCard aboutCard;
 
     /**
      * The command menu (File/Edit/View/Help) as one toolbar button. It is a
@@ -106,7 +105,6 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
     private EditorArea editorArea;
     private Runnable onStyleChange;
     private Runnable onYoloChange;
-    private Stage stage;
     /**
      * The command runner shared with the key handler
      * ({@link org.mesutormanli.jtypewriter.ui.KeyboardShortcutHandler}). The
@@ -120,7 +118,7 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
     public ToolbarView(ThemeManager themeManager,
                        TextColorManager textColorManager, FontSizeManager fontSizeManager,
                        ToolbarState toolbarState, Messages messages,
-                       LocaleManager localeManager, AboutDialog aboutDialog,
+                       LocaleManager localeManager, AboutCard aboutCard,
                        MainMenu mainMenu) {
         this.themeManager = themeManager;
         this.textColorManager = textColorManager;
@@ -128,7 +126,7 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
         this.toolbarState = toolbarState;
         this.messages = messages;
         this.localeManager = localeManager;
-        this.aboutDialog = aboutDialog;
+        this.aboutCard = aboutCard;
         this.commandMenu = mainMenu.node();
         this.editorArea = null;
 
@@ -178,9 +176,7 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
         saveBtn.setOnAction(e -> actionRunner.accept(EditorAction.SAVE));
         undoBtn.setOnAction(e -> actionRunner.accept(EditorAction.UNDO));
         redoBtn.setOnAction(e -> actionRunner.accept(EditorAction.REDO));
-        aboutBtn.setOnAction(e -> {
-            if (stage != null) aboutDialog.show(stage);
-        });
+        aboutBtn.setOnAction(e -> aboutCard.show());
 
         // Visual grouping replaces the old "Label("|")" separators: find next
         // to the file actions, then edit actions, the settings dropdowns, and
@@ -556,10 +552,6 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
 
     public void setEditorArea(EditorArea editorArea) {
         this.editorArea = editorArea;
-    }
-
-    public void setStage(Stage stage) {
-        this.stage = stage;
     }
 
     /**

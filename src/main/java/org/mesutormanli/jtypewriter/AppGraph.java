@@ -16,7 +16,7 @@ import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.service.RecoveryStore;
 import org.mesutormanli.jtypewriter.service.StorageFootprint;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
-import org.mesutormanli.jtypewriter.ui.AboutDialog;
+import org.mesutormanli.jtypewriter.ui.AboutCard;
 import org.mesutormanli.jtypewriter.ui.CrashHandler;
 import org.mesutormanli.jtypewriter.ui.DropHandler;
 import org.mesutormanli.jtypewriter.ui.FindPanel;
@@ -25,7 +25,7 @@ import org.mesutormanli.jtypewriter.ui.KeyboardShortcutHandler;
 import org.mesutormanli.jtypewriter.ui.MainController;
 import org.mesutormanli.jtypewriter.ui.MainMenu;
 import org.mesutormanli.jtypewriter.ui.MainStage;
-import org.mesutormanli.jtypewriter.ui.WelcomeDialog;
+import org.mesutormanli.jtypewriter.ui.WelcomeCard;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 import org.mesutormanli.jtypewriter.ui.component.EditorKeyHandler;
 import org.mesutormanli.jtypewriter.ui.component.StatsBar;
@@ -91,12 +91,12 @@ public final class AppGraph {
             messages, localeManager, editorArea, dialogService, findScanService);
 
     // --- views and dialogs ------------------------------------------------
-    public final AboutDialog aboutDialog = new AboutDialog(messages, themeManager);
-    public final WelcomeDialog welcomeDialog = new WelcomeDialog(messages, themeManager);
-    public final MainMenu mainMenu = new MainMenu(messages, localeManager, aboutDialog);
+    public final AboutCard aboutCard = new AboutCard(messages);
+    public final WelcomeCard welcomeCard = new WelcomeCard(messages);
+    public final MainMenu mainMenu = new MainMenu(messages, localeManager, aboutCard);
     public final ToolbarView toolbarView = new ToolbarView(
             themeManager, textColorManager, fontSizeManager,
-            toolbarState, messages, localeManager, aboutDialog, mainMenu);
+            toolbarState, messages, localeManager, aboutCard, mainMenu);
     public final StatsBar statsBar = new StatsBar(sessionStats, messages, statsBarState, localeManager);
     public final DropHandler dropHandler = new DropHandler(
             fileService, dialogService, messages, editorArea);
@@ -106,7 +106,7 @@ public final class AppGraph {
     public final MainController mainController = new MainController(
             editorArea, mainMenu, toolbarView, statsBar,
             fileService, messages, localeManager, shortcutHandler, editorKeyHandler,
-            autoSaveService, findPanel, settings, LocalTime::now);
+            autoSaveService, findPanel, welcomeCard, aboutCard, settings, LocalTime::now);
     public final MainStage mainStage = new MainStage(
             fileService, settings, autoSaveService, dropHandler);
 

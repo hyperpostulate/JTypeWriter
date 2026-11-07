@@ -94,6 +94,15 @@ Araç çubuğunun en solundaki kontrol, dört menüyü taşıyan bir `☰` düğ
 - **YOLO modu önce sorar.** Mod, hiçbir düzenlemenin karakter silmediği sözünü verir; değiştirme eşleşen aralığı siler, bu yüzden YOLO açıkken kart her işlem için bir kez sorar ve iptal hiçbir şey yazmaz. Değişiklik sonrasında normal ve geri alınabilir bir düzenlemedir.
 - **Kart temayı izler:** yüzey, kenarlık, alanlar, onay kutusu, düğmeler ve durum satırı araç çubuğuyla aynı belirteçlerden çözülür; Koyu, Sepya ve Açık'ta yerel görünür - Modena'nın koyu temada beyaz boyayacağı giriş alanları dahil.
 
+### Hoş Geldin ve Hakkında Kartları
+
+Hoş geldin ekranı ve Hakkında görünümü artık ayrı pencereler değil, ara/değiştir panelinin durduğu sağ üst köşede birer kart. Köşeyi onunla paylaşıyorlar: biri açıldığında orada duran kart kapanır, yani gördüğünüz her zaman en son istediğiniz karttır.
+
+- **Belge kullanılabilir kalır.** Kart modal değil, yani açıkken içinden bir kısayol kopyalayabilirsiniz; kart kapandığında imleç metne geri döner.
+- **`Escape` ve `Enter` kartı kapatır**, diyalog olduğu zamanki gibi; köşedeki `×` de aynısını yapar. Kart açılırken odağı kendisi alır, yani bu tuşlar hemen çalışır; `Tab` yine kartın kontrollerini gezer.
+- **Sınırı ekran değil pencere.** Kısa bir pencerede karttan daha uzun bir kart pencereye sığacak kadar küçülür ve kaydırılır, kenardan taşmaz; araç çubuğuyla aynı tema belirteçlerinden boyandığı için Koyu, Sepya ve Açık'ta yerel görünür.
+- **Açıldığı dilde konuşur.** İçerik her açılışta ve dil değişiminde paketten yeniden kurulur, yani açık kalan bir kart dili değiştirdikten sonra önceki dilde kalamaz.
+
 ### Veri Güvenliği ve Kurtarma
 
 - **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya yazılır, fsync edilir ve yeniden adlandırılarak yerine konur; böylece kayıt ortasında çökme ya da elektrik kesintisi belgeyi yarım bırakamaz
@@ -155,7 +164,7 @@ Altı metin rengi (bir varsayılan + beş vurgu rengi): Varsayılan, Adaçayı, 
 
 ## Verileriniz
 
-JTypeWriter'ın sakladığı her şey makinenizde kalır. Hesap yok, telemetri yok, güncelleme denetimi yok ve ağ isteği yok: uygulama kendisi hiçbir şey göndermez; dışa açılan tek eylem, Hakkında diyaloğundaki e-posta bağlantısıdır ve `mailto:` adresini kendi posta istemcinize devreder.
+JTypeWriter'ın sakladığı her şey makinenizde kalır. Hesap yok, telemetri yok, güncelleme denetimi yok ve ağ isteği yok: uygulama kendisi hiçbir şey göndermez; dışa açılan tek eylem, Hakkında kartındaki e-posta bağlantısıdır ve `mailto:` adresini kendi posta istemcinize devreder.
 
 - **Nerede durur:** `~/.jtypewriter/` - `settings.properties` (dil, tema, metin rengi, yazı boyutu, ses, araç çubuğu görünürlüğü, durum çubuğu boyutu, pencere geometrisi ve son belge ile klasörü mutlak yol olarak), `recovery/` (çökme kurtarma taslakları), `logs/` ve belge içeriği taşımayan danışma amaçlı tek örnek kilidi `instance.lock`.
 - **Taslaklar metninizi içerir.** Her `recovery/draft-<uuid>.jtw` kaydedilmemiş belgenin metnini birebir tutar; ertelenen taslak `pending-<uuid>.jtw` olarak park edilir ve temiz çıkıştan sonra da kalır. Taslak, metnin geldiği mutlak yolu da yazar; ayırıcılar ve satır sonları bozulmasın diye Base64 ile kodlanmıştır - bu bir kodlamadır, şifreleme değildir - yani taslak, geldiği belgeden daha uzun yaşayabilir. Tarama yalnızca düz dosyaları okur: taslak gibi adlandırılmış bir sembolik bağ izlenmez, yok sayılır; 64 MiB'ın üzerindeki bir dosya başlangıçta yüklenmek yerine atlanır. Park edilmiş taslaklar bir temizlik meselesidir - 30 gün sonra süresi dolar ve küme 10 dosya / 64 MiB ile sınırlıdır - oysa etkin bir `draft-<uuid>.jtw` asla süresi dolmaz, çünkü başka bir çalışan örneğe ait olabilir.
@@ -360,8 +369,8 @@ org.mesutormanli.jtypewriter
 │   ├── MainStage.java                    # Sahne yapılandırması (tam ekran, kapatma)
 │   ├── AppIcons.java                     # /icons/ altından pencere/görev çubuğu/dock ikonları
 │   ├── AppFonts.java                     # Paketlenen arayüz fontu + başsız ölçüm yüzü
-│   ├── WelcomeDialog.java                # Kısayollarla hoş geldin ekranı
-│   ├── AboutDialog.java                  # Yazar bilgisiyle hakkında dialogu
+│   ├── WelcomeCard.java                  # Kısayollarla hoş geldin kartı
+│   ├── AboutCard.java                    # Yazar bilgisiyle hakkında kartı
 │   ├── KeyboardShortcutHandler.java      # Merkezi klavye kısayolu yönetimi
 │   ├── CrashHandler.java                 # Global çökme ağı: log + hata diyaloğu
 │   ├── DropHandler.java                  # Sahne düzeyinde dosya bırakma tutkalı (çöz, aç, bildir)
