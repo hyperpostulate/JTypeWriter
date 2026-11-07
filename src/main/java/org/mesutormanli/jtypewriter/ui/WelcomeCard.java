@@ -5,12 +5,7 @@
 
 package org.mesutormanli.jtypewriter.ui;
 
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
-import javafx.scene.layout.VBox;
-import javafx.scene.text.TextAlignment;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 /**
@@ -20,62 +15,32 @@ import org.mesutormanli.jtypewriter.locale.Messages;
  * confirm, so the old "Start Writing" call-to-action is gone.
  *
  * <p>It was a modal, borderless window until the card form arrived (see
- * {@link OverlayCard}); everything visible is unchanged, including the
- * two-column shortcut grid from {@link ShortcutTable}, which is why the card still
- * sizes itself from the same content width. What changed is what the card no
- * longer needs: a second stage, a second scene, a scene fill sampled from the
- * theme, and the screen-size clamping those implied - the window is now the
- * card's only bound, and the card scrolls inside it.</p>
+ * {@link OverlayCard}). What it shows is now exactly the shared column
+ * ({@link OverlayCard#cardColumn(String, double, Node...)}) with nothing added,
+ * while the About card is that column plus a version line and the legal block -
+ * so this class is only the card's width and rhythm.
+ *
+ * <p><strong>Why it still exists as its own view.</strong> It is the startup
+ * greeting: a card that appears on every launch should not read like a licence
+ * notice, and the About card is a reference a user asks for once. W4-02 gives
+ * this surface recent files and a "don't show again" opt-out of its own, which
+ * belong on a greeting and not on About.</p>
  */
 public class WelcomeCard extends OverlayCard {
-
-    /** Width of the drawn application mark; square artwork, so height matches. */
-    private static final int ICON_SIZE = 80;
 
     /** The card's preferred width, kept from the old window. */
     private static final int CARD_WIDTH = 460;
 
-    /** Content width of the card (card width minus the horizontal padding). */
-    private static final int CONTENT_WIDTH = CARD_WIDTH - 2 * 32;
-
-    private final Messages messages;
+    /** Vertical gap of this card's column; the About card's is tighter. */
+    private static final double SPACING = 14;
 
     public WelcomeCard(Messages messages) {
-        super("welcome-card", messages::overlayClose);
-        this.messages = messages;
+        super("welcome-card", messages);
         setCardWidth(CARD_WIDTH);
     }
 
     @Override
     protected Node buildContent() {
-        var titleLabel = new Label(messages.welcomeTitle());
-        titleLabel.getStyleClass().add("welcome-title");
-
-        var taglineLabel = new Label(messages.appTagline());
-        taglineLabel.getStyleClass().add("welcome-tagline");
-        taglineLabel.setWrapText(true);
-        taglineLabel.setMaxWidth(CONTENT_WIDTH);
-        taglineLabel.setTextAlignment(TextAlignment.CENTER);
-        taglineLabel.setAlignment(Pos.CENTER);
-
-        // A real two-column grid (keys left, descriptions right-aligned on the
-        // card edge) replaces the old single Label whose columns were faked
-        // with space runs and rendered ragged. ShortcutTable sizes the card to
-        // the full content box and keeps the wrapping the long German/French/
-        // Italian/Spanish descriptions need.
-        var shortcuts = ShortcutTable.build(
-                ShortcutRows.fromActions(messages), CONTENT_WIDTH);
-
-        var content = new VBox(14, titleLabel, taglineLabel, shortcuts);
-        content.setAlignment(Pos.CENTER);
-        // Only a small top inset: the card's close row already sits above
-        // the scroll pane, so a large one here would double the top gap.
-        content.setPadding(new Insets(12, 32, 32, 32));
-
-        var mark = markView(ICON_SIZE);
-        if (mark != null) {
-            content.getChildren().add(0, mark);
-        }
-        return content;
+        return cardColumn(messages.welcomeTitle(), SPACING);
     }
 }

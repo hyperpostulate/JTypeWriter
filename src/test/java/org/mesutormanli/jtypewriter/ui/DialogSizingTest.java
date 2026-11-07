@@ -122,6 +122,28 @@ class DialogSizingTest {
                 "OverlayCard still uses the old about-scroll style class");
     }
 
+    /**
+     * The column the two cards share - mark, title, tagline, shortcut grid - is
+     * built once by {@link OverlayCard#cardColumn}. Pinned by source because the
+     * cards are otherwise near-identical: a copy of the tagline label or of the
+     * shortcut grid in either subclass is how they drifted apart before, and
+     * with the welcome card's call-to-action gone nothing else distinguishes
+     * them.
+     */
+    @Test
+    void neitherCardRebuildsTheSharedColumn() {
+        for (var source : new String[]{"WelcomeCard.java", "AboutCard.java"}) {
+            var text = readSource(source);
+            assertFalse(text.contains("ShortcutTable.build("),
+                    source + " builds its own shortcut grid instead of calling cardColumn");
+            assertFalse(text.contains("appTagline()"),
+                    source + " builds its own tagline label instead of calling cardColumn");
+        }
+        var base = readSource("OverlayCard.java");
+        assertTrue(base.contains("ShortcutTable.build(") && base.contains("appTagline()"),
+                "OverlayCard no longer builds the shared card column");
+    }
+
     private static String readSource(String name) {
         var path = Path.of("src", "main", "java", "org", "mesutormanli", "jtypewriter", "ui", name);
         try {

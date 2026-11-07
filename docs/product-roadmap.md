@@ -43,11 +43,11 @@ Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir say�
 
 | Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`W3-06 sonrası`) |
 |---|---:|---:|
-| Commit | 137 | **182** (+45) |
-| Üretim sınıfı / satırı | 51 / 7.611 | **68 / 12.498** |
-| Test dosyası / `@Test` | 42 / 350 | **58 / 527** |
+| Commit | 137 | **183** (+46) |
+| Üretim sınıfı / satırı | 51 / 7.611 | **68 / 12.514** |
+| Test dosyası / `@Test` | 42 / 350 | **58 / 528** |
 | Bundle anahtarı | 6 × 90 | **6 × 146** |
-| `mvn -B clean test` | 350/0/0 | **527/0/0** |
+| `mvn -B clean test` | 350/0/0 | **528/0/0** |
 | Tag / Release | 0 / 0 | **3 / 3** (`v1.0.0`, `v1.0.1`, `v1.0.2`) |
 | Release varlığı | — | **6** (5 ikili/kaynak + `SHA256SUMS`) |
 | Release işareti | — | **üçü de `prerelease=true`** |
@@ -953,6 +953,18 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   boşta kalan `.welcome-button` kural setini ölü bıraktı; hepsi silindi.
   **Kanıt:** `mvn -B clean test` → **527/0/0** (`ContrastRatioTest` hâlâ `-welcome-button-bg`
   belirtecini e-posta bağlantısının metin rengi olarak denetliyor).
+- **Ortak kolon (7 Kasım):** İki kart `Close` düğmesinden sonra neredeyse aynı görünüyordu
+  (`welcomeTitle` altı pakette de `appName` ile birebir aynı). Bu yüzden "WelcomeCard'a gerek
+  yok" sorusu haklıydı; ama birleştirmek yerine fark ayrıştırıldı: mark + başlık + tagline +
+  kısayol ızgarası artık `OverlayCard.cardColumn(...)` içinde tek yerde üretiliyor, kartlar
+  yalnızca kendi eklerini (About: sürüm satırı, telif/lisans/garanti, e-posta) ekliyor.
+  `Mark` boyutu, içerik dolgusu ve genişlik türetmesi de tabana taşındı; `Messages` tabanın
+  alanı oldu (kapatma etiketi de oradan). WelcomeCard 81 → 46, AboutCard 129 → 101 satır.
+  Kartlar ayrı kaldı çünkü biri açılışta her seferinde görünen karşılama, diğeri bir kez
+  sorulan referans: About'u açılışa koymak her başlatmada sürüm + lisans + garanti gösterirdi
+  ve W4-02'nin son dosyalar + opt-out işini About'a yüklerdi.
+  **Kanıt:** `mvn -B clean test` → **528/0/0**; `DialogSizingTest.neitherCardRebuildsTheSharedColumn`
+  iki alt sınıfın tagline/kısayol ızgarasını yeniden kurmasını yasaklıyor.
 
 > **Kapı G3** (`analysis.md` §13.6/2 ve /3): `Ctrl+F` bulur, `F3`/`Shift+F3` gezer, `Ctrl+H`
 > bir/tümünü değiştirir; aynı işlevler komut menüsünden (araç çubuğundaki `☰` düğmesi) erişilir

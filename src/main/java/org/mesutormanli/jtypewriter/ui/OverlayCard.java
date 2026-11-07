@@ -10,6 +10,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -19,9 +20,10 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.TextAlignment;
+import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.util.Objects;
-import java.util.function.Supplier;
 
 /**
  * A card that floats over the editor in the window's top-right corner, hosted
@@ -50,6 +52,14 @@ import java.util.function.Supplier;
  * stale, where a {@code relocalise()} per label would be a second list of every
  * string in the card.</p>
  *
+ * <p><strong>Why the shared column lives here.</strong> Both cards show the
+ * same four things in the same order - the application mark, the title, the
+ * tagline and the shortcut grid - and only the About card adds anything after
+ * them. Building that column once (see {@link #cardColumn(String, double,
+ * Node...)}) is what keeps the two cards pixel-identical instead of two
+ * copies that drift; the About extras are appended by the caller, in the
+ * order the card wants, without the base knowing what they mean.</p>
+ *
  * <p><strong>Why the scroll pane can shrink.</strong> A {@link ScrollPane}'s
  * minimum size is normally its content's, which is exactly what a card bounded
  * by a short window must not inherit: the card would refuse to shrink and would
@@ -62,10 +72,24 @@ public abstract class OverlayCard extends VBox {
     /** Inset from the window edge; the same 12 px the find panel keeps. */
     public static final int EDGE_MARGIN = 12;
 
+    /** Side and bottom padding of the content column; also the width margin. */
+    private static final int CONTENT_PADDING = 32;
+
+    /** Only a small top inset: the card's close row already sits above the scroll pane. */
+    private static final int CONTENT_TOP_PADDING = 12;
+
+    /** Width of the drawn application mark; square artwork, so height matches. */
+    private static final int MARK_SIZE = 80;
+
     private final ScrollPane scrollPane = new ScrollPane();
     private final Button closeButton = new Button();
     private final Tooltip closeTooltip = new Tooltip();
-    private final Supplier<String> closeLabel;
+
+    /** The bundle every card's text comes from, including the close label. */
+    protected final Messages messages;
+
+    /** Content box width, derived from {@link #setCardWidth(double)}. */
+    private double contentWidth;
 
     /**
      * The application mark, decoded once. The content is rebuilt on every show,
@@ -82,10 +106,12 @@ public abstract class OverlayCard extends VBox {
      * @param styleClass a card-specific style class next to the shared
      *                   {@code welcome-root} surface (background, border,
      *                   radius and shadow all come from the theme tokens)
-     * @param closeLabel the corner button's label in the current UI language
+     * @param messages   the bundle the card's text and the close label come
+     *                   from; held live, so a language switch is a rebuild
+     *                   away rather than a new card
      */
-    protected OverlayCard(String styleClass, Supplier<String> closeLabel) {
-        this.closeLabel = Objects.requireNonNull(closeLabel, "closeLabel");
+    protected OverlayCard(String styleClass, Messages messages) {
+        this.messages = Objects.requireNonNull(messages, "messages");
         getStyleClass().addAll("welcome-root", styleClass);
         setVisible(false);
         setManaged(false);
@@ -140,6 +166,57 @@ public abstract class OverlayCard extends VBox {
     protected final void setCardWidth(double width) {
         setPrefWidth(width);
         setMaxWidth(width);
+        contentWidth = width - 2 * CONTENT_PADDING;
+    }
+
+    /** Width the content may occupy inside the card's padding. */
+    protected final double contentWidth() {
+        return contentWidth;
+    }
+
+    /**
+     * The column both cards are built from: the application mark, the title,
+     * whatever the card wants under the title (the About card's version line),
+     * the tagline and the shortcut grid, all centred and padded.
+     *
+     * <p>The caller appends its own extras after this returns, so the shared
+     * part exists once and a card only has to know about the difference.</p>
+     *
+     * @param title     the heading; both cards currently name the application
+     * @param spacing   vertical gap between the column's children
+     * @param underTitle nodes placed between the title and the tagline
+     */
+    protected final VBox cardColumn(String title, double spacing, Node... underTitle) {
+        var titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("welcome-title");
+
+        var taglineLabel = new Label(messages.appTagline());
+        taglineLabel.getStyleClass().add("welcome-tagline");
+        taglineLabel.setWrapText(true);
+        taglineLabel.setMaxWidth(contentWidth);
+        taglineLabel.setTextAlignment(TextAlignment.CENTER);
+        taglineLabel.setAlignment(Pos.CENTER);
+
+        // A real two-column grid (keys left, descriptions right-aligned on the
+        // card edge) rather than the old single Label whose columns were faked
+        // with space runs and rendered ragged. ShortcutTable keeps the wrapping
+        // the long German/French/Italian/Spanish descriptions need.
+        var shortcuts = ShortcutTable.build(
+                ShortcutRows.fromActions(messages), contentWidth);
+
+        var column = new VBox(spacing);
+        column.setAlignment(Pos.CENTER);
+        column.setPadding(new Insets(CONTENT_TOP_PADDING, CONTENT_PADDING,
+                CONTENT_PADDING, CONTENT_PADDING));
+
+        var mark = markView(MARK_SIZE);
+        if (mark != null) {
+            column.getChildren().add(mark);
+        }
+        column.getChildren().add(titleLabel);
+        column.getChildren().addAll(underTitle);
+        column.getChildren().addAll(taglineLabel, shortcuts);
+        return column;
     }
 
     /**
@@ -147,7 +224,7 @@ public abstract class OverlayCard extends VBox {
      * {@code null} when the asset is missing - the cards skip it entirely then
      * rather than leaving a blank gap.
      */
-    protected final ImageView markView(double size) {
+    private ImageView markView(double size) {
         if (mark == null) {
             return null;
         }
@@ -196,7 +273,7 @@ public abstract class OverlayCard extends VBox {
     }
 
     private void rebuild() {
-        var label = closeLabel.get();
+        var label = messages.overlayClose();
         closeButton.setText(label);
         closeTooltip.setText(label);
         closeButton.setAccessibleText(label);

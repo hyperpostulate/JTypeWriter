@@ -5,12 +5,10 @@
 
 package org.mesutormanli.jtypewriter.ui;
 
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
-import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import org.mesutormanli.jtypewriter.AppLogging;
 import org.mesutormanli.jtypewriter.AppVersion;
@@ -20,60 +18,44 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * The About card: title, running version, tagline, the shortcut table, the
- * licence and warranty lines and the author's e-mail link, floating over the
- * editor in the window's top-right corner.
+ * The About card: the shared column (mark, title, tagline, shortcut table) with
+ * the running version under the title, then the licence and warranty lines and
+ * the author's e-mail link, floating over the editor in the window's top-right
+ * corner.
  *
  * <p>Like the welcome card it used to be a modal, borderless window (see
  * {@link OverlayCard}). The reason it matters here is the e-mail link: opening
  * the mail client used to be reachable only while the window was up, and the
  * window took the whole screen. The card leaves the document visible, so a
  * user can copy a shortcut or a version string out of it while it is open.</p>
+ *
+ * <p>Everything it shares with the welcome card is built by
+ * {@link OverlayCard#cardColumn(String, double, Node...)}; this class only adds
+ * what makes it the About card, so the two can never drift.</p>
  */
 public class AboutCard extends OverlayCard {
-
-    /** Width of the drawn application mark; square artwork, so height matches. */
-    private static final int ICON_SIZE = 80;
 
     /** The card's preferred width, kept from the old window. */
     private static final int CARD_WIDTH = 540;
 
-    /** Content width of the card (card width minus the horizontal padding). */
-    private static final int CONTENT_WIDTH = CARD_WIDTH - 2 * 32;
+    /** Vertical gap of this card's column; the welcome card's is looser. */
+    private static final double SPACING = 12;
 
     private static final Logger LOG = AppLogging.logger(AboutCard.class);
 
-    private final Messages messages;
-
     public AboutCard(Messages messages) {
-        super("about-card", messages::overlayClose);
-        this.messages = messages;
+        super("about-card", messages);
         setCardWidth(CARD_WIDTH);
     }
 
     @Override
     protected Node buildContent() {
-        var titleLabel = new Label(messages.appName());
-        titleLabel.getStyleClass().add("welcome-title");
-
         // Field reports need a version to name, so the running version
         // (from the Maven metadata, never hard-coded) sits right under the title.
         var versionLabel = new Label(messages.aboutVersion(AppVersion.get()));
         versionLabel.getStyleClass().add("about-version");
 
-        var taglineLabel = new Label(messages.appTagline());
-        taglineLabel.getStyleClass().add("welcome-tagline");
-        taglineLabel.setWrapText(true);
-        taglineLabel.setMaxWidth(CONTENT_WIDTH);
-        taglineLabel.setTextAlignment(TextAlignment.CENTER);
-        taglineLabel.setAlignment(Pos.CENTER);
-
-        // Same two-column grid as the welcome card (see ShortcutTable): real
-        // columns instead of the space-padded single Label, with the wrapping
-        // the long German/French/Italian/Spanish descriptions need handled
-        // inside the grid.
-        var shortcuts = ShortcutTable.build(
-                ShortcutRows.fromActions(messages), CONTENT_WIDTH);
+        var column = cardColumn(messages.appName(), SPACING, versionLabel);
 
         var emailLink = new Hyperlink("mesutormanli@gmail.com");
         emailLink.getStyleClass().add("about-email");
@@ -85,18 +67,8 @@ public class AboutCard extends OverlayCard {
         var licenseLabel = legalLabel(messages.aboutLicense());
         var warrantyLabel = legalLabel(messages.aboutWarranty());
 
-        var content = new VBox(12, titleLabel, versionLabel, taglineLabel, shortcuts,
-                copyrightLabel, emailLink, licenseLabel, warrantyLabel);
-        content.setAlignment(Pos.CENTER);
-        // Only a small top inset: the card's close row already sits above
-        // the scroll pane, so a large one here would double the top gap.
-        content.setPadding(new Insets(12, 32, 32, 32));
-
-        var mark = markView(ICON_SIZE);
-        if (mark != null) {
-            content.getChildren().add(0, mark);
-        }
-        return content;
+        column.getChildren().addAll(copyrightLabel, emailLink, licenseLabel, warrantyLabel);
+        return column;
     }
 
     /**
@@ -104,7 +76,7 @@ public class AboutCard extends OverlayCard {
      * desktop without a mail handler must not turn a click on a link into an
      * error dialog, so the failure only reaches the log.
      */
-    private static void openMailClient() {
+    private void openMailClient() {
         try {
             var desktop = java.awt.Desktop.getDesktop();
             if (java.awt.Desktop.isDesktopSupported()
@@ -117,11 +89,11 @@ public class AboutCard extends OverlayCard {
     }
 
     /** A small, wrapped, centred legal line of the About card. */
-    private static Label legalLabel(String text) {
+    private Label legalLabel(String text) {
         var label = new Label(text);
         label.getStyleClass().add("about-legal");
         label.setWrapText(true);
-        label.setMaxWidth(CONTENT_WIDTH);
+        label.setMaxWidth(contentWidth());
         label.setTextAlignment(TextAlignment.CENTER);
         label.setAlignment(Pos.CENTER);
         return label;
