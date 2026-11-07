@@ -99,7 +99,7 @@ The leftmost toolbar control is a `☰` button holding four menus - File, Edit a
 The welcome view and the About view are cards in the same top-right corner as the find panel, not windows of their own. They share that corner with it: opening one closes whatever card was there, so what you see is always exactly the card you last asked for.
 
 - **The document stays usable.** The card is not modal, so a shortcut can be copied out of it while it is open, and closing it puts the caret back in the text.
-- **`Escape` and `Enter` dismiss it**, exactly as they did when it was a dialog, and the corner `×` does the same. The card takes focus when it opens, so those keys work immediately; `Tab` still walks its controls.
+- **`Escape` and `Enter` dismiss it**, exactly as they did when it was a dialog, and so does the `Close` button in the card's top-right corner - a word, like the find panel's. That button is the card's only one: the content is there to be read, not to be dismissed through a second call-to-action at the bottom. The close button takes focus when the card opens, so either key works immediately; `Tab` still walks the card's controls.
 - **It is bounded by the window, not by the screen.** A card taller than a short window shrinks to it and scrolls, instead of running past the edge, and it is painted from the same theme tokens as the toolbar, so it is native in Dark, Sepia and Light.
 - **It speaks the language it is opened in.** The content is rebuilt from the bundle on every opening and on a language switch, so a card that is up cannot keep the previous language after you change it.
 

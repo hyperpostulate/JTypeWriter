@@ -8,7 +8,6 @@ package org.mesutormanli.jtypewriter.ui;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
@@ -86,22 +85,17 @@ public class AboutCard extends OverlayCard {
         var licenseLabel = legalLabel(messages.aboutLicense());
         var warrantyLabel = legalLabel(messages.aboutWarranty());
 
-        var closeButton = new Button(messages.aboutClose());
-        closeButton.getStyleClass().add("welcome-button");
-        closeButton.setOnAction(event -> hide());
-
         var content = new VBox(12, titleLabel, versionLabel, taglineLabel, shortcuts,
-                copyrightLabel, emailLink, licenseLabel, warrantyLabel, closeButton);
+                copyrightLabel, emailLink, licenseLabel, warrantyLabel);
         content.setAlignment(Pos.CENTER);
         // Only a small top inset: the card's close row already sits above
-        // the scroll pane, so 36 px here would double the top gap.
+        // the scroll pane, so a large one here would double the top gap.
         content.setPadding(new Insets(12, 32, 32, 32));
 
         var mark = markView(ICON_SIZE);
         if (mark != null) {
             content.getChildren().add(0, mark);
         }
-        setInitialFocus(closeButton);
         return content;
     }
 

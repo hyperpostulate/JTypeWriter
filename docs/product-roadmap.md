@@ -43,11 +43,11 @@ Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir say�
 
 | Ölçüt | 2 Kasım (`f32d3f8`) | 7 Kasım (`W3-06 sonrası`) |
 |---|---:|---:|
-| Commit | 137 | **181** (+44) |
-| Üretim sınıfı / satırı | 51 / 7.611 | **68 / 12.507** |
-| Test dosyası / `@Test` | 42 / 350 | **58 / 528** |
-| Bundle anahtarı | 6 × 90 | **6 × 148** |
-| `mvn -B clean test` | 350/0/0 | **528/0/0** |
+| Commit | 137 | **182** (+45) |
+| Üretim sınıfı / satırı | 51 / 7.611 | **68 / 12.498** |
+| Test dosyası / `@Test` | 42 / 350 | **58 / 527** |
+| Bundle anahtarı | 6 × 90 | **6 × 146** |
+| `mvn -B clean test` | 350/0/0 | **527/0/0** |
 | Tag / Release | 0 / 0 | **3 / 3** (`v1.0.0`, `v1.0.1`, `v1.0.2`) |
 | Release varlığı | — | **6** (5 ikili/kaynak + `SHA256SUMS`) |
 | Release işareti | — | **üçü de `prerelease=true`** |
@@ -943,6 +943,16 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   **Kanıt:** `mvn -B clean test` → **528/0/0**; `OverlaySlotTest` üç kuralı (biri açılınca
   diğerleri kapanır, aynı kart iki kez kaydolursa bir kez kapanır, kayıtsız sahip hepsini
   kapatır), `OverlayCardTest` `Escape`/`Enter` dışındaki tuşların karta bırakıldığını pinliyor.
+- **Kart sadeleşmesi (7 Kasım):** Alttaki eylem düğmeleri kaldırıldı (hoş geldinde
+  `welcomeButton`, Hakkında'da `aboutClose`) ve köşedeki `×` yerelleştirilmiş `Kapat`
+  sözcüğüne döndü - ara panelin `.find-close` düğmesiyle aynı fikir, yani kartın tek düğmesi
+  o. Odağın karta girmesi gerekiyordu ve artık tek düğme ona veriliyor; `Tab` kartın
+  kontrollerini gezmeye devam ediyor ve düğme `:focused` durumunda odak halkasını gösteriyor.
+  Kartın içeriği artık bir eylem değil, okunacak bir metin. Bu, `welcomeButton`/`aboutClose`
+  anahtarlarını (6 × 146), `Messages` erişimcilerini, `-welcome-button-text` belirtecini ve
+  boşta kalan `.welcome-button` kural setini ölü bıraktı; hepsi silindi.
+  **Kanıt:** `mvn -B clean test` → **527/0/0** (`ContrastRatioTest` hâlâ `-welcome-button-bg`
+  belirtecini e-posta bağlantısının metin rengi olarak denetliyor).
 
 > **Kapı G3** (`analysis.md` §13.6/2 ve /3): `Ctrl+F` bulur, `F3`/`Shift+F3` gezer, `Ctrl+H`
 > bir/tümünü değiştirir; aynı işlevler komut menüsünden (araç çubuğundaki `☰` düğmesi) erişilir

@@ -40,7 +40,8 @@ import java.util.function.Supplier;
  * typing into a document the user could not see; a card that leaves the text
  * visible has nothing to protect. What it does keep from the old dialogs is the
  * keyboard: {@code Escape} and {@code Enter} dismiss it while focus is inside,
- * and focus starts on the card's own action button.</p>
+ * and focus starts on the close button, so either key works the moment the card
+ * appears.</p>
  *
  * <p><strong>Why the content is rebuilt on every show.</strong> The bundles can
  * change language between two openings, and the shortcut table is generated
@@ -62,7 +63,7 @@ public abstract class OverlayCard extends VBox {
     public static final int EDGE_MARGIN = 12;
 
     private final ScrollPane scrollPane = new ScrollPane();
-    private final Button closeButton = new Button("\u00d7");
+    private final Button closeButton = new Button();
     private final Tooltip closeTooltip = new Tooltip();
     private final Supplier<String> closeLabel;
 
@@ -71,9 +72,6 @@ public abstract class OverlayCard extends VBox {
      * so decoding the 512 px asset there would re-read it per opening.
      */
     private final Image mark = AppIcons.dialogIcon();
-
-    /** Set by {@link #buildContent()} so the card can start on its primary action. */
-    private Node initialFocus;
 
     private OverlaySlot slot;
 
@@ -106,7 +104,10 @@ public abstract class OverlayCard extends VBox {
         // The close button gets a row of its own above the scroll pane: at the
         // card's top-right corner it would sit on top of the vertical
         // scrollbar, swallowing its first clicks exactly when the content is
-        // long enough to need it.
+        // long enough to need it. It carries the localised "Close" label
+        // rather than a glyph, the same way the find panel does - one word is
+        // plainer than a multiplication sign, and it is the card's only
+        // button now that the call-to-action at the bottom is gone.
         var header = new HBox(closeButton);
         header.setAlignment(Pos.CENTER_RIGHT);
         header.setPadding(new Insets(4, 6, 0, 6));
@@ -134,11 +135,6 @@ public abstract class OverlayCard extends VBox {
 
     /** Builds the card's content column; called on every {@link #show()}. */
     protected abstract Node buildContent();
-
-    /** The control that takes focus when the card opens (the corner close otherwise). */
-    protected final void setInitialFocus(Node node) {
-        this.initialFocus = node;
-    }
 
     /** Fixes the card's width; the height follows the content up to the window. */
     protected final void setCardWidth(double width) {
@@ -174,18 +170,16 @@ public abstract class OverlayCard extends VBox {
         if (slot != null) {
             slot.aboutToShow(this);
         }
-        initialFocus = null;
         rebuild();
         setVisible(true);
         setManaged(true);
-        var focusTarget = initialFocus == null ? closeButton : initialFocus;
         // One pulse later, not here: a card opened from a menu item is shown
         // while the popup is still closing, and a popup hands focus back to its
         // owner button as it hides - a synchronous request would be undone and
         // Escape/Enter would never reach the card.
         Platform.runLater(() -> {
             if (isVisible()) {
-                focusTarget.requestFocus();
+                closeButton.requestFocus();
             }
         });
     }
@@ -203,9 +197,9 @@ public abstract class OverlayCard extends VBox {
 
     private void rebuild() {
         var label = closeLabel.get();
+        closeButton.setText(label);
         closeTooltip.setText(label);
         closeButton.setAccessibleText(label);
-        initialFocus = null;
         scrollPane.setContent(buildContent());
     }
 

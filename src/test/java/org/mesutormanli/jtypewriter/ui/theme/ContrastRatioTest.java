@@ -153,24 +153,6 @@ class ContrastRatioTest {
         }
     }
 
-    /** The welcome call-to-action label on both its
-        resting and hover surfaces. In the dark theme the fix is the label
-        colour (dark-on-amber), in the others the surface itself. */
-    @Test
-    void welcomeCallToActionClearsFourPointFiveInEveryTheme() {
-        for (var theme : THEMES) {
-            var css = readCss("/css/" + theme + ".css");
-            var label = color(css, "-welcome-button-text");
-            for (var surface : new String[]{"-welcome-button-bg", "-welcome-button-hover"}) {
-                var background = color(css, surface);
-                var ratio = ContrastRatio.ratio(label, background);
-                assertTrue(ContrastRatio.meetsAa(ratio, false),
-                        "%s -welcome-button-text %s on %s (%s) is %.2f:1, below AA %s:1"
-                                .formatted(theme, label, surface, background, ratio, TEXT_MIN));
-            }
-        }
-    }
-
     /** The About e-mail Hyperlink takes its text fill from -welcome-button-bg,
         which must therefore read as body text on the dialog surface. */
     @Test

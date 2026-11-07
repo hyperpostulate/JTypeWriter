@@ -30,11 +30,9 @@
     -welcome-muted: #7a6348;
     -welcome-card-bg: #e4d6c0;
     -welcome-card-border: #d4c5ae;
-    /* CTA surface and the About e-mail link's text colour share this token:
-       #f4ecd8 on #6b5638 = 5.92:1 and on hover #7a6244 = 4.88:1; as the link
-       colour #6b5638 on #efe6d4 = 5.62:1. */
+    /* The About e-mail link's text colour: #6b5638 on #efe6d4 = 5.62:1; the
+       hover step is the lighter #7a6244. */
     -welcome-button-bg: #6b5638;
-    -welcome-button-text: #f4ecd8;
     -welcome-button-hover: #7a6244;
 }
 

@@ -165,10 +165,6 @@ public class Messages {
         return bundle.getString("appTagline");
     }
 
-    public String welcomeButton() {
-        return bundle.getString("welcomeButton");
-    }
-
     /*
      * Shortcut-card labels, one per action. They used to live in a single
      * padded welcomeShortcuts blob, which meant the card's chord/description
@@ -535,10 +531,6 @@ public class Messages {
 
     public String toolbarAbout() {
         return bundle.getString("toolbarAbout");
-    }
-
-    public String aboutClose() {
-        return bundle.getString("aboutClose");
     }
 
     /** The About line naming the running version, e.g. {@code "Version 1.0.0"}. */

@@ -99,7 +99,7 @@ Araç çubuğunun en solundaki kontrol, dört menüyü taşıyan bir `☰` düğ
 Hoş geldin ekranı ve Hakkında görünümü artık ayrı pencereler değil, ara/değiştir panelinin durduğu sağ üst köşede birer kart. Köşeyi onunla paylaşıyorlar: biri açıldığında orada duran kart kapanır, yani gördüğünüz her zaman en son istediğiniz karttır.
 
 - **Belge kullanılabilir kalır.** Kart modal değil, yani açıkken içinden bir kısayol kopyalayabilirsiniz; kart kapandığında imleç metne geri döner.
-- **`Escape` ve `Enter` kartı kapatır**, diyalog olduğu zamanki gibi; köşedeki `×` de aynısını yapar. Kart açılırken odağı kendisi alır, yani bu tuşlar hemen çalışır; `Tab` yine kartın kontrollerini gezer.
+- **`Escape` ve `Enter` kartı kapatır**, diyalog olduğu zamanki gibi; kartın sağ üst köşesindeki `Kapat` düğmesi de aynısını yapar - ara paneldeki gibi bir simge değil, bir sözcük. Kartın tek düğmesi odur: içerik okunmak için vardır, alttaki ikinci bir eylem düğmesiyle kapatılmak için değil. Kart açılırken odağı bu düğme alır, yani bu tuşlar hemen çalışır; `Tab` yine kartın kontrollerini gezer.
 - **Sınırı ekran değil pencere.** Kısa bir pencerede karttan daha uzun bir kart pencereye sığacak kadar küçülür ve kaydırılır, kenardan taşmaz; araç çubuğuyla aynı tema belirteçlerinden boyandığı için Koyu, Sepya ve Açık'ta yerel görünür.
 - **Açıldığı dilde konuşur.** İçerik her açılışta ve dil değişiminde paketten yeniden kurulur, yani açık kalan bir kart dili değiştirdikten sonra önceki dilde kalamaz.
 

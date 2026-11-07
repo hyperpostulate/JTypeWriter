@@ -8,15 +8,16 @@ package org.mesutormanli.jtypewriter.ui;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 /**
- * The welcome card: the application mark, the tagline, the shortcut table and
- * the start button, floating over the editor in the window's top-right corner.
+ * The welcome card: the application mark, the tagline and the shortcut table,
+ * floating over the editor in the window's top-right corner. Its only button is
+ * the header's {@code Close}; the card is something to read, not a step to
+ * confirm, so the old "Start Writing" call-to-action is gone.
  *
  * <p>It was a modal, borderless window until the card form arrived (see
  * {@link OverlayCard}); everything visible is unchanged, including the
@@ -65,21 +66,16 @@ public class WelcomeCard extends OverlayCard {
         var shortcuts = ShortcutTable.build(
                 ShortcutRows.fromActions(messages), CONTENT_WIDTH);
 
-        var startButton = new Button(messages.welcomeButton());
-        startButton.getStyleClass().add("welcome-button");
-        startButton.setOnAction(event -> hide());
-
-        var content = new VBox(14, titleLabel, taglineLabel, shortcuts, startButton);
+        var content = new VBox(14, titleLabel, taglineLabel, shortcuts);
         content.setAlignment(Pos.CENTER);
         // Only a small top inset: the card's close row already sits above
-        // the scroll pane, so 36 px here would double the top gap.
+        // the scroll pane, so a large one here would double the top gap.
         content.setPadding(new Insets(12, 32, 32, 32));
 
         var mark = markView(ICON_SIZE);
         if (mark != null) {
             content.getChildren().add(0, mark);
         }
-        setInitialFocus(startButton);
         return content;
     }
 }

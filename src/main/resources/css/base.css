@@ -540,30 +540,8 @@
     -fx-text-fill: -welcome-text;
 }
 
-.welcome-button {
-    -fx-font-size: 14px;
-    -fx-font-weight: 600;
-    -fx-padding: 10px 44px;
-    -fx-background-radius: 8px;
-    -fx-cursor: hand;
-    -fx-text-fill: -welcome-button-text;
-    -fx-background-color: -welcome-button-bg;
-    -fx-border-width: 0;
-    -fx-effect: dropshadow(gaussian, -welcome-shadow, 8, 0.15, 0, 2);
-}
-
-.welcome-button:hover {
-    -fx-background-color: -welcome-button-hover;
-    -fx-effect: dropshadow(gaussian, -welcome-shadow, 12, 0.25, 0, 4);
-}
-
-.welcome-button:pressed {
-    -fx-background-color: -welcome-button-bg;
-    -fx-effect: dropshadow(gaussian, -welcome-shadow, 4, 0.1, 0, 1);
-}
-
-/* Shared scroll host for the welcome and About cards: both dialogs now
-   clamp their height to the screen, so either one may need to scroll. */
+/* Shared scroll host for the welcome and About cards: a card is bounded by the
+   window rather than the screen now, so either one may need to scroll. */
 .dialog-scroll {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
@@ -619,15 +597,19 @@
     -fx-text-fill: -welcome-button-hover;
 }
 
-/* Corner close affordance of the floating welcome and About cards, the same
-   idea as the find panel's .find-close: a quiet glyph in the card's muted
-   colour, so the card's own button stays the primary way out. */
+/* Close affordance of the floating welcome and About cards: the same quiet
+   word-in-the-header idea as the find panel's .find-close, painted in the
+   card's muted colour so it never competes with the content. It is the card's
+   only button, hence the focus rule: a keyboard user has to see where the
+   card's focus went. */
 .overlay-card-close {
-    -fx-font-size: 14px;
+    -fx-font-size: 11px;
     -fx-text-fill: -welcome-muted;
     -fx-background-color: transparent;
-    -fx-border-width: 0;
-    -fx-padding: 1 7 3 7;
+    -fx-border-width: 1px;
+    -fx-border-color: transparent;
+    -fx-border-radius: 4px;
+    -fx-padding: 3 8 3 8;
     -fx-cursor: hand;
 }
 
@@ -635,6 +617,10 @@
     -fx-background-color: -welcome-card-bg;
     -fx-background-radius: 4px;
     -fx-text-fill: -welcome-text;
+}
+
+.overlay-card-close:focused {
+    -fx-border-color: -focus-ring;
 }
 
 /* --- Alert / Dialog chrome -------------------------------------------------
