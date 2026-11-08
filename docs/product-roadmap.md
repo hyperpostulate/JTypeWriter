@@ -54,7 +54,7 @@ Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir say�
 | `verify-artifacts` karşılaştırması | 17 | **20** (gömülü font lisansı +2, font kaynağı +1) |
 | Yıldız / çatal / issue | 0 / 0 / 0 | **0 / 0 / 0** |
 
-**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ◐ (W4-01 ✅, W4-02 ✅; W4-03…W4-05 ☐).
+**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ◐ (W4-01 ✅, W4-02 ✅, W4-03 ✅; W4-04…W4-05 ☐).
 Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ✅ · G4 ☐**.
 
 **`v1.0.3` notu (7 Kasım 2026):** dördüncü yayın, W3-01…W3-06 ile kart takiplerini
@@ -1112,6 +1112,31 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
 - **Kaynak referansı (7 Kasım 2026):** kartın verdiği `MainStage.java:53-54` eskimiştir;
   geometri geri yükleme `configure()` içinde `MainStage.java:44-62`'ye taşındı.
 - **Doğrulama:** `mvn test -Dtest=ToolbarFitTest,MainStageTest`.
+- **Uygulama (8 Kasım 2026):** Önce ölçüm yapıldı, sonra sayı sabitlendi. `ToolbarView.fitControls`
+  + `ToolbarFit.requiredWidth` ile altı paketin daraltılmış satırı ölçüldü: EN 651,9 ·
+  TR 723,8 · DE 764,7 · IT 776,4 · FR 824,8 · **ES 872,3** (en geniş). `MainStage` üç sabit
+  tutuyor: `WIDEST_COMPACT_ROW_PX = 873` (yukarı yuvarlanmış), `DECORATION_ALLOWANCE_PX = 16`
+  (pencere süslemesinin araç çubuğundan aldığı pay - Windows'ta ~8 px/side, Linux'ta genelde
+  daha ince; **bilerek büyük olan** seçildi, fazla pay yalnız boşluk bırakır, az pay kartın
+  kaldırdığı kırpılmayı geri getirirdi) ve `MINIMUM_WIDTH_PX = 889`.
+  Neden canlı ölçüm değil: minimum pencere var olmadan bilinmeli ve seçili dilden bağımsız
+  olmalı; "o anki dili" ölçmek tabanı arayüz diline bağlar ve kullanıcı dil değiştirdiğinde
+  kayardı. Altı dili her açılışta ölçmek ise yalnız bir çeviri değiştiğinde değişen bir değer
+  için açılışa bir font turu eklerdi. Bu yüzden sayı sabit, ama **pinli**:
+  `ToolbarFitTest` onu altı paketten yeniden türetiyor, uzayan bir etiket build'i düşürüyor.
+  `configure()` başında `stage.setMinWidth(MINIMUM_WIDTH_PX)`; kayıtlı genişlik ayrıca
+  `restoredWidth(saved, minimum)` ile tabana çekiliyor. JavaFX'in `minWidth` altındaki bir
+  genişliği kırpıp kırpmaması platformun pencere yöneticisine bağlı olduğu için taban burada,
+  deterministik ve testli yerde uygulanıyor - ve ayarın kendini onarmasını sağlayan da bu:
+  pencere `setOnHidden`'da **gerçek** genişliğiyle saklanıyor, yani çok dar değer bir sonraki
+  oturuma taşınmıyor.
+- **Doğrulama (yeni testler):** `ToolbarFitTest` 13 → **16**: minimum genişlik altı pakette
+  ölçülen en geniş daraltılmış satıra eşit (`assertEquals(ceil(widest), WIDEST_COMPACT_ROW_PX)`);
+  minimumda süsleme payı düştükten sonra kalan araç çubuğu genişliği **her** dilin daraltılmış
+  satırına yetiyor; minimumda politika her dilde `COMPACT` veriyor - yani kırpılma diğer
+  yönden, başlıklı satırı zorlayarak geri gelmiyor. `MainStageTest` 6 → **9**: minimumdan dar
+  kayıtlı genişlik minimuma çekiliyor, daha geniş olan korunuyor, tam minimumda olan
+  değişmiyor.
 
 **W4-04 · A17 — Ses politikası** · S · U9
 - **Kapsam:** `ui/component/EditorKeyHandler.java:41-52` (`handleKeyPressed`/`handleKeyTyped`),
@@ -1226,7 +1251,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W3-06 | Arama paneli | E1 | M | W3-05 | ✅ | `ui/FindPanel` (Notepad++ tarzı yüzen kart) + `FindScanService` (FX dışı tarama) + `FindReplacePolicy` (YOLO onayı) + `FindCommands` portu; `Ctrl+F`/`F3`/`Shift+F3`/`Ctrl+H` + araç çubuğunda `⚲` + Düzen menüsü; tarama worker'da, 10 MiB'da 26–53 ms ve `fxThreadScans()==0`; tümünü değiştir tek geri alma adımı; YOLO açıkken onay diyaloğu; `mvn -B clean test` → 524/0/0 |
 | W4-01 | Ayar şema sürümü | D13, D12 | S | — | ✅ | `AppSettings`: `schema.version` = **ürün sürümü** (`pom.xml`, tek kaynak; filtrelenmiş `version.properties` ile taşınıyor), anahtarsız/bozuk = sürümsüz → bellekte damgalanır, daha yeni sürüm ve bilinmeyen anahtarlar kayıtta korunuyor, karşılaştırma sayısal parçalarla; `save()` `SecurityException`'ı da yakalıyor, `isSettingsWriteFailurePending()` bayrağı `AppGraph` tarafından açılış sonunda ve her kayıtta bir kez gösteriliyor; About artık "dev" değil sürümü gösteriyor; 6 bundle + `Messages`; `mvn test -Dtest=AppSettingsTest,AppVersionTest,MessagesTest,DialogServiceTest` → yeşil |
 | W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ✅ | `RecentFiles` saf model (en yeni başta, mutlak+normalize kimlikle tekilleştirme, `MAX = 10`, kuyruktan düşme); `AppSettings.getRecentFiles`/`writeRecentFiles` (`recent.file.N`), `rememberFile` listeyi aynı kayıtta güncelliyor, silinmiş belge sessizce düşüyor; son dosyalar **ayrı kartta** (`RecentFilesCard`, `Dosya → Son Dosyalar`) ve `welcome.enabled` opt-out (`WelcomeCard` onay kutusu) + `Dosya → Karşılama Kartını Göster`; satırlar `FileService.openPathAsync` ile aynı kaydedilmemiş-değişiklik kapısından; 6 bundle × 155 + 5 `Messages`; `mvn test -Dtest=RecentFilesTest,RecentFilesCardTest,AppSettingsTest,StartupGreetingTest,MessagesTest,MainControllerTest` → yeşil |
-| W4-03 | Minimum genişlik | U8 | S | — | ☐ | |
+| W4-03 | Minimum genişlik | U8 | S | — | ✅ | `MainStage.setMinWidth(MINIMUM_WIDTH_PX = 889)` = altı dilde ölçülen en geniş daraltılmış satır (ES 872,3 → 873) + 16 px süsleme payı; değer sabit ama `ToolbarFitTest` tarafından paketlerden yeniden türetilerek pinli (uzayan çeviri build'i düşürür); kayıtlı geometri `restoredWidth(saved, minimum)` ile tabana çekiliyor ve `setOnHidden` gerçek genişliği sakladığı için ayar kendini onarıyor; `mvn test -Dtest=ToolbarFitTest,MainStageTest` → yeşil |
 | W4-04 | Ses politikası | U9 | S | W3-02, W4-01 | ☐ | |
 | W4-05 | `v1.1.0` | B2 | S | hepsi | ☐ | |
 

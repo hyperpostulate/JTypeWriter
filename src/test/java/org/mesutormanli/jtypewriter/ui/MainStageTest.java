@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -47,6 +48,32 @@ class MainStageTest {
     @Test
     void noScreensMeansNothingIntersects() {
         assertFalse(MainStage.intersectsAny(new Rectangle2D(0, 0, 800, 600), List.of()));
+    }
+
+    /**
+     * W4-03: a remembered width narrower than the minimum is widened on the
+     * way in, not accepted. JavaFX may or may not clamp a width below
+     * {@code minWidth} depending on the platform's window manager, so the
+     * floor is applied here where it is deterministic and testable - and
+     * because {@code setOnHidden} stores the width the stage actually has, the
+     * too-narrow setting repairs itself at the end of that session instead of
+     * being reapplied forever.
+     */
+    @Test
+    void aRememberedWidthNarrowerThanTheMinimumIsWidened() {
+        assertEquals(MainStage.MINIMUM_WIDTH_PX,
+                MainStage.restoredWidth(600, MainStage.MINIMUM_WIDTH_PX));
+    }
+
+    @Test
+    void aRememberedWidthWiderThanTheMinimumIsKept() {
+        assertEquals(1400, MainStage.restoredWidth(1400, MainStage.MINIMUM_WIDTH_PX));
+    }
+
+    /** Exactly at the minimum is inside the rule, not below it. */
+    @Test
+    void aRememberedWidthAtTheMinimumIsKeptAsItIs() {
+        assertEquals(900, MainStage.restoredWidth(900, 900));
     }
 
     /**

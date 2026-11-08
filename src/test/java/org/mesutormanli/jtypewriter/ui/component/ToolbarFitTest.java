@@ -12,6 +12,7 @@ import org.mesutormanli.jtypewriter.locale.Language;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.ui.MainMenu;
+import org.mesutormanli.jtypewriter.ui.MainStage;
 import org.mesutormanli.jtypewriter.ui.component.ToolbarFit.LayoutMode;
 
 import java.nio.file.Path;
@@ -199,8 +200,65 @@ class ToolbarFitTest {
                 ToolbarView.fitControls(messagesFor(Language.EN), false).size());
     }
 
-    private double requiredRow(Language language, boolean compact) {
-        return ToolbarFit.requiredWidth(
+    /**
+     * W4-03: the window's minimum width is a measurement, not a guess.
+     *
+     * <p>{@code MainStage.WIDEST_COMPACT_ROW_PX} is the widest collapsed row
+     * across the six bundles, rounded up so that even that language fits with
+     * no slack consumed by rounding. Pinning it here means a translation that
+     * grows a label cannot silently start clipping at the minimum: the row
+     * would move, this number would not, and the build fails.</p>
+     */
+    @Test
+    void theMinimumWindowWidthIsTheWidestCollapsedRowAcrossEveryLanguage() {
+        double widest = 0;
+        Language widestLanguage = null;
+        for (var language : Language.values()) {
+            double compact = requiredRow(language, true);
+            if (compact > widest) {
+                widest = compact;
+                widestLanguage = language;
+            }
+        }
+
+        assertEquals(Math.ceil(widest), MainStage.WIDEST_COMPACT_ROW_PX,
+                "the widest collapsed row is " + round(widest) + " px (" + widestLanguage + ")");
+    }
+
+    /**
+     * The floor has to leave the toolbar at least the widest collapsed row's
+     * width, after the window decoration has taken its share: otherwise the
+     * minimum would be a width at which one language still clips, which is the
+     * defect this card removes.
+     */
+    @Test
+    void theMinimumWidthLeavesRoomForTheWidestCollapsedRowAfterDecoration() {
+        double available = MainStage.MINIMUM_WIDTH_PX - MainStage.DECORATION_ALLOWANCE_PX;
+
+        assertTrue(available >= MainStage.WIDEST_COMPACT_ROW_PX,
+                "only " + round(available) + " px of toolbar width at the minimum");
+        for (var language : Language.values()) {
+            assertTrue(requiredRow(language, true) <= available,
+                    language + " still clips at the minimum window width");
+        }
+    }
+
+    /**
+     * The floor must also land the policy in COMPACT for every language, or a
+     * window parked at its own minimum would render a captioned row that does
+     * not fit - the clipping would come back from the other direction.
+     */
+    @Test
+    void theMinimumWidthForcesTheCollapsedRowInEveryLanguage() {
+        for (var language : Language.values()) {
+            double available = MainStage.MINIMUM_WIDTH_PX - MainStage.DECORATION_ALLOWANCE_PX;
+            assertEquals(LayoutMode.COMPACT,
+                    ToolbarFit.decide(available, requiredRow(language, false), LayoutMode.FULL),
+                    language + " would still ask for captions at the minimum width");
+        }
+    }
+
+    private double requiredRow(Language language, boolean compact) {        return ToolbarFit.requiredWidth(
                 ToolbarView.fitControls(messagesFor(language), compact),
                 ToolbarFit.TOOLBAR_FONT_SIZE_PX,
                 ToolbarFit::awtTextWidth);

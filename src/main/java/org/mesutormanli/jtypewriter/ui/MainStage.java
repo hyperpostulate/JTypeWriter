@@ -18,6 +18,42 @@ import java.util.List;
 
 public class MainStage {
 
+    /**
+     * The widest {@code COMPACT} toolbar row across the six bundles, measured
+     * from the real localised labels ({@code ToolbarView.fitControls} +
+     * {@link org.mesutormanli.jtypewriter.ui.component.ToolbarFit#requiredWidth}):
+     * Spanish needs 872.3 px, the most of the six, so the floor is 873.
+     *
+     * <p><strong>Why it is a pinned number and not a live measurement.</strong>
+     * The minimum has to be known before the window exists and has to be the
+     * same whichever language is selected, so measuring "the current one" at
+     * startup would make the floor depend on the UI language and would move
+     * when the user switches. Measuring all six at every launch would also add
+     * a font pass to startup for a value that only changes when a translation
+     * does. {@code ToolbarFitTest.theMinimumWindowWidthIsTheWidestCollapsedRowAcrossEveryLanguage}
+     * re-derives it from the bundles, so a longer label fails the build instead
+     * of silently clipping.</p>
+     */
+    public static final double WIDEST_COMPACT_ROW_PX = 873;
+
+    /**
+     * Width reserved for the window's own decoration, which the toolbar does
+     * not get to use. Deliberately the larger of the two supported platforms'
+     * borders (Windows resizes with about 8 px per side; Linux is usually
+     * slimmer), so the floor errs wide: too much room only leaves a little
+     * slack, too little would bring back the clipping this card removes.
+     */
+    public static final double DECORATION_ALLOWANCE_PX = 16;
+
+    /**
+     * The window's minimum width: the widest collapsed row plus the decoration
+     * the row cannot occupy. At this width the toolbar is in {@code COMPACT}
+     * in all six languages and nothing is clipped, which is what the card
+     * promises - the row used to keep shrinking and clipping because the
+     * window had no minimum at all.
+     */
+    public static final double MINIMUM_WIDTH_PX = WIDEST_COMPACT_ROW_PX + DECORATION_ALLOWANCE_PX;
+
     private final FileService fileService;
     private final AppSettings settings;
     private final AutoSaveService autoSaveService;
@@ -35,6 +71,11 @@ public class MainStage {
         // Dropping a document works anywhere in the window, not just over the
         // text: the gesture is installed once, on the scene the stage shows.
         dropHandler.install(stage, scene);
+
+        // The window cannot be narrowed past the widest collapsed toolbar row,
+        // so the toolbar stops clipping at the bottom of the range. Set before
+        // the geometry restore below, which applies the same floor itself.
+        stage.setMinWidth(MINIMUM_WIDTH_PX);
 
         // A session that ended in fullscreen comes back in fullscreen.
         // Fullscreen and maximized are mutually exclusive states, so only one
@@ -57,7 +98,7 @@ public class MainStage {
                     stage.setX(state.x());
                     stage.setY(state.y());
                 }
-                stage.setWidth(state.width());
+                stage.setWidth(restoredWidth(state.width(), MINIMUM_WIDTH_PX));
                 stage.setHeight(state.height());
             }
             stage.setMaximized(maximizeOnRestore(state.maximized(), restoreFullScreen));
@@ -119,6 +160,19 @@ public class MainStage {
      */
     static boolean maximizeOnRestore(boolean savedMaximized, boolean restoreFullScreen) {
         return savedMaximized && !restoreFullScreen;
+    }
+
+    /**
+     * A remembered width, floored at the window's minimum.
+     *
+     * <p>Applying the floor here rather than trusting JavaFX to clamp a width
+     * below {@code minWidth} keeps the restore deterministic on both supported
+     * platforms, and it is what makes the setting repair itself: the window is
+     * hidden with the width it actually has, so the next session restores a
+     * legal number instead of the too-narrow one that was stored.</p>
+     */
+    static double restoredWidth(double savedWidth, double minimumWidth) {
+        return Math.max(savedWidth, minimumWidth);
     }
 
     /**
