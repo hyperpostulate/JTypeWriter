@@ -569,16 +569,55 @@ class AppSettingsTest {
         assertEquals(List.of(kept.toAbsolutePath()), recent);
     }
 
-    /** A hand-edited or half-written entry is skipped, not fatal. */
+    /**
+     * A hand-edited or half-written entry is skipped, not fatal.
+     *
+     * <p>The file is written through {@link Properties#store} on purpose, the
+     * same way the application writes it. A raw {@code key=C:\Users\...} line
+     * does not fail to load: {@code Properties.load} silently <em>drops</em>
+     * the backslash of an escape it does not recognise ({@code \U} becomes
+     * {@code U}, and {@code \r} becomes a carriage return), so the good path
+     * loads mangled, names no file, and is filtered out of the list - the very
+     * behaviour this test is meant to exclude. That was a test bug, but one
+     * only Windows paths exposed, which is why CI caught it and Linux did
+     * not.</p>
+     */
     @Test
     void anUnusableRecentEntryIsIgnored(@TempDir Path dir) throws IOException {
         var file = dir.resolve("settings.properties");
         var kept = Files.writeString(dir.resolve("kept.txt"), "text");
-        Files.writeString(file, "recent.file.0=" + kept + "\nrecent.file.1=bad" + (char) 0 + "name\n");
+        var props = new java.util.Properties();
+        props.setProperty("recent.file.0", kept.toString());
+        props.setProperty("recent.file.1", "bad" + (char) 0 + "name");
+        try (var out = Files.newOutputStream(file)) {
+            props.store(out, "hand-edited");
+        }
 
         var recent = new AppSettings(file).getRecentFiles();
 
         assertEquals(List.of(kept), recent);
+    }
+
+    /**
+     * W4-02: the recent list must survive any path the platform allows, not
+     * just the comfortable ones. A backslash is a legal file-name character on
+     * POSIX, and it is the character that decides whether the settings file is
+     * read back verbatim: {@code Properties.store} doubles it, so the value
+     * comes back intact, while a hand-written {@code key=C:\...} line would
+     * have it eaten by {@code load}. This is the regression pin for the Windows
+     * CI failure - there the good entry vanished for exactly this reason.
+     */
+    @Test
+    void aPathContainingBackslashesSurvivesTheSettingsRoundTrip(@TempDir Path dir) throws IOException {
+        Assumptions.assumeTrue(dir.getFileSystem().supportedFileAttributeViews().contains("posix"),
+                "a backslash is a path separator on Windows, not a file-name character");
+        var file = dir.resolve("settings.properties");
+        var document = Files.writeString(dir.resolve("a\\Users\\runner.txt"), "text");
+
+        new AppSettings(file).rememberFile(document);
+
+        assertEquals(List.of(document.toAbsolutePath()),
+                new AppSettings(file).getRecentFiles());
     }
 
     /**

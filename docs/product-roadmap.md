@@ -1084,7 +1084,19 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   `FxApplication.greetsAtStartup` içinde tek bir saf fonksiyondur, açılış sırasındaki gizli bir
   dal değil - yani "opt-out sonrası açılmıyor" iddiası toolkit olmadan pinlenmiş olur.
   `RecentFilesCardTest` **2**: satır dosya adıyla adlandırılır; son öğesi olmayan bir yol
-  (kök) boş satır üretmek yerine tam yolu gösterir. `DialogSizingTest` kart listesine
+  (kök) boş satır üretmek yerine tam yolu gösterir.
+  **Windows CI düzeltmesi (8 Kasım 2026):** ilk koşuda iki test düştü ve ikisi de test
+  kusuruydu, ürün kusuru değil. (1) `theNewestDocumentComesFirst` sonucu ham `Path` ile
+  karşılaştırıyordu; model her zaman **mutlak** yolu sakladığı için bu yalnız POSIX'te
+  geçiyordu (`/b.txt` zaten mutlak), Windows'ta `D:\b.txt` dönünce düştü - karşılaştırma
+  `toAbsolutePath()`'e çevrildi. (2) `anUnusableRecentEntryIsIgnored` ayar dosyasını elle
+  `recent.file.0=C:\Users\...` diye yazıyordu; `Properties.load` tanımadığı kaçışın
+  ters bölüsünü **sessizce atar** (`\U` -> `U`, `\r` -> satır başı), yani iyi yol
+  bozulmuş okunur, hiçbir dosyayı göstermez ve listeden süzülür - testin dışlamak istediği
+  davranış. Dosya artık uygulamanın da kullandığı `Properties.store` ile yazılıyor. Aynı
+  hata sınıfını pinlemek için `aPathContainingBackslashesSurvivesTheSettingsRoundTrip`
+  eklendi (POSIX'e koşullu: Windows'ta ters bölü ayırıcıdır, dosya adı karakteri değil):
+  adında ters bölü geçen bir belge ayarlardan bozulmadan geri geliyor. `DialogSizingTest` kart listesine
   `RecentFilesCard` eklendi: dördüncü yüzey de `OverlayCard`'ın ortak kaydırma kabını ve
   arka planını kullanır, kendi yerleşim kuralını kurmaz.
 

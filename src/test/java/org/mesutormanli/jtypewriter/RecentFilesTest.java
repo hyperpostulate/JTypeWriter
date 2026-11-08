@@ -28,7 +28,11 @@ class RecentFilesTest {
     void theNewestDocumentComesFirst() {
         var list = RecentFiles.withNewest(List.of(Path.of("/a.txt")), Path.of("/b.txt"));
 
-        assertEquals(List.of(Path.of("/b.txt"), Path.of("/a.txt")), list);
+        // Compared as absolute paths: on Windows Path.of("/b.txt") is
+        // D:\b.txt (the current drive), and the model always stores the
+        // absolute form. Comparing the raw relative form passed only on
+        // POSIX, where absolute is a no-op.
+        assertEquals(List.of(Path.of("/b.txt").toAbsolutePath(), Path.of("/a.txt").toAbsolutePath()), list);
     }
 
     /**
