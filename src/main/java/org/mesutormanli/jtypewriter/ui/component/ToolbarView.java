@@ -20,6 +20,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.util.StringConverter;
+import org.mesutormanli.jtypewriter.audio.SoundLevel;
 import org.mesutormanli.jtypewriter.locale.Language;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
@@ -300,10 +301,10 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
                     toolbarState.isYoloMode(),
                     this::onOffLabel,
                     this::selectYolo);
-            case SOUND -> new MainMenu.Choice<>(toggleOptions(),
-                    toolbarState.isSoundEnabled(),
-                    this::onOffLabel,
-                    this::selectSound);
+            case SOUND -> new MainMenu.Choice<>(List.of(SoundLevel.values()),
+                    SoundLevel.nearest(toolbarState.getSoundVolume()),
+                    this::soundLevelLabel,
+                    this::selectSoundLevel);
             case TEXT_COLOR -> new MainMenu.Choice<>(textColorOptions(),
                     textColorManager.getCurrent(),
                     color -> color.getDisplayName(messages),
@@ -340,6 +341,23 @@ public class ToolbarView extends HBox implements MainMenu.Settings {
 
     private void selectSound(boolean on) {
         toolbarState.setSound(on);
+        refresh();
+    }
+
+    /**
+     * A sound-level row: the off rung reuses the bundle's Off label, the rest
+     * render as a percentage through the bundle pattern, because Turkish puts
+     * the sign before the number ({@code %50}) and the pattern is the only
+     * place that can express it without a locale-dependent formatter.
+     */
+    private String soundLevelLabel(SoundLevel level) {
+        return level.isOff()
+                ? messages.labelOff()
+                : messages.soundLevelValue((int) Math.round(level.volume() * 100));
+    }
+
+    private void selectSoundLevel(SoundLevel level) {
+        toolbarState.setSoundVolume(level.volume());
         refresh();
     }
 

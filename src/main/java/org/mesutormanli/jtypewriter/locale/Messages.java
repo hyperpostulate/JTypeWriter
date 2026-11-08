@@ -120,6 +120,16 @@ public class Messages {
         return bundle.getString("labelOff");
     }
 
+    /**
+     * A sound-level row's label, e.g. {@code "50%"}. The sign's side and
+     * spacing are a property of the language - Turkish writes {@code "%50"},
+     * German a spaced {@code "50 %"} - so the pattern lives in the bundle
+     * instead of being assembled in code.
+     */
+    public String soundLevelValue(int percent) {
+        return MessageFormat.format(bundle.getString("soundLevelValue"), String.valueOf(percent));
+    }
+
     public String labelThemeLight() {
         return bundle.getString("labelThemeLight");
     }

@@ -23,7 +23,7 @@ JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap 
 **Neler var?**
 
 - **Kazara mahvedemeyeceğin bir taslak.** YOLO modu Backspace, Delete, Kes ve Geri Al/İleri Al'ı kapatır; yalnızca ileri yazabilirsin. Her kayıt atomiktir ve dönen yedekler tutar; kaydedilmemiş iş 30 saniyede bir anlık görüntülenir - çökmeden sonra taslak geri teklif edilir ve o iletiyi kapatmak taslağı asla silmez.
-- **Yazma hissi.** Bastığın her tuşta daktilo sesi, üç tema (koyu, açık, sepya) ve altı metin rengi; hepsi yazarken değiştirilebilir.
+- **Yazma hissi.** Yazarken, Backspace veya Delete'e bastığında - seçtiğin ses düzeyinde - daktilo sesi, üç tema (koyu, açık, sepya) ve altı metin rengi; hepsi yazarken değiştirilebilir.
 - **Yazdıkça sayılar.** Kelime, boşluklu ve boşluksuz karakter, satır, tuş vuruşu, oturum süresi ve molaları saymayan sürdürülebilir kelime/dakika.
 - **Ekranda yalnızca metin.** `F11` tam ekran, `Ctrl+T` araç çubuğunu ve içinde duran komut menüsünü birlikte gizler; pencere başlığı hangi belgenin açık olduğunu ve kaydedilip kaydedilmediğini söyler.
 - **Kaldığın yerden devam eden oturum.** Dil, tema, metin rengi, yazı boyutu, son belge ve pencere geometrisi bir sonraki açılışta geri yüklenir.
@@ -53,7 +53,7 @@ JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap 
 
 ### Daktilo Ses Efektleri
 
-Değiştirici olmayan her tuş basımında otantik daktilo tuş sesi. Araç çubuğundaki Ses açılır listesinden açılıp kapatılabilir.
+Tuş sayfaya metin yazdığında otantik daktilo sesi. İmleç hareketi, fonksiyon tuşları ve kısayollar sessizdir, çünkü daktilo yalnızca yazdığında ya da üstünü çizdiğinde takırdar. Araç çubuğundaki Ses açılır listesi hızlı bir aç/kapat'tır; `Görünüm → Ses` düzey merdivenini açar - Kapalı, %25, %50, %75, %100 - ve seçim yeniden başlatmalar arasında hatırlanır; 0 tam sessizliktir. Her tık kendi sesini başlatır, öncekini kesmez; böylece hızlı yazım kekeleme değil hızlı yazım gibi duyulur.
 
 ### YOLO Modu
 
@@ -80,7 +80,7 @@ Canlı istatistik çubuğu:
 
 ### Komut Menüsü
 
-Araç çubuğunun en solundaki kontrol, dört menüyü taşıyan bir `☰` düğmesidir: Dosya, Düzen ve Görünüm editör komutlarını, Yardım ise Hakkında'yı içerir. Kalıcı bir menü şeridi değil bir menü düğmesidir: ikinci bir krom satırı tam ekranda da sizinle gelir ve `Ctrl+T` sözünü bozar; bu yüzden menü, içinde yaşadığı araç çubuğuyla birlikte gizlenir. Platformun kendisinin yürütmediği her editör komutu, kısayollar ve araç çubuğu düğmeleriyle aynı `EditorAction` envanterinden üretilir; böylece `Yeni` (`Ctrl+N`) ve `Farklı Kaydet` (`Ctrl+Shift+S`) yalnız klavyede kalmaz, görünür bir yere de kavuşur. Görünüm bir sıralı-komut listesi değil: Tema, YOLO, Ses, Renk ve Boyut'un her biri, araç çubuğundaki açılır listelerin aynı değerlerini listeleyen ve o anki değeri işaretli gösteren ikinci seviye bir alt menü açar - `Görünüm → Tema → Koyu` gerçekten Koyu demektir, "sıradaki tema" değil. Bu alt menüler araç çubuğuyla aynı seçenek listelerinden üretilir ve aynı uygulama yolundan yazar, yani iki giriş noktası çelişemez. Etiketler ve hızlandırıcılar arayüz dilini izler (hızlandırıcılar açıklamadır - tuşu tuş filtresi yürütür), açılan menü araç çubuğundaki açılır listelerle aynı tema belirteçlerinden boyanır (Koyu, Açık ve Sepya ile değişir) ve Yardım → Hakkında, Hakkında kartını açar. Menüler elle yazılmadığı için bir komut artık bir giriş noktasında varken diğerinde eksik kalamaz.
+Araç çubuğunun en solundaki kontrol, dört menüyü taşıyan bir `☰` düğmesidir: Dosya, Düzen ve Görünüm editör komutlarını, Yardım ise Hakkında'yı içerir. Kalıcı bir menü şeridi değil bir menü düğmesidir: ikinci bir krom satırı tam ekranda da sizinle gelir ve `Ctrl+T` sözünü bozar; bu yüzden menü, içinde yaşadığı araç çubuğuyla birlikte gizlenir. Platformun kendisinin yürütmediği her editör komutu, kısayollar ve araç çubuğu düğmeleriyle aynı `EditorAction` envanterinden üretilir; böylece `Yeni` (`Ctrl+N`) ve `Farklı Kaydet` (`Ctrl+Shift+S`) yalnız klavyede kalmaz, görünür bir yere de kavuşur. Görünüm bir sıralı-komut listesi değil: Tema, YOLO, Renk ve Boyut'un her biri, araç çubuğundaki açılır listelerin aynı değerlerini listeleyen ve o anki değeri işaretli gösteren ikinci seviye bir alt menü açar - `Görünüm → Tema → Koyu` gerçekten Koyu demektir, "sıradaki tema" değil. Ses ise düzey merdivenini açar (Kapalı, %25, %50, %75, %100); araç çubuğundaki Açık/Kapalı listesi ikinci bir ayar değil, aynı değerin kısayoludur. Bu alt menüler araç çubuğuyla aynı seçenek listelerinden üretilir ve aynı uygulama yolundan yazar, yani iki giriş noktası çelişemez. Etiketler ve hızlandırıcılar arayüz dilini izler (hızlandırıcılar açıklamadır - tuşu tuş filtresi yürütür), açılan menü araç çubuğundaki açılır listelerle aynı tema belirteçlerinden boyanır (Koyu, Açık ve Sepya ile değişir) ve Yardım → Hakkında, Hakkında kartını açar. Menüler elle yazılmadığı için bir komut artık bir giriş noktasında varken diğerinde eksik kalamaz.
 
 ### Ara ve Değiştir
 
@@ -135,7 +135,7 @@ Hoş geldin ekranı, son dosyalar görünümü ve Hakkında görünümü artık 
 
 ### Ayarlar ve Oturum Geri Yükleme
 
-- **Neler hatırlanır:** dil, tema, metin rengi, font boyutu, ses, son belge ve klasörü ile pencere geometrisi `~/.jtypewriter/settings.properties` dosyasına kaydedilir; bir sonraki oturum öncekinin bittiği yerden başlar - aynı görünüm, aynı belge, aynı pencere
+- **Neler hatırlanır:** dil, tema, metin rengi, font boyutu, ses düzeyi, son belge ve klasörü ile pencere geometrisi `~/.jtypewriter/settings.properties` dosyasına kaydedilir; bir sonraki oturum öncekinin bittiği yerden başlar - aynı görünüm, aynı belge, aynı pencere
   - **Hiçbir şey açılışı engellemez.** Aradan geçen sürede silinmiş bir belge sessizce atlanır, bozuk bir ayar dosyası ise başlangıcı engellemek yerine varsayılanlara döner
   - **Dosya kendi şema sürümünü taşır.** `schema.version`, eski bir sürümün yazdığı dosyanın yeni sürümde değer kaybetmeden açılmasını sağlar; daha yeni bir sürümün dosyası ise bu sürümün anladığı kadarıyla okunur ve asla geriye düşürülmez. Göç bellekte yapılır; dosya ancak bir sonraki gerçek değişiklikte yeniden yazılır
   - **Yazılamayan ayar dosyası bir kez bildirilir.** Pencere çalışmaya devam eder ve belgelerinize dokunulmaz; uyarı dosyayı adlandırır ve dil, tema, yazı tipi boyutu ile pencere konumunun bu oturumdan sonra hatırlanmayacağını söyler
@@ -356,7 +356,9 @@ GitHub Actions iş akışları: `main` dalına her push ve pull request'te derle
 ```
 org.mesutormanli.jtypewriter
 ├── audio/
-│   └── TypewriterSound.java              # Daktilo tuş sesi efekti
+│   ├── TypewriterSound.java              # Daktilo tuş sesi oynatma
+│   ├── SoundLevel.java                   # Görünüm > Ses arkasındaki düzey merdiveni
+│   └── SoundPolicy.java                  # Hangi tuşların takırdadığı (saf)
 ├── locale/
 │   ├── Language.java                     # Desteklenen diller enum'u
 │   ├── LocaleManager.java                # Dil değiştirme + dinleyici desteği
@@ -457,6 +459,8 @@ org.mesutormanli.jtypewriter
 | `TextColorManager` | Metin rengi döngüsü durumu |
 | `SessionStats` | Gerçek zamanlı yazma istatistikleri (WPM, kelime/karakter/satır sayısı) |
 | `TypewriterSound` | Daktilo tuş sesi oynatma |
+| `SoundLevel` | `Görünüm > Ses` düzey merdiveni; `OFF` kalıcı sessizliktir |
+| `SoundPolicy` | Hangi tuşların takırdadığına dair saf karar; tuş işleyicisi ve testleri paylaşır |
 | `LocaleManager` | Değişiklik dinleyicileriyle çoklu dil desteği |
 | `Messages` | Resource bundle tabanlı mesaj erişici |
 
@@ -514,7 +518,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti), Düzen menüsündeki ara/değiştir komutlarının sırası ve komut menüsü sözleşmesi: `MainMenu.layout()` dört sayfada her platformdan bağımsız `EditorAction`'ı tam bir kez taşıyor (altı ayar komutu yerine değer alt menüsüyle temsil ediliyor), Görünüm alt menüleri araç çubuğu açılır listelerinin sunduğu aynı değerleri listeliyor ve işaretliyor, her sayfa başlığı ve satır etiketi altı dilde dolu |
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
 | `AppIconsTest` | Classpath'teki ikon seti: her PNG bildirilen boyutta çözülüyor, `.ico` dosyası beklenen sihirli baytlarla başlıyor (saf bayt kontrolü, toolkit yok) |
-| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması, ayar şema sürümü, son dosya listesi ve karşılama opt-out'u |
+| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması, ayar şema sürümü, ses düzeyi (eski aç/kapat anahtarının düzey olarak okunması dahil), son dosya listesi ve karşılama opt-out'u |
 | `StartupGreetingTest` | Karşılama kartının kendi kendine ne zaman gelebileceği: taze kurulum karşılanır, saklanan opt-out kartı uzak tutar, komut satırında adlandırılan belge asla kartın altında kalmaz |
 | `RecentFilesCardTest` | Son dosya satırının adlandırılması: dosya adı, son öğesi olmayan bir yolda tam yol |
 | `RecentFilesTest` | Son dosyalar kartının belge listesi saf liste işlemleri olarak: en yeni başta, mutlak ve normalleştirilmiş yolla belge başına tek satır, on girişlik tavan en eskiyi düşürüyor, kaybolan belgeler süzülüyor, boş/`null` durumlar ele alınıyor |
@@ -528,7 +532,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `AppLoggingTest` | Log biçimlendiricisinin başlık satırını hata vermeden üretmesi (regresyon) ve fırlatılan istisnalar için neden zinciriyle birlikte girintili yığın izi eklemesi; geçici dizinde log dosyası işleyicisi, kullanılamayan log dizini ve reddedilen ev dizininin yalnızca konsola düşmesi, tekrarlanan `init()` çağrısının işleyici biriktirmemesi |
 | `InstanceLockTest` | Örnek kilidinin alınması, aynı JVM'de ikinci alımın reddedilmesi, bırakma ve yinelenebilir kapatma, kullanılamayan kilit dosyasında fail-open davranışı ve salt okunur bir veri dizininin açılışı engellemek yerine `UNAVAILABLE` bildirmesi |
 | `LanguageTest` | Yerel dil adlarının her sistem dilinde sabit kod sabitleri olması (`getDisplayLanguage` tuzağı yok) |
-| `ToolbarStateTest` | Ses açılır listesinin tek ayarlayıcısı: yeniden başlatmada kalıcılık, ses motorunun takip etmesi, tekrarların etkisiz olması |
+| `ToolbarStateTest` | Ses düzeyinin tek ayarlayıcısı: yeniden başlatmada kalıcılık, ses motorunun takip etmesi, sıfırın ikisini de susturması, Açık'ın son duyulur kademeyi geri getirmesi, tekrarların etkisiz olması |
 | `ToolbarFitTest` | Araç çubuğu taşma politikası: başlıklı satırın (düğmeler, açılır listeler, ayırıcı, çerçeve) enjekte edilen ölçülerle nasıl hesaplandığı, FULL→COMPACT geçişi ve 40 px histerezisi; ayrıca Almanca ve Fransızcanın 1280 px'te kırpılmadığını, daraltılmış satırın altı dilde 900 px'e sığdığını ve pencerenin minimum genişliğinin altı pakette ölçülen en geniş daraltılmış satır olduğunu kanıtlayan kabul testleri |
 | `AppFontsTest` | Paketlenen arayüz fontu bir sürüm varlığıdır: iki yüz de `base.css`'in adlandırdığı aile altında sınıf yolunda, altı dilin araç çubuğu etiketlerini (`☰` menü glifi dâhil) çizebiliyor ve sabitlenmiş bir metin sabitlenmiş bir genişlik ölçüyor; böylece sistem fontuna sessiz dönüş derlemeyi düşürüyor |
 | `PackagingNoticesTest` | Paketleme sözleşmesi: `META-INF/THIRD-PARTY-NOTICES` ve üç lisans metni sınıf yolunda; bildirim her paketlenen bileşeni gerçek SPDX kimliğiyle adlandırıyor, FFmpeg'in dağıtılmadığını söylüyor, 100 sütun içinde yalnızca LF kullanıyor ve depodaki dosyayla bayt-özdeş, böylece bayat bir derleme çıktısı testi geçemiyor |

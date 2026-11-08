@@ -100,6 +100,13 @@ public final class AppSettings {
     private static final String KEY_THEME = "theme";
     private static final String KEY_TEXT_COLOR = "text.color";
     private static final String KEY_FONT_SIZE = "font.size";
+    private static final String KEY_SOUND_VOLUME = "sound.volume";
+    /**
+     * The pre-W4-04 boolean. Read only as a fallback when {@code sound.volume}
+     * is absent, so a settings file written by an older build keeps its
+     * meaning: {@code false} is 0.0 and {@code true} is the default level.
+     * New writes go to {@code sound.volume} alone - one setting, one key.
+     */
     private static final String KEY_SOUND = "sound.enabled";
     private static final String KEY_TOOLBAR_VISIBLE = "toolbar.visible";
     private static final String KEY_STATS_SIZE = "stats.size";
@@ -177,12 +184,40 @@ public final class AppSettings {
         set(KEY_FONT_SIZE, String.valueOf(size));
     }
 
-    public boolean isSoundEnabled() {
-        return getBool(KEY_SOUND, true);
+    /**
+     * The default level: the middle rung, quiet enough to live under writing
+     * and loud enough to be heard. Also what an older {@code sound.enabled=true}
+     * file maps to.
+     */
+    static final double DEFAULT_SOUND_VOLUME = 0.5;
+
+    public double getSoundVolume() {
+        var stored = optionalDouble(KEY_SOUND_VOLUME);
+        if (stored.isPresent()) {
+            return Math.max(0.0, Math.min(1.0, stored.get()));
+        }
+        return getBool(KEY_SOUND, true) ? DEFAULT_SOUND_VOLUME : 0.0;
     }
 
+    public void setSoundVolume(double volume) {
+        set(KEY_SOUND_VOLUME, String.valueOf(Math.max(0.0, Math.min(1.0, volume))));
+    }
+
+    /**
+     * Whether the sound is audible, i.e. the persisted level is above zero.
+     * The toolbar's On/Off dropdown is a shortcut over the same value; it is
+     * not a second flag that could disagree with the level.
+     */
+    public boolean isSoundEnabled() {
+        return getSoundVolume() > 0;
+    }
+
+    /**
+     * The On/Off view of the level. Off writes 0.0; On restores an audible
+     * level, keeping the current one if it already is audible.
+     */
     public void setSoundEnabled(boolean enabled) {
-        set(KEY_SOUND, String.valueOf(enabled));
+        setSoundVolume(enabled ? (getSoundVolume() > 0 ? getSoundVolume() : DEFAULT_SOUND_VOLUME) : 0.0);
     }
 
     /** Whether the toolbar was showing at the last exit (default: showing). */

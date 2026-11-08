@@ -647,4 +647,60 @@ class AppSettingsTest {
 
         assertTrue(new AppSettings(file).isWelcomeCardEnabled());
     }
+
+
+    /**
+     * W4-04: the level is the setting, so it has to survive a restart exactly
+     * like the old boolean did. A level kept only in memory would make every
+     * launch audible at the default even after the user chose quiet.
+     */
+    @Test
+    void theSoundLevelSurvivesARestart(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        new AppSettings(file).setSoundVolume(0.75);
+
+        var reloaded = new AppSettings(file);
+
+        assertEquals(0.75, reloaded.getSoundVolume(), 0.0001);
+        assertTrue(reloaded.isSoundEnabled());
+    }
+
+    /** 0.0 is the persisted form of "off": the menu has no second flag to disagree. */
+    @Test
+    void aZeroLevelIsPersistedAsSilence(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        var settings = new AppSettings(file);
+        settings.setSoundVolume(0.0);
+
+        assertEquals(0.0, new AppSettings(file).getSoundVolume(), 0.0001);
+        assertFalse(new AppSettings(file).isSoundEnabled());
+    }
+
+    /**
+     * A file written before the level existed stores {@code sound.enabled}.
+     * Reading it must keep its meaning - false is silence, true is the default
+     * level - without rewriting the file (a read is not a migration).
+     */
+    @Test
+    void anOlderBooleanSoundSettingIsReadAsALevel(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "sound.enabled=false\n");
+        var silent = new AppSettings(file);
+        assertEquals(0.0, silent.getSoundVolume(), 0.0001);
+        assertFalse(silent.isSoundEnabled());
+
+        Files.writeString(file, "sound.enabled=true\n");
+        var audible = new AppSettings(file);
+        assertEquals(AppSettings.DEFAULT_SOUND_VOLUME, audible.getSoundVolume(), 0.0001);
+        assertTrue(audible.isSoundEnabled());
+    }
+
+    /** When both keys exist the level wins: it is the single source of truth. */
+    @Test
+    void theStoredLevelWinsOverTheLegacyBoolean(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "sound.enabled=false\nsound.volume=0.25\n");
+
+        assertEquals(0.25, new AppSettings(file).getSoundVolume(), 0.0001);
+    }
 }

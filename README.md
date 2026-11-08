@@ -23,7 +23,7 @@ JTypeWriter opens a single plain-text document and then stays out of the way: no
 **What you get?**
 
 - **A draft you cannot wreck by accident.** YOLO mode turns off Backspace, Delete, Cut and Undo/Redo so you can only move forward. Every save is atomic and keeps rotating backups, and unsaved work is snapshotted every 30 seconds - after a crash the draft is offered back, and closing that prompt never deletes it.
-- **The feel of typing.** A typewriter keystroke for every key you press, three themes (dark, light, sepia) and six text colours, all switchable while you write.
+- **The feel of typing.** A typewriter keystroke when you type, backspace or delete - at a volume you set - plus three themes (dark, light, sepia) and six text colours, all switchable while you write.
 - **Numbers as you go.** Words, characters with and without spaces, lines, keystrokes, session time and a sustained words-per-minute figure that ignores your breaks.
 - **Only text on screen.** `F11` goes fullscreen, `Ctrl+T` hides the toolbar along with the command menu it hosts, and the window title tells you which document is open and whether it is saved.
 - **A session that comes back.** Language, theme, text colour, font size, last document and window geometry are restored on the next start.
@@ -53,7 +53,7 @@ JTypeWriter opens a single plain-text document and then stays out of the way: no
 
 ### Typewriter Sound Effects
 
-Authentic typewriter keystroke sound on every non-modifier key press. Can be toggled on/off from the toolbar's Sound dropdown.
+Authentic typewriter keystroke sound when a key puts text on the page. Caret movement, function keys and shortcuts stay silent, because a typewriter only clacks when it writes or strikes through. The toolbar's Sound dropdown is a quick on/off; `View → Sound` opens the level ladder - Off, 25%, 50%, 75%, 100% - and the choice is remembered across restarts, with 0 completely silent. Each click starts its own voice instead of cutting off the previous one, so fast typing sounds like fast typing rather than a stutter.
 
 ### YOLO Mode
 
@@ -80,7 +80,7 @@ Live stats bar showing:
 
 ### Command Menu
 
-The leftmost toolbar control is a `☰` button holding four menus - File, Edit and View with the editor commands, Help with About. It is a menu button rather than a permanent menu strip: a second chrome row would follow you into fullscreen and undermine `Ctrl+T`, so the menu hides with the toolbar it lives in. Every editor command the platform does not handle itself is generated from the same `EditorAction` inventory as the shortcuts and toolbar buttons, so `New` (`Ctrl+N`) and `Save As` (`Ctrl+Shift+S`) are now discoverable instead of keyboard-only. View is not a list of cycling commands: Theme, YOLO, Sound, Text Color and Font Size each open a second-level submenu listing the same values as the toolbar dropdowns, with the current one checked - `View → Theme → Dark` means Dark, not "the next theme". They are generated from the same option lists and write through the same apply paths as the dropdowns, so the two entry points can never disagree. Labels and accelerators follow the UI language (the accelerators are descriptive - the key filter performs them), the open popup is painted from the same theme tokens as the toolbar dropdowns so it follows Dark, Light and Sepia, and Help → About opens the About card. Because the menus are generated rather than hand-written, a command can no longer exist in one entry point and be missing from another.
+The leftmost toolbar control is a `☰` button holding four menus - File, Edit and View with the editor commands, Help with About. It is a menu button rather than a permanent menu strip: a second chrome row would follow you into fullscreen and undermine `Ctrl+T`, so the menu hides with the toolbar it lives in. Every editor command the platform does not handle itself is generated from the same `EditorAction` inventory as the shortcuts and toolbar buttons, so `New` (`Ctrl+N`) and `Save As` (`Ctrl+Shift+S`) are now discoverable instead of keyboard-only. View is not a list of cycling commands: Theme, YOLO, Text Color and Font Size each open a second-level submenu listing the same values as the toolbar dropdowns, with the current one checked - `View → Theme → Dark` means Dark, not "the next theme". Sound opens the level ladder (Off, 25%, 50%, 75%, 100%); the toolbar's On/Off dropdown is a shortcut over that same value rather than a second setting. They are generated from the same option lists and write through the same apply paths as the dropdowns, so the two entry points can never disagree. Labels and accelerators follow the UI language (the accelerators are descriptive - the key filter performs them), the open popup is painted from the same theme tokens as the toolbar dropdowns so it follows Dark, Light and Sepia, and Help → About opens the About card. Because the menus are generated rather than hand-written, a command can no longer exist in one entry point and be missing from another.
 
 ### Find & Replace
 
@@ -135,7 +135,7 @@ The welcome view, the recent-files view and the About view are cards in the same
 
 ### Settings & Session Restore
 
-- **What is remembered:** language, theme, text colour, font size, sound, the last document and its folder, and the window geometry are persisted to `~/.jtypewriter/settings.properties`, so the next session starts where the last one ended - same look, same document, same window
+- **What is remembered:** language, theme, text colour, font size, sound level, the last document and its folder, and the window geometry are persisted to `~/.jtypewriter/settings.properties`, so the next session starts where the last one ended - same look, same document, same window
   - **Nothing blocks startup.** A document that has disappeared in the meantime is skipped silently, and a broken settings file falls back to the defaults instead of blocking startup
   - **The file carries its own schema version.** `schema.version` lets a file written by an older build open in a newer one without losing values, while a file from a newer build is read as far as this build understands it and is never downgraded. Migration happens in memory; the file is rewritten only by the next real change
   - **A settings file that cannot be written is reported once.** The window keeps working and your documents are untouched; the warning names the file and says that language, theme, font size and window position will not be remembered after this session
@@ -359,7 +359,9 @@ GitHub Actions workflows: build and test on every push and pull request to `main
 ```
 org.mesutormanli.jtypewriter
 ├── audio/
-│   └── TypewriterSound.java              # Typewriter keystroke sound effect
+│   ├── TypewriterSound.java              # Typewriter keystroke audio playback
+│   ├── SoundLevel.java                   # Volume ladder behind View > Sound
+│   └── SoundPolicy.java                  # Which keystrokes click (pure)
 ├── locale/
 │   ├── Language.java                     # Supported languages enum
 │   ├── LocaleManager.java                # Language switching + listener support
@@ -460,6 +462,8 @@ org.mesutormanli.jtypewriter
 | `TextColorManager` | Text color cycling state |
 | `SessionStats` | Real-time writing statistics (WPM, word/char/line count) |
 | `TypewriterSound` | Typewriter keystroke audio playback |
+| `SoundLevel` | The `View > Sound` volume ladder; `OFF` is the persisted silence |
+| `SoundPolicy` | Pure decision of which keystrokes click, shared by the key handler and its tests |
 | `LocaleManager` | Multi-language support with change listeners |
 | `Messages` | Resource bundle-based message accessor |
 
@@ -517,7 +521,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge), the Edit menu's find/replace placement, and the command-menu contract: `MainMenu.layout()` carries every platform-independent `EditorAction` exactly once across the four pages (six settings commands are represented by their value submenu instead), the View submenus list and check the same values the toolbar dropdowns offer, and every page title and row label is non-empty in all six languages |
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
 | `AppIconsTest` | The icon set on the classpath: every PNG decodes to the declared size, and the `.ico` file starts with its expected magic bytes (pure byte checks, no toolkit) |
-| `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it, the settings schema version, and the recent-document list plus the welcome opt-out |
+| `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it, the settings schema version, the sound level (including the legacy on/off key read as a level), and the recent-document list plus the welcome opt-out |
 | `StartupGreetingTest` | When the welcome card may arrive on its own: a fresh install is greeted, a stored opt-out keeps it away, and a document named on the command line is never covered by it |
 | `RecentFilesCardTest` | How a recent-document row is named: the file name, falling back to the whole path when a path has no last element |
 | `RecentFilesTest` | The recent-files card's document list as pure list operations: newest first, one row per document by absolute normalised path, the ten-entry cap dropping the oldest entry, vanished documents filtered out, and empty/null handled |
@@ -531,7 +535,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `AppLoggingTest` | Log formatter builds its header without throwing (regression) and appends an indented stack trace with the cause chain for thrown exceptions; a log-file handler in a temp directory, an unusable log directory and a denied home falling back to console only, and repeated `init()` not stacking handlers |
 | `InstanceLockTest` | Instance-lock acquisition, rejection of a second acquire in the same JVM, release and idempotent close, fail-open behaviour for an unusable lock file, and a read-only data directory reporting `UNAVAILABLE` instead of blocking startup |
 | `LanguageTest` | Native language names are stable code constants under every system locale (no `getDisplayLanguage` trap) |
-| `ToolbarStateTest` | The sound dropdown's single setter: persistence across a restart, the audio engine follows, repeats are no-ops |
+| `ToolbarStateTest` | The sound level's single setter: persistence across a restart, the audio engine follows, zero silences both, On restores the last audible rung, repeats are no-ops |
 | `ToolbarFitTest` | Toolbar overflow policy: how the captioned row is measured (buttons, dropdowns, spacer, chrome) with injected metrics, the FULL→COMPACT switch and its 40 px hysteresis, plus acceptance tests proving German and French are not clipped at 1280 px and that the collapsed row fits 900 px in all six languages, and that the window's minimum width is the widest collapsed row measured across the six bundles |
 | `AppFontsTest` | The bundled UI font is a release asset: both faces are on the classpath under the family `base.css` names, they render every toolbar label in all six languages (including the `☰` menu glyph), and a pinned string measures to a pinned width, so a fallback to a system font fails the build |
 | `PackagingNoticesTest` | The packaging contract: `META-INF/THIRD-PARTY-NOTICES` and all three license texts are on the classpath, the notice names every bundled component with its real SPDX id, states that FFmpeg is not distributed, stays LF-only within 100 columns, and is byte-identical to the checked-in file so a stale build output cannot pass |

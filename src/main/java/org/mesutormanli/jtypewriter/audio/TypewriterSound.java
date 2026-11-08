@@ -36,14 +36,14 @@ public class TypewriterSound {
     private static final String RESOURCE = "/audio/keystroke.wav";
 
     private final String resourcePath;
-    private final double volume;
 
+    private double volume;
     private AudioClip clip;
     private boolean clipLoadAttempted;
     private boolean enabled = true;
 
     public TypewriterSound() {
-        this(RESOURCE, 0.5);
+        this(RESOURCE, SoundLevel.MEDIUM.volume());
     }
 
     /** Visible for tests (fake resource path). */
@@ -52,15 +52,26 @@ public class TypewriterSound {
         this.volume = volume;
     }
 
+    /**
+     * Plays one click.
+     *
+     * <p><strong>No {@code stop()} before {@code play()}.</strong>
+     * {@link AudioClip} is explicitly designed to be played several times
+     * simultaneously ("once one of the play methods is called the only
+     * operable control is {@link AudioClip#stop()}"), and each call starts its
+     * own voice. The old {@code stop(); play();} cut the previous click
+     * mid-sample, which at typing speed turned the sound into a stutter
+     * instead of a clack. Letting the voices overlap makes fast typing sound
+     * like fast typing.</p>
+     */
     public void play() {
-        if (!enabled) {
+        if (!enabled || volume <= 0) {
             return;
         }
         var loaded = clip();
         if (loaded == null) {
             return;
         }
-        loaded.stop();
         loaded.play();
     }
 
@@ -70,6 +81,23 @@ public class TypewriterSound {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    /** The volume used by the next (and, on a loaded clip, the current) playback. */
+    public double getVolume() {
+        return volume;
+    }
+
+    /**
+     * Applies a new level to a clip that is already loaded; the value is also
+     * remembered for the lazy load, so setting it before the first keystroke
+     * costs no media-toolkit work.
+     */
+    public void setVolume(double volume) {
+        this.volume = Math.max(0.0, Math.min(1.0, volume));
+        if (clip != null) {
+            clip.setVolume(this.volume);
+        }
     }
 
     public void toggle() {

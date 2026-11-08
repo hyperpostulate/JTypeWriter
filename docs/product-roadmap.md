@@ -54,7 +54,7 @@ Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir say�
 | `verify-artifacts` karşılaştırması | 17 | **20** (gömülü font lisansı +2, font kaynağı +1) |
 | Yıldız / çatal / issue | 0 / 0 / 0 | **0 / 0 / 0** |
 
-**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ◐ (W4-01 ✅, W4-02 ✅, W4-03 ✅; W4-04…W4-05 ☐).
+**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ◐ (W4-01 ✅, W4-02 ✅, W4-03 ✅, W4-04 ✅; W4-05 ☐).
 Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ✅ · G4 ☐**.
 
 **`v1.0.3` notu (7 Kasım 2026):** dördüncü yayın, W3-01…W3-06 ile kart takiplerini
@@ -1150,6 +1150,35 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
 - **Bitti tanımı:** (1) Ok tuşu ve kısayol ses çıkarmıyor (saf politika testi). (2) Düzey
   ayarı kalıcı ve 0'da tam sessiz. (3) 10 tuş/sn hızında ses kesilmiyor (elle, kayıtla).
 - **Doğrulama:** `mvn test -Dtest=AudioAssetTest` + yeni `SoundPolicyTest`.
+- **Uygulama (8 Kasım 2026):** Karar gereği düzey kontrolü **mevcut `Görünüm → Ses` alt
+  menüsünde**, yeni bir pencere/slider yok. Üç parça:
+  1. **`audio/SoundPolicy`** (saf, JavaFX düğümü yok): `playsOnTyped(character)` - `null`,
+     boş ve `KeyEvent.CHAR_UNDEFINED` sessiz; `playsOnPressed(KeyCode)` yalnız `BACK_SPACE`
+     ve `DELETE`; `playsFor(code, isShortcut)` kısayolda her zaman `false`. Eski kural
+     (`!getCode().isModifierKey()`) her oku ve fonksiyon tuşunu tıklatıyordu; yeni kural
+     "daktilo kâğıda yazdığında takırdar" cümlesinin kendisi.
+  2. **`audio/SoundLevel`**: `OFF 0,0 · LOW 0,25 · MEDIUM 0,5 · HIGH 0,75 · FULL 1,0`.
+     Düzeyin kendisi ayardır: 0 tam sessizliktir, ayrı bir "enabled" bayrağıyla
+     çelişemez. Araç çubuğundaki Açık/Kapalı listesi aynı değerin kısayoludur (Kapalı →
+     0,0; Açık → son duyulur kademe). `nearest(...)` pozitif bir değeri her zaman duyulur
+     bir kademeye eşler, yoksa menü çalan bir ses için "Kapalı" gösterip yalan söylerdi.
+  3. **`TypewriterSound`**: `volume` artık `final` değil; `setVolume` yüklü klibe de
+     uygulanıyor. `stop()+play()` kaldırıldı: `AudioClip` belgesi "may also be played
+     multiple times simultaneously" diyor, her `play()` kendi sesini açar; eski `stop()`
+     önceki tıkı örnek ortasında kesiyor ve hızlı yazımda kekeleme üretiyordu. Artık
+     tıklar üst üste biniyor.
+  **Ayarlar tek anahtar:** `sound.volume` yazılıyor; eski `sound.enabled` **yalnız okuma
+  geri dönüşü** (false → 0,0, true → varsayılan 0,5) ve `isSoundEnabled()` = "düzey > 0".
+  Böylece eski ayar dosyası anlamını korur, yeni yazım tek kaynak kullanır; okuma dosyayı
+  yeniden yazmaz. Menü satırı yüzde etiketi 6 paketten geliyor (`soundLevelValue`), çünkü
+  işaretin yeri dile göre değişiyor (Türkçe `%50`, Almanca `50 %`, Fransızca `50 %`).
+- **Doğrulama (yeni testler):** `SoundPolicyTest` 4 (önce kırmızı: `SoundPolicy` yoktu),
+  `SoundLevelTest` 3 (merdiven sırası, yalnız `OFF` sessiz, merdiven dışı değer en yakın
+  kademeye), `AppSettingsTest` 32 → **36** (düzey yeniden başlatmada; 0 sessizlik; eski
+  boolean düzey olarak okunuyor; iki anahtar varken düzey kazanıyor), `ToolbarStateTest`
+  3 → **6** (düzey motora ve dosyaya; 0 ikisini de susturuyor; Açık son duyulur kademeyi
+  geri getiriyor). `mvn test -Dtest=SoundPolicyTest,SoundLevelTest,AppSettingsTest,ToolbarStateTest,MessagesTest,AudioAssetTest,ToolbarFitTest`
+  → 83/0/0. (3) elle doğrulanır: kayıt dinlenirken 10 tuş/sn'de tık kesilmiyor.
 
 **W4-05 — `v1.1.0` yayını** · S · B2
 - **Kapsam:** `pom.xml` (sürüm), `docs/release-notes-template.md` (erken erişim cümlesi),
@@ -1252,7 +1281,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W4-01 | Ayar şema sürümü | D13, D12 | S | — | ✅ | `AppSettings`: `schema.version` = **ürün sürümü** (`pom.xml`, tek kaynak; filtrelenmiş `version.properties` ile taşınıyor), anahtarsız/bozuk = sürümsüz → bellekte damgalanır, daha yeni sürüm ve bilinmeyen anahtarlar kayıtta korunuyor, karşılaştırma sayısal parçalarla; `save()` `SecurityException`'ı da yakalıyor, `isSettingsWriteFailurePending()` bayrağı `AppGraph` tarafından açılış sonunda ve her kayıtta bir kez gösteriliyor; About artık "dev" değil sürümü gösteriyor; 6 bundle + `Messages`; `mvn test -Dtest=AppSettingsTest,AppVersionTest,MessagesTest,DialogServiceTest` → yeşil |
 | W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ✅ | `RecentFiles` saf model (en yeni başta, mutlak+normalize kimlikle tekilleştirme, `MAX = 10`, kuyruktan düşme); `AppSettings.getRecentFiles`/`writeRecentFiles` (`recent.file.N`), `rememberFile` listeyi aynı kayıtta güncelliyor, silinmiş belge sessizce düşüyor; son dosyalar **ayrı kartta** (`RecentFilesCard`, `Dosya → Son Dosyalar`) ve `welcome.enabled` opt-out (`WelcomeCard` onay kutusu) + `Dosya → Karşılama Kartını Göster`; satırlar `FileService.openPathAsync` ile aynı kaydedilmemiş-değişiklik kapısından; 6 bundle × 155 + 5 `Messages`; `mvn test -Dtest=RecentFilesTest,RecentFilesCardTest,AppSettingsTest,StartupGreetingTest,MessagesTest,MainControllerTest` → yeşil |
 | W4-03 | Minimum genişlik | U8 | S | — | ✅ | `MainStage.setMinWidth(MINIMUM_WIDTH_PX = 889)` = altı dilde ölçülen en geniş daraltılmış satır (ES 872,3 → 873) + 16 px süsleme payı; değer sabit ama `ToolbarFitTest` tarafından paketlerden yeniden türetilerek pinli (uzayan çeviri build'i düşürür); kayıtlı geometri `restoredWidth(saved, minimum)` ile tabana çekiliyor ve `setOnHidden` gerçek genişliği sakladığı için ayar kendini onarıyor; `mvn test -Dtest=ToolbarFitTest,MainStageTest` → yeşil |
-| W4-04 | Ses politikası | U9 | S | W3-02, W4-01 | ☐ | |
+| W4-04 | Ses politikası | U9 | S | W3-02, W4-01 | ✅ | `SoundPolicy` (saf): yalnız `KEY_TYPED` karakteri ve `BACK_SPACE`/`DELETE` tıklatır, kısayol sessiz - eski `!isModifierKey()` kuralı okları da tıklatıyordu; `SoundLevel` merdiveni (`OFF 0 · LOW 0,25 · MEDIUM 0,5 · HIGH 0,75 · FULL 1`) **mevcut** `Görünüm → Ses` alt menüsünde, araç çubuğundaki Açık/Kapalı aynı değerin kısayolu; `sound.volume` tek kaynak, eski `sound.enabled` yalnız okuma geri dönüşü; `TypewriterSound.stop()+play()` kaldırıldı, `AudioClip` eşzamanlı çalabildiği için tıklar kesilmiyor; 6 bundle + `Messages.soundLevelValue(int)`; `mvn test -Dtest=SoundPolicyTest,SoundLevelTest,AppSettingsTest,ToolbarStateTest,MessagesTest,AudioAssetTest,ToolbarFitTest` → 83/0/0 |
 | W4-05 | `v1.1.0` | B2 | S | hepsi | ☐ | |
 
 ---

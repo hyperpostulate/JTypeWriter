@@ -12,6 +12,7 @@ import org.mesutormanli.jtypewriter.audio.TypewriterSound;
 
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -68,5 +69,56 @@ class ToolbarStateTest {
         assertTrue(state.isSoundEnabled());
         assertTrue(sound.isEnabled());
         assertTrue(new AppSettings(file).isSoundEnabled());
+    }
+
+    /**
+     * W4-04: the level reaches the engine and the file through one setter.
+     * The menu writes it, the toolbar's On/Off dropdown reads it back, and a
+     * restart must not lose it.
+     */
+    @Test
+    void setSoundVolumeReachesTheEngineAndSurvivesARestart(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        var sound = new TypewriterSound();
+        var state = new ToolbarState(sound, new AppSettings(file));
+
+        state.setSoundVolume(0.25);
+
+        assertEquals(0.25, state.getSoundVolume(), 0.0001);
+        assertEquals(0.25, sound.getVolume(), 0.0001);
+        assertTrue(sound.isEnabled());
+        assertEquals(0.25, new AppSettings(file).getSoundVolume(), 0.0001);
+    }
+
+    /** Zero is complete silence: audible flag and engine both go quiet. */
+    @Test
+    void aZeroLevelSilencesTheStateAndTheEngine(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        var sound = new TypewriterSound();
+        var state = new ToolbarState(sound, new AppSettings(file));
+
+        state.setSoundVolume(0.0);
+
+        assertFalse(state.isSoundEnabled());
+        assertFalse(sound.isEnabled());
+        assertFalse(new AppSettings(file).isSoundEnabled());
+    }
+
+    /**
+     * The toolbar's On/Off dropdown is a shortcut over the level: Off writes
+     * zero, On restores the last audible rung instead of jumping to 50%.
+     */
+    @Test
+    void turningSoundBackOnRestoresTheLastAudibleLevel(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        var sound = new TypewriterSound();
+        var state = new ToolbarState(sound, new AppSettings(file));
+        state.setSoundVolume(0.75);
+        state.setSound(false);
+
+        state.setSound(true);
+
+        assertEquals(0.75, state.getSoundVolume(), 0.0001);
+        assertTrue(sound.isEnabled());
     }
 }

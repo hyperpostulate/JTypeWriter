@@ -7,6 +7,7 @@ package org.mesutormanli.jtypewriter.ui.component;
 
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import org.mesutormanli.jtypewriter.audio.SoundPolicy;
 import org.mesutormanli.jtypewriter.audio.TypewriterSound;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
 
@@ -39,13 +40,14 @@ public class EditorKeyHandler {
     }
 
     private void handleKeyPressed(KeyEvent event) {
-        if (!event.getCode().isModifierKey()) {
+        if (SoundPolicy.playsFor(event.getCode(), event.isShortcutDown())) {
             typewriterSound.play();
         }
     }
 
     private void handleKeyTyped(KeyEvent event) {
-        if (event.getCharacter() != null && !event.getCharacter().isEmpty()) {
+        if (SoundPolicy.playsOnTyped(event.getCharacter())) {
+            typewriterSound.play();
             sessionStats.registerKeystroke();
         }
     }
