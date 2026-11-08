@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p><strong>The gesture must be installed.</strong> Resolving and reporting a
  * drop is worthless if no scene ever listens for it.</p>
  *
- * <p><strong>The unsaved-changes gate must stay single.</strong> The card's
+ * <p><strong>The unsaved-changes gate must stay single.</strong> The
  * requirement is that a drop on a dirty document goes through the existing
  * matrix rather than inventing a second save path, and there is exactly one
  * such matrix in this codebase: {@code FileService.confirmDiscardOrSave*}.

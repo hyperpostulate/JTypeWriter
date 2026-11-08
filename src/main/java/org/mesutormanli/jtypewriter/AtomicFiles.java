@@ -45,7 +45,7 @@ import java.util.logging.Logger;
  * <p>A target reached through a symbolic link is resolved with
  * {@link Path#toRealPath()} first: the temp file and the atomic rename then act
  * on the real document, so the link survives the save instead of being replaced
- * by a regular file (roadmap W2-05 / D2). A path that does not exist yet - a
+ * by a regular file. A path that does not exist yet - a
  * brand-new document, or a dangling link - cannot be resolved and is written as
  * named.</p>
  */

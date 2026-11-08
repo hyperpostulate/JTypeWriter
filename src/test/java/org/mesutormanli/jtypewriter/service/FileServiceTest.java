@@ -348,7 +348,7 @@ class FileServiceTest {
 
         var saved = fileService.saveFile(null, "mine");
 
-        // Silent overwrite is the data loss this card exists to prevent: the
+        // Silent overwrite is the data loss this guard exists to prevent: the
         // save must stop and the editor text must stay dirty.
         assertTrue(saved.isEmpty());
         assertEquals("theirs", Files.readString(target));

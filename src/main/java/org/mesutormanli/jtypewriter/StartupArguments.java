@@ -33,8 +33,8 @@ import java.util.Optional;
  * <p><strong>Why the named path, not the real path:</strong> a symbolic link
  * stays the document's name. Loading resolves nothing, so the window title and
  * the remembered session file are the path the user typed, and the write path
- * already follows the link to its target ({@code AtomicFiles.writeMoving}, see
- * W2-05). Resolving here would silently rename a document into a directory the
+ * already follows the link to its target ({@code AtomicFiles.writeMoving}).
+ * Resolving here would silently rename a document into a directory the
  * user never mentioned - the same reasoning as
  * {@code RecoveryTargetPath}'s decision/canonical split.</p>
  *

@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * W4-02: how a recent-document row is named.
+ * How a recent-document row is named.
  *
  * <p>This is the one rule of the recent-files card that is not already covered
  * by {@code RecentFiles} and {@code AppSettings}: which text a row shows. It is

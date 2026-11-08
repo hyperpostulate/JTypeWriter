@@ -20,11 +20,11 @@ import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The performance evidence for the incremental statistics (W2-01 / X5).
+ * The performance evidence for the incremental statistics.
  *
  * <p>Before the counters, {@link StatsBarModel#refresh} rescanned the whole
  * document four times; on a 10 MB draft that measured ~164 ms, once a second,
- * on the FX thread. The card asks for a single refresh under 5 ms on the
+ * on the FX thread. The requirement is a single refresh under 5 ms on the
  * reference machine and under 50 ms in CI, where a slower runner and a cold
  * JIT make the tighter number meaningless. 50 ms still catches the regression:
  * the O(n) version cannot come in under it on this document size.</p>

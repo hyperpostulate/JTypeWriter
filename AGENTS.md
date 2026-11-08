@@ -45,8 +45,8 @@ suite is the gate, and it enforces several non-code invariants below.
 - **The agent commits; the user pushes.** Finish a unit of work with a local commit and stop
   there — never `git push`, never add or change a remote, and don't ask whether to push: the
   push is the user's call and happens on their schedule, not yours.
-- One roadmap card or one self-contained change per commit, with a body that explains *why*
-  and a `Refs: <card> · Kanıt: ...` evidence line where a roadmap card exists.
+- One self-contained change per commit, with a body that explains *why* and carries the
+  evidence: the commands that were run and what they reported.
 - Leave the tree clean after committing; `target/`, `releases/` and `scripts/__pycache__/` are
   generated and never belong in a commit.
 

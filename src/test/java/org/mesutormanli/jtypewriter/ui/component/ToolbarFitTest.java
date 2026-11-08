@@ -201,7 +201,7 @@ class ToolbarFitTest {
     }
 
     /**
-     * W4-03: the window's minimum width is a measurement, not a guess.
+     * The window's minimum width is a measurement, not a guess.
      *
      * <p>{@code MainStage.WIDEST_COMPACT_ROW_PX} is the widest collapsed row
      * across the six bundles, rounded up so that even that language fits with
@@ -229,7 +229,7 @@ class ToolbarFitTest {
      * The floor has to leave the toolbar at least the widest collapsed row's
      * width, after the window decoration has taken its share: otherwise the
      * minimum would be a width at which one language still clips, which is the
-     * defect this card removes.
+     * defect this minimum removes.
      */
     @Test
     void theMinimumWidthLeavesRoomForTheWidestCollapsedRowAfterDecoration() {

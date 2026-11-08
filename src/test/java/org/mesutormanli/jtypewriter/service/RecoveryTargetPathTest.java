@@ -136,8 +136,8 @@ class RecoveryTargetPathTest {
 
     /**
      * A dangling link is different: saving "through" it would replace the link
-     * with a regular file. That is the same defect W2-05 fixed for the write
-     * path, so it must not be introduced here.
+     * with a regular file. That is the same defect the write path already
+     * avoids, so it must not be introduced here.
      */
     @Test
     void aDanglingSymbolicLinkIsRejected(@TempDir Path dir) throws IOException {

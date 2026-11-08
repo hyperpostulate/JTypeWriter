@@ -41,14 +41,14 @@ public class MainStage {
      * not get to use. Deliberately the larger of the two supported platforms'
      * borders (Windows resizes with about 8 px per side; Linux is usually
      * slimmer), so the floor errs wide: too much room only leaves a little
-     * slack, too little would bring back the clipping this card removes.
+     * slack, too little would bring back the clipping this minimum removes.
      */
     public static final double DECORATION_ALLOWANCE_PX = 16;
 
     /**
      * The window's minimum width: the widest collapsed row plus the decoration
      * the row cannot occupy. At this width the toolbar is in {@code COMPACT}
-     * in all six languages and nothing is clipped, which is what the card
+     * in all six languages and nothing is clipped, which is what the minimum
      * promises - the row used to keep shrinking and clipping because the
      * window had no minimum at all.
      */

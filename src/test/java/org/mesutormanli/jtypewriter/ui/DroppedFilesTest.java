@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  *
  * <p>The assertion that matters in the refusals is not only the
  * {@link DroppedFiles.Problem} but that no document came back: a refusal that
- * still opened something would be the silent behaviour this card forbids.</p>
+ * still opened something would be the silent behaviour this contract forbids.</p>
  */
 class DroppedFilesTest {
 

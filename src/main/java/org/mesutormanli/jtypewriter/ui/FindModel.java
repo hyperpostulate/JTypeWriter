@@ -18,7 +18,7 @@ import java.util.Optional;
  * panel testable is to lift the whole decision out of the control: which
  * occurrences exist, which one is current, what "next" means at the end of the
  * document, and what the text becomes after a replacement. Those are plain
- * string and integer questions; the panel that W3-06 adds is only the glue that
+ * string and integer questions; the panel that shows them is only the glue that
  * paints the answers.</p>
  *
  * <p><strong>The query is literal text, never a regular expression.</strong> A

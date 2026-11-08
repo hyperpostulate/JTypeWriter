@@ -328,7 +328,7 @@ jobs:
       # early-access sentence were two claims about the same thing: with the
       # flag on, GitHub hid the release behind a metadata label while the body
       # said "pre-release"; with it off and the sentence kept, the page said
-      # "Latest" and its own body contradicted it. v1.1.0 (roadmap W4-05) drops
+      # "Latest" and its own body contradicted it. v1.1.0 drops
       # both together, because the project now publishes a release it calls
       # ready to use. ReleaseNotesTest pins the pair - no flag in this step, no
       # early-build claim in either half of the note - so one cannot come back

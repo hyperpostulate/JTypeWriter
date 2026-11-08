@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * <p>The important assertion in most of these tests is not just the
  * {@link StartupArguments.Problem} but that {@code document} is empty: a
  * refusal that still opened something would be exactly the silent behaviour
- * the card forbids.</p>
+ * this contract forbids.</p>
  */
 class StartupArgumentsTest {
 
@@ -149,7 +149,7 @@ class StartupArgumentsTest {
         var resolved = StartupArguments.resolve(List.of(link.toString()));
 
         // Resolving the link would rename the document into a path the user
-        // never typed; the write path follows the link on its own (W2-05).
+        // never typed; the write path follows the link on its own.
         assertEquals(link.toAbsolutePath().normalize(), resolved.document().orElseThrow());
     }
 

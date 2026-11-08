@@ -134,11 +134,11 @@ class KeyboardShortcutHandlerTest {
     }
 
     /**
-     * The structural half of U13: one chord cannot mean two commands. The
-     * inventory is a list, not a switch, so a duplicated accelerator would
-     * silently make one of the two unreachable - and the card would still list
-     * both. Only {@code EXIT_FULLSCREEN} is exempt because it is not resolved
-     * here at all.
+     * One chord cannot mean two commands. The inventory is a list, not a
+     * switch, so a duplicated accelerator would silently make one of the two
+     * unreachable - and the shortcut list would still show both. Only
+     * {@code EXIT_FULLSCREEN} is exempt because it is not resolved here at
+     * all.
      */
     @Test
     void noTwoCommandsClaimTheSameChord() {

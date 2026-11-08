@@ -228,8 +228,8 @@ class AutoSaveServiceTest {
     }
 
     /**
-     * An {@code Error} is not an {@code Exception}: before this card a snapshot
-     * that hit an {@code OutOfMemoryError} skipped the failure reporting entirely
+     * An {@code Error} is not an {@code Exception}: a snapshot that once hit an
+     * {@code OutOfMemoryError} skipped the failure reporting entirely
      * and the status bar kept claiming the draft was fine.
      */
     @Test

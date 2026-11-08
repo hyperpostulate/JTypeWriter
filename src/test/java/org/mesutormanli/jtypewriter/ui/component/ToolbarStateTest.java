@@ -72,7 +72,7 @@ class ToolbarStateTest {
     }
 
     /**
-     * W4-04: the level reaches the engine and the file through one setter.
+     * The level reaches the engine and the file through one setter.
      * The menu writes it, the toolbar's On/Off dropdown reads it back, and a
      * restart must not lose it.
      */

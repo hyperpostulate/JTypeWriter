@@ -506,7 +506,7 @@
     -fx-padding: 0 4px 10px 4px;
 }
 
-/* W4-02: the recent-files card's rows and the greeting's opt-out. They reuse
+/* The recent-files card's rows and the greeting's opt-out. They reuse
    the cards' own text/muted tokens so the three themes keep their contrast
    guarantees; only the hover/focus surfaces are shared with the find panel's
    quiet buttons. */

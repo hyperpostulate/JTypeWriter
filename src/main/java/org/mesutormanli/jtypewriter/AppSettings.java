@@ -101,7 +101,8 @@ public final class AppSettings {
     private static final String KEY_FONT_SIZE = "font.size";
     private static final String KEY_SOUND_VOLUME = "sound.volume";
     /**
-     * The pre-W4-04 boolean. Read only as a fallback when {@code sound.volume}
+     * The boolean this setting used to be. Read only as a fallback when
+     * {@code sound.volume}
      * is absent, so a settings file written by an older build keeps its
      * meaning: {@code false} is 0.0 and {@code true} is the default level.
      * New writes go to {@code sound.volume} alone - one setting, one key.

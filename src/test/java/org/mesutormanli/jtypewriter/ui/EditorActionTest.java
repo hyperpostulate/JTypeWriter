@@ -96,7 +96,7 @@ class EditorActionTest {
     }
 
     /**
-     * The grep half of the card's definition of done: a chord is written in
+     * The grep half of the rule: a chord is written in
      * one file only. Comments are stripped first, so prose that mentions a
      * chord does not count.
      */

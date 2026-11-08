@@ -12,8 +12,8 @@ package org.mesutormanli.jtypewriter.service;
  * {@code .bak.2} (see {@link BackupKeeper}), and the save itself needs a
  * staging copy plus the temp file {@code AtomicFiles} renames into place. So a
  * document occupies four times its size while it sits on disk and up to six
- * times while it is being written - measured, not estimated
- * ({@code analysis.md} §6.2/D14). For a 50 MB document that is 300 MB of
+ * times while it is being written - measured, not estimated.
+ * For a 50 MB document that is 300 MB of
  * transient free space, and until now nothing in the product said so: the user
  * learned it when a save failed on a full disk.</p>
  *

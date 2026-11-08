@@ -51,7 +51,7 @@ class MainStageTest {
     }
 
     /**
-     * W4-03: a remembered width narrower than the minimum is widened on the
+     * A remembered width narrower than the minimum is widened on the
      * way in, not accepted. JavaFX may or may not clamp a width below
      * {@code minWidth} depending on the platform's window manager, so the
      * floor is applied here where it is deterministic and testable - and

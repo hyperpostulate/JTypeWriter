@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * W4-04: which keystrokes click.
+ * Which keystrokes click.
  *
  * <p>The sound is the product's name, so it has to sound like a typewriter and
  * not like a keyboard: a typewriter clacks when it puts ink on paper. Arrows,

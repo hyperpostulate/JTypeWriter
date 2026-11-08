@@ -334,7 +334,7 @@ class AppSettingsTest {
     }
 
     /**
-     * W4-01 / D13: settings files written before {@code schema.version} existed
+     * Settings files written before {@code schema.version} existed
      * have exactly the shape version 1 reads (no key was ever renamed or
      * removed), so opening one must keep every value - and must not rewrite the
      * file behind the user's back: a read is not a migration.
@@ -465,7 +465,7 @@ class AppSettingsTest {
     }
 
     /**
-     * W4-01 / D12: preferences live in a folder the user (or a policy) may make
+     * Preferences live in a folder the user (or a policy) may make
      * read-only. The setter has already changed the in-memory value, so a failed
      * write must not throw on the caller's thread - it must raise a flag the UI
      * can turn into one notice. The session keeps the change either way; only
@@ -501,7 +501,7 @@ class AppSettingsTest {
     }
 
     /**
-     * W4-02: the welcome card offers recently opened documents, so opening one
+     * The welcome card offers recently opened documents, so opening one
      * has to be remembered in the order it happened - the card's whole value is
      * that "the one I was just writing" is at the top.
      */
@@ -599,7 +599,7 @@ class AppSettingsTest {
     }
 
     /**
-     * W4-02: the recent list must survive any path the platform allows, not
+     * The recent list must survive any path the platform allows, not
      * just the comfortable ones. A backslash is a legal file-name character on
      * POSIX, and it is the character that decides whether the settings file is
      * read back verbatim: {@code Properties.store} doubles it, so the value
@@ -621,7 +621,7 @@ class AppSettingsTest {
     }
 
     /**
-     * W4-02: the greeting is on until the user says otherwise, and the opt-out
+     * The greeting is on until the user says otherwise, and the opt-out
      * is a stored preference - an in-memory flag would bring the card back at
      * the next launch, which is exactly the nag the checkbox exists to stop.
      */
@@ -650,7 +650,7 @@ class AppSettingsTest {
 
 
     /**
-     * W4-04: the level is the setting, so it has to survive a restart exactly
+     * The level is the setting, so it has to survive a restart exactly
      * like the old boolean did. A level kept only in memory would make every
      * launch audible at the default even after the user chose quiet.
      */

@@ -114,7 +114,7 @@ class AtomicFilesTest {
     /**
      * A document opened through a symbolic link must still be a symbolic link
      * after saving, and the file it points at must receive the new content
-     * (roadmap W2-05 / D2). Replacing the link with a regular file would break
+     * Replacing the link with a regular file would break
      * every other name and sync tool pointing at the real document.
      */
     @Test

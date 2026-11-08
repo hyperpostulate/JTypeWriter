@@ -169,7 +169,7 @@ class ReleaseNotesTest {
     }
 
     /**
-     * W4-05: the release is published as a normal release, and this is one half
+     * The release is published as a normal release, and this is one half
      * of a pair. The pre-release flag and the note's early-access sentence were
      * two claims about the same thing; with the flag on, GitHub labelled the
      * release one way while the body said another, and with the flag off and

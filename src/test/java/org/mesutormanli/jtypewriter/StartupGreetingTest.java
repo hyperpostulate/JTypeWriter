@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * W4-02: when the welcome card is allowed to arrive uninvited.
+ * When the welcome card is allowed to arrive uninvited.
  *
  * <p>The rule is two booleans, but getting it wrong is only visible on a
  * launch, so it is pinned as a pure decision instead of living on the startup

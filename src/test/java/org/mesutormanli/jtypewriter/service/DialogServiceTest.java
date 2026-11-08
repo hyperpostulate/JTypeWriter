@@ -93,7 +93,7 @@ class DialogServiceTest {
     }
 
     /**
-     * The single-alert-home invariant of W0-01: no other class may construct an
+     * The single-alert-home invariant: no other class may construct an
      * {@code Alert}, because a second construction site is a second chance to
      * forget the theme, the owner, the screen clamp or the text wrap. Verified
      * by scanning the sources, the same way {@code DialogSizingTest} checks the

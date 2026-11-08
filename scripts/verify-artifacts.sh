@@ -20,7 +20,7 @@
 # here, which is exactly the drift a release cannot detect after the fact.
 #
 # The .deb is the only installer this script unpacks. That is deliberate: Linux
-# x64 is the platform the roadmap releases first, and the rubber-stamp that
+# x64 is the platform this project releases first, and the rubber-stamp that
 # matters for it is the one that can be reproduced on any Debian/Ubuntu machine.
 # A Windows .msi is compared only as part of the application image.
 #
