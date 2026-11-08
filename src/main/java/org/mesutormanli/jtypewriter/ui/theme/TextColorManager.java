@@ -7,7 +7,6 @@ package org.mesutormanli.jtypewriter.ui.theme;
 
 
 import org.mesutormanli.jtypewriter.AppSettings;
-import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.util.List;
 
@@ -47,10 +46,6 @@ public class TextColorManager {
     /** The current colour's hex value for {@code theme}, or {@code null} for {@link TextColor#DEFAULT}. */
     public String getCurrentCssColor(Theme theme) {
         return current.getCssColor(theme);
-    }
-
-    public String getCurrentDisplayName(Messages messages) {
-        return current.getDisplayName(messages);
     }
 
     /**

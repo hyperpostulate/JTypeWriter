@@ -146,11 +146,6 @@ public final class IoExecutor implements AutoCloseable {
         return future;
     }
 
-    /** True when the current thread is the JavaFX application thread. */
-    public boolean isFxThread() {
-        return fxThreadProbe.getAsBoolean();
-    }
-
     /** How many blocking operations were submitted through this executor. */
     public int submittedTasks() {
         return submittedTasks.get();

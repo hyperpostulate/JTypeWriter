@@ -100,10 +100,6 @@ public class TypewriterSound {
         }
     }
 
-    public void toggle() {
-        enabled = !enabled;
-    }
-
     private synchronized AudioClip clip() {
         if (!clipLoadAttempted) {
             clip = loadClip();

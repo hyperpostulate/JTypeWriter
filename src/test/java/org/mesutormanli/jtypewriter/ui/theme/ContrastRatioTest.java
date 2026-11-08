@@ -33,7 +33,6 @@ class ContrastRatioTest {
 
     /** WCAG AA thresholds used by the product: text 4.5:1, UI components 3:1. */
     private static final double TEXT_MIN = 4.5;
-    private static final double COMPONENT_MIN = 3.0;
 
     // --- The maths itself ----------------------------------------------------
 

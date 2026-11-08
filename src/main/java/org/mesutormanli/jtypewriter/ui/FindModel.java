@@ -226,11 +226,6 @@ public final class FindModel {
         return matches.size();
     }
 
-    /** Whether the current scan found at least one occurrence. */
-    public boolean hasMatches() {
-        return !matches.isEmpty();
-    }
-
     /** The selected match, empty before the first {@code F3} and when nothing matches. */
     public Optional<Match> current() {
         return cursor >= 0 && cursor < matches.size()

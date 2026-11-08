@@ -295,11 +295,6 @@ public abstract class OverlayCard extends VBox {
         onClosed.run();
     }
 
-    /** Whether the card is currently in the corner. */
-    public final boolean isShown() {
-        return isVisible();
-    }
-
     /** Runs after {@link #hide()}; the controller uses it to refocus the editor. */
     public final void setOnClosed(Runnable onClosed) {
         this.onClosed = Objects.requireNonNull(onClosed, "onClosed");

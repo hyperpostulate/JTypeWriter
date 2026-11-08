@@ -16,7 +16,6 @@ import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 

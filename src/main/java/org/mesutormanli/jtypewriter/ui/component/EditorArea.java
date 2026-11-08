@@ -71,10 +71,6 @@ public class EditorArea extends TextArea {
         pseudoClassStateChanged(javafx.css.PseudoClass.getPseudoClass("yolo"), enabled);
     }
 
-    public void toggleYoloMode() {
-        setYoloMode(!yoloMode);
-    }
-
     /**
      * Enforcement point of YOLO mode:
      * <ul>

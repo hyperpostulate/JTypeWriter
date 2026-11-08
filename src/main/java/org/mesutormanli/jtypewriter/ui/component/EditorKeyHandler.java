@@ -5,7 +5,6 @@
 
 package org.mesutormanli.jtypewriter.ui.component;
 
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import org.mesutormanli.jtypewriter.audio.SoundPolicy;
 import org.mesutormanli.jtypewriter.audio.TypewriterSound;
