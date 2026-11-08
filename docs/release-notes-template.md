@@ -2,9 +2,10 @@ JTypeWriter @VERSION@, built from tag `@TAG@`.
 
 ## English
 
-**Early access.** This is one of the early published builds of JTypeWriter, and
-it is a pre-release: usable, but the feature set can still change between
-releases.
+**This is the project's current release.** GitHub lists it as the latest
+release, and the downloads below are the files that label refers to. The project
+treats this version as ready to use; later minor versions may still add
+features, and each one lists its own changes in its notes.
 
 Supported platforms: **Linux x64 and Windows x64**. Both channels are published
 for each of them: the installer (`.deb`, `.msi`) and a portable `.tar.gz`. Which
@@ -37,9 +38,10 @@ archive next to the binaries is the exact tree the release was built from.
 
 JTypeWriter @VERSION@, `@TAG@` etiketinden derlendi.
 
-**Erken erişim.** Bu, JTypeWriter'ın yayımlanan erken derlemelerinden biridir ve
-bir ön sürümdür: kullanılabilir, ancak özellik kümesi sürümler arasında hâlâ
-değişebilir.
+**Bu, projenin güncel sürümüdür.** GitHub onu en son sürüm olarak listeler ve
+aşağıdaki indirmeler o etiketin işaret ettiği dosyalardır. Proje bu sürümü
+kullanıma hazır kabul eder; sonraki minor sürümler yeni özellik ekleyebilir ve
+her biri kendi değişikliklerini notunda listeler.
 
 Desteklenen platformlar: **Linux x64 ve Windows x64**. Her biri için iki kanal da
 yayınlanır: kurulum paketi (`.deb`, `.msi`) ve taşınabilir `.tar.gz`. Hangisinin

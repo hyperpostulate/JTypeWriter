@@ -54,7 +54,7 @@ Bu bölüm, kart tablosunun üstünde duran **tek gerçek** kaynaktır: bir say�
 | `verify-artifacts` karşılaştırması | 17 | **20** (gömülü font lisansı +2, font kaynağı +1) |
 | Yıldız / çatal / issue | 0 / 0 / 0 | **0 / 0 / 0** |
 
-**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ◐ (W4-01 ✅, W4-02 ✅, W4-03 ✅, W4-04 ✅; W4-05 ☐).
+**Dalgalar:** W0 ✅ · W1 ✅ · W2 ✅ · W3 ✅ (W3-01…W3-06 ✅) · W4 ◐ (W4-01 ✅, W4-02 ✅, W4-03 ✅, W4-04 ✅; W4-05 ◐ — kod tarafı bitti, yayın tag itimini bekliyor).
 Kapılar: **G0′ ✅ · G1 ✅ · G2 ✅ · G3 ✅ · G4 ☐**.
 
 **`v1.0.3` notu (7 Kasım 2026):** dördüncü yayın, W3-01…W3-06 ile kart takiplerini
@@ -1212,6 +1212,33 @@ kümesi pinli); mutasyon: `layout()`'tan `SOUND` çıkarılınca alt menü sıra
   kişi yayında işe yarar bir sürüm görmüyor. W4-05 bu işareti kaldıran ilk sürüm olacak;
   patch'ler geriye dönük işaretlenmez (yayınlanmış bir artefaktın meta verisini sonradan
   değiştirmek "yayınlanan şey değişmez" ilkesini bozar).
+- **Uygulama (8 Kasım 2026):** Sürüm numarası kararı verildi: **`v1.1.0`** (yol haritasındaki
+  (a) seçeneği — W4-02 ve W4-04 kullanıcıya görünen yeni yetenek getirdi). Tek commit'te
+  dört yerde değişti, çünkü kartın kendi uyarısı buydu ("bayrak tek başına kaldırılamaz"):
+  1. `pom.xml` `1.0.3` → **`1.1.0`** (sürümün tek kaynağı; `AppVersion`, `schema.version`,
+     yayın notu `@VERSION@` ve tag doğrulaması hepsi buradan türüyor).
+  2. `release.yml`: `gh release create` adımından `--prerelease` **kaldırıldı**,
+     `--verify-tag` yerinde bırakıldı; yorum bloğu artık işaretin neden yok olduğunu ve
+     çiftin neden birlikte pinlendiğini anlatıyor.
+  3. `docs/release-notes-template.md`: iki yarıdaki "Early access / Erken erişim ... bir ön
+     sürümdür" paragrafı, sürümü **güncel sürüm** olarak tanımlayan ve ön sürüm iddiası
+     taşımayan metinle değişti (sabit semver yok, `@VERSION@`/`@TAG@` korunuyor).
+  4. `ReleaseNotesTest`: eski `theReleaseIsPublishedWithThePrereleaseFlagTheNoteClaims`
+     **silindi yerine iki yönlü çift** geldi — `theReleaseIsPublishedWithoutThePrereleaseFlag`
+     (yayımlama adımında bayrak **yok**, `--verify-tag` var) ve
+     `neitherHalfOfTheNoteCallsTheReleaseAnEarlyBuild` (iki yarıda da "early access" /
+     "pre-release" / "prerelease" / "erken erişim" / "ön sürüm" **yok**). Erken erişim
+     iddiasını pinleyen `theNoteMarksEarlyAccessAndMeasuresTheDownloadSizes` testi
+     `theNoteMeasuresTheDownloadSizes` olarak küçüldü; `@ASSET_SIZES@` ve `stat -c %s`
+     pinleri duruyor.
+  README/README-TR'nin yayın paragrafı da birlikte güncellendi (eski cümle artık yanlış
+  olurdu: bayrak kalktı).
+- **Doğrulama (kod tarafı):** `mvn test -Dtest=ReleaseNotesTest` → **11/0/0** (10 → 11:
+  bir test ikiye ayrıldı), `mvn -B clean test` → **575/0/0** (574 → 575),
+  `git diff --check` temiz, `git tag -l | tail -1` = `v1.1.0` (etiket **yerel**; itme
+  kullanıcıda).
+- **Kalan (yayın anı):** tag itildikten sonra `GET /releases` ile 6 varlık, `prerelease=false`,
+  iki dilli not ve `SHA256SUMS` doğrulanacak; kart o kanıt gelene kadar `◐` durur.
 
 > **Kapı G4:** Tam suite yeşil, `verify-artifacts` **20/20**, ikon `--check` 11 dosya,
 > `v1.1.0` yayında, §5'teki tüm kartlar `✅`.
@@ -1282,7 +1309,7 @@ Bir kart ancak **altı koşul birden** sağlanınca `✅` olur:
 | W4-02 | Son dosyalar + opt-out | E5, U7 | M | W4-01, W3-02 | ✅ | `RecentFiles` saf model (en yeni başta, mutlak+normalize kimlikle tekilleştirme, `MAX = 10`, kuyruktan düşme); `AppSettings.getRecentFiles`/`writeRecentFiles` (`recent.file.N`), `rememberFile` listeyi aynı kayıtta güncelliyor, silinmiş belge sessizce düşüyor; son dosyalar **ayrı kartta** (`RecentFilesCard`, `Dosya → Son Dosyalar`) ve `welcome.enabled` opt-out (`WelcomeCard` onay kutusu) + `Dosya → Karşılama Kartını Göster`; satırlar `FileService.openPathAsync` ile aynı kaydedilmemiş-değişiklik kapısından; 6 bundle × 155 + 5 `Messages`; `mvn test -Dtest=RecentFilesTest,RecentFilesCardTest,AppSettingsTest,StartupGreetingTest,MessagesTest,MainControllerTest` → yeşil |
 | W4-03 | Minimum genişlik | U8 | S | — | ✅ | `MainStage.setMinWidth(MINIMUM_WIDTH_PX = 889)` = altı dilde ölçülen en geniş daraltılmış satır (ES 872,3 → 873) + 16 px süsleme payı; değer sabit ama `ToolbarFitTest` tarafından paketlerden yeniden türetilerek pinli (uzayan çeviri build'i düşürür); kayıtlı geometri `restoredWidth(saved, minimum)` ile tabana çekiliyor ve `setOnHidden` gerçek genişliği sakladığı için ayar kendini onarıyor; `mvn test -Dtest=ToolbarFitTest,MainStageTest` → yeşil |
 | W4-04 | Ses politikası | U9 | S | W3-02, W4-01 | ✅ | `SoundPolicy` (saf): yalnız `KEY_TYPED` karakteri ve `BACK_SPACE`/`DELETE` tıklatır, kısayol sessiz - eski `!isModifierKey()` kuralı okları da tıklatıyordu; `SoundLevel` merdiveni (`OFF 0 · LOW 0,25 · MEDIUM 0,5 · HIGH 0,75 · FULL 1`) **mevcut** `Görünüm → Ses` alt menüsünde, araç çubuğundaki Açık/Kapalı aynı değerin kısayolu; `sound.volume` tek kaynak, eski `sound.enabled` yalnız okuma geri dönüşü; `TypewriterSound.stop()+play()` kaldırıldı, `AudioClip` eşzamanlı çalabildiği için tıklar kesilmiyor; 6 bundle + `Messages.soundLevelValue(int)`; `mvn test -Dtest=SoundPolicyTest,SoundLevelTest,AppSettingsTest,ToolbarStateTest,MessagesTest,AudioAssetTest,ToolbarFitTest` → 83/0/0 |
-| W4-05 | `v1.1.0` | B2 | S | hepsi | ☐ | |
+| W4-05 | `v1.1.0` | B2 | S | hepsi | ◐ | Hazırlık bitti, yayın bekliyor. Karar: **`v1.1.0`** (minor — W4-02/W4-04 yeni kullanıcı yetenekleri). `pom.xml` `1.0.3` → `1.1.0`; `release.yml` `--prerelease` kaldırıldı (`--verify-tag` duruyor); `docs/release-notes-template.md` iki yarıda da "Early access / Erken erişim" paragrafını ön sürüm iddiası taşımayan "güncel sürüm" metniyle değiştirdi (sabit semver yok); `ReleaseNotesTest` 10 → **11**: `theReleaseIsPublishedWithoutThePrereleaseFlag` + `neitherHalfOfTheNoteCallsTheReleaseAnEarlyBuild` (bayrak yok ↔ metin yok, iki yönlü pin), `theNoteMeasuresTheDownloadSizes` boyut pinlerini koruyor; `mvn -B clean test` → 575/0/0; yerel tag `v1.1.0`. **Açık:** tag itimi sonrası `GET /releases` → 6 varlık, `prerelease=false`, iki dilli not, `SHA256SUMS` doğrulaması |
 
 ---
 

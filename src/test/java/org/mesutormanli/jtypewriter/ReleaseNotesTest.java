@@ -114,30 +114,20 @@ class ReleaseNotesTest {
     }
 
     /**
-     * Two things a reader needs before running an unknown binary: that this is
-     * an early build, and how much they are about to download. Both were
-     * missing from the note, and the second one cannot be written by hand
-     * honestly - the Windows assets are produced on a Windows runner and have
-     * never been measurable from the Linux machine the template is edited on.
+     * One thing a reader needs before running an unknown binary: how much they
+     * are about to download. It cannot be written by hand honestly - the
+     * Windows assets are produced on a Windows runner and have never been
+     * measurable from the Linux machine the template is edited on.
      *
      * <p>The sizes are therefore rendered from the assembled files themselves,
      * which also keeps them from drifting: a number typed into the template is
      * a second source of truth that is wrong one release later. This test pins
-     * both halves of that arrangement - the marker in both languages, the
-     * placeholder in both halves, and the measurement in the release job.</p>
+     * both halves of that arrangement - the placeholder in both halves, and
+     * the measurement in the release job.</p>
      */
     @Test
-    void theNoteMarksEarlyAccessAndMeasuresTheDownloadSizes() throws IOException {
+    void theNoteMeasuresTheDownloadSizes() throws IOException {
         var template = Files.readString(TEMPLATE, StandardCharsets.UTF_8);
-        var split = template.indexOf("## Türkçe");
-        assertTrue(split > 0, TEMPLATE + " has no '## Türkçe' section");
-        var english = template.substring(0, split);
-        var turkish = template.substring(split);
-
-        assertTrue(english.contains("Early access"),
-                "the English half does not mark the release as early access");
-        assertTrue(turkish.contains("Erken erişim"),
-                "the Turkish half does not mark the release as early access");
 
         var first = template.indexOf("@ASSET_SIZES@");
         assertTrue(first >= 0, TEMPLATE + " has no @ASSET_SIZES@ placeholder; a hand-written "
@@ -179,29 +169,54 @@ class ReleaseNotesTest {
     }
 
     /**
-     * The note tells the reader this is an early build; the repository page
-     * derives its own label from the release metadata. Publishing without
-     * {@code --prerelease} made GitHub call the same release "Latest", so a
-     * visitor saw a stable release and a body saying "pre-release" - the two
-     * claims lived in different places and could disagree.
+     * W4-05: the release is published as a normal release, and this is one half
+     * of a pair. The pre-release flag and the note's early-access sentence were
+     * two claims about the same thing; with the flag on, GitHub labelled the
+     * release one way while the body said another, and with the flag off and
+     * the sentence kept it would say "Latest" while the body contradicted it.
+     * Dropping both together is what makes them consistent; pinning only one
+     * would let the other return unnoticed.
      *
-     * <p>The flag belongs in the publish step itself, next to
-     * {@code --verify-tag}: dropping the mark is then a visible edit with a
-     * roadmap card behind it (W4-05), never something that happens by
-     * omission.</p>
+     * <p>{@code --verify-tag} stays pinned beside it: it is what keeps a
+     * local-only tag from producing a Release pointing at a commit nobody can
+     * fetch, and it must survive the edit that removed the flag.</p>
      */
     @Test
-    void theReleaseIsPublishedWithThePrereleaseFlagTheNoteClaims() throws IOException {
+    void theReleaseIsPublishedWithoutThePrereleaseFlag() throws IOException {
         var release = Files.readString(RELEASE_WORKFLOW, StandardCharsets.UTF_8);
         var publish = stepContaining(release, release.indexOf("gh release create"));
 
-        assertTrue(publish.contains("--prerelease"),
-                "the publish step does not mark the release as a pre-release, so GitHub "
-                        + "labels an early-access build as Latest while its own note says otherwise:\n"
-                        + publish);
+        assertFalse(publish.contains("--prerelease"),
+                "the publish step still marks the release as a pre-release, so the page "
+                        + "and the note disagree about what the download is:\n" + publish);
         assertTrue(publish.contains("--verify-tag"),
                 "the publish step dropped --verify-tag, so a local-only tag could get a Release:\n"
                         + publish);
+    }
+
+    /**
+     * The other half of the pair: the note must not call the download an early
+     * build while GitHub lists it as the latest release. Checked in both
+     * languages, because a claim removed from one half only would survive where
+     * it is least likely to be noticed.
+     */
+    @Test
+    void neitherHalfOfTheNoteCallsTheReleaseAnEarlyBuild() throws IOException {
+        var template = Files.readString(TEMPLATE, StandardCharsets.UTF_8);
+        var split = template.indexOf("## Türkçe");
+        assertTrue(split > 0, TEMPLATE + " has no '## Türkçe' section");
+        var english = template.substring(0, split).toLowerCase(java.util.Locale.ROOT);
+        // Turkish dotted capital I lowercases to i + combining dot under ROOT.
+        var turkish = template.substring(split).toLowerCase(java.util.Locale.ROOT).replace('\u0130', 'i');
+
+        for (var phrase : List.of("early access", "pre-release", "prerelease")) {
+            assertFalse(english.contains(phrase),
+                    TEMPLATE + " still calls the release an early build ('" + phrase + "')");
+        }
+        for (var phrase : List.of("erken erişim", "ön sürüm")) {
+            assertFalse(turkish.contains(phrase),
+                    TEMPLATE + " still calls the release an early build ('" + phrase + "')");
+        }
     }
 
     /**
