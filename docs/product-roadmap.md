@@ -1,0 +1,492 @@
+# JTypeWriter — P3 Yol Haritası
+
+> **Kaynak:** Yalnız `docs/analysis.md` (1.1.0 / `main` @ `338f1c4`). Bu belge yeni ölçüm
+> üretmez, yeni bulgu eklemez; analizin `S1`/`S2`/`S3` kimliklerini sıraya ve iş paketine
+> çevirir. Bir bulgu burada yoksa ya analizde yoktur ya da §4'teki kapsama tablosunda
+> eşlenmemiştir — ikisi de kabul edilemez, tablo tamdır.
+>
+> **Sıralama ilkesi:** en hızlı kazanım en üstte. "Hızlı" = değişikliğin boyutu değil,
+> **kapatılana kadar geçen insan kararı sayısı × doğrulama maliyeti**. Bir satırlık ama
+> ürün kararı bekleyen iş, üç dosyalık ama kapısı hazır bir işten sonra gelir.
+>
+> **Efor gösterimi:** `AI` = ajanın doğrudan üretebildiği iş (dakika–saat); `İNSAN` =
+> yalnız sahibin verebileceği karar, gözden geçirme veya dış dünya beklemesi. Toplam
+> efor, baskın taraf belirtilerek aralık olarak verilir (§5). Takvim tarihi yoktur;
+> sıra vardır.
+
+---
+
+## 1. P3'ün tek cümlesi
+
+Analiz §15 ve §18 aynı teşhisi veriyor: **motor 4+, ürün 1–3**. P3 "daha çok özellik"
+değil, üç boşluğu sırayla kapatma işidir:
+
+1. **Kendi vaadini tutmayan küçük delikler** (B1, D1–D4, U1) — küçük, ucuz, güveni
+   doğrudan etkiliyor.
+2. **Dağıtım güveni** (P1, P2, B2, B3, B4) — ölçülmüş %49 kazanç ve doğrulanmamış yayın.
+3. **Talep** (M1 ve türevleri) — kodla kapanmayan, kararla açılan eksen.
+
+Bu sıra aynı zamanda **risk sırasıdır**: 1. maddedeki işler mevcut test kültürüyle
+kanıtlanabilir; 2. madde yeni ölçüm ister; 3. madde kod dışıdır.
+
+---
+
+## 2. Dalga haritası (özet)
+
+| Dalga | Ad | Kapsam | Baskın efor | Çıkış kapısı |
+|---|---|---|---|---|
+| **P3.0** | Yol açıcı düzeltmeler | B1, M2, U2, U8, B5, D5, D13, D14, D2b, U1 | AI (saatler) | `package.sh` iki kez üst üste geçer; ağaç temiz |
+| **P3.1** | Veri güvenliği kapanışı | D1, D2, D3, D4, D6–D10, D4b–D4d, A4, D11, D12 | AI (1–2 gün) + 2 karar | `FxThreadIoTest` kurtarma yolunu kapsar; kodlama matrisi büyür |
+| **P3.2** | Dağıtım ve yayın güveni | P1, P2, B2, B3, B4, B6–B8, Q1 | AI + dış karar | İmaj ≤ ~75 MiB; yayın hattı kapıları koşar |
+| **P3.3** | Editör yetkinliği | U3–U7, U9, A1, A7, P4, §8.2 özellikleri | Karara bağlı | Ürün sınırı kararı yazılı; seçilen özellik testli |
+| **P3.4** | Talep ve sürdürülebilirlik | M1, M3, M4, M5 | İNSAN | Dağıtım kanalı + katkı altyapısı canlı |
+
+Dalgalar **sıralıdır**, çünkü P3.2 P3.1'in ürettiği yeşil ağaca dayanır (B1 düzelmeden
+paketleme ölçümü alınamaz), P3.3 ise §16.3 kararı olmadan başlamaz.
+
+---
+
+## 3. Dalga detayı
+
+### P3.0 — Yol açıcı düzeltmeler (en hızlı kazanımlar)
+
+Amaç: sürümü **fiilen kıran** ve **yanlış bilgi veren** işleri bitirmek. Hepsi mevcut
+test kültürüyle kanıtlanabilir; hiçbiri mimari karar gerektirmez.
+
+#### 3.0.1 B1 — `.deb` temizliği (S1, kanıt düzeyi **A**)
+
+- **Sorun:** `package.sh:115` / `verify-artifacts.sh:180-186` `"$DEST/$APP_NAME"*.deb`
+  (büyük harf) arıyor; jpackage küçük harfli `jtypewriter_<sürüm>_amd64.deb` yazıyor
+  (`package.sh:354` kendi yorumunda söylüyor). Sonuç: ikinci sürümde "found 2", çıkış 1.
+- **İş:** temizliği gerçek üretim adına bağla (glob'u üretim adıyla aynı kaynaktan türet,
+  iki betikte tek kural). Sayım assert'i kalmalı — ama artık *yanlış sayıda paket*
+  gerçekten hata olsun.
+- **Neden en üstte:** tek kural, iki dosya, sıfır karar; düzeltilmeden P3.2'nin hiçbir
+  ölçümü alınamaz ve yerel sürüm mühendisi her sürümde düşer.
+- **Kapı:** `./scripts/package.sh --skip-build --installer` iki kez art arda → iki kez de
+  çıkış 0, `releases/linux/` içinde **tek** `.deb`. `verify-artifacts.sh --skip-build`
+  aynı ağaçta geçer. Depodaki `jtypewriter_1.0.2_amd64.deb` bu işin kanıtı olarak
+  kullanılır (artefakt commit edilmez).
+- **Efor:** AI dakikalar; İNSAN 5 dk (diff onayı).
+
+#### 3.0.2 M2 — Bayat doküman/iddia paketi (S2, kanıt **A**)
+
+Dört ayrı yanlış, tek iş paketi (hepsi aynı "tek kaynak" ilkesinin ihlali):
+
+1. README test tablosu 46 sınıf diyor, gerçek 61; 15 sınıf hiç anılmıyor
+   (`README.md:499-548`, `README-TR.md:481-547`). Liste elle tutulduğu için zaten
+   bayatlamaya mahkûm: tabloyu **testlerden türetilebilir** hâle getirmek ya da "tam
+   liste" iddiasını kaldırmak gerekir.
+2. `NOTICE:14` hâlâ "PNG, ICO ve ICNS" diyor; üreteç yalnız PNG+ICO yazıyor
+   (`generate-icons.py:59-65`).
+3. README mimari tablosunda `AppIcons` için "dock icon" (macOS dili), ağaçta var olmayan
+   `UndoHistoryReset.java`, 18 gerçek sınıf ağaçta yok (`README.md:385,444`; §13.2).
+4. Javadoc'lar belge tavanını "10 MB" diyor, gerçek 64 MiB — altı dosya:
+   `FindScanService.java:25,60`, `FindModel.java:139`, `FindPanel.java:41`,
+   `SessionStats.java:23`, `AutoSaveService.java:346`.
+5. README "ikinci örnek uyarı gösterip çıkar" diyor; davranış modal uyarı + onay
+   (§7.6, bu oturumda `timeout 8` → çıkış 124).
+
+- **Kapı:** `mvn test` yeşil (özellikle `CiGatesTest`, `ReleaseNotesTest`,
+  `PackagingNoticesTest`) — doküman metni pinleyen testler burada kırılırsa *doğru*
+  kırılır.
+- **Efor:** AI ~1 saat; İNSAN 15 dk (iki dilli metin gözden geçirmesi).
+
+#### 3.0.3 U1 — Menü araç çubuğundan çıkarılsın (S1)
+
+- **Sorun:** komut menüsü araç çubuğunun *içinde* (`MainController.java:294-296`);
+  `Ctrl+T` çubuğu gizleyince menüye fareyle ulaşmak imkânsız, geri getirmenin tek yolu
+  aynı kısayol. Fare kullanıcısı için çıkmaz sokak (§8.3).
+- **İş:** menü çubuğunu araç çubuğundan bağımsız bir üst katmana al; çubuk gizliyken
+  menü görünür kalsın. `ToolbarFit` hesabı ve `EditorAction` üretimi değişmemeli —
+  değişiyorsa tasarım yanlış yerde.
+- **Neden P3.0'da:** S1, küçük diff, ama **görsel** — `@designer` gözden geçirmesi şart.
+  Bu yüzden "sıfır karar" işlerin hemen ardındadır.
+- **Kapı:** `MainControllerTest` (menü/araç çubuğu üretimi iki yönlü) + 6 dilde
+  `ToolbarFitTest`; `smoke-appimage.sh` ile çubuk gizliyken pencere açılışı.
+- **Efor:** AI ~2 saat; İNSAN 30 dk görsel onay.
+
+#### 3.0.4 U2 — WPM tanımı (S2)
+
+`SessionStats.java:173-178` paydası `totalKeystrokes`: yapıştırma/IME/otomatik düzeltme
+hızı hiç artırmıyor, silip yeniden yazmak şişiriyor. Ayrıca süre 5 s üstü boşlukları
+saymıyor, WPM saymıyor → ekranda tutarsız iki sayı.
+
+- **İş:** tek bir tanım seç (öneri: **karakter/5 ÷ aktif süre**, yapıştırma hariç ama
+  yapıştırılan karakter sayılır) ve hem süre hem WPM'i aynı "aktif süre" tanımına bağla.
+  Analiz iki ölçünün farklı şeyleri ölçtüğünü söylüyor; düzeltme **tanımı** düzeltmeli,
+  katsayıyı değil.
+- **Kapı:** `SessionStatsTest` (yapıştırma, IME, sil-yeniden-yaz senaryoları),
+  `StatsBarModelTest`.
+- **Efor:** AI ~1 saat + tanım kararı (İNSAN 10 dk).
+
+#### 3.0.5 Küçük hijyen kümesi (S2/S3, her biri tek nokta)
+
+| ID | İş | Dosya | Kapı |
+|---|---|---|---|
+| D5 | `expired` boyut kuralında `break` → `continue`; iki yorumu koda uydur | `RecoveryRetention.java:79-84` | `RecoveryRetentionTest` yeni vaka: yaşlı-küçük taslak sığarken silinmiyor |
+| D6 | DISCARD sonrası `store.clear()` dönüşü yok sayılmasın | `AutoSaveService.java:225-228` | `AutoSaveServiceTest`: clear=false → kullanıcıya görünür uyarı |
+| D13 | `AppDirs` `user.home` yoksa korunsun (AppLogging/RecoveryStore ile aynı davranış) | `AppDirs.java:19-21` | `AppDirsTest`: `-Duser.home=` boş → NPE yok |
+| D14 | `RecoveryTargetPath` `SecurityException` sızdırmasın | `RecoveryTargetPath:105-123` | hedef yol okunamazsa "yolsuz kurtarma" dalı |
+| D2b | temp adı `NAME_MAX` sınırında kaydetmeyi bozmasın (adı kısalt, hash'le) | `AtomicFiles.java:76-78` | `AtomicFilesTest`: 250 karakterlik adla aç→kaydet |
+| U8 | pencere başlığı sabit `"JTypeWriter"` → mevcut `appName` anahtarı | `FxApplication.java:60` | `MessagesTest` + başlık testi |
+| B5 | rozet 3 locale toplamını ("1.725") değil gerçek test sayısını yayınlasın | `publish-test-badge.sh:79-127` | badge metni 575'i söyler |
+
+- **Efor:** AI ~2 saat toplam; İNSAN 15 dk.
+
+**P3.0 çıkış kapısı:** `mvn clean test` yeşil, `package.sh` iki kez geçer, README/NOTICE
+iki dilde tutarlı, U1 görsel onaylı. Tek commit ya da bulgu başına küçük commit'ler
+(AGENTS: bir commit = bir kendi kendine yeten değişiklik).
+
+---
+
+### P3.1 — Veri güvenliği kapanışı
+
+Amaç: ürünün **en çok güvendiği vaadi** (kaybetmeyen taslak + kodlama korunur) sıfır
+bilinen delikle kapatmak. Analiz §7.7 kayıp matrisinde "bozulma" işaretli dört satır
+tam olarak bu dalganın kapsamıdır.
+
+#### 3.1.1 S1 dörtlüsü
+
+1. **D1 — canlı taslakların sınırsız birikmesi.** `RecoveryRetention` yalnız `pending-*`
+   yaşlandırıyor; `draft-*` yalnız *en yeni* benimsendiğinde siliniyor
+   (`RecoveryStore.java:226-231,240-248`). Her çökme kalıcı dosya bırakıyor ve dosyalar
+   kullanıcı metni taşıyor.
+   - **İş:** `draft-*` için de yaş + **adet tavanı** kuralı; "en yeni benimsenir" kuralı
+     korunur, kalanlar yaşlandırılır. Kullanıcı metni taşıdığı için yaş sınırı cömert
+     olmalı (öneri: 30 gün + 20 dosya) — **ürün kararı**, varsayılan öneriyle ilerlenir.
+   - **Kapı:** `RecoveryStoreTest` + `RecoveryRetentionTest`: 25 taslak → en yeni kalır,
+     yaşlı-küçük olan boyut kuralına takılmaz.
+2. **D2 — `currentFilePath` sızıntısı + FX-thread sınırsız okuma.**
+   `restoreRecovered` dosya yoksa/`file == null` ise önceki belgenin yolunu bırakıyor
+   (`FileService.java:453-493`, atama yalnız `:482`). Aynı metot orijinali
+   `Files.readAllBytes` ile boyut sınırı olmadan **FX thread'inde** okuyor (`:458`) —
+   64 MiB politikası ve "disk işi yalnız `IoExecutor`" doktriniyle çelişiyor.
+   - **İş:** her iki dalda da durumu sıfırla; okumayı `IoExecutor`'a taşı, 64 MiB
+     sınırını uygula. Bu, A3'ün de kapanışıdır.
+   - **Kapı:** `FxThreadIoTest` kurtarma yolunu da saysın (`restoreRecovered`,
+     `loadDraft`, `clear`) — bugün kapsam dışı (§12.3).
+3. **D3 — bozuk BOM'lu orijinalden kurtarmada kodlama kaybı.** `MalformedDocumentException`
+   dalı `currentFilePath`'i atıyor ama `currentCharset`/`currentBom`'a dokunmuyor
+   (`FileService.java:475-481`); eski windows-1254 belge sonraki kayıtta sessizce UTF-8'e
+   dönebiliyor.
+   - **İş:** kodlama/BOM'u orijinalden taşı (ya da "bilinmiyor" olarak işaretle ve
+     kaydetmede sor). Sessiz varsayılan yasak.
+   - **Kapı:** `EncodingMatrixTest`'e "bozuk BOM → kurtar → kaydet" bayt senaryosu.
+4. **D4 — "kayıpsız UTF-8" seçeneğinin kayıplı olması.** `TextCodec.decodeWith(...,
+   REPLACE)` (`FileService.java:829-833`, `TextCodec.java:265-275`) geçersiz baytları
+   `U+FFFD` yapıyor; diyalog metni UTF-8'i kayıpsız diye sunuyor.
+   - **İş:** ya `REPORT` (geçersiz bayt → hata → başka kodlama seç) ya da metni
+     "kayıplı" olarak yeniden yaz + açık onay al. **Ürün kararı**, ama iki seçenek de
+     mevcut yanlışı kapatır.
+   - **Kapı:** `TextCodecTest` + `EncodingMatrixTest`: geçersiz bayt → `?`/`U+FFFD`
+     sessizce yazılmaz.
+
+#### 3.1.2 Kurtarma/otomatik kayıt kümesi (S2/S3)
+
+| ID | İş | Neden |
+|---|---|---|
+| D7 | `DRAFT_DELETE` uyarısı başarılı anlık görüntüde erken susmasın; uyarı **diskteki duruma** bağlanmalı | `AutoSaveService.java:367-369`; bugün bayat taslak dururken uyarı siliniyor |
+| D9 | `WINDOW_HIDDEN` sonrası zamanlayıcı yeniden başlasın | `AutoSaveService.java:300-303`; gizle/göster otomatik kaydı sessizce öldürüyor |
+| D8 | Taslak biçimine imleç/satır sonu/BOM/kodlama taşı (undo geçmişi taşınmayabilir — ama geri kalanı taşınmalı) | kurtarma bugün yalnız metin+yol+zaman |
+| D10 | `jtw-draft-*.tmp` artıkları açılışta süpürülsün | sert öldürme artığı hiçbir yerde temizlenmiyor |
+| D4b | POSIX sahipliği korunsun (izin kopyası yetmiyor); yeni belge `0600` yerine `umask`'a uysun | `AtomicFiles.java:166-179` |
+| D4c | Sarkan symlink düz dosyayla değiştirilmesin (reddet + sor) | `AtomicFiles.java:109-117` |
+| D4d | Boş alan kontrolü yedek staging'ini (`prepared`) hesaba katsın | `FileService.java:677-687`; `StorageFootprint` 6× diyor, kontrol yok |
+
+#### 3.1.3 Ayarlar kümesi (S2)
+
+| ID | İş | Not |
+|---|---|---|
+| A4 | `set` + `save` atomik olsun; `props.store` mutasyon sırasında gezmesin | `AppSettings.java:551-588` |
+| D11 | Kısmen okunmuş bozuk dosyanın anahtarları kalıcılaşmasın ("varsayılanlarla aç" sözü tutulsun) | `AppSettings.java:478-511` |
+| D12 | Taşan sürüm segmenti "sürümsüz" sayılıp daha yeni dosyayı aşağı sürümlemesin | `AppSettings.java:410-417,457-476` |
+
+**P3.1 çıkış kapısı:** §7.7 kayıp matrisinde "**bozulma**" satırı kalmaz; `FxThreadIoTest`
+kurtarma yolunu kapsar; `EncodingMatrixTest` en az üç yeni senaryo; `mvn clean test`
+yeşil. Bu dalga bittiğinde **veri güvenliği 4,5 → 5,0** gerekçesi yazılabilir olmalı.
+
+---
+
+### P3.2 — Dağıtım ve yayın güveni
+
+Amaç: "50 MB indirip 146 MB kuruyorsun, imzasız, doğrulanmamış" tablosunu kapatmak.
+Bu dalga yeni ölçüm ister; analizin **A**-seviyesi iki sayısı hedefi veriyor:
+`jlink` → 68,2 MiB (mevcut 133,5 MiB), `jdeps` → 6 modül.
+
+#### 3.2.1 P1 + P2 — tek değişiklik, iki bulgu
+
+- **P1:** imaj 52 modül taşıyor; `ct.sym` 10,4 MiB; `jdk.compiler`/`jdk.jshell`/`jconsole`
+  hiç kullanılmıyor. `jlink --add-modules java.base,java.desktop,java.logging,
+  javafx.controls,javafx.fxml,javafx.media,jdk.unsupported --strip-debug
+  --no-header-files --no-man-pages --compress=zip-6` → 68,2 MiB (ölçüldü).
+- **P2:** JavaFX runtime modüllerinde **yok** (`lib/runtime/release` 52 modülün hiçbiri
+  `javafx.*` değil); sınıflar şişman JAR'dan classpath ile yükleniyor →
+  `Unsupported JavaFX configuration: ... 'unnamed module'` her açılışta (3/3 koşu).
+- **Neden birlikte:** JavaFX modül yoluna taşınmadan jlink kazancı kullanılamaz ve uyarı
+  susmaz; ayrı ayrı yapılırsa iki kez paketleme hattı değişir.
+- **İş:** `package.sh` jlink adımını modül listesiyle üretir; JavaFX jar'ları/native'leri
+  runtime imajına modül olarak girer; şişman JAR'daki `.so` kopyası imajdan çıkar.
+  `verify-artifacts.sh` yeni yerleşimi denetler (legal metinler `lib/runtime/legal/`
+  altına da girmeli — bugün JavaFX lisansları yalnız JAR içinde, §10.4d).
+- **Kapı:** yeni imaj ≤ ~75 MiB; `smoke-appimage.sh` iki platformda açar; açılış
+  logunda "unnamed module" **yok** (3 koşu); `.deb` `Installed-Size` düşer.
+- **Efor:** AI ~1 gün + iki platformda smoke (İNSAN/CI zamanı baskın).
+
+#### 3.2.2 B2 — yayın hattı kendi kapılarını koşsun
+
+`release.yml:132-141` yalnız `mvn package` + `package.sh` koşuyor; ikon `--check`,
+`verify-artifacts.sh`, `tr-TR`/`de-DE` koşuları ve smoke **yok**. Tag doğrulanmamış
+commit'e atılırsa yayın bunu bilmez.
+
+- **İş:** yayın işini CI ile **aynı** kapılara bağla (kopyala-yapıştır değil: ortak iş/
+  yeniden kullanılabilir workflow). `CiGatesTest` bu kapıları metin olarak pinliyor —
+  kapı taşınırsa test de taşınmalı (test burada doğru davranıyor).
+- **Kapı:** kasıtlı bozuk bir tag'de (ör. ikon hash'i bozuk) yayın **düşer**.
+- **Efor:** AI ~3 saat; İNSAN 20 dk.
+
+#### 3.2.3 B3/B4/B6/B7/B8/Q1 — olgunluk eksenleri (karar bağımlı)
+
+| ID | İş | Karar/bağımlılık |
+|---|---|---|
+| B3 | `.msi` yükü bağımsız doğrulansın (legal metin, jar girişleri, sürüm) | Windows'ta ölçüm gerekir (bu makinede yapılmadı, §2.3) |
+| B4 | Kod imzası + `SHA256SUMS` imzası | **§16.5 imza bütçesi** kararı |
+| B6 | `arm64` ya tam desteklenir ya `release-assets.sh:62-68` + workflow eşlemesi kaldırılır | **§16.2 platform ekseni** kararı |
+| B7 | jpackage/tar katmanında yeniden üretilebilirlik (normalize + bağımsız karşılaştırma) | `verify-artifacts.sh` bugün aynı koşunun kopyalarını karşılaştırıyor |
+| B8 | JDK `'25'` yaması ve Maven runner'ı pinlensin | AGENTS "wrapper yok" kararı korunur; yama sürümü pinlenir |
+| Q1 | SBOM + kapsam ölçümü (JaCoCo) + statik analiz kararı | "lint yok" bilinçli; SBOM ve kapsam bilinçli değil |
+
+**P3.2 çıkış kapısı:** imaj ≤ ~75 MiB, "unnamed module" yok, yayın hattı kapıları koşuyor;
+B3/B4/B6 kararları yazılı. Bu dalga **paketleme/dağıtım 2,0 → 4,0** gerekçesini üretir.
+
+---
+
+### P3.3 — Editör yetkinliği (karar kapısı arkasında)
+
+Bu dalga **§16.3 ürün sınırı** ve **§16.4 çoklu belge** kararları verilmeden başlamaz.
+Analiz §15 "editör yetkinliği 2,0" diyor ama §8.2 tablosunun her satırı farklı bir ürün
+kararına bağlı; sırasız özellik yığmak P3'ün teşhisini (motor iyi, ürün eksik) çözmez.
+
+#### 3.3.1 Karardan bağımsız, ucuz UX/erişilebilirlik
+
+| ID | İş | Neden |
+|---|---|---|
+| U4 | durum çubuğu boyutu klavyeyle de değişsin + tooltip | bugün yalnız çift tıklama (`StatsBar.java:96-112`); klavye/ekran okuyucu yolu yok |
+| U5 | arama paneline diyalog semantiği/odak tuzağı | `VBox` katmanı, Escape kapatıyor, odak tuzağı yok |
+| U3 | menü hızlandırıcılarının modal diyalogla çelişkisini çöz | `MainMenu.java:61-64,407-421` |
+| U7 | `replaceConfirmed` public/korumasız → YOLO rızası **tiple** korunsun | `EditorArea.java:129-131`; YOLO sözü bugün konvansiyonla ayakta |
+| U9 | ses ilk tuşta yüklenmesin (açılışta ısıt) | soğuk ilk tuş gecikmesi (ölçülmedi, §9.5) |
+| P4 | `-Xmx`/GC ayarı (`JTypeWriter.cfg`) | RSS ~300 MiB; önce P3.3.1'deki ısıtma/ölçümle birlikte ölç |
+
+#### 3.3.2 Borç ve test güvenilirliği (A1, A7, U6)
+
+- **A1 — `FileService` 998 satır, yedi sorumluluk.** Bölünme sırası: kurtarma → kodlama →
+  çakışma → yedek. **Yalnız ihtiyaç doğduğunda**: §16.4 çoklu belge "evet" ise bu bölünme
+  zorunlu (belge başına örnek), "hayır" ise yalnız okunabilirlik kazancı. Erken bölmek
+  P3.1'in taze testlerini yeniden yazmak demek — **P3.1'den sonra**.
+- **A7 — kaynak metni pinleyen testler.** `CiGatesTest`, `ReleaseNotesTest`,
+  `EditorUndoContractTest`, `DialogSizingTest`, kısmen `MainControllerTest`. Hedef testi
+  silmek değil, pinlediği şeyi **davranışa** indirmek (ör. "şu satır var mı" yerine
+  "üretilen eylem kümesi bu mu"). Toolkit yasağı korunur.
+- **U6 — arama iptali.** 64 MiB'de iptalsiz tarama kuyruğu tıkıyor (`FindPanel.java:269-302`).
+  İptal bayrağı + "son tarama kazanır" kuralı; `FindModel`/`FindScanService` saf katmanda
+  test edilir.
+- **AGENTS/kod çelişkisi:** `AutoSaveServiceTest` `FileService`/`RecoveryStore` taklit
+  ediyor, AGENTS "Mockito yalnız `Messages`/`DialogService`" diyor — ya kural ya test
+  düzeltilir (§12.3).
+
+#### 3.3.3 Özellik sırası (yalnız §16.3 "revizyon/teslim kapsama girer" derse)
+
+Analiz §8.2 maliyetleri veriyor; en düşük maliyet/en yüksek değer sırasıyla:
+
+1. **Kelime/oturum hedefi** (düşük) — FocusWriter'ın temel farkı, `SessionStats` zaten var.
+2. **Odak/typewriter modu** (düşük–orta) — türün imza özelliği; ses var, ekran yok.
+3. **Arama genişletmeleri** (düşük–orta) — regex, tam kelime, seçim içinde, tümünü vurgula;
+   `FindModel` saf katmanı hazır.
+4. **Ayar arayüzü** (düşük) — bugün her şey menü/araç çubuğu.
+5. **Dışa aktarma + yazdırma/PDF** (orta) — `javafx.print` modülü imajda **yok**; P3.2'nin
+   modül listesine eklenmeli (yoksa yazdırma çalışmaz → P1 ile çakışır, sıra önemli).
+6. **Satır numarası/cetvel** (orta) — `TextArea` doğrudan vermiyor; editör bileşeni kararı.
+7. **Markdown vurgulama** (orta) — rakip standardı, `.md` zaten açılıyor.
+8. **Sözlük** (yüksek) — dil başına veri; en son.
+9. **Çoklu belge/sekme** (yüksek) — **A1 bölünmesi + `FileService` belge başına örnek**
+   şartı; mimarinin en büyük tek kısıtı (§6.3). Karar "hayır" ise kısıt **dokümante
+   edilmeli** (bugün yalnız analizde yazıyor).
+
+**P3.3 çıkış kapısı:** §16.3/§16.4 kararları yazılı; seçilen her özellik saf karar
+sınıfı + testle gelir (toolkit yasağı); A7'de hedeflenen testler davranışa indirgenmiş.
+
+---
+
+### P3.4 — Talep ve sürdürülebilirlik (kod değil)
+
+Analiz §4.4 ve §15 en sert sayıyı veriyor: **0 yıldız, 0 fork, 0 issue, 36 indirme**.
+Bu, "teknik işin getirisini ölçülemez kılan" boşluk; P3'ün en pahalı ve en az kod içeren
+kısmı.
+
+| ID | İş | Not |
+|---|---|---|
+| M1 | Dağıtım kanalı kararı + uygulama: Flathub/AUR/winget/Chocolatey | **§16.7 talep stratejisi**; §16.1 kanal ekseni (kurulum vs taşınabilir) bunun önkoşulu |
+| M3 | `CONTRIBUTING`, `CHANGELOG`, `SECURITY`, `CODE_OF_CONDUCT` | bugün hiçbiri yok; issue/PR şablonu da yok |
+| M4 | Yayın notuna sürüm başına **değişiklik listesi** | şablon sürümden bağımsız sabit metin; `ReleaseNotesTest` iki dilli yapıyı korumaya devam etmeli |
+| M5 | Bus factor = 1: sürüm anahtarları, imza, paketleme bilgisi tek kişide | imza (B4) ve yayın (B2) kararlarıyla birlikte ele alınmalı |
+
+**P3.4 çıkış kapısı:** bir dağıtım kanalı canlı, bir dış issue/PR akışı tanımlı, yayın notu
+"ne değişti" sorusunu cevaplıyor. Ölçüt kod değil: indirme sayısı ve dış katkı.
+
+---
+
+## 4. Kapsama tablosu (analiz kimlikleri → dalga)
+
+Hiçbir bulgu düşmemeli. `S1`/`S2`/`S3` sınıfları analiz §14'ten alınmıştır.
+
+| ID | Sınıf | Dalga | Not |
+|---|---|---|---|
+| B1 | S1 | P3.0 | paketleme kilidi |
+| M2 | S2 | P3.0 | README/NOTICE/javadoc |
+| U2 | S2 | P3.0 | WPM tanımı |
+| U8 | S3 | P3.0 | pencere başlığı |
+| B5 | S3 | P3.0 | rozet sayısı |
+| D5 | S2 | P3.0 | retention `break` |
+| D6 | S2 | P3.0 | sessiz DISCARD |
+| D13 | S3 | P3.0 | `user.home` |
+| D14 | S3 | P3.0 | `SecurityException` |
+| D2b | S3 | P3.0 | `NAME_MAX` |
+| U1 | S1 | P3.0 | menü/araç çubuğu |
+| D1 | S1 | P3.1 | taslak yaşlandırma |
+| D2 | S1 | P3.1 | yol sızıntısı + FX G/Ç |
+| D3 | S1 | P3.1 | kodlama kurtarma |
+| D4 | S1 | P3.1 | kayıplı "kayıpsız" |
+| D7 | S2 | P3.1 | uyarı zamanlaması |
+| D9 | S2 | P3.1 | zamanlayıcı |
+| D8 | S3 | P3.1 | taslak biçimi |
+| D10 | S3 | P3.1 | tmp artıkları |
+| D4b | S3 | P3.1 | sahiplik/0600 |
+| D4c | S3 | P3.1 | sarkan symlink |
+| D4d | S3 | P3.1 | boş alan |
+| A4 | S2 | P3.1 | ayar eşzamanlılığı |
+| D11 | S2 | P3.1 | karantina |
+| D12 | S2 | P3.1 | sürüm göçü |
+| P1 | S1 | P3.2 | jlink |
+| P2 | S2 | P3.2 | unnamed module |
+| B2 | S1 | P3.2 | yayın kapıları |
+| B3 | S2 | P3.2 | .msi |
+| B4 | S2 | P3.2 | imza |
+| B6 | S3 | P3.2 | arm64 |
+| B7 | S3 | P3.2 | tekrarlanabilirlik |
+| B8 | S3 | P3.2 | toolchain pin |
+| Q1 | S3 | P3.2 | SBOM/kapsam |
+| U4 | S2 | P3.3 | durum çubuğu |
+| U5 | S3 | P3.3 | arama paneli |
+| U3 | S2 | P3.3 | hızlandırıcı |
+| U7 | S3 | P3.3 | `replaceConfirmed` |
+| U9 | S3 | P3.3 | ses ısıtma |
+| P4 | S3 | P3.3 | `-Xmx` |
+| A1 | S2 | P3.3 | `FileService` |
+| A7 | S2 | P3.3 | test pinleri |
+| U6 | S2 | P3.3 | arama iptali |
+| M1 | S1 | P3.4 | talep |
+| M3 | S3 | P3.4 | topluluk dosyaları |
+| M4 | S3 | P3.4 | yayın notu içeriği |
+| M5 | S3 | P3.4 | bus factor |
+
+`S1` sayısı analizde 9'dur (B1, D1, D2, D3, D4, U1, P1, B2, M1); hepsi burada ve
+**hiçbiri P3.1'den sonraya bırakılmamıştır**, M1 hariç — o kodla kapanmıyor.
+
+---
+
+## 5. Efor ve zaman
+
+Efor, işin **AI tarafı** ile **insan/dış dünya tarafı** ayrılarak verilir; toplamı baskın
+taraf belirler. Bu ayrım, analizin "kod yazma hızıyla değil, dağıtım ve talep ekseniyle
+kapanır" teşhisinin doğrudan sonucudur.
+
+| Dalga | AI tarafı | İnsan/dış dünya tarafı | Baskın | Toplam (gerçekçi aralık) |
+|---|---|---|---|---|
+| P3.0 | ~yarım gün (B1, M2, U2, hijyen) | 1 saat karar/gözden geçirme + U1 görsel onay | AI | **yarım–1 gün** |
+| P3.1 | ~1,5 gün (D1–D4 çekirdek + kümeler) | D1 yaş politikası, D4 kayıp onayı (2 karar, 1 saat) | AI | **1,5–2,5 gün** |
+| P3.2 | ~1 gün (jlink/modül + yayın hattı) | **iki platformda smoke ve Windows ölçümü**; imza bütçesi kararı | dış dünya | **2–4 gün** (CI/paketleme beklemesi baskın) |
+| P3.3 | ~1 gün (UX borç + test indirgeme) + özellik başına 2–6 saat | §16.3/§16.4 kararları; sözlük/çoklu belge için haftalar | karara bağlı | **2 gün – birkaç hafta** |
+| P3.4 | ~yarım gün (dosyalar, şablon) | kanal başvuruları, tanıtım, katkı akışı | İNSAN | **haftalar–aylar** (dış onay) |
+
+Bu tablo takvim değildir; **sıra korunursa** her dalganın kapanış kapısı bir öncekine
+dayanır. P3.0 + P3.1 birlikte, ürünün "vaadini tutan" hâle gelmesi için gereken en kısa
+yoldur; P3.2 ölçülebilir tek büyük kazançtır (imaj ~%49); P3.4 olmadan P3.1–P3.3'ün
+getirisi ölçülemez (analiz §4.4, §16.7).
+
+---
+
+## 6. Doğrulama planı
+
+Analiz §17'deki protokol bu yol haritasının **tekrar kullanılabilir kapısıdır**; aşağıdaki
+komutlar oradan alınmıştır, yenisi değildir.
+
+| Dalga | Kanıt komutu | Beklenen |
+|---|---|---|
+| P3.0 | `./scripts/package.sh --skip-build --installer; echo $?` (iki kez) | `0` / `0`, tek `.deb` |
+| P3.0 | `./scripts/verify-artifacts.sh --skip-build; echo $?` | `0` |
+| P3.0 | `mvn -B clean test \| tail -20` | 575+ yeşil, `@Disabled` yok |
+| P3.1 | `mvn test -Dtest=EncodingMatrixTest,RecoveryStoreTest,AutoSaveServiceTest,FxThreadIoTest` | yeni senaryolar yeşil |
+| P3.1 | `mvn test -Dtest=ProcessCrashRecoveryTest` (tek başına) | gerçek `SIGKILL` kurtarma hâlâ geçer |
+| P3.2 | `du -sb releases/linux/JTypeWriter` | ≤ ~75 MiB (bugün 146,2 MiB) |
+| P3.2 | `grep -c 'unnamed module' <açılış logu>` (3 koşu) | `0` |
+| P3.2 | `dpkg-deb -f ...deb Installed-Size` | belirgin düşüş |
+| P3.3 | özellik başına `mvn test -Dtest=<SafKararSınıfı>Test` | toolkit'siz, hızlı |
+| P3.4 | `curl -s .../releases \| grep download_count` + kanal sayfası | tablo değişiyor mu |
+
+**Kapı disiplini:** her dalga sonunda `mvn clean test` + ilgili betik; kırmızı varsa
+sonraki dalga başlamaz. CI üç locale koşuyor (575 × 3 = 1.725) — bu sayı **test sayısı
+değildir**, rozet düzeltmesi (B5) bunu görünür kılmalı.
+
+---
+
+## 7. Karar kapıları (analiz §16, sıralı bağımlılıkla)
+
+Bunlar analizle kapanmaz; her biri belirli bir dalgayı **açar veya kısıtlar**.
+
+| # | Karar | Kilitlediği iş | Öneri (analizden) |
+|---|---|---|---|
+| 1 | Kanal: kurulum paketi mi, taşınabilir arşiv mi? | P3.2 (B4, B7), P3.4 (M1) | Analiz karar bırakıyor; **önce bu** çünkü imza/ilk çalıştırma/güncelleme buna bağlı |
+| 2 | Platform: arm64 desteklenecek mi? | P3.2 (B6) | Desteklenmeyecekse `arm64` kabulü **kaldırılmalı** (bugün yarım: betik kabul, assert `-x64`) |
+| 3 | Ürün sınırı: "taslak aracı" mı, revizyon/teslim mi? | P3.3 tamamı | Kapsam dışı kalacaksa §8.2 tablosu ürün dokümanına yazılmalı |
+| 4 | Çoklu belge/sekme? | P3.3 (A1, §6.3) | "Evet" ise `FileService` belge başına örnek **zorunlu**; "hayır" ise kısıt dokümante edilmeli |
+| 5 | İmza bütçesi (Windows Authenticode) | P3.2 (B4) | Alınmazsa SmartScreen ilk izlenim olmaya devam eder |
+| 6 | Ağ politikası: "hiç ağa çıkmama" korunacak mı? | P3.2 (güncelleme), P3.4 | Güncelleme isteniyorsa ilke yazılı yeniden tanımlanmalı |
+| 7 | Talep stratejisi: kanallar/tanıtım/altyapı | P3.4 (M1) | Bu karar verilmezse teknik işin getirisi ölçülemez |
+| 8 | Lisans/ticari model | P3.2 (imza maliyeti), P3.4 | Apache-2.0 kalıcı mı, bağış/ticari destek ekseni mi? |
+
+**Kritik bağımlılık:** 1↔2↔5 birbirine bağlı (kanal → platform → imza). Bu üçü
+verilmeden P3.2'nin yarısı başlatılamaz; 3↔4 ise P3.3'ün tamamını kilitler.
+
+---
+
+## 8. Yapılmayacaklar (bilinçli)
+
+- **Yeni özellik yarışı.** Analiz §15: fark kod yazma hızıyla değil, dağıtım ve talep
+  ekseniyle kapanır. P3.0–P3.2 bitmeden özellik eklemek, "motor iyi, ürün eksik"
+  teşhisini güçlendirir.
+- **Toolkit başlatan test.** AGENTS ve analiz §12.1 aynı yerde: toolkit yasağı mimari
+  kültürün parçası. Yeni UI davranışı **saf karar sınıfına** indirilerek test edilir.
+- **Kapsam ölçümünü kapı yapmak.** Q1'de kapsam ölçümü istenir, ama eşik/kapı kararı
+  verilmeden yalnız rapor üretilir; JaCoCo'yu zorunlu kapı yapmak bu ağacın test
+  felsefesiyle çelişir.
+- **`FileService`'i erken bölmek.** P3.1 taze testler üretmeden bölmek, aynı davranışı
+  iki kez kanıtlamak demek; bölünme P3.3'e (ve §16.4 kararına) bağlı.
+- **macOS geri getirmek.** AGENTS açık: platform kararı olmadan `Darwin*`, `.dmg`,
+  `.icns` eklenmez. §13.2'deki ICNS/NOTICE düzeltmesi bunun tersi yönde değil,
+  **artığı temizleme** yönündedir.
+
+---
+
+## 9. Tek paragraf
+
+P3, ürünün kendi vaadini tutmadığı yerlerden başlar: bir satırlık `.deb` glob'u (B1)
+sürümü fiilen kırıyor, bayat README/NOTICE/javadoc yanlış bilgi veriyor, gizlenen araç
+çubuğu menüyü de götürüyor (U1), WPM yanlış şeyi sayıyor (U2) — bunlar saatler içinde
+kapanır ve güveni en ucuza geri verir. Ardından veri güvenliğinin dört S1 deliği (D1–D4)
+ve küçük kurtarma/ayar kümeleri kapatılır; bu dalga, ürünün en güçlü olduğu ekseni
+tartışmasız hâle getirir. Sonra ölçülmüş %49'luk imaj kazancı (P1+P2) ve yayın hattının
+kendi kapılarını koşması (B2) gelir — burada iş AI hızında değil, iki platformda smoke ve
+imza bütçesi kararı hızında ilerler. Editör yetkinliği ve talep (P3.3–P3.4) ise ürün
+sahibinin vereceği üç karara (kanal, ürün sınırı, platform) bağlıdır; o kararlar
+verilmeden bu dalgalar başlamamalıdır.
