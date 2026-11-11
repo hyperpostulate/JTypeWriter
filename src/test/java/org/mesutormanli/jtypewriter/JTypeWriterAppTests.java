@@ -6,6 +6,10 @@
 package org.mesutormanli.jtypewriter;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.mesutormanli.jtypewriter.locale.Language;
+import org.mesutormanli.jtypewriter.locale.LocaleManager;
+import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -15,9 +19,14 @@ import java.nio.file.Path;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JTypeWriterAppTests {
+
+    @TempDir
+    Path dir;
 
     private static final Path APP_SOURCE =
             Path.of("src", "main", "java", "org", "mesutormanli", "jtypewriter",
@@ -72,6 +81,29 @@ class JTypeWriterAppTests {
                         + " the command line would be ignored");
         assertTrue(source.contains("openRequestedDocument"),
                 FX_SOURCE + " resolves the startup arguments but never opens the document");
+    }
+
+    /**
+     * The title bar is chrome like every other label, so it must come from the
+     * bundle rather than a literal: a renamed or translated application name
+     * has to reach the window without touching this class.
+     */
+    @Test
+    void theWindowTitleIsTheBundlesAppNameInEverySupportedLanguage() {
+        for (var language : Language.values()) {
+            var settings = new AppSettings(
+                    dir.resolve("title-" + language.code() + ".properties"));
+            var localeManager = new LocaleManager(settings);
+            localeManager.setLanguage(language);
+            var messages = new Messages(localeManager);
+
+            var title = FxApplication.windowTitle(messages);
+
+            assertEquals(messages.appName(), title,
+                    "window title of " + language + " must be the bundle's appName");
+            assertFalse(title.isBlank(),
+                    "window title of " + language + " must not be blank");
+        }
     }
 
     private static String read(Path file) {

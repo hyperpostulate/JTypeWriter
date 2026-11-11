@@ -11,6 +11,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.ui.AppFonts;
 import org.mesutormanli.jtypewriter.ui.AppIcons;
 import org.mesutormanli.jtypewriter.ui.MainController;
@@ -57,7 +58,7 @@ public class FxApplication extends Application {
             Parent root = loader.load();
 
             var scene = new Scene(root);
-            primaryStage.setTitle("JTypeWriter");
+            primaryStage.setTitle(windowTitle(app.messages));
             primaryStage.setScene(scene);
 
             app.setStage(primaryStage);
@@ -116,6 +117,17 @@ public class FxApplication extends Application {
      */
     static boolean greetsAtStartup(boolean openedFromArguments, boolean welcomeEnabled) {
         return !openedFromArguments && welcomeEnabled;
+    }
+
+    /**
+     * The window title, read from the same bundle as the rest of the chrome.
+     * A literal here would survive a renamed product: every other string the
+     * user sees is localised and rebrandable, but the title bar would keep the
+     * old name. Pure and package-visible so the rule is testable without a
+     * toolkit.
+     */
+    static String windowTitle(Messages messages) {
+        return messages.appName();
     }
 
     /**

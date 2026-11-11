@@ -8,7 +8,10 @@ package org.mesutormanli.jtypewriter.stats;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SessionStatsTest {
 
@@ -94,6 +97,8 @@ class SessionStatsTest {
     void wpmIsCharactersPerFivePerActiveMinute() {
         var clock = new FakeClock();
         var stats = statsWith(clock);
+        var text = "abcdefghijkl"; // 12 characters, all typed in this session
+        stats.applyChange(new TextChange(0, 0, text), text);
 
         typeBurst(stats, clock, 12, 100); // 12 keys across 1.1s of active typing
 
@@ -105,6 +110,8 @@ class SessionStatsTest {
     void wpmDoesNotDecayWhileIdle() {
         var clock = new FakeClock();
         var stats = statsWith(clock);
+        var text = "abcdefghijkl";
+        stats.applyChange(new TextChange(0, 0, text), text);
         typeBurst(stats, clock, 12, 100);
         var settled = stats.getWpm();
 
@@ -131,6 +138,135 @@ class SessionStatsTest {
         var stats = statsWith(clock);
 
         assertEquals(0, stats.getWpm());
+    }
+
+    @Test
+    void pastedCharactersCountInTheNumeratorWithoutAddingTypingTime() {
+        var clock = new FakeClock();
+        var stats = statsWith(clock);
+        var typed = "abcdefghijkl";
+        stats.applyChange(new TextChange(0, 0, typed), typed);
+        typeBurst(stats, clock, 12, 100); // 1.1s of active typing
+
+        var pasted = "x".repeat(250);
+        stats.applyChange(new TextChange(typed.length(), 0, pasted), typed + pasted);
+
+        // 262 characters in the document over the same 1.1s: the paste added
+        // no typing time but its characters are silently present.
+        assertEquals(262, stats.getCharCount());
+        assertEquals(12, stats.getTotalKeystrokes());
+        assertEquals(2858, stats.getWpm());
+    }
+
+    @Test
+    void imeCommittedTextCountsLikeTypedCharacters() {
+        var clock = new FakeClock();
+        var stats = statsWith(clock);
+        typeBurst(stats, clock, 12, 100); // 1.1s of active typing
+
+        var committed = "日本語のテキスト"; // eight characters, no keystroke per glyph
+        stats.applyChange(new TextChange(0, 0, committed), committed);
+
+        // (8 / 5) over 1.1s => ~87 wpm, even though no registerKeystroke saw it.
+        assertEquals(87, stats.getWpm());
+        assertEquals(12, stats.getTotalKeystrokes());
+    }
+
+    @Test
+    void deletingAndRetypingTheSameTextDoesNotDoubleTheWpm() {
+        var clock = new FakeClock();
+        var stats = statsWith(clock);
+        var typed = "x".repeat(600);
+        var text = "";
+
+        // Type the text once, one edit per keystroke.
+        for (var i = 0; i < 600; i++) {
+            var next = text + "x";
+            stats.registerKeystroke();
+            stats.applyChange(new TextChange(text.length(), 0, "x"), next);
+            text = next;
+            clock.now += 100;
+        }
+        var once = stats.getWpm();
+
+        stats.applyChange(new TextChange(0, typed.length(), ""), "");
+        // The retype is driven without advancing the clock, so the active time
+        // is unchanged: only the numerator rule can keep the speed from
+        // doubling with the inserted-character count.
+        for (var i = 0; i < 600; i++) {
+            stats.registerKeystroke();
+        }
+        stats.applyChange(new TextChange(0, 0, typed), typed);
+
+        assertEquals(1200, stats.getTotalKeystrokes());
+        assertEquals(600, stats.getCharCount());
+        assertEquals(once, stats.getWpm());
+    }
+
+    @Test
+    void textLoadedFromDiskIsNotCountedAsTypingSpeed() {
+        var clock = new FakeClock();
+        var stats = statsWith(clock);
+        var loaded = "x".repeat(50_000);
+        stats.updateText(loaded); // a file open bypasses the edit funnel
+
+        // A dozen characters, actually typed, across 1.1s of active time.
+        var text = loaded;
+        for (var i = 0; i < 12; i++) {
+            var next = text + "x";
+            stats.registerKeystroke();
+            stats.applyChange(new TextChange(text.length(), 0, "x"), next);
+            text = next;
+            clock.now += 100;
+        }
+
+        // (12 / 5) per 1.1s, not (50,012 / 5): the loaded text is not speed.
+        assertEquals(131, stats.getWpm());
+        assertEquals(50_012, stats.getCharCount());
+    }
+
+    @Test
+    void anInsertedBlockStillRaisesTheNumerator() {
+        var clock = new FakeClock();
+        var stats = statsWith(clock);
+        var loaded = "x".repeat(50_000);
+        stats.updateText(loaded);
+        var text = loaded;
+        for (var i = 0; i < 12; i++) {
+            var next = text + "x";
+            stats.registerKeystroke();
+            stats.applyChange(new TextChange(text.length(), 0, "x"), next);
+            text = next;
+            clock.now += 100;
+        }
+        var typedOnly = stats.getWpm();
+
+        var pasted = "y".repeat(500);
+        stats.applyChange(new TextChange(text.length(), 0, pasted), text + pasted);
+
+        assertTrue(stats.getWpm() > typedOnly,
+                "an inserted block must raise the numerator: " + stats.getWpm()
+                        + " vs " + typedOnly);
+        assertEquals(512, stats.getCharCount() - 50_000);
+        assertEquals(5585, stats.getWpm());
+    }
+
+    @Test
+    void displayedDurationIsActiveTypingTimeAndIgnoresWallClockPauses() {
+        var clock = new FakeClock();
+        var stats = statsWith(clock);
+        stats.updateText("abcdefghijkl");
+        typeBurst(stats, clock, 12, 100); // 1.1s active, 1.2s of clock consumed
+
+        assertEquals(Duration.ofMillis(1100), stats.getActiveTypingDuration());
+        assertEquals("00:00:01", stats.getFormattedDuration());
+
+        clock.now += 30_000; // a pause must change neither displayed figure
+
+        assertEquals(Duration.ofMillis(1100), stats.getActiveTypingDuration());
+        assertEquals("00:00:01", stats.getFormattedDuration());
+        // ...while the wall-clock session length does include the pause.
+        assertEquals(Duration.ofMillis(31_200), stats.getSessionDuration());
     }
 
     @Test

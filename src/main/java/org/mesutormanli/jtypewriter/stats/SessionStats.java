@@ -14,13 +14,30 @@ import java.util.function.LongSupplier;
  * <p>WPM is computed from <em>active typing time</em>, not wall-clock session
  * time: only the gaps between consecutive keystrokes up to
  * {@value #IDLE_GAP_MS} ms count towards it, so taking a break no longer drags
- * the number down (the classic "WPM decays while I read" bug). Speed is the
- * standard {@code characters / 5} per active minute. The clock is injectable so
- * tests can drive it deterministically.</p>
+ * the number down (the classic "WPM decays while I read" bug). The numerator is
+ * the number of characters in the current document, and the denominator is that
+ * same active time: the standard {@code (characters / 5)} per active minute.
+ * Characters, not keystrokes, deliberately: a paste adds no typing time but its
+ * characters are in the document and count, IME composition and autocorrect are
+ * applied without a keystroke and count the same way, and deleting then
+ * re-typing the same text cannot push the speed past what the document holds.
+ * Keystrokes remain a separate counter ({@link #getTotalKeystrokes()}), because
+ * the two numbers answer different questions. The numerator is also bounded by
+ * the characters that arrived in this session, so text loaded from a file is
+ * not counted as typing speed until it is edited.</p>
+ *
+ * <p><strong>The displayed duration is the WPM denominator.</strong>
+ * {@link #getFormattedDuration()} renders {@link #getActiveTypingDuration()},
+ * not the wall-clock session length, so the two figures on the status bar
+ * always describe the same interval. Showing wall-clock time next to a speed
+ * that ignores pauses would invite dividing one by the other and calling the
+ * result wrong; the wall-clock length is still available as
+ * {@link #getSessionDuration()} for callers that want "how long have I been
+ * sitting here", but it is not what the bar shows.</p>
  *
  * <p><strong>Counters are incremental.</strong> Word, line and non-space
  * character counts used to be recomputed from the whole document by every
- * getter: on a 10 MB draft one stats refresh cost ~164 ms and the bar runs one
+ * getter: on a 10 MB document one stats refresh cost ~164 ms and the bar runs one
  * every second on the FX thread, which made the counter - not autosave - the
  * largest recurring cost of the product. The getters are now O(1) reads of
  * counters maintained in two places: {@link #updateText(String)} does a single
@@ -59,6 +76,12 @@ public class SessionStats {
     private long activeTypingMs;
     private long lastKeystrokeMs;
     private long totalKeystrokes;
+    /**
+     * Characters that arrived through an edit in this session. {@code updateText}
+     * deliberately does not touch it: a document loaded from disk contributes
+     * no typing speed until it is actually edited.
+     */
+    private long sessionInsertedChars;
 
     /**
      * The last known document. Only a reference is kept - the string is
@@ -84,6 +107,7 @@ public class SessionStats {
         activeTypingMs = 0;
         lastKeystrokeMs = -1;
         totalKeystrokes = 0;
+        sessionInsertedChars = 0;
         recompute("");
     }
 
@@ -132,9 +156,13 @@ public class SessionStats {
                 || change.offset() > previous.length()
                 || change.offset() + change.removedLength() > previous.length()
                 || newText.length() != change.resultingLength(previous.length())) {
+            // The hint does not describe this document, so its insertion length
+            // is not evidence of typing: rescan, and credit no session
+            // characters. Undo/redo arrive here, and they are not typing.
             recompute(newText);
             return;
         }
+        sessionInsertedChars += insertedLength;
         // A word start at index i depends on the characters on both sides of
         // it, so the affected range reaches one character past the edit. The
         // extra unchanged character appears in both windows and cancels out.
@@ -170,19 +198,51 @@ public class SessionStats {
         return totalKeystrokes;
     }
 
-    /** Words per minute, sustained typing speed (characters divided by five). */
+    /**
+     * Words per minute: this session's edited characters divided by five, per
+     * minute of active typing. Below {@value #MIN_ACTIVE_MS} ms of accumulated
+     * typing the sample is too small to mean anything and the speed is 0.
+     *
+     * <p>The numerator is the smaller of the document length and the characters
+     * that arrived through an edit in this session, so text loaded from a file
+     * is not counted as typing speed until it is edited, and re-typing cannot
+     * push the figure past what the document holds.</p>
+     */
     public int getWpm() {
         if (activeTypingMs < MIN_ACTIVE_MS) return 0;
         var minutes = activeTypingMs / 60_000.0;
-        return (int) Math.round((totalKeystrokes / 5.0) / minutes);
+        var numerator = Math.min((long) currentText.length(), sessionInsertedChars);
+        return (int) Math.round((numerator / 5.0) / minutes);
     }
 
+    /**
+     * The accumulated typing time: the sum of inter-keystroke gaps up to
+     * {@value #IDLE_GAP_MS} ms. This is the interval {@link #getWpm()} divides
+     * by and the one {@link #getFormattedDuration()} displays, so pauses never
+     * enter either figure.
+     */
+    public Duration getActiveTypingDuration() {
+        return Duration.ofMillis(activeTypingMs);
+    }
+
+    /**
+     * The wall-clock length of the session, from {@link #reset()} to now. This
+     * is <em>not</em> the WPM denominator and is not what the status bar shows;
+     * it answers "how long have I been sitting here" and deliberately includes
+     * breaks. See {@link #getActiveTypingDuration()} for the displayed value.
+     */
     public Duration getSessionDuration() {
         return Duration.ofMillis(Math.max(0, now() - sessionStartMs));
     }
 
+    /**
+     * Formats the active typing time as {@code HH:MM:SS}. The duration on the
+     * bar must be the WPM denominator, not the wall clock: displaying
+     * {@link #getSessionDuration()} next to a speed that ignores pauses would
+     * make the two numbers describe different intervals.
+     */
     public String getFormattedDuration() {
-        var d = getSessionDuration();
+        var d = getActiveTypingDuration();
         var hours = d.toHours();
         var minutes = d.toMinutes() % 60;
         var seconds = d.getSeconds() % 60;
