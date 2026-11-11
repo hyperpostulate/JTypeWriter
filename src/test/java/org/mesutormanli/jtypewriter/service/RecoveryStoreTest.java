@@ -40,7 +40,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  */
 class RecoveryStoreTest {
 
-    private static final String MAGIC = "JTypeWriter-Draft/2";
+    private static final String MAGIC = "JTypeWriter-Draft/3";
+    private static final String MAGIC_V2 = "JTypeWriter-Draft/2";
 
     @Test
     void roundTripsDraftWithMetadata(@TempDir Path dir) throws IOException {
@@ -452,25 +453,26 @@ class RecoveryStoreTest {
     }
 
     /**
-     * The other half of that rule: a {@code draft-*} slot may belong to a second
-     * instance that is running right now, so age must never touch it. Two old
-     * active drafts are written; the loser of the scan must still be on disk.
+     * A {@code draft-*} slot may belong to a second instance that is running
+     * right now. Its mtime proves that: a recent write is inside
+     * {@link RecoveryStore#LIVE_DRAFT_GRACE}, so housekeeping must leave it
+     * alone even when the count cap would otherwise pick it.
      */
     @Test
-    void anOldActiveDraftOfAnotherSessionIsNeverExpired(@TempDir Path dir) throws IOException {
+    void aRecentlyWrittenDraftOfAnotherSessionIsNeverExpired(@TempDir Path dir) throws IOException {
         var older = dir.resolve("draft-" + java.util.UUID.randomUUID() + ".jtw");
         var newer = dir.resolve("draft-" + java.util.UUID.randomUUID() + ".jtw");
         Files.write(older, rawDraft("saved.at=" + Instant.now() + "\noriginal.path.b64=", "oturum A"));
         Files.write(newer, rawDraft("saved.at=" + Instant.now() + "\noriginal.path.b64=", "oturum B"));
-        Files.setLastModifiedTime(older, FileTime.from(Instant.now().minus(Duration.ofDays(90))));
-        Files.setLastModifiedTime(newer, FileTime.from(Instant.now().minus(Duration.ofDays(60))));
+        Files.setLastModifiedTime(older, FileTime.from(Instant.now().minus(Duration.ofMinutes(2))));
+        Files.setLastModifiedTime(newer, FileTime.from(Instant.now().minus(Duration.ofMinutes(1))));
 
         store(dir).loadDraft();
 
         assertEquals(2, draftFiles(dir).size(),
                 "the winner was adopted into this session's slot; the other slot is still there");
         assertTrue(Files.exists(older),
-                "a draft another instance may still be writing is never expired, however old");
+                "a draft another instance may still be writing is never expired");
     }
 
     /** Age is only the first rule: a burst of answers must not fill the folder either. */
@@ -508,6 +510,139 @@ class RecoveryStoreTest {
         var expired = RecoveryRetention.expired(entries, now);
 
         assertEquals(List.of(second), expired, "the budget stops at the newest entry");
+    }
+
+    /**
+     * The defect this policy exists for: every crash left a {@code draft-*}
+     * behind and nothing aged it. Twenty-five old drafts must come down to the
+     * count cap, keeping the newest and deleting the oldest, never the one the
+     * scan is about to offer.
+     */
+    @Test
+    void oldDraftsAreBoundedByCountAndTheOldestAreDeleted(@TempDir Path dir) throws IOException {
+        var store = store(dir);
+        var base = Instant.now().minus(Duration.ofDays(2));
+        for (var i = 0; i < 25; i++) {
+            var file = dir.resolve("draft-" + i + ".jtw");
+            Files.write(file, rawDraft(
+                    "saved.at=" + base.plusSeconds(i) + "\noriginal.path.b64=", "draft " + i));
+            Files.setLastModifiedTime(file, FileTime.from(base.plusSeconds(i)));
+        }
+
+        var draft = store.loadDraft().orElseThrow();
+
+        assertEquals("draft 24", draft.content(), "newest is adopted and returned");
+        assertEquals(20, draftFiles(dir).size(), "the count cap keeps exactly twenty files");
+        for (var i = 0; i < 5; i++) {
+            assertFalse(Files.exists(dir.resolve("draft-" + i + ".jtw")),
+                    "the oldest draft must be the one deleted: " + i);
+        }
+        assertTrue(Files.exists(dir.resolve("draft-5.jtw")),
+                "the oldest survivor is still on disk");
+    }
+
+    /**
+     * Another running instance refreshes its live draft every 30 seconds. A
+     * file written moments ago may be that process's only copy, so the mtime
+     * grace protects it even when the count cap is under pressure.
+     */
+    @Test
+    void aDraftWrittenWithinTheGraceWindowSurvivesTheCountCap(@TempDir Path dir) throws IOException {
+        var store = store(dir);
+        var base = Instant.now().minus(Duration.ofDays(2));
+        for (var i = 0; i < 25; i++) {
+            var file = dir.resolve("draft-" + i + ".jtw");
+            Files.write(file, rawDraft(
+                    "saved.at=" + base.plusSeconds(i) + "\noriginal.path.b64=", "draft " + i));
+            Files.setLastModifiedTime(file, FileTime.from(base.plusSeconds(i)));
+        }
+        var fresh = dir.resolve("draft-fresh.jtw");
+        // Old saved.at so the fresh file does not win and get adopted; its
+        // mtime is what the safety rule looks at.
+        Files.write(fresh, rawDraft("saved.at=1970-01-01T00:00:00Z\noriginal.path.b64=", "taze taslak"));
+        Files.setLastModifiedTime(fresh, FileTime.from(Instant.now()));
+
+        store.loadDraft();
+
+        assertTrue(Files.exists(fresh),
+                "a draft written within the grace window is someone's live copy, not housekeeping");
+    }
+
+    /**
+     * A {@code /2} draft predates the caret and encoding header keys. It is a
+     * complete draft, not a text blob: the text, path and time must all survive
+     * while the metadata reads as unknown.
+     */
+    @Test
+    void aVersionTwoDraftStillLoadsAsAFullDraftWithUnknownMetadata(@TempDir Path dir) throws IOException {
+        var store = store(dir);
+        var original = dir.resolve("roman.txt");
+        var file = dir.resolve("draft-" + java.util.UUID.randomUUID() + ".jtw");
+        writeRaw(file, bytes(MAGIC_V2 + "\nsaved.at=" + Instant.now()
+                + "\noriginal.path.b64=" + base64(original.toAbsolutePath().toString())
+                + "\n\nikinci surumun metni"));
+
+        var draft = store.loadDraft().orElseThrow();
+
+        assertEquals("ikinci surumun metni", draft.content());
+        assertEquals(original.toAbsolutePath(), draft.originalFile());
+        assertEquals(-1, draft.cursor());
+        assertNull(draft.charset(), "a /2 draft recorded no encoding");
+        assertFalse(draft.bom());
+    }
+
+    @Test
+    void editorMetadataRoundTripsThroughTheStore(@TempDir Path dir) throws IOException {
+        var store = store(dir);
+        var original = dir.resolve("belge.txt");
+
+        store.saveDraft("imleçli metin", original, 7, StandardCharsets.UTF_8, true);
+
+        var draft = store.loadDraft().orElseThrow();
+        assertEquals("imleçli metin", draft.content());
+        assertEquals(7, draft.cursor());
+        assertEquals(StandardCharsets.UTF_8, draft.charset());
+        assertTrue(draft.bom());
+    }
+
+    /**
+     * The payload is the verbatim document text, so line endings need no
+     * header field and must survive byte-for-byte.
+     */
+    @Test
+    void crlfTextRoundTripsExactly(@TempDir Path dir) throws IOException {
+        var store = store(dir);
+        var text = "birinci satır\r\nikinci satır\r\n\r\n";
+
+        store.saveDraft(text, null, 4, StandardCharsets.UTF_8, false);
+
+        assertEquals(text, store.loadDraft().orElseThrow().content());
+    }
+
+    /**
+     * A hard kill can leave an atomic-write temp file behind. Old leftovers are
+     * clutter and must be swept; a fresh one may be another instance mid-write
+     * and is left alone.
+     */
+    @Test
+    void abandonedTempFilesAreSweptButFreshOnesAndNonTempFilesAreLeftAlone(@TempDir Path dir)
+            throws IOException {
+        var store = store(dir);
+        var oldTemp = dir.resolve("jtw-draft-" + java.util.UUID.randomUUID() + ".jtw-old.tmp");
+        var freshTemp = dir.resolve("jtw-draft-" + java.util.UUID.randomUUID() + ".jtw-new.tmp");
+        var notTemp = dir.resolve("jtw-notes.txt");
+        Files.writeString(oldTemp, "leftover");
+        Files.writeString(freshTemp, "in flight");
+        Files.writeString(notTemp, "not ours to delete");
+        Files.setLastModifiedTime(oldTemp, FileTime.from(Instant.now().minus(Duration.ofHours(2))));
+        Files.setLastModifiedTime(freshTemp, FileTime.from(Instant.now().minus(Duration.ofMinutes(1))));
+        Files.setLastModifiedTime(notTemp, FileTime.from(Instant.now().minus(Duration.ofHours(2))));
+
+        store.loadDraft();
+
+        assertFalse(Files.exists(oldTemp), "an abandoned temp file is swept");
+        assertTrue(Files.exists(freshTemp), "a fresh temp file may still be a live write");
+        assertTrue(Files.exists(notTemp), "only jtw-*.tmp files are swept");
     }
 
     /** Files that make up the on-disk draft set. */

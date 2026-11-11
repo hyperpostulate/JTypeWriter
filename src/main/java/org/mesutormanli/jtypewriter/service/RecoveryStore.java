@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -20,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -45,9 +47,12 @@ import java.util.logging.Logger;
  * its text or text without its timestamp. The layout is:</p>
  *
  * <pre>
- * JTypeWriter-Draft/2
+ * JTypeWriter-Draft/3
  * saved.at=&lt;Instant.toString()&gt;
  * original.path.b64=&lt;Base64 of the absolute path, or empty&gt;
+ * cursor=&lt;caret offset, -1 when unknown&gt;
+ * charset=&lt;charset name, empty when unknown&gt;
+ * bom=&lt;true or false&gt;
  *
  * &lt;document text, verbatim&gt;
  * </pre>
@@ -58,6 +63,13 @@ import java.util.logging.Logger;
  * header. The text bytes after the separator are stored untouched. Everything
  * is written through {@link AtomicFiles#writeMoving}, so a crash or power cut
  * cannot leave a truncated draft behind.</p>
+ *
+ * <p>A {@code /2} draft has no {@code cursor}/{@code charset}/{@code bom}
+ * header keys. It is still read as a complete draft - text, path and time -
+ * with the metadata reported as unknown; the reader must never mistake an
+ * older file for a plain text blob. Line endings need no header field: the
+ * payload is the verbatim document, so a CRLF document round-trips
+ * byte-exactly.</p>
  *
  * <p>The original path is the target of the next save, so it is validated
  * before it is offered: it must be absolute, canonicalise and live under one
@@ -92,9 +104,22 @@ import java.util.logging.Logger;
  *       over the original, is a data-safety hazard disguised as a recovery.</li>
  * </ul>
  *
- * <p>Housekeeping: parked files are expired by age, count and total size on
- * every scan ({@link RecoveryRetention}). Only {@code pending-*.jtw} is touched
- * - a {@code draft-*.jtw} may belong to a second instance that is running.</p>
+ * <p>Housekeeping: both {@code draft-*.jtw} and {@code pending-*.jtw} are
+ * expired by age, count and total size on every scan
+ * ({@link RecoveryRetention}). A live draft used to be exempt because it might
+ * belong to a second instance, but that left every crashed session's draft on
+ * disk forever. The safety rules are applied here, where the caller knows
+ * which file is its own and when the directory was last written: this
+ * session's own file is never a candidate, and neither is any file whose mtime
+ * is within {@link #LIVE_DRAFT_GRACE} - another instance refreshes its draft
+ * every 30 seconds, so a recently written file may still be someone's only
+ * copy. Only after those filters does the pure retention policy see the
+ * remaining entries.</p>
+ *
+ * <p>Housekeeping also sweeps abandoned {@code jtw-*.tmp} files. A hard kill
+ * during an atomic write can leave one in the recovery directory forever;
+ * anything older than {@link #ABANDONED_TEMP_AGE} is deleted, anything newer
+ * is left alone because another instance may be mid-write.</p>
  *
  * <p>Adoption: the store has one slot, so when the newest draft belongs to
  * another session's file, loading copies it into this session's file and
@@ -120,19 +145,61 @@ import java.util.logging.Logger;
  */
 public class RecoveryStore {
 
-    /** A recovered draft: its text, the document it belongs to (may be {@code null}) and age. */
-    public record Draft(String content, Path originalFile, Instant savedAt) {
+    /**
+     * A recovered draft: its text, the document it belongs to (may be
+     * {@code null}), its age, and the editor state that would otherwise be
+     * lost.
+     *
+     * <p>{@code cursor} is a caret offset, {@code -1} when the draft predates
+     * the metadata. {@code charset} is {@code null} when the draft did not
+     * record one; callers treat that as "not recorded" and fall back to the
+     * document on disk, exactly as a {@code /2} draft behaves. {@code bom}
+     * means the text was written with a byte-order mark and is only meaningful
+     * together with a recorded charset.</p>
+     */
+    public record Draft(String content, Path originalFile, Instant savedAt,
+                        int cursor, Charset charset, boolean bom) {
+
+        /**
+         * A draft without editor metadata. Kept so callers and tests that only
+         * care about text, path and time do not have to spell out the unknown
+         * values.
+         */
+        public Draft(String content, Path originalFile, Instant savedAt) {
+            this(content, originalFile, savedAt, -1, null, false);
+        }
     }
 
     private static final Logger LOG = AppLogging.logger(RecoveryStore.class);
 
-    private static final String MAGIC = "JTypeWriter-Draft/2";
+    private static final String MAGIC = "JTypeWriter-Draft/3";
+    private static final String MAGIC_V2 = "JTypeWriter-Draft/2";
     private static final byte[] MAGIC_BYTES = MAGIC.getBytes(StandardCharsets.UTF_8);
+    private static final byte[] MAGIC_V2_BYTES = MAGIC_V2.getBytes(StandardCharsets.UTF_8);
     private static final String FILE_PREFIX = "draft-";
     private static final String PARKED_PREFIX = "pending-";
     private static final String FILE_SUFFIX = ".jtw";
+    private static final String TEMP_PREFIX = "jtw-";
+    private static final String TEMP_SUFFIX = ".tmp";
     private static final String KEY_SAVED_AT = "saved.at";
     private static final String KEY_ORIGINAL_PATH = "original.path.b64";
+    private static final String KEY_CURSOR = "cursor";
+    private static final String KEY_CHARSET = "charset";
+    private static final String KEY_BOM = "bom";
+
+    /**
+     * How recently another instance may have written a draft. Live sessions
+     * refresh every 30 seconds, so ten minutes covers several missed ticks plus
+     * a stalled I/O worker; expiring inside that window could delete the only
+     * copy of another process's text.
+     */
+    static final Duration LIVE_DRAFT_GRACE = Duration.ofMinutes(10);
+
+    /**
+     * A temp file this old cannot belong to a write still in progress; an hour
+     * is far beyond the time an atomic draft write takes.
+     */
+    static final Duration ABANDONED_TEMP_AGE = Duration.ofHours(1);
 
     /**
      * Upper bound for a file this class is willing to read into memory. A draft
@@ -174,10 +241,30 @@ public class RecoveryStore {
         return home == null || home.isBlank() ? Set.of() : Set.of(Path.of(home));
     }
 
-    /** Stores (or refreshes) this session's single draft slot. */
+    /**
+     * Stores (or refreshes) this session's single draft slot without editor
+     * metadata.
+     *
+     * @see #saveDraft(String, Path, int, Charset, boolean)
+     */
     public synchronized void saveDraft(String content, Path originalFile) throws IOException {
+        saveDraft(content, originalFile, -1, null, false);
+    }
+
+    /**
+     * Stores (or refreshes) this session's single draft slot.
+     *
+     * <p>The caret and encoding are captured by the caller on the FX thread
+     * before the write is submitted, because by the time the I/O worker runs
+     * the editor may already have moved on. {@code charset} may be
+     * {@code null} to mean "not recorded".</p>
+     */
+    public synchronized void saveDraft(String content, Path originalFile, int cursor,
+                                       Charset charset, boolean bom) throws IOException {
         Files.createDirectories(dir);
-        var draft = new Draft(content, originalFile == null ? null : originalFile.toAbsolutePath(), Instant.now());
+        var draft = new Draft(content,
+                originalFile == null ? null : originalFile.toAbsolutePath(),
+                Instant.now(), cursor, charset, bom);
         AtomicFiles.writeMoving(ownFile, serialize(draft));
     }
 
@@ -203,8 +290,10 @@ public class RecoveryStore {
 
         // Housekeeping runs before the scan so an expired draft is never even
         // read: expiring a file and then offering it would be the same as not
-        // expiring it at all.
-        var expired = expiredParked(entries);
+        // expiring it at all. Temp leftovers are swept first so a failed sweep
+        // can never take the draft scan down with it.
+        sweepAbandonedTemps(entries);
+        var expired = expiredDrafts(entries);
         var candidates = new ArrayList<Candidate>();
         for (var file : entries) {
             var name = file.getFileName().toString();
@@ -232,42 +321,95 @@ public class RecoveryStore {
     }
 
     /**
-     * Deletes the parked drafts {@link RecoveryRetention} no longer keeps and
-     * returns their paths. Never fatal: housekeeping that fails only means the
-     * next start tries again, and a directory it cannot delete from must not
-     * turn into a startup failure.
+     * Deletes the recovery drafts {@link RecoveryRetention} no longer keeps and
+     * returns their paths. Applies to both live {@code draft-*} and parked
+     * {@code pending-*} files.
+     *
+     * <p>Two files are never handed to the policy, because the pure function
+     * cannot know about them:</p>
+     * <ul>
+     *   <li>this session's own slot - deleting it would drop the text the
+     *       current document just snapshotted;</li>
+     *   <li>any file written within {@link #LIVE_DRAFT_GRACE} - another
+     *       instance refreshes its live draft every 30 seconds, so a recent
+     *       mtime means the file may still be that process's only copy.</li>
+     * </ul>
+     *
+     * <p>Never fatal: housekeeping that fails only means the next start tries
+     * again, and a directory it cannot delete from must not turn into a
+     * startup failure.</p>
      */
-    private Set<Path> expiredParked(List<Path> entries) {
-        var parked = new ArrayList<RecoveryRetention.Entry>();
+    private Set<Path> expiredDrafts(List<Path> entries) {
+        var now = Instant.now();
+        var recentCutoff = now.minus(LIVE_DRAFT_GRACE);
+        var candidates = new ArrayList<RecoveryRetention.Entry>();
         for (var file : entries) {
-            if (isDraftFile(file.getFileName().toString())
-                    && file.getFileName().toString().startsWith(PARKED_PREFIX)
-                    && Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
-                parked.add(parkedEntry(file));
+            if (!isDraftFile(file.getFileName().toString())
+                    || file.equals(ownFile)
+                    || !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                continue;
             }
+            var modified = lastModified(file);
+            if (!modified.isBefore(recentCutoff)) {
+                continue; // may be a live draft of another running instance
+            }
+            candidates.add(entryFor(file, modified));
         }
         var expired = new LinkedHashSet<Path>();
-        for (var file : RecoveryRetention.expired(parked, Instant.now())) {
+        for (var file : RecoveryRetention.expired(candidates, now)) {
             try {
                 Files.deleteIfExists(file);
                 expired.add(file); // known to be gone, whether or not it ever existed
-                LOG.log(Level.INFO, "expired parked recovery draft " + file);
+                LOG.log(Level.INFO, "expired recovery draft " + file);
             } catch (IOException | SecurityException e) {
-                LOG.log(Level.FINE, "could not expire parked recovery draft " + file, e);
+                LOG.log(Level.FINE, "could not expire recovery draft " + file, e);
             }
         }
         return expired;
     }
 
-    /** A parked file's age comes from its mtime: nothing has rewritten it since. */
-    private static RecoveryRetention.Entry parkedEntry(Path file) {
+    /** A draft's age comes from its mtime: nothing has rewritten it since. */
+    private static RecoveryRetention.Entry entryFor(Path file, Instant modified) {
         long size;
         try {
             size = Files.size(file);
         } catch (IOException e) {
             size = 0; // unknown size: age and count still bound the set
         }
-        return new RecoveryRetention.Entry(file, lastModified(file), size);
+        return new RecoveryRetention.Entry(file, modified, size);
+    }
+
+    /**
+     * Deletes abandoned atomic-write temp files. A hard kill between creating
+     * {@code jtw-*-*.tmp} and moving it into place leaves the file behind, and
+     * nothing else ever reclaims it. Only files older than
+     * {@link #ABANDONED_TEMP_AGE} are touched: a newer one may belong to
+     * another instance whose write is in flight.
+     *
+     * <p>Best-effort by design - a sweep failure is logged at {@code FINE} and
+     * the scan continues, because a stray temp file is clutter, not recovered
+     * text.</p>
+     */
+    private void sweepAbandonedTemps(List<Path> entries) {
+        var cutoff = Instant.now().minus(ABANDONED_TEMP_AGE);
+        for (var file : entries) {
+            var name = file.getFileName().toString();
+            if (!name.startsWith(TEMP_PREFIX) || !name.endsWith(TEMP_SUFFIX)) {
+                continue;
+            }
+            if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                continue;
+            }
+            if (!lastModified(file).isBefore(cutoff)) {
+                continue; // another instance may be mid-write
+            }
+            try {
+                Files.deleteIfExists(file);
+                LOG.log(Level.INFO, "deleted abandoned recovery temp file " + file);
+            } catch (IOException | SecurityException e) {
+                LOG.log(Level.FINE, "could not delete abandoned recovery temp file " + file, e);
+            }
+        }
     }
 
     /**
@@ -402,12 +544,11 @@ public class RecoveryStore {
         }
         var modified = lastModified(file);
 
-        if (!startsWithMagic(bytes)) {
+        var headerStart = magicLength(bytes);
+        if (headerStart < 0) {
             LOG.log(Level.WARNING, "recovery draft without a valid header, treating it as text: " + file);
             return new Candidate(new Draft(decode(bytes), null, modified), file, modified);
         }
-
-        var headerStart = MAGIC_BYTES.length;
         if (bytes.length <= headerStart || bytes[headerStart] != '\n') {
             LOG.log(Level.WARNING, "recovery draft header is not terminated, treating it as text: " + file);
             return new Candidate(new Draft(decode(bytes), null, modified), file, modified);
@@ -422,6 +563,9 @@ public class RecoveryStore {
         var contentBytes = Arrays.copyOfRange(bytes, separator + 2, bytes.length);
         var savedAt = modified;
         Path original = null;
+        var cursor = -1;
+        Charset charset = null;
+        var bom = false;
         for (var line : new String(headerBytes, StandardCharsets.UTF_8).split("\n", -1)) {
             var trimmed = line.endsWith("\r") ? line.substring(0, line.length() - 1) : line;
             var equals = trimmed.indexOf('=');
@@ -434,9 +578,45 @@ public class RecoveryStore {
                 savedAt = parseSavedAt(file, value, modified);
             } else if (KEY_ORIGINAL_PATH.equals(key)) {
                 original = parseOriginalPath(file, value);
+            } else if (KEY_CURSOR.equals(key)) {
+                cursor = parseCursor(value);
+            } else if (KEY_CHARSET.equals(key)) {
+                charset = parseCharset(file, value);
+            } else if (KEY_BOM.equals(key)) {
+                bom = "true".equals(value.trim());
             }
         }
-        return new Candidate(new Draft(decode(contentBytes), original, savedAt), file, modified);
+        return new Candidate(new Draft(decode(contentBytes), original, savedAt, cursor, charset, bom),
+                file, modified);
+    }
+
+    /**
+     * A caret is a hint, never a reason to hide the text: an unreadable value
+     * becomes {@code -1}, which the caller treats as "no caret recorded".
+     */
+    private static int parseCursor(String value) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    /**
+     * An unknown charset name only loses the encoding hint. Every
+     * {@link Charset#forName} failure - an unknown name, an illegal one - is
+     * caught here so a bad metadata line can never abort the draft parse.
+     */
+    private static Charset parseCharset(Path file, String value) {
+        if (value.isBlank()) {
+            return null;
+        }
+        try {
+            return Charset.forName(value.trim());
+        } catch (IllegalArgumentException e) { // includes UnsupportedCharsetException
+            LOG.log(Level.FINE, "unknown charset in recovery draft, dropping the hint: " + file, e);
+            return null;
+        }
     }
 
     private static Instant parseSavedAt(Path file, String value, Instant fallback) {
@@ -514,8 +694,22 @@ public class RecoveryStore {
         }
     }
 
-    private static boolean startsWithMagic(byte[] bytes) {        return bytes.length >= MAGIC_BYTES.length
-                && Arrays.equals(bytes, 0, MAGIC_BYTES.length, MAGIC_BYTES, 0, MAGIC_BYTES.length);
+    /**
+     * @return the length of the recognised magic prefix, or {@code -1} when the
+     *         file has none. The length matters because the header starts right
+     *         after the magic: a {@code /2} file's shorter magic must not shift
+     *         its header by the {@code /3} length.
+     */
+    private static int magicLength(byte[] bytes) {
+        if (bytes.length >= MAGIC_BYTES.length
+                && Arrays.equals(bytes, 0, MAGIC_BYTES.length, MAGIC_BYTES, 0, MAGIC_BYTES.length)) {
+            return MAGIC_BYTES.length;
+        }
+        if (bytes.length >= MAGIC_V2_BYTES.length
+                && Arrays.equals(bytes, 0, MAGIC_V2_BYTES.length, MAGIC_V2_BYTES, 0, MAGIC_V2_BYTES.length)) {
+            return MAGIC_V2_BYTES.length;
+        }
+        return -1;
     }
 
     private static Instant lastModified(Path file) {
@@ -551,7 +745,10 @@ public class RecoveryStore {
                         draft.originalFile().toAbsolutePath().toString().getBytes(StandardCharsets.UTF_8));
         var header = MAGIC + "\n"
                 + KEY_SAVED_AT + "=" + draft.savedAt() + "\n"
-                + KEY_ORIGINAL_PATH + "=" + encodedPath + "\n\n";
+                + KEY_ORIGINAL_PATH + "=" + encodedPath + "\n"
+                + KEY_CURSOR + "=" + draft.cursor() + "\n"
+                + KEY_CHARSET + "=" + (draft.charset() == null ? "" : draft.charset().name()) + "\n"
+                + KEY_BOM + "=" + draft.bom() + "\n\n";
         var out = new ByteArrayOutputStream();
         out.writeBytes(header.getBytes(StandardCharsets.UTF_8));
         out.writeBytes(draft.content().getBytes(StandardCharsets.UTF_8));

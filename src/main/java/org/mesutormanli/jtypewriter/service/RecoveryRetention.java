@@ -14,27 +14,36 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
- * How long a parked recovery draft is worth keeping.
+ * How long a recovery draft is worth keeping.
  *
  * <p>Parking exists so that a postponed draft does not block the active slot
  * (see {@link RecoveryStore}), which means a parked file is written once and
- * never again: without a policy parked files accumulate in the user's home
- * directory for the lifetime of the installation, and every "Later" answer
- * costs disk space that nothing ever reclaims.</p>
+ * never again. Live drafts have the opposite problem: a crash leaves the last
+ * snapshot behind and nothing ever writes it again. Without a policy both
+ * kinds accumulate in the user's home directory for the lifetime of the
+ * installation, and every "Later" answer or crashed session costs disk space
+ * that nothing ever reclaims.</p>
  *
- * <p><b>Only parked files are candidates.</b> A {@code draft-*.jtw} may belong
- * to a second instance running right now - the slot name carries a per-session
- * UUID - so deleting one could delete another process's live data. A
- * {@code pending-*.jtw} was abandoned by the session that wrote it, which is
- * exactly what makes it safe to expire.</p>
+ * <p><b>The caller filters live files; this class does not know about them.</b>
+ * A {@code draft-*.jtw} may belong to a second instance running right now - the
+ * slot name carries a per-session UUID - so the class itself cannot tell a
+ * live file from an abandoned one. {@link RecoveryStore} therefore removes its
+ * own slot and every recently written file before calling here; what remains
+ * is abandoned by construction. The policy is prefix-agnostic on purpose: it
+ * ages {@code draft-*} and {@code pending-*} alike.</p>
+ *
+ * <p>The limits are deliberately generous because every candidate holds user
+ * text. Thirty days and twenty files is the product decision: a draft is a
+ * recovery copy, and it is preferable to spend a little disk than to delete the
+ * only surviving version of a document one day too early.</p>
  *
  * <p>The policy is a pure function of the directory listing rather than logic
  * inline in {@link RecoveryStore}, so it can be tested without creating thirty
  * days of files: a rule that deletes text is not a rule to verify by
  * inspection. The rules apply in a fixed order:</p>
  * <ol>
- *   <li><b>age</b> - a draft the user postponed more than {@link #MAX_AGE} ago
- *       is no longer a recovery candidate, it is clutter;</li>
+ *   <li><b>age</b> - a draft written more than {@link #MAX_AGE} ago is no
+ *       longer a recovery candidate, it is clutter;</li>
  *   <li><b>count</b> - the newest {@link #MAX_FILES} survivors stay;</li>
  *   <li><b>size</b> - walking newest first, an entry that no longer fits the
  *       {@link #MAX_TOTAL_BYTES} budget is skipped, but the walk continues:
@@ -47,24 +56,29 @@ import java.util.List;
  */
 public final class RecoveryRetention {
 
-    /** Parked drafts older than this are housekeeping, not history. */
+    /** Drafts older than this are housekeeping, not history. */
     static final Duration MAX_AGE = Duration.ofDays(30);
 
-    /** How many postponed documents are still worth offering. */
-    static final int MAX_FILES = 10;
+    /**
+     * How many drafts survive the count rule. Twenty is the roadmap's
+     * product-decision default (30 days + 20 files) and is intentionally
+     * generous: the files hold user text, so a small folder is not worth
+     * deleting a possible only copy for.
+     */
+    static final int MAX_FILES = 20;
 
-    /** Total bytes the parked set may occupy. */
+    /** Total bytes the retained set may occupy. */
     static final long MAX_TOTAL_BYTES = 64L * 1024 * 1024;
 
     private RecoveryRetention() {
     }
 
-    /** A parked file as the scan saw it: when it was written and how big it is. */
+    /** A draft file as the scan saw it: when it was written and how big it is. */
     public record Entry(Path file, Instant savedAt, long size) {
     }
 
     /**
-     * @return the parked files that should be deleted, oldest first, so a
+     * @return the draft files that should be deleted, oldest first, so a
      *         caller can log them in the order they were written
      */
     public static List<Path> expired(List<Entry> entries, Instant now) {

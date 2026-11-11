@@ -154,22 +154,50 @@ public class AutoSaveService {
     /** Starts periodic snapshots and ties cleanup to the window lifecycle. */
     public void attach(Stage stage, EditorArea editorArea) {
         this.stage = stage;
-        // The supplier is evaluated only after the dirty check inside snapshot,
-        // so a clean document never pays for copy()ing its whole text.
+        // The suppliers are evaluated only after the dirty check inside
+        // snapshot, so a clean document never pays for copy()ing its whole
+        // text. The caret is read on the FX thread, in the same tick.
         timeline = new Timeline(new KeyFrame(Duration.seconds(AUTOSAVE_SECONDS),
-                e -> snapshot(editorArea::getText)));
+                e -> snapshot(editorArea::getText, editorArea::getCaretPosition)));
         timeline.setCycleCount(Animation.INDEFINITE);
         timeline.play();
 
         stage.focusedProperty().addListener((obs, wasFocused, focused) -> {
             if (!focused) {
-                snapshot(editorArea::getText);
+                snapshot(editorArea::getText, editorArea::getCaretPosition);
             }
         });
         // Fires on every hide - a close request, Platform.exit(), a session
         // end. Which of those it was decides what happens to the draft
         // (shutdown), never the event itself.
         stage.addEventHandler(WindowEvent.WINDOW_HIDDEN, e -> shutdown());
+        // A hide stops the timeline; without this handler a show would leave
+        // autosave dead for the rest of the session.
+        stage.addEventHandler(WindowEvent.WINDOW_SHOWN, e -> resumeSnapshots());
+    }
+
+    /**
+     * Restarts periodic snapshots after the window becomes visible again.
+     *
+     * <p>{@link #shutdown()} stops the timeline on every hide, so a later show
+     * used to leave the safety net off permanently. No second timeline is
+     * created: the existing one is reused, and only when it exists and is not
+     * already running. A frozen slot stays suppressed - its draft could not be
+     * parked, so writing over it would destroy the only copy.</p>
+     *
+     * @return {@code true} when a stopped timeline was restarted; package
+     *         visible and state-based so the decision can be asserted without
+     *         constructing a JavaFX {@code Timeline}
+     */
+    boolean resumeSnapshots() {
+        if (timeline == null || draftFrozen) {
+            return false;
+        }
+        if (timeline.getStatus() == Animation.Status.RUNNING) {
+            return false;
+        }
+        timeline.play();
+        return true;
     }
 
     /** The observable state behind the status-bar warning. */
@@ -218,8 +246,15 @@ public class AutoSaveService {
         if (choice == RecoveryChoice.RESTORE) {
             draftFrozen = false;
             var recovered = draft.get();
-            fileService.restoreRecovered(restoreTarget(recovered), recovered.content());
+            // The draft's encoding is only a fallback: FileService prefers what
+            // the original on disk says, because the file is better evidence.
+            fileService.restoreRecovered(restoreTarget(recovered), recovered.content(),
+                    recovered.charset(), recovered.bom());
             editorArea.setDocument(fileService.getCurrentContent());
+            var cursor = recovered.cursor();
+            if (editorArea != null && cursor >= 0 && cursor <= editorArea.getLength()) {
+                editorArea.positionCaret(cursor);
+            }
             return true;
         }
         if (choice == RecoveryChoice.DISCARD) {
@@ -332,6 +367,7 @@ public class AutoSaveService {
         }
         if (parked) {
             draftFrozen = false;
+            health.clear(AutosaveHealth.Problem.DRAFT_PARK);
             return;
         }
         draftFrozen = true;
@@ -343,7 +379,7 @@ public class AutoSaveService {
      * that holds it) so the whole decision stays testable without a toolkit.
      */
     void snapshot(String text) {
-        snapshot(() -> text);
+        snapshot(() -> text, () -> -1);
     }
 
     /**
@@ -356,6 +392,20 @@ public class AutoSaveService {
      * the text is copied on a clean document.</p>
      */
     void snapshot(Supplier<String> text) {
+        snapshot(text, () -> -1);
+    }
+
+    /**
+     * One autosave tick that also records the caret. The caret and the
+     * document's encoding are read here, on the FX thread, before the write is
+     * submitted: the editor may move while the I/O worker waits.
+     *
+     * <p>A successful snapshot only withdraws {@code DRAFT_WRITE}. It says
+     * nothing about an earlier failed delete or park, so using
+     * {@link AutosaveHealth#recover()} here would make a stale draft warning
+     * disappear for the wrong reason.</p>
+     */
+    void snapshot(Supplier<String> text, Supplier<Integer> cursor) {
         if (draftFrozen) {
             return; // the slot could not be freed; never overwrite its only copy
         }
@@ -363,16 +413,19 @@ public class AutoSaveService {
             // Dirty check first, copy second. This ordering is the whole point
             // of the supplier: a clean tick costs no text copy at all.
             String copy = text.get();
+            int caret = cursor == null ? -1 : cursor.get();
             Path path = fileService.getCurrentFilePath();
+            var charset = fileService.getCurrentCharset();
+            boolean bom = fileService.isCurrentBom();
             ioExecutor.submit("autosave snapshot", () -> {
-                store.saveDraft(copy, path);
+                store.saveDraft(copy, path, caret, charset, bom);
                 return null;
             }).whenComplete((ignored, failure) -> ioExecutor.completeOnFx(() -> {
                 if (failure != null) {
                     LOG.log(Level.WARNING, "autosave snapshot failed", unwrap(failure));
                     reportFailure(AutosaveHealth.Problem.DRAFT_WRITE, true);
                 } else {
-                    health.recover(); // a working snapshot withdraws an older warning
+                    health.clear(AutosaveHealth.Problem.DRAFT_WRITE);
                 }
                 return null;
             }));
@@ -396,7 +449,7 @@ public class AutoSaveService {
                         LOG.log(Level.WARNING, "could not delete the recovery draft", unwrap(failure));
                         reportFailure(AutosaveHealth.Problem.DRAFT_DELETE, false);
                     } else if (Boolean.TRUE.equals(cleared)) {
-                        health.recover();
+                        health.clear(AutosaveHealth.Problem.DRAFT_DELETE);
                     } else {
                         reportFailure(AutosaveHealth.Problem.DRAFT_DELETE, false);
                     }
@@ -418,7 +471,7 @@ public class AutoSaveService {
             cleared = false;
         }
         if (cleared) {
-            health.recover();
+            health.clear(AutosaveHealth.Problem.DRAFT_DELETE);
         } else {
             reportFailure(AutosaveHealth.Problem.DRAFT_DELETE, false);
         }

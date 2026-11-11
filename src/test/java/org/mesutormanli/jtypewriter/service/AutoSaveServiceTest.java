@@ -11,6 +11,7 @@ import org.mesutormanli.jtypewriter.IoExecutor;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -24,7 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -204,7 +208,7 @@ class AutoSaveServiceTest {
         doThrow(new IOException("read-only recovery directory"))
                 .doThrow(new IOException("still read-only"))
                 .doNothing()
-                .when(store).saveDraft(anyString(), any());
+                .when(store).saveDraft(anyString(), any(), anyInt(), any(), anyBoolean());
         var fileService = mock(FileService.class);
         when(fileService.hasUnsavedChanges()).thenReturn(true);
         var dialogService = mock(DialogService.class);
@@ -237,7 +241,8 @@ class AutoSaveServiceTest {
     void aSnapshotThatFailsWithAnErrorStillRecordsTheDraftWriteProblem() throws Exception {
         var store = mock(RecoveryStore.class);
         when(store.clear()).thenReturn(true);
-        doThrow(new OutOfMemoryError("no memory")).when(store).saveDraft(anyString(), any());
+        doThrow(new OutOfMemoryError("no memory"))
+                .when(store).saveDraft(anyString(), any(), anyInt(), any(), anyBoolean());
         var fileService = mock(FileService.class);
         when(fileService.hasUnsavedChanges()).thenReturn(true);
         var service = newService(store, fileService);
@@ -290,7 +295,7 @@ class AutoSaveServiceTest {
         doThrow(new IOException("read-only"))
                 .doThrow(new IOException("read-only"))
                 .doNothing()
-                .when(store).saveDraft(anyString(), any());
+                .when(store).saveDraft(anyString(), any(), anyInt(), any(), anyBoolean());
         var fileService = mock(FileService.class);
         when(fileService.hasUnsavedChanges()).thenReturn(true);
         var service = new AutoSaveService(store, fileService,
@@ -349,6 +354,65 @@ class AutoSaveServiceTest {
         service.snapshot("still clean");
         assertTrue(service.health().problem().isEmpty(),
                 "a successful delete is the success that withdraws DRAFT_DELETE");
+    }
+
+    /**
+     * A snapshot success is not evidence that an earlier failed delete
+     * happened. The warning must survive until a real delete succeeds.
+     */
+    @Test
+    void aSuccessfulSnapshotDoesNotWithdrawAFailedDeleteWarning() {
+        var store = mock(RecoveryStore.class);
+        when(store.clear()).thenReturn(false);
+        var fileService = mock(FileService.class);
+        when(fileService.hasUnsavedChanges()).thenReturn(false);
+        var service = newService(store, fileService);
+
+        service.snapshot("clean document");
+        assertEquals(AutosaveHealth.Problem.DRAFT_DELETE, service.health().problem().orElseThrow());
+
+        // The document becomes dirty and the snapshot write succeeds. That says
+        // nothing about the stale draft the failed delete left on disk.
+        when(fileService.hasUnsavedChanges()).thenReturn(true);
+        when(fileService.getCurrentCharset()).thenReturn(StandardCharsets.UTF_8);
+        service.snapshot("dirty document");
+
+        assertEquals(AutosaveHealth.Problem.DRAFT_DELETE, service.health().problem().orElseThrow(),
+                "only a successful delete may withdraw DRAFT_DELETE");
+    }
+
+    /**
+     * Encoding and caret are read on the FX thread before the write is
+     * submitted, so the saved draft describes the editor as it was at the tick.
+     */
+    @Test
+    void aSnapshotRecordsTheCaretAndEncodingCapturedFromTheEditor() throws Exception {
+        var store = mock(RecoveryStore.class);
+        var fileService = mock(FileService.class);
+        var target = Path.of("belge.txt");
+        when(fileService.hasUnsavedChanges()).thenReturn(true);
+        when(fileService.getCurrentFilePath()).thenReturn(target);
+        when(fileService.getCurrentCharset()).thenReturn(StandardCharsets.UTF_8);
+        when(fileService.isCurrentBom()).thenReturn(false);
+        var service = newService(store, fileService);
+
+        service.snapshot(() -> "text", () -> 9);
+
+        verify(store).saveDraft(eq("text"), eq(target), eq(9),
+                eq(StandardCharsets.UTF_8), eq(false));
+    }
+
+    /**
+     * Hiding the window stops the timeline; showing it again must not leave
+     * autosave dead. The actual restart cannot be exercised headlessly (a
+     * {@code Timeline} needs the toolkit), so the guarding decision is asserted
+     * here: with no attached window there is nothing to resume.
+     */
+    @Test
+    void resumingSnapshotsWithoutAnAttachedWindowIsANoOp() {
+        var service = newService(mock(RecoveryStore.class), mock(FileService.class));
+
+        assertFalse(service.resumeSnapshots());
     }
 
     /**

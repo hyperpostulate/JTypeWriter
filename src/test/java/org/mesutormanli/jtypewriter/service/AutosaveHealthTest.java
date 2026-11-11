@@ -71,6 +71,50 @@ class AutosaveHealthTest {
     }
 
     @Test
+    void clearWithdrawsOnlyTheNamedProblemAndNotifies() {
+        var health = new AutosaveHealth();
+        var notifications = new AtomicInteger();
+        health.addListener(notifications::incrementAndGet);
+        health.fail(AutosaveHealth.Problem.DRAFT_DELETE);
+
+        health.clear(AutosaveHealth.Problem.DRAFT_DELETE);
+
+        assertFalse(health.isFailing());
+        assertTrue(health.problem().isEmpty());
+        assertEquals(2, notifications.get(), "the transition is observable");
+    }
+
+    /**
+     * The reason {@code clear} exists: a successful snapshot must not hide a
+     * failed delete. Only the problem the caller actually exercised goes.
+     */
+    @Test
+    void clearOfAnotherProblemLeavesTheStandingWarningAlone() {
+        var health = new AutosaveHealth();
+        var notifications = new AtomicInteger();
+        health.addListener(notifications::incrementAndGet);
+        health.fail(AutosaveHealth.Problem.DRAFT_DELETE);
+
+        health.clear(AutosaveHealth.Problem.DRAFT_WRITE);
+
+        assertTrue(health.isFailing());
+        assertEquals(AutosaveHealth.Problem.DRAFT_DELETE, health.problem().orElseThrow());
+        assertEquals(1, notifications.get(), "no state change, no notification");
+    }
+
+    @Test
+    void clearingWhileHealthyIsSilent() {
+        var health = new AutosaveHealth();
+        var notifications = new AtomicInteger();
+        health.addListener(notifications::incrementAndGet);
+
+        health.clear(AutosaveHealth.Problem.DRAFT_WRITE);
+
+        assertFalse(health.isFailing());
+        assertEquals(0, notifications.get());
+    }
+
+    @Test
     void recoveringWhileHealthyIsSilent() {
         var health = new AutosaveHealth();
         var notifications = new AtomicInteger();

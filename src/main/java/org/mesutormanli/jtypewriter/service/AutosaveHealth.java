@@ -65,7 +65,27 @@ public final class AutosaveHealth {
         listener.run();
     }
 
-    /** Records a successful write; clears the warning and notifies on the transition. */
+    /**
+     * Clears the warning only when {@code problem} is the one currently
+     * standing. A successful snapshot says nothing about an earlier failed
+     * delete, so withdrawing on any success would hide a stale draft that is
+     * still on disk. Notifies on the transition only.
+     */
+    void clear(Problem problem) {
+        if (current == null || current != problem) {
+            return;
+        }
+        current = null;
+        listener.run();
+    }
+
+    /**
+     * Records that the safety net is working again, whatever had failed.
+     *
+     * <p>Kept for callers that genuinely mean "nothing is wrong any more"; a
+     * caller reporting a specific success should use {@link #clear(Problem)}
+     * so one subsystem's success cannot erase another's warning.</p>
+     */
     void recover() {
         if (current == null) {
             return;

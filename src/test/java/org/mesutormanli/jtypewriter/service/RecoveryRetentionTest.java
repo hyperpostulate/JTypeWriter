@@ -67,6 +67,28 @@ class RecoveryRetentionTest {
                 "both fitting entries stay and only the middle one is expired");
     }
 
+    /**
+     * The count cap is the roadmap's product decision: 20 files, generous
+     * because each one is user text. Two over the cap means exactly two go.
+     */
+    @Test
+    void theCountCapKeepsTwentyDrafts(@TempDir Path dir) {
+        assertEquals(20, RecoveryRetention.MAX_FILES, "30 days + 20 files is the product default");
+
+        var now = Instant.parse("2026-11-04T00:00:00Z");
+        var entries = new java.util.ArrayList<RecoveryRetention.Entry>();
+        for (var i = 0; i < RecoveryRetention.MAX_FILES + 2; i++) {
+            entries.add(new RecoveryRetention.Entry(
+                    dir.resolve("draft-" + i + ".jtw"), now.minusSeconds(i), 1024));
+        }
+
+        var expired = RecoveryRetention.expired(entries, now);
+
+        assertEquals(2, expired.size());
+        assertEquals(dir.resolve("draft-" + (RecoveryRetention.MAX_FILES + 1) + ".jtw"),
+                expired.get(0), "the oldest entry goes first");
+    }
+
     /** The newest entry is never deleted for size, even when it is over budget. */
     @Test
     void theNewestEntrySurvivesAnOversizedBudgetByItself(@TempDir Path dir) {
