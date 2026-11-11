@@ -20,12 +20,18 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -235,6 +241,43 @@ class AppSettingsTest {
         assertEquals(Theme.SEPIA, new AppSettings(file).getTheme());
         assertArrayEquals(quarantinedBytes, Files.readAllBytes(copy),
                 "the quarantined copy must not be touched by later saves");
+    }
+
+    /**
+     * A corrupt file can be valid up to its last line. {@code Properties.load}
+     * fills the map as it parses, so the keys before the fault used to stay in
+     * memory after the quarantine - and the next save wrote them back, turning
+     * "open with defaults" into "keep whatever survived the parse". The whole
+     * load must be all-or-nothing.
+     */
+    @Test
+    void keysParsedBeforeACorruptLineDoNotSurviveTheLoad(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "theme=SEPIA\nfont.size=22\nbad=\\u12\n");
+        // Pin the failure this test relies on: the malformed unicode escape is
+        // what aborts the load after the first two keys have been read.
+        assertThrows(IllegalArgumentException.class, () -> {
+            try (var in = Files.newInputStream(file)) {
+                new Properties().load(in);
+            }
+        });
+
+        var settings = new AppSettings(file);
+
+        assertEquals(Theme.DARK, settings.getTheme(), "a partial read must leave the defaults");
+        assertEquals(FontSizeManager.DEFAULT_SIZE, settings.getFontSize());
+        assertFalse(Files.exists(file), "the corrupt file must be quarantined");
+        assertEquals(1, quarantined(dir).size());
+
+        settings.save();
+
+        var rewritten = Files.readString(file);
+        assertFalse(rewritten.contains("theme=SEPIA"),
+                "a partially-read key must not be written back: " + rewritten);
+        assertFalse(rewritten.contains("font.size=22"),
+                "a partially-read key must not be written back: " + rewritten);
+        assertTrue(rewritten.contains("schema.version=" + AppSettings.CURRENT_SCHEMA_VERSION),
+                "the migration must stamp the fresh file: " + rewritten);
     }
 
     @Test
@@ -462,6 +505,49 @@ class AppSettingsTest {
         settings.setFontSize(21);
         assertTrue(Files.readString(file).contains(
                 "schema.version=" + AppSettings.CURRENT_SCHEMA_VERSION));
+    }
+
+    /**
+     * A digit run too large for a {@code long} is not the same as no digit run:
+     * it proves a build wrote a version this one cannot even represent. The
+     * migration must not read that as "unversioned" and stamp this build's
+     * version over it, which would claim authorship of an unknown shape.
+     */
+    @Test
+    void anOverflowingSchemaVersionIsLeftUntouchedByMigrate() {
+        var props = new Properties();
+        props.setProperty("schema.version", "99999999999999999999");
+
+        AppSettings.migrate(props);
+
+        assertEquals("99999999999999999999", props.getProperty("schema.version"));
+    }
+
+    /** The same future-marker policy must hold when a file is read through an instance. */
+    @Test
+    void anOverflowingSchemaVersionSurvivesAReadAndASave(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        Files.writeString(file, "schema.version=99999999999999999999\ntheme=SEPIA\n");
+        var settings = new AppSettings(file);
+
+        assertEquals(Theme.SEPIA, settings.getTheme());
+        settings.setFontSize(20);
+
+        var rewritten = Files.readString(file);
+        assertTrue(rewritten.contains("schema.version=99999999999999999999"),
+                "an uninterpretable future version must not be downgraded: " + rewritten);
+        assertTrue(rewritten.contains("font.size=20"), rewritten);
+    }
+
+    /** No digit run at all is still the unversioned shape and is stamped. */
+    @Test
+    void aSchemaVersionWithoutAnyDigitRunIsStampedAsUnversioned() {
+        var props = new Properties();
+        props.setProperty("schema.version", "not-a-version");
+
+        AppSettings.migrate(props);
+
+        assertEquals(AppSettings.CURRENT_SCHEMA_VERSION, props.getProperty("schema.version"));
     }
 
     /**
@@ -702,5 +788,68 @@ class AppSettingsTest {
         Files.writeString(file, "sound.enabled=false\nsound.volume=0.25\n");
 
         assertEquals(0.25, new AppSettings(file).getSoundVolume(), 0.0001);
+    }
+
+    /**
+     * Saving used to serialise the live {@code Properties} while other threads
+     * could still be setting keys: {@code store()} walks the entry set without
+     * the map lock, so a concurrent setter could throw
+     * {@code ConcurrentModificationException} mid-write or leave a truncated
+     * snapshot. A snapshot taken under the monitor, plus one writer at a time,
+     * must make every completed file a complete, parseable properties file.
+     */
+    @Test
+    void concurrentSettersNeverCorruptTheSettingsFile(@TempDir Path dir) throws Exception {
+        var file = dir.resolve("settings.properties");
+        var settings = new AppSettings(file);
+        var threads = 8;
+        var iterations = 40;
+        var start = new CountDownLatch(1);
+        var pool = Executors.newFixedThreadPool(threads);
+        try {
+            var futures = new ArrayList<Future<?>>();
+            for (var thread = 0; thread < threads; thread++) {
+                var worker = thread;
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    for (var iteration = 0; iteration < iterations; iteration++) {
+                        if ((worker + iteration) % 2 == 0) {
+                            settings.setFontSize(10 + (worker * iterations + iteration) % 50);
+                        } else {
+                            var themes = Theme.values();
+                            settings.setTheme(themes[(worker + iteration) % themes.length]);
+                        }
+                    }
+                    return null;
+                }));
+            }
+            start.countDown();
+            for (var future : futures) {
+                // A setter's exception is rethrown here: before the fix this is
+                // where a ConcurrentModificationException would surface.
+                future.get(30, TimeUnit.SECONDS);
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+
+        assertFalse(settings.isSettingsWriteFailurePending(), "the writes must all have succeeded");
+
+        // Parse the raw file independently of AppSettings: a truncated snapshot
+        // can still load as properties, so also check that both written keys
+        // and the version marker are present.
+        var parsed = new Properties();
+        try (var in = Files.newInputStream(file)) {
+            parsed.load(in);
+        }
+        assertTrue(parsed.containsKey("schema.version"), "the file must be complete");
+        assertTrue(parsed.containsKey("theme") || parsed.containsKey("font.size"),
+                "at least one of the racing keys must be present");
+        assertEquals(AppSettings.CURRENT_SCHEMA_VERSION, parsed.getProperty("schema.version"));
+
+        // Re-reading through the public API must see a consistent value, never
+        // a half-applied pair or a parse failure.
+        var reloaded = new AppSettings(file);
+        assertEquals(parsed.getProperty("theme"), reloaded.getTheme().name());
     }
 }

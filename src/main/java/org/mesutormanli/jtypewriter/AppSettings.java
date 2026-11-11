@@ -132,6 +132,14 @@ public final class AppSettings {
     private final Path file;
     private final Properties props = new Properties();
     private final AtomicBoolean saveFailed = new AtomicBoolean();
+    /**
+     * Serialises whole-file writes. {@link Properties} is a {@link java.util.Hashtable},
+     * but {@link Properties#store} walks its entry set without holding the map
+     * lock, so a setter running alongside an unsynchronised save could change
+     * the map mid-walk. One save at a time also keeps two temp/rename cycles
+     * from interleaving on the same target.
+     */
+    private final Object writeLock = new Object();
 
     public AppSettings(Path file) {
         this.file = file;
@@ -192,11 +200,13 @@ public final class AppSettings {
     static final double DEFAULT_SOUND_VOLUME = 0.5;
 
     public double getSoundVolume() {
-        var stored = optionalDouble(KEY_SOUND_VOLUME);
-        if (stored.isPresent()) {
-            return Math.max(0.0, Math.min(1.0, stored.get()));
+        synchronized (props) {
+            var stored = optionalDouble(KEY_SOUND_VOLUME);
+            if (stored.isPresent()) {
+                return Math.max(0.0, Math.min(1.0, stored.get()));
+            }
+            return getBool(KEY_SOUND, true) ? DEFAULT_SOUND_VOLUME : 0.0;
         }
-        return getBool(KEY_SOUND, true) ? DEFAULT_SOUND_VOLUME : 0.0;
     }
 
     public void setSoundVolume(double volume) {
@@ -217,7 +227,13 @@ public final class AppSettings {
      * level, keeping the current one if it already is audible.
      */
     public void setSoundEnabled(boolean enabled) {
-        setSoundVolume(enabled ? (getSoundVolume() > 0 ? getSoundVolume() : DEFAULT_SOUND_VOLUME) : 0.0);
+        // Decide the level under the map lock, then write outside it so a
+        // single-key setter never blocks behind the file I/O.
+        double value;
+        synchronized (props) {
+            value = enabled ? (getSoundVolume() > 0 ? getSoundVolume() : DEFAULT_SOUND_VOLUME) : 0.0;
+        }
+        setSoundVolume(value);
     }
 
     /** Whether the toolbar was showing at the last exit (default: showing). */
@@ -283,30 +299,36 @@ public final class AppSettings {
      */
     public List<Path> getRecentFiles() {
         var stored = new ArrayList<Path>();
-        for (var index = 0; index < RecentFiles.MAX; index++) {
-            var raw = props.getProperty(KEY_RECENT_PREFIX + index);
-            if (raw == null || raw.isBlank()) {
-                continue;
-            }
-            try {
-                stored.add(Path.of(raw.trim()));
-            } catch (InvalidPathException e) {
-                LOG.log(Level.FINE, "ignoring unusable recent document " + raw);
+        // Read the whole indexed list under one lock so a concurrent
+        // rememberFile cannot hand the caller a half-rewritten list.
+        synchronized (props) {
+            for (var index = 0; index < RecentFiles.MAX; index++) {
+                var raw = props.getProperty(KEY_RECENT_PREFIX + index);
+                if (raw == null || raw.isBlank()) {
+                    continue;
+                }
+                try {
+                    stored.add(Path.of(raw.trim()));
+                } catch (InvalidPathException e) {
+                    LOG.log(Level.FINE, "ignoring unusable recent document " + raw);
+                }
             }
         }
         return RecentFiles.keepingOnly(RecentFiles.normalized(stored), Files::isRegularFile);
     }
 
     private void writeRecentFiles(List<Path> documents) {
-        // Clear every slot first: the list only ever shrinks by dropping its
-        // tail, and a stale key beyond the new size would come back as a
-        // document the user did not open.
-        for (var index = 0; index < RecentFiles.MAX; index++) {
-            props.remove(KEY_RECENT_PREFIX + index);
-        }
-        for (var index = 0; index < documents.size() && index < RecentFiles.MAX; index++) {
-            props.setProperty(KEY_RECENT_PREFIX + index,
-                    documents.get(index).toAbsolutePath().toString());
+        synchronized (props) {
+            // Clear every slot first: the list only ever shrinks by dropping
+            // its tail, and a stale key beyond the new size would come back as
+            // a document the user did not open.
+            for (var index = 0; index < RecentFiles.MAX; index++) {
+                props.remove(KEY_RECENT_PREFIX + index);
+            }
+            for (var index = 0; index < documents.size() && index < RecentFiles.MAX; index++) {
+                props.setProperty(KEY_RECENT_PREFIX + index,
+                        documents.get(index).toAbsolutePath().toString());
+            }
         }
     }
 
@@ -334,15 +356,17 @@ public final class AppSettings {
             return;
         }
         var absolute = document.toAbsolutePath();
-        props.setProperty(KEY_LAST_FILE, absolute.toString());
-        var parent = absolute.getParent();
-        if (parent != null) {
-            props.setProperty(KEY_LAST_DIR, parent.toString());
+        synchronized (props) {
+            props.setProperty(KEY_LAST_FILE, absolute.toString());
+            var parent = absolute.getParent();
+            if (parent != null) {
+                props.setProperty(KEY_LAST_DIR, parent.toString());
+            }
+            // Opening or saving a document is the one event both the session
+            // restore and the welcome card's recent list care about, so they
+            // are written together - one save, one file state.
+            writeRecentFiles(RecentFiles.withNewest(getRecentFiles(), absolute));
         }
-        // Opening or saving a document is the one event both the session restore
-        // and the welcome card's recent list care about, so they are written
-        // together - one save, one file state.
-        writeRecentFiles(RecentFiles.withNewest(getRecentFiles(), absolute));
         save();
     }
 
@@ -350,25 +374,31 @@ public final class AppSettings {
 
     /** The window geometry from the last session, empty on first start. */
     public Optional<WindowState> getWindowState() {
-        var width = optionalDouble(KEY_WINDOW_WIDTH);
-        var height = optionalDouble(KEY_WINDOW_HEIGHT);
-        if (width.isEmpty() || height.isEmpty()) {
-            return Optional.empty();
+        // The geometry is five keys but one value: reading it under the map
+        // lock means a getter never sees half of one setWindowState call.
+        synchronized (props) {
+            var width = optionalDouble(KEY_WINDOW_WIDTH);
+            var height = optionalDouble(KEY_WINDOW_HEIGHT);
+            if (width.isEmpty() || height.isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(new WindowState(
+                    getBool(KEY_WINDOW_MAXIMIZED, true),
+                    optionalDouble(KEY_WINDOW_X).orElse(0d),
+                    optionalDouble(KEY_WINDOW_Y).orElse(0d),
+                    width.get(),
+                    height.get()));
         }
-        return Optional.of(new WindowState(
-                getBool(KEY_WINDOW_MAXIMIZED, true),
-                optionalDouble(KEY_WINDOW_X).orElse(0d),
-                optionalDouble(KEY_WINDOW_Y).orElse(0d),
-                width.get(),
-                height.get()));
     }
 
     public void setWindowState(WindowState state) {
-        props.setProperty(KEY_WINDOW_MAXIMIZED, String.valueOf(state.maximized()));
-        props.setProperty(KEY_WINDOW_X, String.valueOf(state.x()));
-        props.setProperty(KEY_WINDOW_Y, String.valueOf(state.y()));
-        props.setProperty(KEY_WINDOW_WIDTH, String.valueOf(state.width()));
-        props.setProperty(KEY_WINDOW_HEIGHT, String.valueOf(state.height()));
+        synchronized (props) {
+            props.setProperty(KEY_WINDOW_MAXIMIZED, String.valueOf(state.maximized()));
+            props.setProperty(KEY_WINDOW_X, String.valueOf(state.x()));
+            props.setProperty(KEY_WINDOW_Y, String.valueOf(state.y()));
+            props.setProperty(KEY_WINDOW_WIDTH, String.valueOf(state.width()));
+            props.setProperty(KEY_WINDOW_HEIGHT, String.valueOf(state.height()));
+        }
         save();
     }
 
@@ -409,10 +439,19 @@ public final class AppSettings {
      */
     static void migrate(Properties props) {
         var stored = props.getProperty(KEY_SCHEMA_VERSION);
-        if (versionSegments(stored).length == 0) {
-            // No usable marker: an unversioned file, or a hand edit that
-            // replaced it with something that is not a version at all.
+        if (stored == null || !VERSION_PART.matcher(stored).find()) {
+            // No digit run at all: an unversioned file, or a hand edit that
+            // replaced the marker with something that is not a version.
             props.setProperty(KEY_SCHEMA_VERSION, CURRENT_SCHEMA_VERSION);
+            return;
+        }
+        if (versionSegments(stored).length == 0) {
+            // Digit runs that do not fit in a long: no build this one knows
+            // could have written it, so it comes from a future or foreign
+            // build whose shape cannot be interpreted. Leave it untouched,
+            // exactly like a stored version that compares newer.
+            LOG.log(Level.FINE, "settings file was written by " + stored.trim()
+                    + ", a version this build cannot interpret; reading it as-is");
             return;
         }
         var order = compareVersions(stored, CURRENT_SCHEMA_VERSION);
@@ -449,10 +488,15 @@ public final class AppSettings {
     }
 
     /**
-     * The numeric segments of a version, empty when it contains none. Empty is
-     * the "no usable marker" signal for {@link #migrate}: a blank value, a
-     * comment pasted into the wrong place and a word are all the same thing
-     * here - no build ever wrote a version like that.
+     * The numeric segments of a version, empty when it contains none or when a
+     * segment overflows a {@code long}.
+     *
+     * <p>Those two cases look alike to this method but not to
+     * {@link #migrate}: a value with no digit run was never written by a build
+     * and is stamped as unversioned, while an overflowing run is evidence of a
+     * build whose version this one cannot represent and must be left alone.
+     * The caller therefore checks {@link #VERSION_PART} before trusting the
+     * empty result.</p>
      */
     private static long[] versionSegments(String version) {
         if (version == null) {
@@ -479,10 +523,20 @@ public final class AppSettings {
         if (!Files.isRegularFile(file)) {
             return;
         }
+        // Load into a fresh map, never the live one: Properties.load fills as
+        // it parses and then throws on garbage, so loading directly would leave
+        // the keys before the fault behind. They would survive the quarantine
+        // and be written back by the next save, breaking the "open with
+        // defaults" promise. Only a fully successful parse reaches props.
+        var loaded = new Properties();
         try (InputStream in = Files.newInputStream(file)) {
-            props.load(in);
+            loaded.load(in);
         } catch (IOException | IllegalArgumentException e) {
             quarantineCorruptFile(e);
+            return;
+        }
+        synchronized (props) {
+            props.putAll(loaded);
         }
     }
 
@@ -550,9 +604,20 @@ public final class AppSettings {
      */
     public void save() {
         try {
-            var buffer = new ByteArrayOutputStream();
-            props.store(buffer, "JTypeWriter settings");
-            AtomicFiles.writeMoving(file, buffer.toByteArray());
+            // Hold the write lock across snapshot and write so two saves cannot
+            // interleave and an older snapshot cannot clobber a newer file
+            // after the newer setter already returned. The snapshot is taken
+            // under the Properties monitor - store() itself walks the map
+            // without it - but the snapshot, not the live map, is serialised.
+            synchronized (writeLock) {
+                var snapshot = new Properties();
+                synchronized (props) {
+                    snapshot.putAll(props);
+                }
+                var buffer = new ByteArrayOutputStream();
+                snapshot.store(buffer, "JTypeWriter settings");
+                AtomicFiles.writeMoving(file, buffer.toByteArray());
+            }
         } catch (IOException | SecurityException e) {
             saveFailed.set(true);
             LOG.log(Level.WARNING, "cannot write settings to " + file, e);
@@ -583,7 +648,12 @@ public final class AppSettings {
     }
 
     private void set(String key, String value) {
-        props.setProperty(key, value);
+        synchronized (props) {
+            props.setProperty(key, value);
+        }
+        // Save outside the map lock: a setter must not hold it while waiting
+        // for the file write, or a save holding the write lock could deadlock
+        // with it. The value is already visible to getters and to the snapshot.
         save();
     }
 
