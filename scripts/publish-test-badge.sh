@@ -11,9 +11,13 @@
 #
 # CI re-runs the suite under several system locales and keeps each run's reports
 # in its own directory (target/surefire-reports, target/surefire-reports-tr,
-# ...). The badge sums all of them and says how many runs that was, because the
-# count is the sum of every run, not the last locale to finish: a suite of 272
-# tests run under three locales publishes "816 passing (3 locales)".
+# ...). Those directories are repeat runs of the same suite, not additional
+# tests: summing them would publish 575 x 3 = "1725 passing", which is not the
+# size of anything. The badge therefore publishes one run's count - the largest
+# directory total, so a run that lost a class cannot understate the suite - while
+# failures/errors are still summed across every directory for the colour. If the
+# directories disagree, every count is named on stderr but the run still
+# publishes.
 #
 # The badge file lives on the gh-pages branch (badges/tests.json), which the
 # README consumes via https://img.shields.io/endpoint. Publishing never touches
@@ -73,9 +77,10 @@ REMOTE="https://github.com/${REPO_SLUG}.git"
 
 # --- read the test totals ----------------------------------------------
 # Each TEST-*.xml starts with a <testsuite ...> element carrying the counts for
-# that class; the totals are their sum. grep/sed/coreutils only, so CI needs
-# nothing beyond the shell. Every report directory is read: a later run must
-# never hide an earlier one, and the badge must reflect all locale runs.
+# that class; a directory's total is their sum. grep/sed/coreutils only, so CI
+# needs nothing beyond the shell. Every report directory is read so failures in
+# any locale run still count, but the suite size is one run's count (the largest
+# directory), never the sum of the repeat runs.
 shopt -s nullglob
 report_dirs=()
 for dir in "$REPORTS_BASE" "$REPORTS_BASE"-*; do
@@ -84,9 +89,10 @@ for dir in "$REPORTS_BASE" "$REPORTS_BASE"-*; do
     fi
 done
 
-total_tests=0
+suite_tests=0
 total_failed=0
 read_dirs=0
+dir_counts=()
 for dir in "${report_dirs[@]}"; do
     reports=("$dir"/TEST-*.xml)
     (( ${#reports[@]} > 0 )) || continue
@@ -105,7 +111,10 @@ for dir in "${report_dirs[@]}"; do
     # Per-directory breakdown on stderr, so a CI log shows where the total came
     # from without changing the JSON printed on stdout.
     echo "reports: $dir -> $dir_tests tests, $dir_failed failures/errors (${#reports[@]} files)" >&2
-    total_tests=$((total_tests + dir_tests))
+    dir_counts+=("$dir -> $dir_tests")
+    if (( dir_tests > suite_tests )); then
+        suite_tests=$dir_tests
+    fi
     total_failed=$((total_failed + dir_failed))
     read_dirs=$((read_dirs + 1))
 done
@@ -115,18 +124,35 @@ if (( read_dirs == 0 )); then
     exit 1
 fi
 
+# More than one report directory means the same suite ran more than once (one
+# run per system locale). A differing total means a run lost or gained a class,
+# which is worth seeing even though it does not fail the badge: the largest
+# total is published, so the count cannot be understated.
+if (( read_dirs > 1 )); then
+    previous=""
+    for entry in "${dir_counts[@]}"; do
+        count=${entry##* -> }
+        if [[ -z "$previous" ]]; then
+            previous=$count
+        elif [[ "$count" != "$previous" ]]; then
+            echo "note: report directories disagree on the test count:" >&2
+            printf '  %s\n' "${dir_counts[@]}" >&2
+            echo "publishing the largest total ($suite_tests)" >&2
+            break
+        fi
+    done
+fi
+
 # --- build the shields endpoint JSON -----------------------------------
 # Green only for a clean, non-empty run; anything else is red so a broken build
-# is visible on the README rather than hidden behind a stale count. Several
-# report directories mean several full runs of the same suite, so the green
-# message says how many runs were summed instead of pretending the number is
-# the size of the suite.
-if (( total_tests > 0 && total_failed == 0 )); then
-    message="$total_tests passing"
-    (( read_dirs > 1 )) && message="$message ($read_dirs locales)"
+# is visible on the README rather than hidden behind a stale count. The green
+# message is one run's suite size; the failure colour is decided from every
+# directory, so a failure in any locale run turns the badge red.
+if (( suite_tests > 0 && total_failed == 0 )); then
+    message="$suite_tests passing"
     color="brightgreen"
 else
-    message="$total_tests tests"
+    message="$suite_tests tests"
     color="red"
 fi
 json=$(printf '{"schemaVersion": 1, "label": "tests", "message": "%s", "color": "%s"}' \

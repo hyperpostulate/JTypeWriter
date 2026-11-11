@@ -41,6 +41,9 @@ for argument in "$@"; do
 done
 
 APP_NAME="JTypeWriter"
+# Same derivation as package.sh: jpackage lower-cases the deb package name, so
+# the artifact is jtypewriter_<version>_amd64.deb rather than JTypeWriter_*.deb.
+DEB_PACKAGE=$(printf '%s' "$APP_NAME" | tr '[:upper:]' '[:lower:]')
 
 case "$(uname -s)" in
     Linux*)               PLATFORM="linux" ;;
@@ -177,7 +180,7 @@ elif ! command -v dpkg-deb >/dev/null 2>&1; then
     FAILURES=$((FAILURES + 1))
 else
     shopt -s nullglob
-    DEBS=("$DEST"/*.deb)
+    DEBS=("$DEST/$DEB_PACKAGE"*.deb)
     shopt -u nullglob
     if [[ ${#DEBS[@]} -ne 1 ]]; then
         echo "expected exactly one .deb under '$DEST/', found ${#DEBS[@]} - run scripts/package.sh --installer" >&2

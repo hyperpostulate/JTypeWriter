@@ -22,6 +22,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 APP_NAME="JTypeWriter"
+# jpackage's deb bundler lower-cases the package name, so `--name JTypeWriter`
+# produces jtypewriter_<version>_amd64.deb, not JTypeWriter_*.deb. This stem is
+# the single derivation used by the cleanup below, the "exactly one .deb"
+# assertion and verify_deb_license; deriving it again per call site is how the
+# cleanup came to match nothing while a stale package survived. The MSI keeps
+# APP_NAME because jpackage really writes JTypeWriter-<version>.msi.
+DEB_PACKAGE=$(printf '%s' "$APP_NAME" | tr '[:upper:]' '[:lower:]')
 DESCRIPTION="A distraction-free text editor"
 VENDOR="Mesut ORMANLI"
 COPYRIGHT="Copyright (c) 2026 Mesut ORMANLI"
@@ -112,7 +119,7 @@ STAGING="target/jpackage-input"
 # jpackage refuses to overwrite existing output; this directory is the script's
 # own build output, so it is always regenerated from scratch.
 rm -rf "$DEST/$APP_NAME"
-rm -f "$DEST/$APP_NAME"*.deb "$DEST/$APP_NAME"*.msi
+rm -f "$DEST/$DEB_PACKAGE"*.deb "$DEST/$APP_NAME"*.msi
 # Start from an empty input directory: with --skip-build a previous run's fat jar
 # would otherwise stay here and could be picked up instead of the current one.
 rm -rf "$STAGING"
@@ -348,10 +355,10 @@ build_deb_resource_dir() {
 verify_deb_license() {
     local deb=""
     shopt -s nullglob
-    local candidates=("$DEST"/*.deb)
+    local candidates=("$DEST/$DEB_PACKAGE"*.deb)
     shopt -u nullglob
     for candidate in "${candidates[@]}"; do
-        deb="$candidate" # jpackage lower-cases the package name: jtypewriter_1.0.0_amd64.deb
+        deb="$candidate"
     done
     if [[ -z "$deb" ]]; then
         echo "installer reported success but no .deb was found under $DEST/" >&2
@@ -417,7 +424,7 @@ if [[ "$INSTALLER" == "1" ]]; then
                 --copyright "$COPYRIGHT" \
                 --resource-dir "$(build_deb_resource_dir)"
             shopt -s nullglob
-            built_debs=("$DEST"/*.deb)
+            built_debs=("$DEST/$DEB_PACKAGE"*.deb)
             shopt -u nullglob
             if [[ ${#built_debs[@]} -ne 1 ]]; then
                 echo "expected exactly one .deb under $DEST/, found ${#built_debs[@]}" >&2
