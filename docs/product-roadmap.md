@@ -35,7 +35,7 @@ kanıtlanabilir; 2. madde yeni ölçüm ister; 3. madde kod dışıdır.
 
 | Dalga | Ad | Kapsam | Baskın efor | Çıkış kapısı |
 |---|---|---|---|---|
-| **P3.0** | Yol açıcı düzeltmeler | B1, M2, U2, U8, B5, D5, D13, D14, D2b (U1 ürün kararıyla kapsam dışı) | AI (saatler) | `package.sh` iki kez üst üste geçer; ağaç temiz |
+| **P3.0** ✅ Tamamlandı | Yol açıcı düzeltmeler | B1, M2, U2, U8, B5, D5, D13, D14, D2b (U1 ürün kararıyla kapsam dışı) | AI (saatler) | `package.sh` iki kez üst üste geçer; ağaç temiz |
 | **P3.1** | Veri güvenliği kapanışı | D1, D2, D3, D4, D6–D10, D4b–D4d, A4, D11, D12 | AI (1–2 gün) + 2 karar | `FxThreadIoTest` kurtarma yolunu kapsar; kodlama matrisi büyür |
 | **P3.2** | Dağıtım ve yayın güveni | P1, P2, B2, B3, B4, B6–B8, Q1 | AI + dış karar | İmaj ≤ ~75 MiB; yayın hattı kapıları koşar |
 | **P3.3** | Editör yetkinliği | U3–U7, U9, A1, A7, P4, §8.2 özellikleri | Karara bağlı | Ürün sınırı kararı yazılı; seçilen özellik testli |
@@ -48,12 +48,17 @@ paketleme ölçümü alınamaz), P3.3 ise §16.3 kararı olmadan başlamaz.
 
 ## 3. Dalga detayı
 
-### P3.0 — Yol açıcı düzeltmeler (en hızlı kazanımlar)
+### P3.0 — Yol açıcı düzeltmeler (en hızlı kazanımlar) ✅ Tamamlandı
 
 Amaç: sürümü **fiilen kıran** ve **yanlış bilgi veren** işleri bitirmek. Hepsi mevcut
 test kültürüyle kanıtlanabilir; hiçbiri mimari karar gerektirmez.
 
-#### 3.0.1 B1 — `.deb` temizliği (S1, kanıt düzeyi **A**)
+> **Durum (2026-11-11):** tamamlandı. Kapı kanıtı: `mvn clean test` → 598 test, 0 hata;
+> `./scripts/package.sh --skip-build --installer` iki kez → `0`/`0`, `releases/linux/`
+> içinde tek `.deb`; `./scripts/verify-artifacts.sh --skip-build` → `0`, "all 20
+> comparisons passed". U1 ürün kararıyla yapılmayacak olarak kapatıldı (§3.0.3).
+
+#### 3.0.1 B1 — `.deb` temizliği (S1, kanıt düzeyi **A**) ✅ Tamamlandı
 
 - **Sorun:** `package.sh:115` / `verify-artifacts.sh:180-186` `"$DEST/$APP_NAME"*.deb`
   (büyük harf) arıyor; jpackage küçük harfli `jtypewriter_<sürüm>_amd64.deb` yazıyor
@@ -68,8 +73,12 @@ test kültürüyle kanıtlanabilir; hiçbiri mimari karar gerektirmez.
   aynı ağaçta geçer. Depodaki `jtypewriter_1.0.2_amd64.deb` bu işin kanıtı olarak
   kullanılır (artefakt commit edilmez).
 - **Efor:** AI dakikalar; İNSAN 5 dk (diff onayı).
+- **Sonuç:** `DEB_PACKAGE` (küçük harfli ad) tek yerden türetiliyor; temizlik, "tek `.deb`"
+  assert'i ve `verify_deb_license` aynı değeri kullanıyor; `verify-artifacts.sh` aynı
+  türetmeyi yapıyor. İkinci paketleme koşusu artık geçiyor; bayat `1.0.2` paketi ilk
+  koşuda silindi.
 
-#### 3.0.2 M2 — Bayat doküman/iddia paketi (S2, kanıt **A**)
+#### 3.0.2 M2 — Bayat doküman/iddia paketi (S2, kanıt **A**) ✅ Tamamlandı
 
 Dört ayrı yanlış, tek iş paketi (hepsi aynı "tek kaynak" ilkesinin ihlali):
 
@@ -91,8 +100,14 @@ Dört ayrı yanlış, tek iş paketi (hepsi aynı "tek kaynak" ilkesinin ihlali)
   `PackagingNoticesTest`) — doküman metni pinleyen testler burada kırılırsa *doğru*
   kırılır.
 - **Efor:** AI ~1 saat; İNSAN 15 dk (iki dilli metin gözden geçirmesi).
+- **Sonuç:** test tablosu artık elle tutulmuyor: `ReadmeTestTableTest` sınıf listesini
+  `src/test`'ten türetiyor ve iki README'de de eksik/fazla satırı, ayrıca Türkçe tablonun
+  İngilizceden eksik olmasını hatırlarsa kırıyor (63 sınıf, iki dilde). NOTICE ICNS
+  iddiasını kaybetti; README ağacı 18 eksik sınıfı kazandı, var olmayan `UndoHistoryReset`
+  ve "dock" dili çıktı; altı Javadoc tavanı 64 MiB oldu; ikinci örnek anlatımı modal
+  uyarıyı doğru anlatıyor.
 
-#### 3.0.3 U1 — menü/araç çubuğu: ürün kararıyla kapsam dışı
+#### 3.0.3 U1 — menü/araç çubuğu: ürün kararıyla kapsam dışı ✅ Tamamlandı (ürün kararı: yapılmayacak)
 
 - **Durum:** **yapılmayacak.** Bulgu analizde duruyor (`S1`, §8.3: komut menüsü araç
   çubuğunun içinde, `MainController.java:294-296`; çubuk `Ctrl+T` ile gizlenince menüye
@@ -105,7 +120,7 @@ Dört ayrı yanlış, tek iş paketi (hepsi aynı "tek kaynak" ilkesinin ihlali)
   kapsama girerse U1 bu dalgada değil, P3.3'te yeniden değerlendirilir. Bu bölüm, bulgunun
   kaybolmadığını ve neden yapılmadığını kayda geçirmek için duruyor.
 
-#### 3.0.4 U2 — WPM tanımı (S2)
+#### 3.0.4 U2 — WPM tanımı (S2) ✅ Tamamlandı
 
 `SessionStats.java:173-178` paydası `totalKeystrokes`: yapıştırma/IME/otomatik düzeltme
 hızı hiç artırmıyor, silip yeniden yazmak şişiriyor. Ayrıca süre 5 s üstü boşlukları
@@ -118,18 +133,23 @@ saymıyor, WPM saymıyor → ekranda tutarsız iki sayı.
 - **Kapı:** `SessionStatsTest` (yapıştırma, IME, sil-yeniden-yaz senaryoları),
   `StatsBarModelTest`.
 - **Efor:** AI ~1 saat + tanım kararı (İNSAN 10 dk).
+- **Sonuç:** tanım tek: **karakter/5 ÷ aktif süre**. Pay, `min(belge uzunluğu, bu oturumda
+  düzenlemeyle gelen karakterler)` — yapıştırma ve IME karakteri sayar ama süre eklemez,
+  diskten yüklenen metin yazma hızı sayılmaz, silip yeniden yazmak sayıyı belgede olandan
+  fazla şişirmez. `getFormattedDuration()` aynı aktif süreyi gösteriyor, yani ekrandaki iki
+  sayı aynı aralığı ölçüyor.
 
-#### 3.0.5 Küçük hijyen kümesi (S2/S3, her biri tek nokta)
+#### 3.0.5 Küçük hijyen kümesi (S2/S3, her biri tek nokta) ✅ Tamamlandı
 
-| ID | İş | Dosya | Kapı |
-|---|---|---|---|
-| D5 | `expired` boyut kuralında `break` → `continue`; iki yorumu koda uydur | `RecoveryRetention.java:79-84` | `RecoveryRetentionTest` yeni vaka: yaşlı-küçük taslak sığarken silinmiyor |
-| D6 | DISCARD sonrası `store.clear()` dönüşü yok sayılmasın | `AutoSaveService.java:225-228` | `AutoSaveServiceTest`: clear=false → kullanıcıya görünür uyarı |
-| D13 | `AppDirs` `user.home` yoksa korunsun (AppLogging/RecoveryStore ile aynı davranış) | `AppDirs.java:19-21` | `AppDirsTest`: `-Duser.home=` boş → NPE yok |
-| D14 | `RecoveryTargetPath` `SecurityException` sızdırmasın | `RecoveryTargetPath:105-123` | hedef yol okunamazsa "yolsuz kurtarma" dalı |
-| D2b | temp adı `NAME_MAX` sınırında kaydetmeyi bozmasın (adı kısalt, hash'le) | `AtomicFiles.java:76-78` | `AtomicFilesTest`: 250 karakterlik adla aç→kaydet |
-| U8 | pencere başlığı sabit `"JTypeWriter"` → mevcut `appName` anahtarı | `FxApplication.java:60` | `MessagesTest` + başlık testi |
-| B5 | rozet 3 locale toplamını ("1.725") değil gerçek test sayısını yayınlasın | `publish-test-badge.sh:79-127` | badge metni 575'i söyler |
+| ID | İş | Dosya | Kapı | Durum |
+|---|---|---|---|---|
+| D5 | `expired` boyut kuralında `break` → `continue`; iki yorumu koda uydur | `RecoveryRetention.java:79-84` | `RecoveryRetentionTest` yeni vaka: yaşlı-küçük taslak sığarken silinmiyor | ✅ Tamamlandı |
+| D6 | DISCARD sonrası `store.clear()` dönüşü yok sayılmasın | `AutoSaveService.java:225-228` | `AutoSaveServiceTest`: clear=false → kullanıcıya görünür uyarı | ✅ Tamamlandı |
+| D13 | `AppDirs` `user.home` yoksa korunsun (AppLogging/RecoveryStore ile aynı davranış) | `AppDirs.java:19-21` | `AppDirsTest`: `-Duser.home=` boş → NPE yok | ✅ Tamamlandı |
+| D14 | `RecoveryTargetPath` `SecurityException` sızdırmasın | `RecoveryTargetPath:105-123` | hedef yol okunamazsa "yolsuz kurtarma" dalı | ✅ Tamamlandı |
+| D2b | temp adı `NAME_MAX` sınırında kaydetmeyi bozmasın (adı kısalt, hash'le) | `AtomicFiles.java:76-78` | `AtomicFilesTest`: 250 karakterlik adla aç→kaydet | ✅ Tamamlandı |
+| U8 | pencere başlığı sabit `"JTypeWriter"` → mevcut `appName` anahtarı | `FxApplication.java:60` | `MessagesTest` + başlık testi | ✅ Tamamlandı |
+| B5 | rozet 3 locale toplamını ("1.725") değil gerçek test sayısını yayınlasın | `publish-test-badge.sh:79-127` | badge metni 575'i söyler | ✅ Tamamlandı |
 
 - **Efor:** AI ~2 saat toplam; İNSAN 15 dk.
 
