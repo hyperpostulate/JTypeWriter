@@ -224,7 +224,13 @@ public class AutoSaveService {
         }
         if (choice == RecoveryChoice.DISCARD) {
             draftFrozen = false;
-            store.clear();
+            if (!store.clear()) {
+                // The user answered "discard"; a delete that did not happen must
+                // not be reported as success. Status bar and log only: the dialog
+                // copy is about writing a recovery copy, not dropping one.
+                LOG.log(Level.WARNING, "could not delete the recovery draft");
+                reportFailure(AutosaveHealth.Problem.DRAFT_DELETE, false);
+            }
         } else {
             // LATER (or the prompt was closed): the draft is the only copy, so
             // keep it queued for the next start instead of silently deleting it

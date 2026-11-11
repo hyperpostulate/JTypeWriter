@@ -9,11 +9,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -166,5 +171,29 @@ class RecoveryTargetPathTest {
         assertNull(RecoveryTargetPath.accept(settings, List.of(home), List.of(dataDir)));
         assertEquals(document.toAbsolutePath(),
                 RecoveryTargetPath.accept(document, List.of(home), List.of(dataDir)));
+    }
+
+    /**
+     * A provider-level failure must refuse the path, not escape into recovery.
+     * A closed {@code jar:} filesystem makes every lookup throw
+     * {@link java.nio.file.ClosedFileSystemException}, an unchecked failure -
+     * the draft text is still offered, only without a target.
+     */
+    @Test
+    void aClosedFileSystemIsRefusedInsteadOfThrowing(@TempDir Path dir) throws Exception {
+        FileSystem fs = FileSystems.newFileSystem(
+                URI.create("jar:" + dir.resolve("closed.zip").toUri()), Map.of("create", "true"));
+        Path closedPath;
+        try {
+            closedPath = fs.getPath("/draft.txt");
+        } finally {
+            fs.close();
+        }
+
+        var accepted = assertDoesNotThrow(
+                () -> RecoveryTargetPath.accept(closedPath, List.of(dir), List.of()),
+                "a provider failure must mean no target, never an escaped exception");
+
+        assertNull(accepted, "there is no usable target on a closed file system");
     }
 }

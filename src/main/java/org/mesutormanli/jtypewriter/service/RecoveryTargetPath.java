@@ -39,7 +39,10 @@ import java.util.logging.Logger;
  *
  * <p>Rejection is never a data loss: the draft text is still offered, only
  * without a target, which forces Save As. An empty allowed-root set rejects
- * every path (fail closed) rather than accepting all of them (fail open).</p>
+ * every path (fail closed) rather than accepting all of them (fail open).
+ * Any provider-level failure - a {@link SecurityException} from a sandboxed
+ * file system, a {@link java.nio.file.ClosedFileSystemException} - also means
+ * "no usable target" instead of an exception escaping into recovery.</p>
  *
  * <p>Pure and headless: no JavaFX types, no state, every decision is a pure
  * function of the candidate and the roots.</p>
@@ -101,24 +104,33 @@ final class RecoveryTargetPath {
      * that was deleted in the meantime can still be saved back to that
      * location. A dangling link is not such a case - saving "through" it would
      * replace the link with a regular file - and is rejected.
+     *
+     * <p>A provider-level failure (security, a closed file system) during any
+     * of these lookups is treated like an unresolvable path: {@code null}, no
+     * target, never an exception. The caller already offers the text; a save
+     * target is a convenience, not a reason to abort recovery.</p>
      */
     private static Path canonicalize(Path path) {
-        var normalized = path.normalize();
         try {
-            return normalized.toRealPath();
-        } catch (IOException notResolvable) {
-            if (Files.isSymbolicLink(normalized)) {
-                return null;
-            }
-            var parent = normalized.getParent();
-            if (parent == null) {
-                return null;
-            }
+            var normalized = path.normalize();
             try {
-                return parent.toRealPath().resolve(normalized.getFileName());
-            } catch (IOException | SecurityException parentUnresolvable) {
-                return null;
+                return normalized.toRealPath();
+            } catch (IOException notResolvable) {
+                if (Files.isSymbolicLink(normalized)) {
+                    return null;
+                }
+                var parent = normalized.getParent();
+                if (parent == null) {
+                    return null;
+                }
+                try {
+                    return parent.toRealPath().resolve(normalized.getFileName());
+                } catch (IOException | RuntimeException parentUnresolvable) {
+                    return null;
+                }
             }
+        } catch (RuntimeException providerFailure) {
+            return null;
         }
     }
 
@@ -140,14 +152,21 @@ final class RecoveryTargetPath {
 
     /**
      * The root itself may be a link (a home directory on another volume), so it
-     * is canonicalised the same way. A root that cannot be resolved is compared
-     * in its absolute, normalised form instead of being dropped.
+     * is canonicalised the same way. A root that cannot be resolved - including
+     * one whose provider fails with a security or closed-filesystem exception -
+     * is compared in its absolute, normalised form instead of being dropped; a
+     * form that cannot even be produced is {@code null}, which the caller
+     * treats as "this root matches nothing".
      */
     private static Path realRoot(Path root) {
         try {
             return root.toRealPath();
-        } catch (IOException | SecurityException e) {
-            return root.toAbsolutePath().normalize();
+        } catch (IOException | RuntimeException e) {
+            try {
+                return root.toAbsolutePath().normalize();
+            } catch (RuntimeException stillUnusable) {
+                return null;
+            }
         }
     }
 }

@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -348,6 +349,45 @@ class AutoSaveServiceTest {
         service.snapshot("still clean");
         assertTrue(service.health().problem().isEmpty(),
                 "a successful delete is the success that withdraws DRAFT_DELETE");
+    }
+
+    /**
+     * The DISCARD answer must not pretend a failed delete happened. The user
+     * chose to drop the draft; if the file survives, the status bar and the log
+     * are the only channels, never a modal dialog.
+     */
+    @Test
+    void aFailedDiscardDeleteLeavesTheDraftDeleteWarning() {
+        var store = mock(RecoveryStore.class);
+        when(store.loadDraft()).thenReturn(Optional.of(
+                new RecoveryStore.Draft("text", null, Instant.now())));
+        when(store.clear()).thenReturn(false);
+        var dialogService = mock(DialogService.class);
+        when(dialogService.showRecoveryDialog(any(), any())).thenReturn(RecoveryChoice.DISCARD);
+        var service = new AutoSaveService(store, mock(FileService.class),
+                dialogService, mock(Messages.class));
+
+        service.offerRecovery(null, null);
+
+        assertEquals(AutosaveHealth.Problem.DRAFT_DELETE, service.health().problem().orElseThrow());
+        verify(dialogService, never()).showError(any(), any(), any());
+    }
+
+    /** A discard whose delete actually happened leaves no warning behind. */
+    @Test
+    void aSuccessfulDiscardDeleteStaysHealthy() {
+        var store = mock(RecoveryStore.class);
+        when(store.loadDraft()).thenReturn(Optional.of(
+                new RecoveryStore.Draft("text", null, Instant.now())));
+        when(store.clear()).thenReturn(true);
+        var dialogService = mock(DialogService.class);
+        when(dialogService.showRecoveryDialog(any(), any())).thenReturn(RecoveryChoice.DISCARD);
+        var service = new AutoSaveService(store, mock(FileService.class),
+                dialogService, mock(Messages.class));
+
+        service.offerRecovery(null, null);
+
+        assertTrue(service.health().problem().isEmpty(), "a real delete is a clean state");
     }
 
     /** Only a strictly newer file makes a draft stale. */

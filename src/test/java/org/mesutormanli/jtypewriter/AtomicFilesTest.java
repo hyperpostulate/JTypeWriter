@@ -160,4 +160,68 @@ class AtomicFilesTest {
         assertEquals(permissions, Files.getPosixFilePermissions(target));
         assertEquals("v2", Files.readString(target));
     }
+
+    /**
+     * Regression: the temp prefix used to embed the whole document name, so a
+     * 250-character name overflowed {@code NAME_MAX} and the save failed before
+     * the rename. The target itself is under 255 bytes and must save intact.
+     */
+    @Test
+    void a250CharacterAsciiNameSavesAndReadsBack(@TempDir Path dir) throws IOException {
+        var name = "a".repeat(250);
+        var target = dir.resolve(name);
+        var content = "uzun isimli belge";
+
+        AtomicFiles.writeMoving(target, content.getBytes(StandardCharsets.UTF_8));
+
+        assertEquals(content, Files.readString(target));
+    }
+
+    /**
+     * A long name with 2- and 3-byte UTF-8 characters exceeds the prefix budget
+     * in bytes long before it exceeds it in characters; the save must still
+     * work. The name here is capped at 249 bytes so the target itself is a
+     * legal file name, while the prefix is truncated and hashed.
+     */
+    @Test
+    void aLongMultiByteNameSavesAndReadsBack(@TempDir Path dir) throws IOException {
+        var name = "ğ中".repeat(49) + "ğ"; // 99 characters, 247 UTF-8 bytes
+        var target = dir.resolve(name);
+        var content = "çok baytlı isim";
+
+        AtomicFiles.writeMoving(target, content.getBytes(StandardCharsets.UTF_8));
+
+        assertEquals(content, Files.readString(target));
+    }
+
+    /** The temp prefix is bounded in UTF-8 bytes and keeps the readable stem. */
+    @Test
+    void theTempPrefixIsBoundedInUtf8Bytes(@TempDir Path dir) {
+        var prefix = AtomicFiles.tempPrefix(dir.resolve("ğ中".repeat(60) + "-belge.txt"));
+
+        assertTrue(prefix.startsWith("jtw-"), "the format is kept: " + prefix);
+        assertTrue(prefix.getBytes(StandardCharsets.UTF_8).length
+                        <= AtomicFiles.MAX_TEMP_PREFIX_BYTES,
+                "the prefix must leave room for the random part and .tmp");
+    }
+
+    /** A long name never ends in half of a surrogate pair. */
+    @Test
+    void truncationNeverCutsASurrogatePair(@TempDir Path dir) {
+        var prefix = AtomicFiles.tempPrefix(dir.resolve("😀".repeat(100)));
+
+        var bytes = prefix.getBytes(StandardCharsets.UTF_8);
+        assertTrue(bytes.length <= AtomicFiles.MAX_TEMP_PREFIX_BYTES);
+        assertEquals(prefix, new String(bytes, StandardCharsets.UTF_8),
+                "the prefix is valid UTF-8, so the surrogate pair was not split");
+    }
+
+    /** Ordinary names stay readable: the document name is visible in the prefix. */
+    @Test
+    void aShortNameStaysVisibleInTheTempPrefix(@TempDir Path dir) {
+        var prefix = AtomicFiles.tempPrefix(dir.resolve("note.txt"));
+
+        assertTrue(prefix.startsWith("jtw-"));
+        assertTrue(prefix.contains("note.txt"), "the readable name is kept: " + prefix);
+    }
 }

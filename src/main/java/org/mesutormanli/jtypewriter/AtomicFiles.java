@@ -53,7 +53,74 @@ public final class AtomicFiles {
 
     private static final Logger LOG = AppLogging.logger(AtomicFiles.class);
 
+    /**
+     * Upper bound on the temp-file prefix in UTF-8 bytes. {@code createTempFile}
+     * adds a random suffix and the caller's {@code .tmp}, and the platform's
+     * {@code NAME_MAX} is 255 bytes on both ext4 and NTFS; 180 leaves ample
+     * headroom for the random part while keeping ordinary names readable.
+     */
+    static final int MAX_TEMP_PREFIX_BYTES = 180;
+
     private AtomicFiles() {
+    }
+
+    /**
+     * Builds the temp-file prefix for {@code file}.
+     *
+     * <p>Ordinary names keep the readable {@code jtw-<name>-} form. A long name
+     * is truncated to fit {@link #MAX_TEMP_PREFIX_BYTES} and a short hash of the
+     * full name is appended, so two long names in the same directory cannot
+     * collide on the same prefix. Truncation walks code points, never UTF-16
+     * units, so a surrogate pair is never cut in half.</p>
+     */
+    static String tempPrefix(Path file) {
+        var name = file.getFileName().toString();
+        var readable = "jtw-" + name + "-";
+        if (utf8Length(readable) <= MAX_TEMP_PREFIX_BYTES) {
+            return readable;
+        }
+        var hashSuffix = "-" + Integer.toHexString(name.hashCode()) + "-";
+        var budget = MAX_TEMP_PREFIX_BYTES - utf8Length("jtw-") - utf8Length(hashSuffix);
+        return "jtw-" + truncateToUtf8Bytes(name, budget) + hashSuffix;
+    }
+
+    private static String truncateToUtf8Bytes(String value, int maxBytes) {
+        var truncated = new StringBuilder();
+        int used = 0;
+        for (int index = 0; index < value.length(); ) {
+            int codePoint = value.codePointAt(index);
+            int bytes = utf8Length(codePoint);
+            if (used + bytes > maxBytes) {
+                break;
+            }
+            truncated.appendCodePoint(codePoint);
+            used += bytes;
+            index += Character.charCount(codePoint);
+        }
+        return truncated.toString();
+    }
+
+    private static int utf8Length(String value) {
+        int bytes = 0;
+        for (int index = 0; index < value.length(); ) {
+            int codePoint = value.codePointAt(index);
+            bytes += utf8Length(codePoint);
+            index += Character.charCount(codePoint);
+        }
+        return bytes;
+    }
+
+    private static int utf8Length(int codePoint) {
+        if (codePoint <= 0x7F) {
+            return 1;
+        }
+        if (codePoint <= 0x7FF) {
+            return 2;
+        }
+        if (codePoint <= 0xFFFF) {
+            return 3;
+        }
+        return 4;
     }
 
     /** Writes {@code bytes} to {@code target} atomically and durably. */
@@ -74,8 +141,9 @@ public final class AtomicFiles {
         var dir = absolute.getParent();
         requireFreeSpace(dir, bytes.length, usableSpace);
         // createTempFile rejects prefixes shorter than three characters, so a
-        // document called "a" could not be saved at all without the fixed prefix
-        var temp = Files.createTempFile(dir, "jtw-" + absolute.getFileName(), ".tmp");
+        // document called "a" could not be saved at all without the fixed prefix.
+        // tempPrefix also bounds the name so the full prefix stays under NAME_MAX.
+        var temp = Files.createTempFile(dir, tempPrefix(absolute), ".tmp");
         var moved = false;
         try {
             try (var channel = FileChannel.open(temp, StandardOpenOption.WRITE)) {

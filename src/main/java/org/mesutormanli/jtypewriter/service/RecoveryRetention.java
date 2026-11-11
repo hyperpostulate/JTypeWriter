@@ -36,11 +36,13 @@ import java.util.List;
  *   <li><b>age</b> - a draft the user postponed more than {@link #MAX_AGE} ago
  *       is no longer a recovery candidate, it is clutter;</li>
  *   <li><b>count</b> - the newest {@link #MAX_FILES} survivors stay;</li>
- *   <li><b>size</b> - walking newest first, the list is cut once it would
- *       exceed {@link #MAX_TOTAL_BYTES}. The newest entry is kept even when it
- *       alone is larger than the budget: the budget exists to stop
- *       accumulation, and a rule that deletes the only candidate would turn
- *       housekeeping into data loss.</li>
+ *   <li><b>size</b> - walking newest first, an entry that no longer fits the
+ *       {@link #MAX_TOTAL_BYTES} budget is skipped, but the walk continues:
+ *       an older draft can be small enough to fit after an oversized one.
+ *       The newest entry is kept even when it alone is larger than the
+ *       budget: the budget exists to stop accumulation, and a rule that
+ *       deletes the only candidate would turn housekeeping into data
+ *       loss.</li>
  * </ol>
  */
 public final class RecoveryRetention {
@@ -77,10 +79,14 @@ public final class RecoveryRetention {
                 break;
             }
             if (Duration.between(entry.savedAt(), now).compareTo(MAX_AGE) > 0) {
-                continue; // too old, and so is everything after it
+                // skipped for age; newest-first order means the remaining
+                // entries are older still, so each will be skipped the same way
+                continue;
             }
             if (total + entry.size() > MAX_TOTAL_BYTES && !keep.isEmpty()) {
-                break; // the rest is older, so it is at best as large
+                // this entry does not fit; a later, older entry may still be
+                // small enough, so skip only this one instead of cutting the rest
+                continue;
             }
             keep.add(entry.file());
             total += entry.size();
