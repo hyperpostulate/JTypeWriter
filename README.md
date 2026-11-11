@@ -307,7 +307,11 @@ The native image is assembled from three parts, none of which is a fat JAR:
   linked into the runtime on purpose: `jlink` only carries `lib/` and `bin/` out
   of a modular jar, and JavaFX keeps its `.so` files at the jar root, so a
   linked JavaFX would start with a missing `libglassgtk3.so`. Their GPL text
-  travels beside them in `lib/javafx/legal/`.
+  travels beside them in `lib/javafx/legal/`. The script writes that directory
+  itself rather than passing it to jpackage's `--app-content`: on Linux that
+  option copied the whole tree, on Windows the same invocation produced an
+  image whose `lib/javafx` held the jars but not `legal/`, so the license
+  silently disappeared from the Windows installer.
 
 The effect is measured, not asserted: the application image went from 147 MiB to
 73 MiB, the `.deb` from 48 MiB to 44 MiB, and the launch log's

@@ -143,17 +143,27 @@ case "$PLATFORM" in
     windows) JAVAFX_CLASSIFIER="win" ;;
 esac
 
+# jpackage's app-image layout differs per platform: Linux keeps the application
+# and the runtime under lib/, Windows puts them at the image root as app/ and
+# runtime/. The JavaFX directory is the script's own contract and stays
+# lib/javafx on both, because $ROOTDIR points at the image root either way.
+case "$PLATFORM" in
+    linux)   IMAGE_APP_DIR="lib/app"; IMAGE_RUNTIME_DIR="lib/runtime" ;;
+    windows) IMAGE_APP_DIR="app";     IMAGE_RUNTIME_DIR="runtime" ;;
+esac
+
 IMAGE="$DEST/$APP_NAME"
 if [[ ! -d "$IMAGE" ]]; then
     echo "application image '$IMAGE' is missing - run scripts/package.sh first" >&2
     exit 1
 fi
 
-# The image keeps the application jar under lib/app/; find it rather than
-# hard-coding, and insist there is exactly one so a stale jar cannot hide.
-IMAGE_JAR=$(find "$IMAGE/lib/app" -type f -name 'jtypewriter-*.jar' -print)
+# The image keeps the application jar under the platform's app directory; find
+# it rather than hard-coding the file name, and insist there is exactly one so
+# a stale jar cannot hide.
+IMAGE_JAR=$(find "$IMAGE/$IMAGE_APP_DIR" -type f -name 'jtypewriter-*.jar' -print)
 if [[ -z "$IMAGE_JAR" || "$(printf '%s\n' "$IMAGE_JAR" | wc -l)" -ne 1 ]]; then
-    echo "expected exactly one application jar inside '$IMAGE', found: ${IMAGE_JAR:-none}" >&2
+    echo "expected exactly one application jar inside '$IMAGE/$IMAGE_APP_DIR', found: ${IMAGE_JAR:-none}" >&2
     exit 1
 fi
 
@@ -175,12 +185,12 @@ compare "javafx license" "legal/GPL-2.0-with-classpath-exception.txt" \
 # The runtime is the jlink one: a runtime that silently reverted to the host JDK
 # would still start the application, so the difference is asserted rather than
 # felt in the download size.
-if [[ ! -s "$IMAGE/lib/runtime/release" ]]; then
-    echo "FAIL the image has no custom runtime (lib/runtime/release)" >&2
+if [[ ! -s "$IMAGE/$IMAGE_RUNTIME_DIR/release" ]]; then
+    echo "FAIL the image has no custom runtime ($IMAGE_RUNTIME_DIR/release)" >&2
     FAILURES=$((FAILURES + 1))
 else
     CHECKS=$((CHECKS + 1))
-    runtime_modules=$(sed -n 's/^MODULES="\(.*\)"$/\1/p' "$IMAGE/lib/runtime/release")
+    runtime_modules=$(sed -n 's/^MODULES="\(.*\)"$/\1/p' "$IMAGE/$IMAGE_RUNTIME_DIR/release")
     for required in java.base java.desktop java.logging java.scripting; do
         if [[ " $runtime_modules " != *" $required "* ]]; then
             echo "FAIL the image runtime is missing $required" >&2
@@ -193,7 +203,7 @@ else
             FAILURES=$((FAILURES + 1))
         fi
     done
-    if [[ ! -d "$IMAGE/lib/runtime/legal" ]]; then
+    if [[ ! -d "$IMAGE/$IMAGE_RUNTIME_DIR/legal" ]]; then
         echo "FAIL the image runtime carries no legal/ tree" >&2
         FAILURES=$((FAILURES + 1))
     fi

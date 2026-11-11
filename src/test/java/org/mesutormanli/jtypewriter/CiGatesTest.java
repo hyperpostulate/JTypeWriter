@@ -222,8 +222,18 @@ class CiGatesTest {
                         + " lib/app/lib)");
         assertTrue(packageScript.contains("--add-modules=javafx.controls"),
                 PACKAGE_SCRIPT + " resolves no JavaFX modules, so the module path is decorative");
-        assertTrue(packageScript.contains("--app-content"),
-                PACKAGE_SCRIPT + " does not copy the JavaFX modules into the image");
+        // Not jpackage's --app-content: on Windows it produced an image whose
+        // lib/javafx held the jars but not the legal/ subdirectory, so the
+        // placement has to be the script's own and it has to copy both.
+        assertFalse(packageScript.contains("--app-content \"$"),
+                PACKAGE_SCRIPT + " hands the JavaFX modules to --app-content again, whose"
+                        + " recursive copy is platform-dependent (Windows dropped legal/)");
+        assertTrue(packageScript.contains("JFX_IMAGE_DIR"),
+                PACKAGE_SCRIPT + " does not write lib/javafx itself, so the module path points"
+                        + " at a directory nothing guarantees");
+        assertTrue(packageScript.contains("$JFX_IMAGE_DIR/$LEGAL_DIR/"),
+                PACKAGE_SCRIPT + " does not carry the JavaFX license next to the modules in the"
+                        + " image, so the installer ships GPL code without its text");
         assertTrue(packageScript.contains("--enable-native-access=ALL-UNNAMED,javafx.graphics"),
                 PACKAGE_SCRIPT + " does not grant javafx.graphics native access, so loading"
                         + " libglassgtk3.so warns on every launch");
@@ -278,12 +288,43 @@ class CiGatesTest {
         var script = Files.readString(Path.of("scripts", "verify-artifacts.sh"),
                 StandardCharsets.UTF_8);
 
-        assertTrue(script.contains("lib/runtime/release"),
+        assertTrue(script.contains("/release\""),
                 "scripts/verify-artifacts.sh never reads the image's runtime module list");
+        assertTrue(script.contains("IMAGE_RUNTIME_DIR"),
+                "scripts/verify-artifacts.sh hard-codes lib/runtime, which is the Linux layout"
+                        + " only - Windows puts the runtime at runtime/ and the check would fail"
+                        + " there before it compared anything");
+        assertTrue(script.contains("IMAGE_APP_DIR"),
+                "scripts/verify-artifacts.sh hard-codes lib/app, which is the Linux layout only");
         assertTrue(script.contains("jdk.compiler"),
                 "scripts/verify-artifacts.sh does not fail when the jlink gain is lost");
         assertTrue(script.contains("lib/javafx"),
                 "scripts/verify-artifacts.sh does not compare the JavaFX modules in the image");
+    }
+
+    /**
+     * jpackage lays an app image out differently per platform: Linux keeps the
+     * application and the runtime under {@code lib/}, Windows puts them at the
+     * image root as {@code app/} and {@code runtime/}. Asserting one spelling
+     * passes everywhere the script is written and fails on the other leg - and
+     * a Windows CI run is where that surfaced, after the Linux leg was green.
+     * Both layouts therefore have to be spelled out, and the JavaFX directory
+     * has to be the one the script writes itself, not whatever jpackage chose.
+     */
+    @Test
+    void packageScriptKnowsBothAppImageLayouts() throws IOException {
+        var packageScript = Files.readString(PACKAGE_SCRIPT, StandardCharsets.UTF_8);
+
+        for (var spelling : java.util.List.of(
+                "IMAGE_APP_DIR=\"lib/app\"", "IMAGE_APP_DIR=\"app\"",
+                "IMAGE_RUNTIME_DIR=\"lib/runtime\"", "IMAGE_RUNTIME_DIR=\"runtime\"")) {
+            assertTrue(packageScript.contains(spelling),
+                    PACKAGE_SCRIPT + " does not declare " + spelling + ", so the image assertions"
+                            + " assume one platform's layout");
+        }
+        assertTrue(packageScript.contains("JFX_IMAGE_DIR=\"$DEST/$APP_NAME/lib/"),
+                PACKAGE_SCRIPT + " no longer writes lib/javafx itself, so the module path and the"
+                        + " license location depend on jpackage's copy behaviour");
     }
 
     /**

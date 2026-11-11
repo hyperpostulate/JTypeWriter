@@ -53,9 +53,10 @@ MAIN_CLASS="org.mesutormanli.jtypewriter.JTypeWriterApp"
 # recording engine.
 RUNTIME_MODULES="java.base,java.desktop,java.logging,java.scripting,jdk.unsupported"
 
-# The directory jpackage copies into lib/ of the application image. The name
+# The directory that holds the JavaFX modules in the application image. The name
 # matters twice: it becomes lib/<name>, and the launcher's --module-path option
-# names it through the $ROOTDIR macro.
+# names it through the $ROOTDIR macro. The script fills it in; jpackage is not
+# asked to (see the copy below the image step).
 JAVAFX_DIR_NAME="javafx"
 
 # Every artifact must ship the license and the third-party notices. Missing source
@@ -132,6 +133,18 @@ case "$PLATFORM" in
     windows) JAVAFX_CLASSIFIER="win" ;;
 esac
 
+# jpackage's app-image layout is not the same on the two platforms: Linux puts
+# the application and the runtime under lib/, Windows puts them at the image
+# root as app/ and runtime/. Both have a $ROOTDIR macro that resolves to the
+# image root, so lib/<javafx> - the directory this script writes itself - is
+# resolvable on both, but the assertions below have to be told which spelling
+# to look for. Getting this wrong is invisible on the platform you test on and
+# fatal on the other, which is what the Windows CI leg found.
+case "$PLATFORM" in
+    linux)   IMAGE_APP_DIR="lib/app"; IMAGE_RUNTIME_DIR="lib/runtime" ;;
+    windows) IMAGE_APP_DIR="app";     IMAGE_RUNTIME_DIR="runtime" ;;
+esac
+
 # jpackage takes a different icon container per platform, all rendered from the
 # canonical artwork. A missing file is a build error - never guess or omit the
 # icon silently.
@@ -150,12 +163,12 @@ fi
 DEST="releases/$PLATFORM"
 STAGING="target/jpackage-input"
 JFX_MODULES="target/javafx-modules"
-# What jpackage copies into lib/ as one directory: the modular JavaFX jars plus
-# the license text that travels with them. Bundling rather than linking them
-# into the runtime keeps the natives usable - jlink only carries lib/ and bin/
-# out of a modular jar, and JavaFX keeps its .so files at the jar root, so a
-# jlinked JavaFX would start with a missing libglassgtk3.so.
-JFX_BUNDLE="target/jpackage-javafx/$JAVAFX_DIR_NAME"
+# Where the JavaFX modules end up in the image, filled in below by hand rather
+# than by jpackage: bundling (rather than linking them into the runtime) keeps
+# the natives usable, because jlink only carries lib/ and bin/ out of a modular
+# jar and JavaFX keeps its .so files at the jar root - a jlinked JavaFX would
+# start with a missing libglassgtk3.so.
+JFX_IMAGE_DIR="$DEST/$APP_NAME/lib/$JAVAFX_DIR_NAME"
 JLINK_RUNTIME="target/jlink-runtime"
 
 if [[ ! -d "$JFX_MODULES" ]]; then
@@ -169,8 +182,8 @@ rm -rf "$DEST/$APP_NAME"
 rm -f "$DEST/$DEB_PACKAGE"*.deb "$DEST/$APP_NAME"*.msi
 # Start from an empty input directory: with --skip-build a previous run's jar
 # would otherwise stay here and could be picked up instead of the current one.
-rm -rf "$STAGING" "$JFX_BUNDLE" "$JLINK_RUNTIME"
-mkdir -p "$STAGING" "$DEST" "$JFX_BUNDLE"
+rm -rf "$STAGING" "$JLINK_RUNTIME"
+mkdir -p "$STAGING" "$DEST"
 cp "$THIN_JAR" "$STAGING/"
 
 # Only the platform jars: the unclassified openjfx artifact is a 300-byte
@@ -178,20 +191,13 @@ cp "$THIN_JAR" "$STAGING/"
 # would otherwise put a second, empty module on the path for no reason.
 javafx_jars=0
 for candidate in "$JFX_MODULES"/javafx-*-"$JAVAFX_CLASSIFIER".jar; do
-    [[ -f "$candidate" ]] || continue
-    cp "$candidate" "$JFX_BUNDLE/"
-    javafx_jars=$((javafx_jars + 1))
+    [[ -f "$candidate" ]] && javafx_jars=$((javafx_jars + 1))
 done
 if [[ "$javafx_jars" -ne 5 ]]; then
     echo "expected 5 JavaFX modules for '$JAVAFX_CLASSIFIER' under $JFX_MODULES, found $javafx_jars" >&2
     echo "(base, graphics, controls, fxml, media) - run 'mvn clean package'" >&2
     exit 1
 fi
-# The JavaFX jars carry no license text of their own, and they are no longer
-# inside our jar, so the text has to travel next to them: one source of truth
-# (the checked-in legal/) rather than a second copy of the GPL.
-mkdir -p "$JFX_BUNDLE/$LEGAL_DIR"
-cp "$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt" "$JFX_BUNDLE/$LEGAL_DIR/"
 
 # A runtime built from the module list above instead of jpackage's "everything
 # the host JDK has". Measured, not guessed: see RUNTIME_MODULES.
@@ -215,7 +221,6 @@ jpackage \
     --main-jar "$(basename "$THIN_JAR")" \
     --main-class "$MAIN_CLASS" \
     --runtime-image "$JLINK_RUNTIME" \
-    --app-content "$JFX_BUNDLE" \
     --icon "$ICON" \
     --dest "$DEST" \
     --java-options "-Dfile.encoding=UTF-8" \
@@ -236,6 +241,30 @@ cp "$NOTICE_FILE" "$(dirname "$LICENSE_TARGET")/$NOTICE_FILE"
 cp "$THIRD_PARTY_FILE" "$(dirname "$LICENSE_TARGET")/$THIRD_PARTY_FILE"
 cp -R "$LEGAL_DIR" "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR"
 
+# The JavaFX modules are placed here, not handed to jpackage's --app-content.
+# On Linux --app-content copied the whole tree including legal/, on Windows the
+# same invocation produced an image whose lib/javafx held the jars but no
+# legal/ subdirectory - and CI caught it only because the license is asserted.
+# The image layout is our contract (the launcher resolves the module path at
+# $ROOTDIR/lib/javafx), so the script writes it and then verifies it, instead of
+# depending on an option whose recursive-copy behaviour differs per platform.
+mkdir -p "$JFX_IMAGE_DIR/$LEGAL_DIR"
+javafx_jars=0
+for candidate in "$JFX_MODULES"/javafx-*-"$JAVAFX_CLASSIFIER".jar; do
+    [[ -f "$candidate" ]] || continue
+    cp "$candidate" "$JFX_IMAGE_DIR/"
+    javafx_jars=$((javafx_jars + 1))
+done
+if [[ "$javafx_jars" -ne 5 ]]; then
+    echo "expected 5 JavaFX modules for '$JAVAFX_CLASSIFIER', copied $javafx_jars" >&2
+    exit 1
+fi
+# The JavaFX jars carry no license text of their own, and they are no longer
+# inside our jar, so the text travels next to them: one source of truth (the
+# checked-in legal/) rather than a second copy of the GPL. It has to be in the
+# image before the installer step, because both installers are built from it.
+cp "$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt" "$JFX_IMAGE_DIR/$LEGAL_DIR/"
+
 # A release without the license is invalid, in the image and in the jar alike.
 for artifact in "$LICENSE_TARGET" \
     "$(dirname "$LICENSE_TARGET")/$NOTICE_FILE" \
@@ -243,7 +272,7 @@ for artifact in "$LICENSE_TARGET" \
     "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt" \
     "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/LGPL-2.1.txt" \
     "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/Bitstream-Vera.txt" \
-    "$DEST/$APP_NAME/lib/$JAVAFX_DIR_NAME/$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt"; do
+    "$JFX_IMAGE_DIR/$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt"; do
     if [[ ! -f "$artifact" ]]; then
         echo "missing from the application image: $artifact" >&2
         exit 1
@@ -252,15 +281,23 @@ done
 # The image layout is now an assertion rather than an assumption: a JavaFX
 # module that did not make it into lib/<name> boots to "Module ... not found",
 # and a runtime that is the host JDK again would silently undo the jlink gain.
-if [[ ! -d "$DEST/$APP_NAME/lib/$JAVAFX_DIR_NAME" ]]; then
+if [[ ! -d "$JFX_IMAGE_DIR" ]]; then
     echo "JavaFX modules missing from the image at lib/$JAVAFX_DIR_NAME" >&2
     exit 1
 fi
-if [[ ! -s "$DEST/$APP_NAME/lib/runtime/release" ]]; then
-    echo "the image has no custom runtime (lib/runtime/release is missing)" >&2
+javafx_jars=0
+for candidate in "$JFX_IMAGE_DIR"/javafx-*-"$JAVAFX_CLASSIFIER".jar; do
+    [[ -f "$candidate" ]] && javafx_jars=$((javafx_jars + 1))
+done
+if [[ "$javafx_jars" -ne 5 ]]; then
+    echo "the image carries $javafx_jars JavaFX modules, expected 5 in lib/$JAVAFX_DIR_NAME" >&2
     exit 1
 fi
-if grep -q 'jdk.compiler' "$DEST/$APP_NAME/lib/runtime/release"; then
+if [[ ! -s "$DEST/$APP_NAME/$IMAGE_RUNTIME_DIR/release" ]]; then
+    echo "the image has no custom runtime ($IMAGE_RUNTIME_DIR/release is missing)" >&2
+    exit 1
+fi
+if grep -q 'jdk.compiler' "$DEST/$APP_NAME/$IMAGE_RUNTIME_DIR/release"; then
     echo "the image runtime still carries jdk.compiler - jlink did not run or was ignored" >&2
     exit 1
 fi

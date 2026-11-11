@@ -304,7 +304,10 @@ Yerel imaj üç parçadan kurulur; hiçbiri fat JAR değildir:
   modüller. Jar'lar bilinçli olarak çalışma zamanına **linklenmez**: `jlink` modüler bir
   jar'dan yalnız `lib/` ve `bin/` taşır, JavaFX ise `.so` dosyalarını jar kökünde tutar;
   linklenmiş bir JavaFX `libglassgtk3.so` bulunamadan açılırdı. GPL metni yanlarında
-  `lib/javafx/legal/` altında taşınır.
+  `lib/javafx/legal/` altında taşınır. Bu dizini jpackage'ın `--app-content` seçeneğine
+  bırakmıyoruz, script kendisi yazıyor: Linux'ta o seçenek ağacın tamamını kopyaladı,
+  Windows'ta aynı çağrı `lib/javafx` içinde jar'ları olup `legal/` alt dizini olmayan bir
+  imaj üretti — yani lisans Windows kurulum paketinden sessizce düştü.
 
 Etki iddia değil ölçüm: uygulama imajı 147 MiB'den 73 MiB'ye, `.deb` 48 MiB'den 44 MiB'ye
 indi ve açılış logundaki `Unsupported JavaFX configuration: classes were loaded from

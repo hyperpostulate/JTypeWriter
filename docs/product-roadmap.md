@@ -351,12 +351,32 @@ Bu dalga yeni ölçüm ister; analizin **A**-seviyesi iki sayısı hedefi veriyo
   `verify_deb_license` stanza sırasını da denetliyor.
 
   Testler: `CiGatesTest` dört yeni kapı pinliyor — modül yolu `$ROOTDIR` ile kurulmalı,
-  `--app-content` JavaFX'i imaja kopyalamalı, `RUNTIME_MODULES` listesi `java.scripting`
-  içerip `jdk.compiler`/`jdk.jshell`/`jdk.jconsole` içermemeli, `verify-artifacts.sh`
-  imaj yerleşimini (runtime modül listesi + `lib/javafx`) denetlemeli ve
-  `smoke-appimage.sh` "unnamed module" görürse düşmeli. Liste **satırı** denetleniyor,
+  `lib/javafx` jpackage'a değil script'e yazdırılmalı (`--app-content` yasak, çünkü
+  Windows'ta `legal/` düşüyor), `RUNTIME_MODULES` listesi `java.scripting` içerip
+  `jdk.compiler`/`jdk.jshell`/`jdk.jconsole` içermemeli, `verify-artifacts.sh` imaj
+  yerleşimini (runtime modül listesi + `lib/javafx`) denetlemeli ve `smoke-appimage.sh`
+  "unnamed module" görürse düşmeli. Liste **satırı** denetleniyor,
   dosyanın tamamı değil: yorumlar dışlanan modüllerin adını anıyor, bir metin araması
   dışlamayı dışlamanın açıklamasından ayıramaz.
+
+  **CI düzeltmesi (Windows bacağı):** ilk hâlde `lib/javafx` jpackage'ın
+  `--app-content` seçeneğiyle kopyalanıyordu. Linux'ta ağaç olduğu gibi geçti, Windows
+  bacağında imaj `lib/javafx` içinde beş jar'ı taşıyıp `legal/` alt dizinini taşımadı ve
+  `package.sh` kendi lisans assert'inde düştü (`missing from the application image: ...
+/lib/javafx/legal/GPL-2.0-with-classpath-exception.txt`). Yerleşim artık sözleşme
+  sayılıp script tarafından yazılıyor ve hemen ardından sayılarak doğrulanıyor: beş jar +
+  `legal/GPL-2.0-with-classpath-exception.txt`. `CiGatesTest` bunu `--app-content`'in
+  **yokluğunu** arayarak pinliyor — platforma göre değişen bir kopyalama davranışına
+  güvenmek, lisansı Windows kurulum paketinden sessizce düşüren şeydi.
+
+  Aynı koşu ikinci bir platform varsayımını da ortaya çıkardı: jpackage'ın imaj yerleşimi
+  platforma göre değişiyor — Linux'ta `lib/app` + `lib/runtime`, Windows'ta imaj kökünde
+  `app/` + `runtime/`. Script'ler tek yazımı sabitlediği için Windows'ta runtime ve uygulama
+  jar'ı assert'leri yanlış yere bakacaktı; ikisi de artık `IMAGE_APP_DIR` /
+  `IMAGE_RUNTIME_DIR` üzerinden okunuyor. `lib/javafx` ise iki platformda da aynı: onu
+  jpackage değil script yazıyor ve `$ROOTDIR` her iki platformda imaj kökünü veriyor.
+  `CiGatesTest.packageScriptKnowsBothAppImageLayouts` iki yerleşimin de dosyada
+  yazılı olmasını istiyor — birini unutmak, yazıldığı platformda yeşil, diğerinde ölü.
 
 #### 3.2.2 B2 — yayın hattı kendi kapılarını koşsun
 

@@ -13,7 +13,7 @@ platforms on purpose.
 
 - JDK 25 + Maven 3.8+ are hard requirements (`maven-enforcer-plugin` at `validate`, floor
   derived from `java.version`). There is deliberately no Maven wrapper — don't add one.
-- `mvn clean test` — full suite (635 tests, no toolkit, no display needed). The number is a
+- `mvn clean test` — full suite (636 tests, no toolkit, no display needed). The number is a
   floor that moves with every card; don't treat it as a target.
 - `mvn test -Dtest=FileServiceTest` / `-Dtest=FileServiceTest#methodName` — focused run.
 - `mvn clean package` — tests + thin JAR + `jar-with-dependencies`, plus the classified
@@ -26,7 +26,12 @@ platforms on purpose.
   The image is three parts: the thin JAR, a `jlink` runtime built from a measured module list
   (`RUNTIME_MODULES`), and the JavaFX jars bundled into `lib/javafx` and resolved as named
   modules. JavaFX is bundled rather than jlinked on purpose — `jlink` drops a modular jar's
-  root-level `.so` files, so a linked JavaFX boots to a missing `libglassgtk3.so`.
+  root-level `.so` files, so a linked JavaFX boots to a missing `libglassgtk3.so`. The
+  directory is written by the script, not by jpackage's `--app-content`: that option
+  copied the tree on Linux but dropped `legal/` on Windows, so the license vanished from
+  the Windows installer. The image layout differs per platform too — `lib/app` +
+  `lib/runtime` on Linux, `app/` + `runtime/` on Windows — so the assertions read
+  `IMAGE_APP_DIR`/`IMAGE_RUNTIME_DIR` instead of hard-coding one spelling.
 - `./scripts/verify-artifacts.sh [--skip-build]` — fresh build then a byte-for-byte comparison
   of repo payload ↔ application image ↔ `.deb` payload (thin + fat jars, JavaFX modules,
   legal texts, jar entries), plus the image-layout assertions (jlink runtime, no
