@@ -338,7 +338,11 @@ Bu dalga yeni ölçüm ister; analizin **A**-seviyesi iki sayısı hedefi veriyo
 
   Yol boyunca iki tuzak daha ölçüldü, ikisi de kodda yorumla kayıtlı: jpackage bir
   java-option içindeki `$APPDIR` makrosunu **launcher'ın kendi dizini** (`lib/app`) olarak
-  genişletiyor, yani `$APPDIR/lib/javafx` → `lib/app/lib/javafx`; doğrusu `$ROOTDIR`.
+  genişletiyor, yani `$APPDIR/lib/javafx` → `lib/app/lib/javafx`. İlk çözüm `$ROOTDIR`
+  oldu (o zaman imaj kökü sanılıyordu), sonra kurulu pakette bu makronun boş genişlediği
+  ortaya çıktı — bkz. aşağıdaki Ubuntu bacağı düzeltmesi. Kalıcı çözüm `$APPDIR`'a göre
+  **göreli** yazmak: `$APPDIR/../javafx` (Linux) ve `$APPDIR/../lib/javafx` (Windows),
+  ikisi de `<imaj>/lib/javafx`'e çıkıyor.
   Ve `--enable-native-access=ALL-UNNAMED` JavaFX modül yüklemesiyle artık yetmiyor;
   `javafx.graphics`/`javafx.media` açıkça listelenmezse her açılışta `System::load`
   kısıtlama uyarısı çıkıyor.
@@ -350,14 +354,16 @@ Bu dalga yeni ölçüm ister; analizin **A**-seviyesi iki sayısı hedefi veriyo
   durduğu sürece runtime ve JavaFX stanza'ları dekorasyondu; catch-all artık başta ve
   `verify_deb_license` stanza sırasını da denetliyor.
 
-  Testler: `CiGatesTest` dört yeni kapı pinliyor — modül yolu `$ROOTDIR` ile kurulmalı,
-  `lib/javafx` jpackage'a değil script'e yazdırılmalı (`--app-content` yasak, çünkü
-  Windows'ta `legal/` düşüyor), `RUNTIME_MODULES` listesi `java.scripting` içerip
+  Testler: `CiGatesTest` dört yeni kapı pinliyor — modül yolu platforma göre `$APPDIR`'a
+  göreli kurulmalı (`$ROOTDIR` **yasak**), `lib/javafx` jpackage'a değil script'e
+  yazdırılmalı (`--app-content` yasak, çünkü Windows'ta `legal/` düşüyor),
+  `RUNTIME_MODULES` listesi `java.scripting` içerip
   `jdk.compiler`/`jdk.jshell`/`jdk.jconsole` içermemeli, `verify-artifacts.sh` imaj
   yerleşimini (runtime modül listesi + `lib/javafx`) denetlemeli ve `smoke-appimage.sh`
   "unnamed module" görürse düşmeli. Liste **satırı** denetleniyor,
   dosyanın tamamı değil: yorumlar dışlanan modüllerin adını anıyor, bir metin araması
-  dışlamayı dışlamanın açıklamasından ayıramaz.
+  dışlamayı dışlamanın açıklamasından ayıramaz. Aynı sebeple modül yolu da tek satırda
+  aranıyor: yorumlar `$ROOTDIR`'ı *neden yanlış* olduğunu anlatmak için anıyor.
 
   **CI düzeltmesi (Windows bacağı):** ilk hâlde `lib/javafx` jpackage'ın
   `--app-content` seçeneğiyle kopyalanıyordu. Linux'ta ağaç olduğu gibi geçti, Windows
@@ -377,6 +383,30 @@ Bu dalga yeni ölçüm ister; analizin **A**-seviyesi iki sayısı hedefi veriyo
   jpackage değil script yazıyor ve `$ROOTDIR` her iki platformda imaj kökünü veriyor.
   `CiGatesTest.packageScriptKnowsBothAppImageLayouts` iki yerleşimin de dosyada
   yazılı olmasını istiyor — birini unutmak, yazıldığı platformda yeşil, diğerinde ölü.
+
+  **CI düzeltmesi (Ubuntu smoke bacağı):** Windows düzeltmesinden sonra imaj iki kez
+  sorunsuz açıldı, ama smoke'un üçüncü adımı — kurulu `.deb` başlatıcısı — düştü:
+  `java.lang.module.FindException: Module javafx.controls not found`. Sebep tek bir
+  makroydu: `--module-path=$ROOTDIR/lib/javafx`. jpackage `$ROOTDIR`'ı `imageRoot`'tan
+  genişletir ve Linux başlatıcı kütüphanesi `imageRoot`'ı **yalnız** paketlenmemiş
+  dalda kurar (`ownerPackage.name().empty()`). Kurulu pakette bunun yerine `dpkg -S` +
+  `dpkg -L` ile app ve runtime dizinleri bulunur (`AppLauncherInitializer::apply` yalnız
+  `setDefaultRuntimePath`/`setAppDir` çağırır, `imageRoot`'a dokunmaz), dolayısıyla
+  `$ROOTDIR` boş genişler ve seçenek `/lib/javafx` olur — var olmayan bir mutlak yol.
+  Aynı imaj doğrudan çalıştığında sorun yok, çünkü o dalda `imageRoot` gerçekten imaj
+  kökü. Çözüm `$APPDIR`'a göre yazmak: Linux'ta `$APPDIR/../javafx` (app dizini
+  `lib/app`), Windows'ta `$APPDIR/../lib/javafx` (app dizini `app`), ikisi de
+  `<imaj>/lib/javafx`'e çıkıyor ve `$APPDIR` her iki dalda da kuruluyor.
+
+  Bu hata sınıfını yerelde görebilmek için `smoke-appimage.sh`'in root'suz dalı artık
+  kurulumu atlamıyor: `.deb` yükünü `dpkg-deb -x` ile açıp başlatıcısını, `dpkg -S`/`-L`
+  sorgularına açılan ağacı gösteren bir `dpkg` stub'ı ile çalıştırıyor. Kurulu dalın
+  anahtarı tam olarak bu iki sorgu olduğu için stub, gerçek kurulumun üreteceği yolları
+  üretiyor; ayrıca `lib/libapplauncher.so` yükün içinde yoksa ayrı bir assert düşüyor.
+  Root varsa eski kur/kaldır kontrolü aynen koşuyor. `CiGatesTest` üç şeyi pinliyor:
+  modül yolu satırında `$ROOTDIR` **olmamalı** ve `$JFX_MODULE_PATH` olmalı; iki
+  platformun `JFX_MODULE_PATH` yazımı da dosyada bulunmalı; `smoke-appimage.sh` root'suz
+  durumda yükü gerçekten çalıştırmalı.
 
 #### 3.2.2 B2 — yayın hattı kendi kapılarını koşsun
 

@@ -263,7 +263,8 @@ smoke_linux_deb() {
         if sudo -n true 2>/dev/null; then
             SUDO="sudo"
         else
-            note "no root and no passwordless sudo - skipping the .deb install/uninstall check"
+            note "no root and no passwordless sudo - checking the .deb payload instead of installing it"
+            smoke_linux_deb_payload "$deb"
             return
         fi
     fi
@@ -308,6 +309,67 @@ smoke_linux_deb() {
         fail "jtypewriter still appears in 'dpkg -l' after purge"
     fi
     note "package purged; dpkg no longer knows jtypewriter"
+}
+
+# The .deb branch that needs no root: unpack the payload and launch its launcher.
+#
+# This is not a weaker version of the install check, it is the part that matters.
+# A jpackage launcher behaves differently once its binary belongs to a package:
+# it stops deriving its directories from its own path and asks dpkg instead -
+# `dpkg -S <launcher>` for the owning package, `dpkg -L <package>` for the file
+# list - and the app and runtime directories are then whatever those lines end
+# in. Two things went wrong in CI behind exactly that switch, and neither was
+# visible to the app-image launch:
+#
+#   * the JavaFX option was --module-path=$ROOTDIR/lib/javafx, and $ROOTDIR is
+#     expanded from imageRoot, which the installed branch never sets. The option
+#     became /lib/javafx and the launcher died with "Module javafx.controls not
+#     found" while the image next to it started fine;
+#   * libapplauncher.so is located the same way, so a payload missing it fails
+#     before the JVM even starts.
+#
+# Standing in for dpkg with the unpacked tree answers both questions with the
+# paths an install would produce, so the packaged branch runs here too - on a
+# developer's machine, not only on a CI runner that happens to have root.
+smoke_linux_deb_payload() {
+    local deb="$1"
+    local payload="$WORK/deb-payload"
+    mkdir -p "$payload"
+    if ! dpkg-deb -x "$deb" "$payload" >"$WORK/dpkg-deb.log" 2>&1; then
+        echo "---- dpkg-deb -x output ----" >&2
+        cat "$WORK/dpkg-deb.log" >&2
+        fail "could not unpack $deb"
+    fi
+    local root="$payload/opt/jtypewriter"
+    [[ -x "$root/bin/$APP_NAME" ]] \
+        || fail "the .deb payload has no launcher at opt/jtypewriter/bin/$APP_NAME"
+    [[ -f "$root/lib/libapplauncher.so" ]] \
+        || fail "the .deb payload has no lib/libapplauncher.so - the launcher finds its own library through dpkg, so it would exit before starting the JVM"
+
+    local stub="$WORK/dpkg-stub"
+    mkdir -p "$stub"
+    cat >"$stub/dpkg" <<EOF
+#!/bin/sh
+# Answers only the two queries a jpackage launcher makes about its owning
+# package, pointing them at the unpacked payload instead of a real install.
+case "\$1" in
+    -S) echo "jtypewriter: \$2" ;;
+    -L) printf '%s\n' "$root" "$root/bin" "$root/lib" "$root/lib/app" \\
+            "$root/lib/runtime" "$root/lib/libapplauncher.so" ;;
+esac
+EOF
+    chmod +x "$stub/dpkg"
+
+    local home="$WORK/deb-payload-home" log="$WORK/deb-payload.log"
+    mkdir -p "$home"
+    note "launching the unpacked .deb payload's launcher"
+    PATH="$stub:$PATH" JAVA_TOOL_OPTIONS="-Duser.home=$home" "$root/bin/$APP_NAME" >"$log" 2>&1 &
+    APP_PID=$!
+    wait_for_window "$APP_PID" ".deb payload" "$log"
+    stop_process "$APP_PID"
+    APP_PID=""
+    assert_no_unnamed_module "$log" ".deb payload"
+    note "the .deb payload's launcher started and stopped cleanly (not installed; run as root for the install check)"
 }
 
 # --- Windows ------------------------------------------------------------

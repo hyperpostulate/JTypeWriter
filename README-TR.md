@@ -307,7 +307,12 @@ Yerel imaj üç parçadan kurulur; hiçbiri fat JAR değildir:
   `lib/javafx/legal/` altında taşınır. Bu dizini jpackage'ın `--app-content` seçeneğine
   bırakmıyoruz, script kendisi yazıyor: Linux'ta o seçenek ağacın tamamını kopyaladı,
   Windows'ta aynı çağrı `lib/javafx` içinde jar'ları olup `legal/` alt dizini olmayan bir
-  imaj üretti — yani lisans Windows kurulum paketinden sessizce düştü.
+  imaj üretti — yani lisans Windows kurulum paketinden sessizce düştü. Başlatıcının
+  seçeneği bu dizini `$APPDIR`'a **göreli** adlandırır (`$APPDIR/../javafx` Linux'ta,
+  `$APPDIR/../lib/javafx` Windows'ta; ikisi de `<imaj>/lib/javafx`), `$ROOTDIR` ile
+  **değil**: o makro `imageRoot`'tan genişletilir ve başlatıcı onu yalnız düz app image
+  olarak çalışırken kurar; kurulu bir `.deb`'te boş genişleyip modül yolunu `/lib/javafx`
+  yapıyordu.
 
 Etki iddia değil ölçüm: uygulama imajı 147 MiB'den 73 MiB'ye, `.deb` 48 MiB'den 44 MiB'ye
 indi ve açılış logundaki `Unsupported JavaFX configuration: classes were loaded from
@@ -333,7 +338,10 @@ yükü sonradan tamamlar.
 artefaktların gerçekten çalıştığını. Linux'ta uygulama imajını boş bir `user.home` ile
 (`DISPLAY` yoksa `Xvfb` altında) başlatır, ana pencereyi sabit bir uyku yerine `xwininfo`
 ile bekler, ardından `.deb` paketini kurar, kurulu başlatıcıyı çalıştırır ve paketi
-yeniden kaldırır; Windows'ta imajı başlatır ve jpackage başlatıcısının ayakta kalmasını
+yeniden kaldırır; root (veya parolasız `sudo`) yoksa kurulumu atlamaz: `.deb` yükünü açar
+ve yükün başlatıcısını, `dpkg -S`/`-L` sorgularına açılan ağacı gösteren bir `dpkg` stub'ı
+ile çalıştırır — jpackage başlatıcısını "kurulu paket" dalına sokan şey tam olarak o iki
+sorgudur. Windows'ta imajı başlatır ve jpackage başlatıcısının ayakta kalmasını
 şart koşar. Her başlatmada log ayrıca `unnamed module` için denetlenir: JavaFX'in
 yeniden classpath'e dönmesinin tek belirtisi odur. CI'daki `smoke` işi bunu iki işletim
 sistemi ayağında, derleme işinin ürettiği artefakt üzerinde çalıştırır; böylece

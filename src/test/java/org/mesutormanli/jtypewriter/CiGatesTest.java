@@ -216,10 +216,24 @@ class CiGatesTest {
     void packageScriptShipsJavaFxAsModules() throws IOException {
         var packageScript = Files.readString(PACKAGE_SCRIPT, StandardCharsets.UTF_8);
 
-        assertTrue(packageScript.contains("--module-path=$ROOTDIR/lib/"),
-                PACKAGE_SCRIPT + " no longer puts JavaFX on the module path, so the classes are"
-                        + " loaded from the unnamed module again (and $APPDIR/lib would point at"
-                        + " lib/app/lib)");
+        // The option itself, not the prose: the comments name $ROOTDIR to
+        // explain why it is wrong, so a whole-file search cannot tell the bug
+        // from its explanation. $ROOTDIR is empty in an installed package (the
+        // launcher only sets imageRoot for a plain app image), which turned
+        // this option into /lib/javafx and killed the installed launcher with
+        // "Module javafx.controls not found".
+        var modulePathOption = packageScript.lines()
+                .filter(line -> line.contains("--module-path="))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(PACKAGE_SCRIPT
+                        + " no longer puts JavaFX on the module path, so the classes are loaded"
+                        + " from the unnamed module again"));
+        assertFalse(modulePathOption.contains("$ROOTDIR"),
+                PACKAGE_SCRIPT + " builds the module path from $ROOTDIR, which does not resolve"
+                        + " when the launcher runs from an installed package: " + modulePathOption);
+        assertTrue(modulePathOption.contains("$JFX_MODULE_PATH"),
+                PACKAGE_SCRIPT + " does not put the per-platform module path on the command line: "
+                        + modulePathOption);
         assertTrue(packageScript.contains("--add-modules=javafx.controls"),
                 PACKAGE_SCRIPT + " resolves no JavaFX modules, so the module path is decorative");
         // Not jpackage's --app-content: on Windows it produced an image whose
@@ -317,7 +331,8 @@ class CiGatesTest {
 
         for (var spelling : java.util.List.of(
                 "IMAGE_APP_DIR=\"lib/app\"", "IMAGE_APP_DIR=\"app\"",
-                "IMAGE_RUNTIME_DIR=\"lib/runtime\"", "IMAGE_RUNTIME_DIR=\"runtime\"")) {
+                "IMAGE_RUNTIME_DIR=\"lib/runtime\"", "IMAGE_RUNTIME_DIR=\"runtime\"",
+                "JFX_MODULE_PATH='$APPDIR/../javafx'", "JFX_MODULE_PATH='$APPDIR/../lib/javafx'")) {
             assertTrue(packageScript.contains(spelling),
                     PACKAGE_SCRIPT + " does not declare " + spelling + ", so the image assertions"
                             + " assume one platform's layout");
@@ -325,6 +340,29 @@ class CiGatesTest {
         assertTrue(packageScript.contains("JFX_IMAGE_DIR=\"$DEST/$APP_NAME/lib/"),
                 PACKAGE_SCRIPT + " no longer writes lib/javafx itself, so the module path and the"
                         + " license location depend on jpackage's copy behaviour");
+    }
+
+    /**
+     * The installed launcher is a different code path from the app image, and
+     * only the smoke run reaches it. It needs root to install the .deb, which a
+     * developer machine usually does not have, so the script has to fall back to
+     * unpacking the payload and standing in for {@code dpkg} - otherwise the
+     * packaged branch is exercised for the first time on a CI runner, which is
+     * where both of P3.2.1's installer bugs were found.
+     */
+    @Test
+    void theSmokeRunReachesTheInstalledLauncherWithoutRoot() throws IOException {
+        var script = Files.readString(Path.of("scripts", "smoke-appimage.sh"),
+                StandardCharsets.UTF_8);
+
+        assertTrue(script.contains("smoke_linux_deb_payload"),
+                "scripts/smoke-appimage.sh no longer launches the .deb payload, so the packaged"
+                        + " branch of jpackage's launcher is only tested where root exists");
+        assertTrue(script.contains("libapplauncher.so"),
+                "scripts/smoke-appimage.sh does not assert the payload's launcher library, which"
+                        + " the installed launcher resolves through dpkg");
+        assertTrue(script.contains("dpkg-deb -x"),
+                "scripts/smoke-appimage.sh does not unpack the payload it launches");
     }
 
     /**

@@ -13,7 +13,7 @@ platforms on purpose.
 
 - JDK 25 + Maven 3.8+ are hard requirements (`maven-enforcer-plugin` at `validate`, floor
   derived from `java.version`). There is deliberately no Maven wrapper — don't add one.
-- `mvn clean test` — full suite (636 tests, no toolkit, no display needed). The number is a
+- `mvn clean test` — full suite (637 tests, no toolkit, no display needed). The number is a
   floor that moves with every card; don't treat it as a target.
 - `mvn test -Dtest=FileServiceTest` / `-Dtest=FileServiceTest#methodName` — focused run.
 - `mvn clean package` — tests + thin JAR + `jar-with-dependencies`, plus the classified
@@ -31,7 +31,13 @@ platforms on purpose.
   copied the tree on Linux but dropped `legal/` on Windows, so the license vanished from
   the Windows installer. The image layout differs per platform too — `lib/app` +
   `lib/runtime` on Linux, `app/` + `runtime/` on Windows — so the assertions read
-  `IMAGE_APP_DIR`/`IMAGE_RUNTIME_DIR` instead of hard-coding one spelling.
+  `IMAGE_APP_DIR`/`IMAGE_RUNTIME_DIR` instead of hard-coding one spelling. The launcher's
+  `--module-path` is spelled relative to `$APPDIR` (`$APPDIR/../javafx` on Linux,
+  `$APPDIR/../lib/javafx` on Windows), never through `$ROOTDIR`: that macro comes from
+  `imageRoot`, which the launcher only sets for a plain app image, so an installed `.deb`
+  expanded it to nothing and died with `Module javafx.controls not found`. `smoke-appimage.sh`
+  therefore launches the unpacked `.deb` payload with a `dpkg` stub when it has no root,
+  which is what enters the launcher's installed-package branch.
 - `./scripts/verify-artifacts.sh [--skip-build]` — fresh build then a byte-for-byte comparison
   of repo payload ↔ application image ↔ `.deb` payload (thin + fat jars, JavaFX modules,
   legal texts, jar entries), plus the image-layout assertions (jlink runtime, no

@@ -55,8 +55,9 @@ RUNTIME_MODULES="java.base,java.desktop,java.logging,java.scripting,jdk.unsuppor
 
 # The directory that holds the JavaFX modules in the application image. The name
 # matters twice: it becomes lib/<name>, and the launcher's --module-path option
-# names it through the $ROOTDIR macro. The script fills it in; jpackage is not
-# asked to (see the copy below the image step).
+# names it through $APPDIR (see the platform case block below - not $ROOTDIR,
+# which is empty in an installed package). The script fills it in; jpackage is
+# not asked to (see the copy below the image step).
 JAVAFX_DIR_NAME="javafx"
 
 # Every artifact must ship the license and the third-party notices. Missing source
@@ -135,14 +136,29 @@ esac
 
 # jpackage's app-image layout is not the same on the two platforms: Linux puts
 # the application and the runtime under lib/, Windows puts them at the image
-# root as app/ and runtime/. Both have a $ROOTDIR macro that resolves to the
-# image root, so lib/<javafx> - the directory this script writes itself - is
-# resolvable on both, but the assertions below have to be told which spelling
+# root as app/ and runtime/. The JavaFX directory this script writes is
+# lib/<javafx> on both, but the assertions below have to be told which spelling
 # to look for. Getting this wrong is invisible on the platform you test on and
 # fatal on the other, which is what the Windows CI leg found.
+#
+# The same case block picks how the launcher names that directory in its
+# --module-path option, and it deliberately does *not* use $ROOTDIR. jpackage
+# expands $ROOTDIR from imageRoot, and the launcher only sets imageRoot while it
+# believes it is running from a plain app image. Installed from a .deb it asks
+# dpkg instead (dpkg -S for the owning package, dpkg -L for the file list) and
+# fills in only the app and runtime directories, so $ROOTDIR expands to the empty
+# string and the option becomes /lib/javafx - an absolute path that does not
+# exist. The installed launcher then dies with
+# "FindException: Module javafx.controls not found" while the very same image
+# starts fine, which is exactly what the Ubuntu smoke leg found in CI.
+# $APPDIR *is* set in both branches, so the option is spelled relative to it:
+# $APPDIR/../javafx is <image>/lib/javafx on Linux (app dir lib/app), and
+# $APPDIR/../lib/javafx is <image>/lib/javafx on Windows (app dir app).
 case "$PLATFORM" in
-    linux)   IMAGE_APP_DIR="lib/app"; IMAGE_RUNTIME_DIR="lib/runtime" ;;
-    windows) IMAGE_APP_DIR="app";     IMAGE_RUNTIME_DIR="runtime" ;;
+    linux)   IMAGE_APP_DIR="lib/app"; IMAGE_RUNTIME_DIR="lib/runtime"
+             JFX_MODULE_PATH='$APPDIR/../javafx' ;;
+    windows) IMAGE_APP_DIR="app";     IMAGE_RUNTIME_DIR="runtime"
+             JFX_MODULE_PATH='$APPDIR/../lib/javafx' ;;
 esac
 
 # jpackage takes a different icon container per platform, all rendered from the
@@ -225,7 +241,7 @@ jpackage \
     --dest "$DEST" \
     --java-options "-Dfile.encoding=UTF-8" \
     --java-options "--enable-native-access=ALL-UNNAMED,javafx.graphics,javafx.media" \
-    --java-options '--module-path=$ROOTDIR/lib/'"$JAVAFX_DIR_NAME" \
+    --java-options "--module-path=$JFX_MODULE_PATH" \
     --java-options '--add-modules=javafx.controls,javafx.fxml,javafx.media'
 
 echo

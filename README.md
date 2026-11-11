@@ -311,7 +311,12 @@ The native image is assembled from three parts, none of which is a fat JAR:
   itself rather than passing it to jpackage's `--app-content`: on Linux that
   option copied the whole tree, on Windows the same invocation produced an
   image whose `lib/javafx` held the jars but not `legal/`, so the license
-  silently disappeared from the Windows installer.
+  silently disappeared from the Windows installer. The launcher option names it
+  relative to `$APPDIR` (`$APPDIR/../javafx` on Linux, `$APPDIR/../lib/javafx`
+  on Windows, both landing on `<image>/lib/javafx`), **not** through
+  `$ROOTDIR`: that macro is expanded from `imageRoot`, which the launcher only
+  sets while it runs from a plain app image, so in an installed `.deb` it
+  expands to nothing and the module path became `/lib/javafx`.
 
 The effect is measured, not asserted: the application image went from 147 MiB to
 73 MiB, the `.deb` from 48 MiB to 44 MiB, and the launch log's
@@ -340,7 +345,10 @@ files and `scripts/package.sh` completes the payload afterwards.
 artifacts actually run. On Linux it starts the application image under a
 throwaway `user.home` (`Xvfb` when no display is available), waits for the main
 window with `xwininfo` instead of sleeping, then installs the `.deb`, starts the
-installed launcher and purges the package again; on Windows it starts the image
+installed launcher and purges the package again; without root (or passwordless
+`sudo`) it unpacks the `.deb` and launches the payload's launcher with a `dpkg`
+stub, because that is what makes jpackage's launcher switch to its
+installed-package code path; on Windows it starts the image
 and requires the jpackage launcher to stay alive. Every launch it performs also
 checks the log for `unnamed module`, which is the one symptom of JavaFX being
 back on the classpath. The CI `smoke` job runs it on both legs against the
