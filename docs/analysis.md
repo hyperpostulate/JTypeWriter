@@ -681,6 +681,15 @@ Sonuç: (a) JVM her başlatmada uyarı yazıyor, (b) JavaFX native'leri (`libgla
 (d) `lib/runtime/legal/` JavaFX lisans metinlerini içermiyor — onlar JAR içindeki
 `META-INF/licenses/` ile karşılanıyor (dolaylı ama yasal olarak izlenebilir).
 
+> **Durum (2026-11-11):** dört madde de kapandı; P3.2.1 bu bölümün tamamını çözdü.
+> Çalışma zamanı artık `jlink` çıktısı (60 MiB, 8 modül), JavaFX `lib/javafx` altında
+> adlandırılmış modüller olarak duruyor ve imaj 147 MiB → **73 MiB**'ye indi. (b) maddesi
+> de bitti: native'ler artık JAR'dan geçici dizine çıkarılmıyor. (d) için JavaFX GPL metni
+> `lib/javafx/legal/` altına, `.deb` copyright belgesine de kendi stanza'sıyla girdi.
+> Bu bölümün bir varsayımı ölçümle düzeltildi: JavaFX çalışma zamanına **linklenmedi**
+> (o zaman `libglassgtk3.so` kaybolurdu), **paketlendi** — ayrıntı ve kapı kanıtı
+> `product-roadmap.md` §3.2.1'de.
+
 ### 10.5 Kanal, imza, güncelleme
 
 - İki kanal yayınlanıyor: kurulum paketi (`.deb`/`.msi`) ve taşınabilir `.tar.gz`.

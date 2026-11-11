@@ -288,36 +288,59 @@ mvn test -Dtest=FileServiceTest      # Run a single test class
 Packaging produces two JARs: a thin one (application classes only) and a
 `jar-with-dependencies` that bundles JavaFX together with its native libraries.
 Because those natives come from the build machine, the fat JAR runs only on the
-platform it was built on - it is a convenience artifact, not a cross-platform
-distribution; `scripts/package.sh` builds a native image, and because it selects
-the host platform it has to be run on each target platform - the release
-workflow runs it once per OS. `mvn javafx:run` is the development entry point.
-`scripts/package.sh` wraps the fat JAR into a native application image with a
-bundled runtime via `jpackage`, and `--installer` wraps that image into the
-platform installer (`.deb`, `.msi`) for Linux and Windows - the same
-command the CI workflow runs. Every release publishes both channels for each
-platform, the installer and a portable `.tar.gz`; which one becomes the product
-default is still an open decision, so `--installer` is one supported path, not
-the decided one. The application version has a single source of truth:
-`pom.xml`. The script reads it back from the built artifact and validates it
-against jpackage's rules.
+platform it was built on - it is a convenience artifact for `java -jar`, not a
+cross-platform distribution and not what the native image ships.
+`scripts/package.sh` builds a native image, and because it selects the host
+platform it has to be run on each target platform - the release workflow runs it
+once per OS. `mvn javafx:run` is the development entry point.
+
+The native image is assembled from three parts, none of which is a fat JAR:
+
+- the thin JAR, which is the application;
+- a runtime built by `jlink` from a measured module list
+  (`java.base`, `java.desktop`, `java.logging`, `java.scripting`,
+  `jdk.unsupported`), so the image no longer carries a compiler, a JShell, a
+  console or the whole JDBC/XML tail of the host JDK;
+- the JavaFX module jars, placed in `lib/javafx` and resolved with
+  `--module-path`/`--add-modules`, so JavaFX is a set of named modules instead
+  of classes loaded from the unnamed module. The jars are bundled rather than
+  linked into the runtime on purpose: `jlink` only carries `lib/` and `bin/` out
+  of a modular jar, and JavaFX keeps its `.so` files at the jar root, so a
+  linked JavaFX would start with a missing `libglassgtk3.so`. Their GPL text
+  travels beside them in `lib/javafx/legal/`.
+
+The effect is measured, not asserted: the application image went from 147 MiB to
+73 MiB, the `.deb` from 48 MiB to 44 MiB, and the launch log's
+`Unsupported JavaFX configuration: classes were loaded from 'unnamed module'`
+warning is gone.
+
+`--installer` wraps that image into the platform installer (`.deb`, `.msi`) for
+Linux and Windows - the same command the CI workflow runs. Every release
+publishes both channels for each platform, the installer and a portable
+`.tar.gz`; which one becomes the product default is still an open decision, so
+`--installer` is one supported path, not the decided one. The application version
+has a single source of truth: `pom.xml`. The script reads it back from the built
+artifact and validates it against jpackage's rules.
 
 `scripts/verify-artifacts.sh` closes the other half of that loop: it compares the
-checked-in payload (`LICENSE`, `NOTICE`, `THIRD-PARTY-NOTICES`, `legal/`, the fat
-JAR and the jar's own `META-INF` entries) against what actually ships in the
-native image and in the installer, byte for byte, in one command. The `.deb`
-payload is unpacked with `dpkg-deb` and compared the same way, because
-`jpackage`'s deb bundler drops the image-root files and `scripts/package.sh`
-completes the payload afterwards.
+checked-in payload (`LICENSE`, `NOTICE`, `THIRD-PARTY-NOTICES`, `legal/`, the thin
+JAR, the JavaFX module jars and each jar's own `META-INF` entries) against what
+actually ships in the native image and in the installer, byte for byte, in one
+command. It also asserts the image layout, because "the application starts" is
+not evidence of it: the runtime must be the `jlink` one rather than the host JDK,
+and `lib/javafx` must exist. The `.deb` payload is unpacked with `dpkg-deb` and
+compared the same way, because `jpackage`'s deb bundler drops the image-root
+files and `scripts/package.sh` completes the payload afterwards.
 
 `scripts/smoke-appimage.sh` proves what the file comparison cannot: that the
 artifacts actually run. On Linux it starts the application image under a
 throwaway `user.home` (`Xvfb` when no display is available), waits for the main
 window with `xwininfo` instead of sleeping, then installs the `.deb`, starts the
 installed launcher and purges the package again; on Windows it starts the image
-and requires the jpackage launcher to stay alive. The CI `smoke` job runs it on
-both legs against the artifact the build job produced, so "packaged" is no
-longer shipped untested.
+and requires the jpackage launcher to stay alive. Every launch it performs also
+checks the log for `unnamed module`, which is the one symptom of JavaFX being
+back on the classpath. The CI `smoke` job runs it on both legs against the
+artifact the build job produced, so "packaged" is no longer shipped untested.
 
 A wrong toolchain stops the build before it starts: `maven-enforcer-plugin` runs
 at the `validate` phase, requires a JDK at least as new as `java.version` in

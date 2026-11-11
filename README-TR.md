@@ -286,35 +286,55 @@ mvn test -Dtest=FileServiceTest      # Tek test sınıfı
 
 Paketleme iki JAR üretir: ince olanı (yalnızca uygulama sınıfları) ve JavaFX'i kendi native
 kütüphaneleriyle birlikte taşıyan `jar-with-dependencies`. Bu native kütüphaneler derlemenin
-yapıldığı makineden geldiği için fat JAR yalnızca derlendiği platformda çalışır; kolaylık
-artefaktıdır, platformlar arası dağıtım değildir; `scripts/package.sh` yerel bir imaj
-üretir ve ana makinenin platformunu seçtiği için her hedef platformda çalıştırılması
-gerekir - sürüm iş akışı bunu her işletim sistemi için bir kez çalıştırır. Geliştirme
-girişi `mvn javafx:run` komutudur. `scripts/package.sh`, fat JAR'ı `jpackage` ile gömülü
-çalışma zamanlı yerel bir uygulama görüntüsüne sarar; `--installer` seçeneği bu görüntüyü
-Linux ve Windows için platform kurulum paketine (`.deb`, `.msi`) dönüştürür —
-CI iş akışının çalıştırdığı komut da budur. Her sürüm her platform için iki kanalı da
-yayımlar: kurulum paketi ve taşınabilir `.tar.gz`; hangisinin ürün varsayılanı olacağı hâlâ
-açık bir karardır, yani `--installer` desteklenen yollardan biridir, kararlaştırılmış olan
-değil. Uygulama sürümünün tek kaynağı `pom.xml`'dir:
-script sürümü üretilen artefaktten geri okur ve jpackage kurallarına karşı doğrular
-(0 ile başlayan sürümleri reddeder).
+yapıldığı makineden geldiği için fat JAR yalnızca derlendiği platformda çalışır; `java -jar`
+için bir kolaylık artefaktıdır, platformlar arası dağıtım değildir ve yerel imajın taşıdığı
+şey de değildir. `scripts/package.sh` yerel bir imaj üretir ve ana makinenin platformunu
+seçtiği için her hedef platformda çalıştırılması gerekir - sürüm iş akışı bunu her işletim
+sistemi için bir kez çalıştırır. Geliştirme girişi `mvn javafx:run` komutudur.
 
-`scripts/verify-artifacts.sh` bu döngünün diğer yarısını kapatır: depodaki yükü
-(`LICENSE`, `NOTICE`, `THIRD-PARTY-NOTICES`, `legal/`, fat JAR ve JAR'ın kendi
-`META-INF` girdileri) gerçekten gönderilenle — yerel imaj ve kurulum paketi —
-tek komutta bayt bayt karşılaştırır. `.deb` yükü `dpkg-deb` ile açılıp aynı
-şekilde karşılaştırılır; çünkü `jpackage`'ın deb paketleyicisi imaj kökündeki
-dosyaları düşürür ve `scripts/package.sh` yükü sonradan tamamlar.
+Yerel imaj üç parçadan kurulur; hiçbiri fat JAR değildir:
+
+- uygulamanın kendisi olan ince JAR;
+- `jlink` ile **ölçülmüş** bir modül listesinden üretilen çalışma zamanı
+  (`java.base`, `java.desktop`, `java.logging`, `java.scripting`, `jdk.unsupported`),
+  böylece imaj artık derleyici, JShell, konsol ve ana makine JDK'sının JDBC/XML kuyruğunu
+  taşımıyor;
+- `lib/javafx` altına konan ve `--module-path`/`--add-modules` ile çözülen JavaFX modül
+  jar'ları, yani JavaFX "unnamed module"dan yüklenen sınıflar değil, adlandırılmış
+  modüller. Jar'lar bilinçli olarak çalışma zamanına **linklenmez**: `jlink` modüler bir
+  jar'dan yalnız `lib/` ve `bin/` taşır, JavaFX ise `.so` dosyalarını jar kökünde tutar;
+  linklenmiş bir JavaFX `libglassgtk3.so` bulunamadan açılırdı. GPL metni yanlarında
+  `lib/javafx/legal/` altında taşınır.
+
+Etki iddia değil ölçüm: uygulama imajı 147 MiB'den 73 MiB'ye, `.deb` 48 MiB'den 44 MiB'ye
+indi ve açılış logundaki `Unsupported JavaFX configuration: classes were loaded from
+'unnamed module'` uyarısı kayboldu.
+
+`--installer` seçeneği bu görüntüyü Linux ve Windows için platform kurulum paketine
+(`.deb`, `.msi`) dönüştürür — CI iş akışının çalıştırdığı komut da budur. Her sürüm her
+platform için iki kanalı da yayımlar: kurulum paketi ve taşınabilir `.tar.gz`; hangisinin
+ürün varsayılanı olacağı hâlâ açık bir karardır, yani `--installer` desteklenen yollardan
+biridir, kararlaştırılmış olan değil. Uygulama sürümünün tek kaynağı `pom.xml`'dir:
+script sürümü üretilen artefaktten geri okur ve jpackage kurallarına karşı doğrular.
+
+`scripts/verify-artifacts.sh` o döngünün diğer yarısını kapatır: depodaki yükü (`LICENSE`,
+`NOTICE`, `THIRD-PARTY-NOTICES`, `legal/`, ince JAR, JavaFX modül jar'ları ve her jar'ın
+kendi `META-INF` girdileri) yerel imajda ve kurulum paketinde gerçekten ne varsa bayt bayt
+karşılaştırır. İmajın yerleşimini de doğrular, çünkü "uygulama açılıyor" bunun kanıtı
+değildir: çalışma zamanı ana makine JDK'sı değil `jlink` çıktısı olmalı ve `lib/javafx`
+var olmalı. `.deb` yükü `dpkg-deb` ile açılıp aynı şekilde karşılaştırılır, çünkü
+`jpackage`'ın deb paketleyicisi imaj kökündeki dosyaları düşürür ve `scripts/package.sh`
+yükü sonradan tamamlar.
 
 `scripts/smoke-appimage.sh` dosya karşılaştırmasının kanıtlayamadığını kanıtlar:
 artefaktların gerçekten çalıştığını. Linux'ta uygulama imajını boş bir `user.home` ile
 (`DISPLAY` yoksa `Xvfb` altında) başlatır, ana pencereyi sabit bir uyku yerine `xwininfo`
 ile bekler, ardından `.deb` paketini kurar, kurulu başlatıcıyı çalıştırır ve paketi
 yeniden kaldırır; Windows'ta imajı başlatır ve jpackage başlatıcısının ayakta kalmasını
-şart koşar. CI'daki `smoke` işi bunu iki işletim sistemi ayağında, derleme işinin
-ürettiği artefakt üzerinde çalıştırır; böylece "paketlendi" artık test edilmeden
-gönderilmez.
+şart koşar. Her başlatmada log ayrıca `unnamed module` için denetlenir: JavaFX'in
+yeniden classpath'e dönmesinin tek belirtisi odur. CI'daki `smoke` işi bunu iki işletim
+sistemi ayağında, derleme işinin ürettiği artefakt üzerinde çalıştırır; böylece
+"paketlendi" artık test edilmeden gönderilmez.
 
 Yanlış araç zinciri derlemeyi başlamadan durdurur: `maven-enforcer-plugin` `validate`
 aşamasında çalışır, JDK'nın `pom.xml`'deki `java.version` değerinden (25) eski olmamasını

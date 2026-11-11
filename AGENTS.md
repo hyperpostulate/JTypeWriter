@@ -13,16 +13,24 @@ platforms on purpose.
 
 - JDK 25 + Maven 3.8+ are hard requirements (`maven-enforcer-plugin` at `validate`, floor
   derived from `java.version`). There is deliberately no Maven wrapper — don't add one.
-- `mvn clean test` — full suite (631 tests, no toolkit, no display needed). The number is a
+- `mvn clean test` — full suite (635 tests, no toolkit, no display needed). The number is a
   floor that moves with every card; don't treat it as a target.
 - `mvn test -Dtest=FileServiceTest` / `-Dtest=FileServiceTest#methodName` — focused run.
-- `mvn clean package` — tests + thin JAR + `jar-with-dependencies`. The fat JAR bundles
-  JavaFX natives from the build machine, so it runs only on the OS it was built on.
+- `mvn clean package` — tests + thin JAR + `jar-with-dependencies`, plus the classified
+  JavaFX module jars copied to `target/javafx-modules` at `prepare-package`. The image ships
+  the **thin** JAR; the fat JAR is only the standalone `java -jar` convenience artifact and
+  bundles JavaFX natives from the build machine, so it runs only on the OS it was built on.
 - `mvn clean javafx:run` — development launch.
 - `./scripts/package.sh [--skip-build] [--installer]` — `jpackage` app image/installer into
   `releases/<os>/`; host-platform only, needs jpackage (+ fakeroot for `.deb` on Linux).
+  The image is three parts: the thin JAR, a `jlink` runtime built from a measured module list
+  (`RUNTIME_MODULES`), and the JavaFX jars bundled into `lib/javafx` and resolved as named
+  modules. JavaFX is bundled rather than jlinked on purpose — `jlink` drops a modular jar's
+  root-level `.so` files, so a linked JavaFX boots to a missing `libglassgtk3.so`.
 - `./scripts/verify-artifacts.sh [--skip-build]` — fresh build then a byte-for-byte comparison
-  of repo payload ↔ application image ↔ `.deb` payload (jars, legal texts, jar entries).
+  of repo payload ↔ application image ↔ `.deb` payload (thin + fat jars, JavaFX modules,
+  legal texts, jar entries), plus the image-layout assertions (jlink runtime, no
+  `jdk.compiler`, `lib/javafx` present).
 - `./scripts/smoke-appimage.sh [--skip-build] [--skip-deb]` — starts the packaged app (Xvfb +
   `xwininfo` on Linux, "launcher stays alive" on Windows) and, on Linux with root or
   passwordless sudo, installs, launches and purges the `.deb`. Skips the install half with a

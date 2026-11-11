@@ -37,7 +37,7 @@ kanıtlanabilir; 2. madde yeni ölçüm ister; 3. madde kod dışıdır.
 |---|---|---|---|---|
 | **P3.0** ✅ Tamamlandı | Yol açıcı düzeltmeler | B1, M2, U2, U8, B5, D5, D13, D14, D2b (U1 ürün kararıyla kapsam dışı) | AI (saatler) | `package.sh` iki kez üst üste geçer; ağaç temiz |
 | **P3.1** ✅ Tamamlandı | Veri güvenliği kapanışı | D1, D2, D3, D4, D6–D10, D4b–D4d, A4, D11, D12 | AI (1–2 gün) + 2 karar | `FxThreadIoTest` kurtarma yolunu kapsar; kodlama matrisi büyür |
-| **P3.2** | Dağıtım ve yayın güveni | P1, P2, B2, B3, B4, B6–B8, Q1 | AI + dış karar | İmaj ≤ ~75 MiB; yayın hattı kapıları koşar |
+| **P3.2** (3.2.1 ✅ Tamamlandı) | Dağıtım ve yayın güveni | P1, P2, B2, B3, B4, B6–B8, Q1 | AI + dış karar | İmaj ≤ ~75 MiB; yayın hattı kapıları koşar |
 | **P3.3** | Editör yetkinliği | U3–U7, U9, A1, A7, P4, §8.2 özellikleri | Karara bağlı | Ürün sınırı kararı yazılı; seçilen özellik testli |
 | **P3.4** | Talep ve sürdürülebilirlik | M1, M3, M4, M5 | İNSAN | Dağıtım kanalı + katkı altyapısı canlı |
 
@@ -299,7 +299,7 @@ Amaç: "50 MB indirip 146 MB kuruyorsun, imzasız, doğrulanmamış" tablosunu k
 Bu dalga yeni ölçüm ister; analizin **A**-seviyesi iki sayısı hedefi veriyor:
 `jlink` → 68,2 MiB (mevcut 133,5 MiB), `jdeps` → 6 modül.
 
-#### 3.2.1 P1 + P2 — tek değişiklik, iki bulgu
+#### 3.2.1 P1 + P2 — tek değişiklik, iki bulgu ✅ Tamamlandı
 
 - **P1:** imaj 52 modül taşıyor; `ct.sym` 10,4 MiB; `jdk.compiler`/`jdk.jshell`/`jconsole`
   hiç kullanılmıyor. `jlink --add-modules java.base,java.desktop,java.logging,
@@ -317,6 +317,46 @@ Bu dalga yeni ölçüm ister; analizin **A**-seviyesi iki sayısı hedefi veriyo
 - **Kapı:** yeni imaj ≤ ~75 MiB; `smoke-appimage.sh` iki platformda açar; açılış
   logunda "unnamed module" **yok** (3 koşu); `.deb` `Installed-Size` düşer.
 - **Efor:** AI ~1 gün + iki platformda smoke (İNSAN/CI zamanı baskın).
+- **Sonuç:** imaj **147 MiB → 73 MiB**, `.deb` **48 MiB → 44 MiB**
+  (`Installed-Size` 73 996 KiB), çalışma zamanı 134 MiB → 60 MiB ve 8 modül:
+  `java.base java.datatransfer java.xml java.prefs java.desktop java.logging
+  java.scripting jdk.unsupported`. Üç koşunun hiçbirinde "unnamed module" yok; açılış
+  logu artık tamamen sessiz (jpackage'ın kendi `Picked up JAVA_TOOL_OPTIONS` satırı
+  dışında). `smoke-appimage.sh --skip-build --open-sample` → PASS (imaj + komut satırı
+  belgesi), `verify-artifacts.sh --skip-build` → **39 karşılaştırma**, hepsi geçti.
+
+  Planın iki varsayımı ölçümle düzeltildi. **Birincisi:** JavaFX `jlink` ile çalışma
+  zamanına *linklenmedi*, `lib/javafx` altına **paketlendi**. `jlink` modüler bir JAR'dan
+  yalnız `lib/` ve `bin/` taşır; JavaFX `.so` dosyalarını JAR kökünde tuttuğu için
+  linklenmiş bir JavaFX `libglassgtk3.so` bulunamadan açılırdı. Modül *yolu* P2'yi
+  çözmek için yeterli, modül *linklemesi* değil. **İkincisi:** modül listesinde
+  `javafx.*` yok ve olmamalı; `jdeps --print-module-deps` yalnız JDK modüllerini verir,
+  JavaFX ayrı bir modül yolu olarak kalır. Buna karşılık listede planda olmayan
+  `java.scripting` var: `javafx.fxml` onu zorunlu istiyor, yokluğunda uygulama
+  `Module java.scripting not found, required by javafx.fxml` ile açılmadan ölür —
+  ilk denemede tam olarak bu oldu.
+
+  Yol boyunca iki tuzak daha ölçüldü, ikisi de kodda yorumla kayıtlı: jpackage bir
+  java-option içindeki `$APPDIR` makrosunu **launcher'ın kendi dizini** (`lib/app`) olarak
+  genişletiyor, yani `$APPDIR/lib/javafx` → `lib/app/lib/javafx`; doğrusu `$ROOTDIR`.
+  Ve `--enable-native-access=ALL-UNNAMED` JavaFX modül yüklemesiyle artık yetmiyor;
+  `javafx.graphics`/`javafx.media` açıkça listelenmezse her açılışta `System::load`
+  kısıtlama uyarısı çıkıyor.
+
+  JavaFX lisansı artık JAR'ın içinde değil, yanında: `lib/javafx/legal/GPL-2.0-with-
+  classpath-exception.txt` (tek kaynak: depodaki `legal/`) ve `.deb` copyright belgesine
+  `Files: opt/jtypewriter/lib/javafx/*` stanza'sı eklendi. Bu arada belgede var olan bir
+  hata düzeldi: DEP-5 **son** eşleşen stanza'yı uygular, dolayısıyla `Files: *` sonda
+  durduğu sürece runtime ve JavaFX stanza'ları dekorasyondu; catch-all artık başta ve
+  `verify_deb_license` stanza sırasını da denetliyor.
+
+  Testler: `CiGatesTest` dört yeni kapı pinliyor — modül yolu `$ROOTDIR` ile kurulmalı,
+  `--app-content` JavaFX'i imaja kopyalamalı, `RUNTIME_MODULES` listesi `java.scripting`
+  içerip `jdk.compiler`/`jdk.jshell`/`jdk.jconsole` içermemeli, `verify-artifacts.sh`
+  imaj yerleşimini (runtime modül listesi + `lib/javafx`) denetlemeli ve
+  `smoke-appimage.sh` "unnamed module" görürse düşmeli. Liste **satırı** denetleniyor,
+  dosyanın tamamı değil: yorumlar dışlanan modüllerin adını anıyor, bir metin araması
+  dışlamayı dışlamanın açıklamasından ayıramaz.
 
 #### 3.2.2 B2 — yayın hattı kendi kapılarını koşsun
 
@@ -515,9 +555,9 @@ komutlar oradan alınmıştır, yenisi değildir.
 | P3.0 | `mvn -B clean test \| tail -20` | 575+ yeşil, `@Disabled` yok |
 | P3.1 | `mvn test -Dtest=EncodingMatrixTest,RecoveryStoreTest,AutoSaveServiceTest,FxThreadIoTest` | yeni senaryolar yeşil |
 | P3.1 | `mvn test -Dtest=ProcessCrashRecoveryTest` (tek başına) | gerçek `SIGKILL` kurtarma hâlâ geçer |
-| P3.2 | `du -sb releases/linux/JTypeWriter` | ≤ ~75 MiB (bugün 146,2 MiB) |
-| P3.2 | `grep -c 'unnamed module' <açılış logu>` (3 koşu) | `0` |
-| P3.2 | `dpkg-deb -f ...deb Installed-Size` | belirgin düşüş |
+| P3.2 ✅ | `du -sb releases/linux/JTypeWriter` | ≤ ~75 MiB (ölçüldü: 147 MiB → **73 MiB**) |
+| P3.2 ✅ | `grep -c 'unnamed module' <açılış logu>` (3 koşu) | `0` (ölçüldü: 3/3 koşuda `0`) |
+| P3.2 ✅ | `dpkg-deb -f ...deb Installed-Size` | belirgin düşüş (ölçüldü: 48 MiB → **44 MiB**, `Installed-Size` 73 996 KiB) |
 | P3.3 | özellik başına `mvn test -Dtest=<SafKararSınıfı>Test` | toolkit'siz, hızlı |
 | P3.4 | `curl -s .../releases \| grep download_count` + kanal sayfası | tablo değişiyor mu |
 
