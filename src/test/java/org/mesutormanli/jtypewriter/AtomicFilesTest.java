@@ -162,6 +162,89 @@ class AtomicFilesTest {
     }
 
     /**
+     * Regression: resolving a dangling symlink used to fall back to "write as
+     * named", which replaced the link with a regular file. The save must be
+     * refused so the link - and the document it was meant to reach - survives.
+     */
+    @Test
+    void aDanglingSymbolicLinkIsNeverReplacedByARegularFile(@TempDir Path dir) throws IOException {
+        var link = dir.resolve("draft.txt");
+        try {
+            Files.createSymbolicLink(link, dir.resolve("missing.txt"));
+        } catch (IOException | UnsupportedOperationException e) {
+            Assumptions.abort("symbolic links unavailable: " + e.getMessage());
+        }
+
+        assertThrows(IOException.class,
+                () -> AtomicFiles.writeMoving(link, "text".getBytes(StandardCharsets.UTF_8)));
+
+        assertTrue(Files.isSymbolicLink(link), "the dangling link must survive a refused save");
+        assertTrue(Files.notExists(link), "no regular file may be created at the link path");
+        try (Stream<Path> files = Files.list(dir)) {
+            assertTrue(files.noneMatch(p -> p.getFileName().toString().endsWith(".tmp")),
+                    "a refused save must not leave a temp file behind");
+        }
+    }
+
+    /**
+     * Regression: a brand-new document inherited the JVM temp file's owner-only
+     * {@code 0600} instead of the process umask. A probe created with
+     * {@link Files#createFile} in the same test answers what the umask allows, so
+     * the saved file must match it rather than stay owner-only.
+     */
+    @Test
+    void aNewDocumentGetsTheUmaskPermissionsNotOwnerOnly(@TempDir Path dir) throws IOException {
+        Assumptions.assumeTrue(
+                FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
+                "POSIX permissions unavailable on this platform");
+        var probe = Files.createFile(dir.resolve("probe"));
+        var expected = Files.getPosixFilePermissions(probe);
+
+        var target = dir.resolve("new.txt");
+        AtomicFiles.writeMoving(target, "hello".getBytes(StandardCharsets.UTF_8));
+
+        assertEquals(expected, Files.getPosixFilePermissions(target));
+    }
+
+    /**
+     * The save must not change the document's owner. An actual chown to a
+     * <em>different</em> user cannot be exercised unprivileged, so this compares
+     * against a probe owned by the caller: that is enough to prove the save does
+     * not hand the file to somebody else or fail when it cannot chown.
+     */
+    @Test
+    void aNewDocumentKeepsTheCreatingUsersOwnership(@TempDir Path dir) throws IOException {
+        Assumptions.assumeTrue(
+                FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
+                "POSIX permissions unavailable on this platform");
+        var probe = Files.createFile(dir.resolve("probe"));
+
+        var target = dir.resolve("new.txt");
+        AtomicFiles.writeMoving(target, "hello".getBytes(StandardCharsets.UTF_8));
+
+        assertEquals(Files.getOwner(probe), Files.getOwner(target));
+    }
+
+    /**
+     * The umask probe and the temp file are both implementation details; a
+     * successful save must leave the user's directory exactly as it found it.
+     */
+    @Test
+    void aNewDocumentLeavesNeitherProbeNorTempFileBehind(@TempDir Path dir) throws IOException {
+        Assumptions.assumeTrue(
+                FileSystems.getDefault().supportedFileAttributeViews().contains("posix"),
+                "POSIX permissions unavailable on this platform");
+
+        AtomicFiles.writeMoving(dir.resolve("new.txt"), "hello".getBytes(StandardCharsets.UTF_8));
+
+        try (Stream<Path> files = Files.list(dir)) {
+            assertTrue(files.noneMatch(p -> p.getFileName().toString().startsWith(".jtw-umask-")
+                            || p.getFileName().toString().endsWith(".tmp")),
+                    "no probe or temp file may survive a successful save");
+        }
+    }
+
+    /**
      * Regression: the temp prefix used to embed the whole document name, so a
      * 250-character name overflowed {@code NAME_MAX} and the save failed before
      * the rename. The target itself is under 255 bytes and must save intact.

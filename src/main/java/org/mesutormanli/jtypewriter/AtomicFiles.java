@@ -16,6 +16,7 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.AclFileAttributeView;
 import java.nio.file.attribute.DosFileAttributeView;
 import java.nio.file.attribute.PosixFileAttributeView;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,9 +46,10 @@ import java.util.logging.Logger;
  * <p>A target reached through a symbolic link is resolved with
  * {@link Path#toRealPath()} first: the temp file and the atomic rename then act
  * on the real document, so the link survives the save instead of being replaced
- * by a regular file. A path that does not exist yet - a
- * brand-new document, or a dangling link - cannot be resolved and is written as
- * named.</p>
+ * by a regular file. A path that does not exist yet - a brand-new document -
+ * cannot be resolved and is written as named. A <em>dangling</em> link is
+ * different: writing "as named" would replace the link with a regular file and
+ * orphan the document the user meant to save, so such a save is refused.</p>
  */
 public final class AtomicFiles {
 
@@ -173,11 +175,22 @@ public final class AtomicFiles {
      * Follows symbolic links to the document they point at, so the atomic rename
      * replaces the real file and the link stays a link. A missing target has no
      * real path; the named path is used so a new document is still created.
+     *
+     * <p>A dangling symlink is not a new document: returning its absolute path
+     * would let the rename replace the link with a regular file, so the save is
+     * refused with an explanatory {@link IOException}. The caller reports a
+     * failed save and keeps the document dirty, which is far better than
+     * silently orphaning the file the link pointed at.</p>
      */
-    private static Path resolveRealTarget(Path target) {
+    private static Path resolveRealTarget(Path target) throws IOException {
         try {
             return target.toRealPath();
         } catch (IOException missingOrUnresolvable) {
+            if (Files.isSymbolicLink(target)) {
+                throw new IOException("symbolic link " + target
+                        + " points at a missing file; refusing to replace the link",
+                        missingOrUnresolvable);
+            }
             LOG.log(Level.FINE, "no real path for " + target + "; writing as named",
                     missingOrUnresolvable);
             return target.toAbsolutePath();
@@ -230,16 +243,42 @@ public final class AtomicFiles {
      * the atomic rename cannot change the document's access rights. Best-effort:
      * an unsupported or unreadable attribute view is logged and skipped - a
      * missing permission copy must never cost the user the save itself.
+     *
+     * <p>A brand-new document has no target to copy from, but the JVM's temp
+     * file is owner-only ({@code 0600}), which silently ignores the process
+     * umask. It is therefore replaced by the permissions a normally created file
+     * would get: a probe file created with {@link Files#createFile} in the same
+     * directory (no explicit attributes, so the umask applies) supplies them.
+     * Guessing {@code 0666 & ~umask} from {@code PosixFilePermissions} constants
+     * is deliberately not done - the umask is a process property, not a
+     * platform constant.</p>
      */
     private static void preserveAttributes(Path target, Path temp) {
         if (!Files.exists(target)) {
-            return; // a brand new file keeps the temp file's defaults (owner-only)
+            applyCreatePermissions(temp);
+            return;
         }
         try {
             var source = Files.getFileAttributeView(target, PosixFileAttributeView.class);
             var destination = Files.getFileAttributeView(temp, PosixFileAttributeView.class);
             if (source != null && destination != null) {
-                destination.setPermissions(source.readAttributes().permissions());
+                var attributes = source.readAttributes();
+                try {
+                    destination.setPermissions(attributes.permissions());
+                } catch (IOException | UnsupportedOperationException e) {
+                    LOG.log(Level.FINE, "could not copy POSIX permissions of " + target, e);
+                }
+                // Ownership is copied separately and best-effort: an unprivileged
+                // process cannot chown, and that failure must not cost the save.
+                // In the common case temp and target already share an owner, so
+                // this is a no-op; it matters for a file owned by another user in
+                // a directory the caller may write to.
+                try {
+                    destination.setOwner(attributes.owner());
+                    destination.setGroup(attributes.group());
+                } catch (IOException | UnsupportedOperationException | SecurityException e) {
+                    LOG.log(Level.FINE, "could not copy POSIX ownership of " + target, e);
+                }
                 return; // a POSIX file system owns the permission model
             }
         } catch (IOException | UnsupportedOperationException e) {
@@ -266,6 +305,46 @@ public final class AtomicFiles {
             }
         } catch (IOException | UnsupportedOperationException e) {
             LOG.log(Level.FINE, "could not copy ACL of " + target, e);
+        }
+    }
+
+    /**
+     * Gives a brand-new document the permissions a normally created file would
+     * get under the process umask. {@link Files#createFile(Path, java.nio.file.attribute.FileAttribute...)}
+     * with no attributes asks the operating system for the default mode
+     * ({@code 0666 & ~umask}), which is exactly the question being answered.
+     *
+     * <p>The probe is a sibling of the temp file so it lives on the same file
+     * system, and it is removed in a {@code finally}. Every failure is logged at
+     * {@code FINE} and swallowed: an unavailable POSIX view or a probe that
+     * cannot be created must never fail the save, it only leaves the temp file's
+     * owner-only default in place.</p>
+     */
+    private static void applyCreatePermissions(Path temp) {
+        var dir = temp.getParent();
+        if (dir == null) {
+            return;
+        }
+        Path probe = null;
+        try {
+            var destination = Files.getFileAttributeView(temp, PosixFileAttributeView.class);
+            if (destination == null) {
+                LOG.log(Level.FINE, "POSIX view unavailable for " + temp
+                        + "; keeping the temp file's default permissions");
+                return;
+            }
+            probe = Files.createFile(dir.resolve(".jtw-umask-" + UUID.randomUUID()));
+            destination.setPermissions(Files.getPosixFilePermissions(probe));
+        } catch (IOException | UnsupportedOperationException | SecurityException e) {
+            LOG.log(Level.FINE, "could not apply the umask to " + temp, e);
+        } finally {
+            if (probe != null) {
+                try {
+                    Files.deleteIfExists(probe);
+                } catch (IOException e) {
+                    LOG.log(Level.FINE, "could not delete umask probe " + probe, e);
+                }
+            }
         }
     }
 
