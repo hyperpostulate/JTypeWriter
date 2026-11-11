@@ -150,9 +150,10 @@ The welcome view, the recent-files view and the About view are cards in the same
 ### Single Instance
 
 Only one JTypeWriter instance runs per user account: a lock file in `~/.jtypewriter/`
-stops a second start, which then shows a localized warning popup and exits instead of
-opening another window. The operating system releases the lock automatically if the
-running instance crashes, so a crash never locks you out.
+stops a second start. That second process opens no window of its own - it shows a
+localized warning dialog that has to be acknowledged, and only then exits. The
+operating system releases the lock automatically if the running instance crashes, so
+a crash never locks you out.
 
 ### Multiple Themes
 
@@ -374,31 +375,47 @@ org.mesutormanli.jtypewriter
 │   ├── ExitDisposition.java              # Exit-path rule for the recovery draft (CLEAR / PARK / KEEP)
 │   ├── FileService.java                  # Atomic file I/O (encoding-stable)
 │   ├── RecoveryChoice.java               # Answer to the "recover draft" prompt (restore / discard / later)
+│   ├── RecoveryRetention.java            # Age/count/size policy for parked drafts (pure)
 │   ├── RecoveryStore.java                # Crash-recovery draft storage
+│   ├── RecoveryTargetPath.java           # Validation of a draft's claimed original path (pure)
+│   ├── StorageFootprint.java             # The disk cost of one saved document (pure)
 │   └── TextCodec.java                    # Encoding detection & lossless round trips
 ├── stats/
-│   └── SessionStats.java                 # Writing session statistics (WPM, counts)
+│   ├── SessionStats.java                 # Writing session statistics (WPM, counts)
+│   └── TextChange.java                   # One edit as the editor saw it (pure value)
 ├── ui/
 │   ├── MainController.java               # Root layout controller
 │   ├── MainMenu.java                     # File/Edit/View/Help menu button generated from EditorAction
 │   ├── MainStage.java                    # Stage configuration (fullscreen, close)
-│   ├── AppIcons.java                     # Window/taskbar/dock icon set from /icons/
+│   ├── AppIcons.java                     # Window/taskbar icon set from /icons/
 │   ├── AppFonts.java                     # Bundled UI font + headless measurement face
 │   ├── WelcomeCard.java                  # Welcome card: shortcuts + greeting opt-out
 │   ├── RecentFilesCard.java              # Recent documents card (opened from the File menu)
 │   ├── AboutCard.java                    # About card with author info
+│   ├── EditorAction.java                 # The command inventory: label, chord and effect per command
 │   ├── KeyboardShortcutHandler.java      # Centralized keyboard shortcut handling
 │   ├── CrashHandler.java                 # Global crash net: log + error dialog
 │   ├── DropHandler.java                  # Scene-level file drop glue (resolve, open, report)
 │   ├── DroppedFiles.java                 # Drop decision: one readable .txt/.md (pure)
+│   ├── FindCommands.java                 # The find/replace port the command inventory exposes
 │   ├── FindModel.java                    # Find/replace scan, cursor and replace decisions (pure)
+│   ├── FindPanel.java                    # Floating find/replace card over the editor
+│   ├── FindReplacePolicy.java            # Whether a replacement needs YOLO consent (pure)
+│   ├── FindScanService.java              # Background find scan on its own daemon worker
+│   ├── OverlayCard.java                  # Base class of the cards that float over the text
+│   ├── OverlaySlot.java                  # At most one floating card visible at a time
+│   ├── ShortcutRows.java                 # Shortcut-card rows generated from EditorAction
+│   ├── ShortcutTable.java                # The two-column shortcut grid shared by cards
 │   ├── SingleInstanceWarning.java        # "Already running" warning window
+│   ├── DialogButtons.java                # Custom buttons for the application's Alerts
+│   ├── DialogSizing.java                 # Alert sizing maths (pure)
+│   ├── DialogStyling.java                # Theme stylesheets on an Alert's dialog pane
 │   ├── component/
 │   │   ├── EditorArea.java               # TextArea enforcing the YOLO policy
 │   │   ├── YoloPolicy.java               # YOLO mode edit policy (pure logic)
 │   │   ├── EditorKeyHandler.java         # Keystroke sound + stats tracking
-│   │   ├── UndoHistoryReset.java         # Clears undo/redo on document load (reflectively)
 │   │   ├── StatsBar.java                 # Bottom status bar (clock + stats)
+│   │   ├── StatsBarModel.java            # Status-bar text composition (JavaFX-free)
 │   │   ├── StatsBarState.java            # Persisted status-bar size (non-Node state)
 │   │   ├── ToolbarView.java              # Top toolbar (file/edit buttons + settings dropdowns)
 │   │   ├── ToolbarFit.java               # Toolbar overflow policy (pure, headless measurement)
@@ -417,6 +434,7 @@ org.mesutormanli.jtypewriter
 ├── AppVersion.java                       # App version, filtered from pom.xml at build time
 ├── AtomicFiles.java                      # Durable atomic writes (fsync + rename)
 ├── InstanceLock.java                     # Per-user instance lock (single instance)
+├── IoExecutor.java                       # The one seam for blocking file I/O
 ├── RecentFiles.java                      # Welcome card's recent-document list (pure)
 ├── StartupArguments.java                 # Resolves the CLI/file-association argument (pure)
 └── FxApplication.java                    # JavaFX application lifecycle bridge
@@ -427,7 +445,6 @@ org.mesutormanli.jtypewriter
 | Component | Description |
 |-----------|-------------|
 | `EditorArea` | TextArea subclass that routes every edit through the YOLO policy; loads documents through `setDocument` |
-| `UndoHistoryReset` | Clears the TextArea undo/redo history on every document load (reflective, JavaFX has no API) |
 | `YoloPolicy` | YOLO mode edit policy (blocks deletions, allows insertions) |
 | `DroppedFiles` | Pure decision behind a file drop: exactly one readable `.txt`/`.md` becomes the document to open; no file, several files, another type, a folder or a vanished path becomes a localized refusal |
 | `DropHandler` | Scene-level drag glue: accepts the gesture as an event filter (so the text area cannot treat it as dragged text), resolves it through `DroppedFiles` and opens the document through the same unsaved-changes gate as Open |
@@ -441,7 +458,7 @@ org.mesutormanli.jtypewriter
 | `ToolbarFit` | Toolbar overflow policy: pure, JavaFX-free measurement that collapses the dropdown captions when the captioned row would not fit |
 | `ToolbarState` | Manages YOLO mode and sound on/off state |
 | `StatsBarState` | Persisted status-bar size; non-Node state over a neutral `AppSettings.StatsBarSize` |
-| `AppIcons` | Window, taskbar and dock icon set loaded from `/icons/`; a missing asset never breaks startup |
+| `AppIcons` | Window and taskbar icon set loaded from `/icons/`; a missing asset never breaks startup |
 | `FileService` | Atomic file I/O (temp write + fsync + move) with encoding stability |
 | `DialogService` | UI dialog management (FileChooser, Alert) |
 | `TextCodec` | Encoding detection (BOM/UTF-8), strict decoding that refuses to replace bytes with `U+FFFD`, and lossless round trips |
@@ -506,6 +523,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `EncodingMatrixTest` | The open→save and open→edit→save byte matrix per encoding (BOM-less UTF-16LE/BE, Windows-1254 via the legacy prompt, mixed UTF-8 with CRLF, tab and emoji), pinning that a valid-UTF-8 file with NULs on both parities stays UTF-8 and that BOM-less UTF-16 never reaches the legacy prompt |
 | `BackupKeeperTest` | Pre-overwrite backup rotation and retention |
 | `RecoveryStoreTest` | Crash-recovery draft lifecycle (save/restore/drop) in one atomic per-session `.jtw` file, newest-draft adoption, isolation between concurrent sessions, parking a postponed draft so the live slot stays free, tolerance for corrupt headers, bad timestamps, unusable paths and invalid UTF-8; a read-only directory makes `clear()` report failure and log a `WARNING` |
+| `RecoveryRetentionTest` | The parked-draft housekeeping rule as a pure function: age, count and size budgets, the newest entry surviving a budget it alone exceeds, and an oversized entry not discarding a smaller one behind it |
 | `AutoSaveServiceTest` | Opening or creating a document drops the previous document's stale recovery draft; a postponed draft survives an exit and no longer silences autosave of the new document (regression); an answered exit clears the draft, an unasked exit parks it, a frozen slot keeps the file untouched, and failed snapshots or parked drafts report health; a failed delete keeps the warning without a dialog and a later successful delete withdraws it; a draft older than the document on disk is restored without its path |
 | `ExitDispositionTest` | The four-way exit matrix: answered vs unasked exit against a live vs frozen slot, with a frozen slot winning over every other signal |
 | `DroppedFilesTest` | The drop decision: `null`/empty file list, one file, `.md`, an upper-case extension, several files (refused with the count), a PDF and an extension-less file, a path that vanished before the drop, a directory named `*.txt`, a symlink that keeps its name, and the suffix check rejecting names that only end with the same letters |
@@ -521,28 +539,45 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge), the Edit menu's find/replace placement, and the command-menu contract: `MainMenu.layout()` carries every platform-independent `EditorAction` exactly once across the four pages (six settings commands are represented by their value submenu instead), the View submenus list and check the same values the toolbar dropdowns offer, and every page title and row label is non-empty in all six languages |
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
 | `AppIconsTest` | The icon set on the classpath: every PNG decodes to the declared size, and the `.ico` file starts with its expected magic bytes (pure byte checks, no toolkit) |
+| `AppVersionTest` | The version is one number: the filtered resource is read and trimmed, a missing or blank value is empty rather than throwing, `get()` is never blank, and every reader (About, the settings schema) agrees with `pom.xml` |
 | `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it, the settings schema version, the sound level (including the legacy on/off key read as a level), and the recent-document list plus the welcome opt-out |
+| `AppDirsTest` | The data-directory layout: an unset or blank `user.home` falls back to an absolute temp-based data directory instead of throwing, and a real home yields `<home>/.jtypewriter` with `recovery/` and `logs/` under it |
 | `StartupGreetingTest` | When the welcome card may arrive on its own: a fresh install is greeted, a stored opt-out keeps it away, and a document named on the command line is never covered by it |
 | `RecentFilesCardTest` | How a recent-document row is named: the file name, falling back to the whole path when a path has no last element |
 | `RecentFilesTest` | The recent-files card's document list as pure list operations: newest first, one row per document by absolute normalised path, the ten-entry cap dropping the oldest entry, vanished documents filtered out, and empty/null handled |
 | `StatsBarStateTest` | Persisted status-bar size: starts from the setting, a fresh install starts at medium, cycling persists each step, a corrupt value degrades to medium, the mapping covers both enums both ways |
+| `StatsBarModelTest` | The status bar's text logic, headless: populated immediately after construction, refresh picks up new statistics, a language switch refreshes before notifying and re-renders the clock and the warning, and each autosave failure kind shows its own warning |
 | `FontSizeManagerTest` | The font-size ladder, off-ladder sizes inserted without changing the setting, ladder stepping for Ctrl+±, clamping to the supported range and the persisted reset to the default size |
 | `ToolbarOptionListsTest` | The six toolbar dropdowns: option order, no duplicates, and every dropdown able to display its own current value |
 | `AtomicFilesTest` | Durable atomic writes: content integrity, no temp leftovers, cleanup after failures |
 | `MessagesTest` | i18n bundle parity across all 6 languages, localised theme/colour names, locale-independent bundle resolution |
 | `DialogServiceTest` | Save-as file naming rules (default extension handling) |
+| `DialogButtonsTest` | The shared alert buttons: primary is OK/Done, cancel is Cancel/Close, the alternative is the third action, label text is preserved verbatim, exactly one default and one cancel, and the recovery dialog puts Cancel on Later rather than Discard |
+| `DialogSizingTest` | Alert sizing maths: the preferred size is returned unchanged when it fits, clamped into a 768 px screen, floored on an absurdly small screen, with symmetric margins, and the shared content column leaves room for the dialog chrome |
+| `DialogStylingTest` | Every Alert is themed: stylesheet order per theme (base then light/dark/sepia), every listed stylesheet resolves on the classpath, `base.css` themes the dialog pane, and each theme defines the tokens dialog panes read |
 | `JTypeWriterAppTests` | Main method presence |
 | `AppLoggingTest` | Log formatter builds its header without throwing (regression) and appends an indented stack trace with the cause chain for thrown exceptions; a log-file handler in a temp directory, an unusable log directory and a denied home falling back to console only, and repeated `init()` not stacking handlers |
 | `InstanceLockTest` | Instance-lock acquisition, rejection of a second acquire in the same JVM, release and idempotent close, fail-open behaviour for an unusable lock file, and a read-only data directory reporting `UNAVAILABLE` instead of blocking startup |
 | `LanguageTest` | Native language names are stable code constants under every system locale (no `getDisplayLanguage` trap) |
+| `ThemeCycleTest` | The theme cycle: enum order matches the toolbar, Dark is the default, `next` wraps back to the start, and every bundle documents the cycle starting at the default |
 | `ToolbarStateTest` | The sound level's single setter: persistence across a restart, the audio engine follows, zero silences both, On restores the last audible rung, repeats are no-ops |
 | `ToolbarFitTest` | Toolbar overflow policy: how the captioned row is measured (buttons, dropdowns, spacer, chrome) with injected metrics, the FULL→COMPACT switch and its 40 px hysteresis, plus acceptance tests proving German and French are not clipped at 1280 px and that the collapsed row fits 900 px in all six languages, and that the window's minimum width is the widest collapsed row measured across the six bundles |
 | `AppFontsTest` | The bundled UI font is a release asset: both faces are on the classpath under the family `base.css` names, they render every toolbar label in all six languages (including the `☰` menu glyph), and a pinned string measures to a pinned width, so a fallback to a system font fails the build |
 | `PackagingNoticesTest` | The packaging contract: `META-INF/THIRD-PARTY-NOTICES` and all three license texts are on the classpath, the notice names every bundled component with its real SPDX id, states that FFmpeg is not distributed, stays LF-only within 100 columns, and is byte-identical to the checked-in file so a stale build output cannot pass |
 | `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text, the autosave warning, the toolbar text, a plain popup row or the default editor text drops below AA or 13 px (or a theme declares a token `base.css` never reads), the focus ring drops below 3:1, highlighted popup-row text drops below AA, the popup cell font size drifts from the closed combo's, the focus colour becomes transparent again, or a non-existent JavaFX CSS property (`-fx-letter-spacing`, `-fx-transition`) returns |
 | `CiGatesTest` | The CI gate contract: the workflow really invokes the icon freshness check and the artifact verification, the icon check runs before the build and on both OS legs without re-rasterising, the artifact check runs after packaging, and that artifact gate stays on the Linux leg (it unpacks the `.deb`) |
+| `ReadmeTestTableTest` | The test-class table is derived, not remembered: every `*Test.java` under `src/test` has a row in both READMEs, the Turkish table is as complete as the English one, and no row names a class that no longer exists |
+| `ReleaseNotesTest` | The release contract: every artifact upload carries a short retention, the release body comes from the checked-in template, the template stays bilingual with no literal version and the same verification commands in both halves, the note measures download sizes, and the workflow can dry-run while a manual run cannot publish |
+| `ReleaseAssetsScriptTest` | The portable-archive script: a drive-lettered path is not read as a `tar` host name, and plain paths still produce an archive with a single top-level directory |
+| `LicenseHeaderTest` | The SPDX header sits at byte 0 of every `.java` file under `src/`, before `package`, and the canonical icon SVG declares the same licence |
 | `EditorActionTest` | The command inventory: every constant performs exactly its own effect through a recording `Context` (no toolkit), every constant carries a label and at least one chord, only `EXIT_FULLSCREEN` is left to the platform, the toolbar buttons run the shared actions, and a source scan fails if a chord literal is redeclared outside `EditorAction` |
 | `ShortcutRowsTest` | The shortcut card is generated from the inventory instead of being copied: two-way coverage with `EditorAction`, the published row order, a localised label and description per row, and no chord twice on the card, in all six languages |
+| `EditorUndoContractTest` | The undo/redo contract without a toolkit: no production source reaches into JavaFX's private undo-manager fields, and loading a document still replaces the text in a single programmatic call |
+| `OverlayCardTest` | The floating cards' dismissal contract: Escape and Enter dismiss a card, any other key is left to the card |
+| `OverlaySlotTest` | At most one floating card at a time: showing one hides the others without destroying them, registering the same card twice hides it once, and an unregistered owner hides every member |
+| `AudioAssetTest` | The bundled keystroke sample is a release asset: on the classpath, its format and SHA-256 match `PROVENANCE.md`, it is an audible transient rather than silence, and the provenance states authorship and licence |
+| `SoundLevelTest` | The volume ladder: rungs ascend from silence to full, only `OFF` is silent, and an off-ladder persisted volume resolves to its nearest rung |
+| `SoundPolicyTest` | Which keystrokes click: typing a character clicks, an undefined character is silent, only the deleting keys click on press, and a shortcut chord is silent whatever its key |
 | `StatsPerfHarnessTest` | The ceiling behind the incremental counters: one real `StatsBarModel.refresh` (formatting included) on a 10 MiB document stays under 50 ms in CI. The whole-text version measured ~164 ms once a second, so an O(n) refresh coming back fails the build |
 | `FxThreadIoTest` | The FX-thread invariant without starting a toolkit: opening, saving and autosaving reach the disk through `IoExecutor` only (`fxThreadTasks()` stays zero), a clean autosave tick never copies the document text, and text typed while a save is in flight stays dirty afterwards |
 | `RecoveryTargetPathTest` | The guard between a recovery draft's header and the next save: the path must be absolute, canonical, under an allowed root and outside the app's own data directory. A relative path, a traversal escape, a dangling symlink or a path without allowed roots is dropped (fail closed) while the recovered text is still offered |

@@ -38,7 +38,7 @@ import org.mesutormanli.jtypewriter.ui.component.EditorArea;
  * hidden without losing what the user typed.</p>
  *
  * <p><strong>Why the scan is delegated.</strong> {@link FindModel#findAll} is
- * O(document length) and the editor accepts documents up to 10 MB. Running it
+ * O(document length) and the editor accepts documents up to 64 MiB. Running it
  * on the FX thread for every keystroke in the query field would freeze the
  * window. The card therefore submits the scan to {@link FindScanService} on a
  * worker, tags it with a generation counter, and installs the result on the FX

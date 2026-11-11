@@ -18,7 +18,7 @@ import org.mesutormanli.jtypewriter.AppLogging;
  * Single place that knows which classpath resources make up the application
  * window icon. The bundled PNGs live under {@code /icons/} and are offered to
  * JavaFX as a set of sizes, so the platform can pick the best fit for the
- * window/taskbar/dock.
+ * window/taskbar.
  *
  * <p>Icon loading is best-effort by design: a missing resource (for example an
  * exploded development classpath without the asset directory) or a corrupt

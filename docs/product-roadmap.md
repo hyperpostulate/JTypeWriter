@@ -35,7 +35,7 @@ kanıtlanabilir; 2. madde yeni ölçüm ister; 3. madde kod dışıdır.
 
 | Dalga | Ad | Kapsam | Baskın efor | Çıkış kapısı |
 |---|---|---|---|---|
-| **P3.0** | Yol açıcı düzeltmeler | B1, M2, U2, U8, B5, D5, D13, D14, D2b, U1 | AI (saatler) | `package.sh` iki kez üst üste geçer; ağaç temiz |
+| **P3.0** | Yol açıcı düzeltmeler | B1, M2, U2, U8, B5, D5, D13, D14, D2b (U1 ürün kararıyla kapsam dışı) | AI (saatler) | `package.sh` iki kez üst üste geçer; ağaç temiz |
 | **P3.1** | Veri güvenliği kapanışı | D1, D2, D3, D4, D6–D10, D4b–D4d, A4, D11, D12 | AI (1–2 gün) + 2 karar | `FxThreadIoTest` kurtarma yolunu kapsar; kodlama matrisi büyür |
 | **P3.2** | Dağıtım ve yayın güveni | P1, P2, B2, B3, B4, B6–B8, Q1 | AI + dış karar | İmaj ≤ ~75 MiB; yayın hattı kapıları koşar |
 | **P3.3** | Editör yetkinliği | U3–U7, U9, A1, A7, P4, §8.2 özellikleri | Karara bağlı | Ürün sınırı kararı yazılı; seçilen özellik testli |
@@ -92,19 +92,18 @@ Dört ayrı yanlış, tek iş paketi (hepsi aynı "tek kaynak" ilkesinin ihlali)
   kırılır.
 - **Efor:** AI ~1 saat; İNSAN 15 dk (iki dilli metin gözden geçirmesi).
 
-#### 3.0.3 U1 — Menü araç çubuğundan çıkarılsın (S1)
+#### 3.0.3 U1 — menü/araç çubuğu: ürün kararıyla kapsam dışı
 
-- **Sorun:** komut menüsü araç çubuğunun *içinde* (`MainController.java:294-296`);
-  `Ctrl+T` çubuğu gizleyince menüye fareyle ulaşmak imkânsız, geri getirmenin tek yolu
-  aynı kısayol. Fare kullanıcısı için çıkmaz sokak (§8.3).
-- **İş:** menü çubuğunu araç çubuğundan bağımsız bir üst katmana al; çubuk gizliyken
-  menü görünür kalsın. `ToolbarFit` hesabı ve `EditorAction` üretimi değişmemeli —
-  değişiyorsa tasarım yanlış yerde.
-- **Neden P3.0'da:** S1, küçük diff, ama **görsel** — `@designer` gözden geçirmesi şart.
-  Bu yüzden "sıfır karar" işlerin hemen ardındadır.
-- **Kapı:** `MainControllerTest` (menü/araç çubuğu üretimi iki yönlü) + 6 dilde
-  `ToolbarFitTest`; `smoke-appimage.sh` ile çubuk gizliyken pencere açılışı.
-- **Efor:** AI ~2 saat; İNSAN 30 dk görsel onay.
+- **Durum:** **yapılmayacak.** Bulgu analizde duruyor (`S1`, §8.3: komut menüsü araç
+  çubuğunun içinde, `MainController.java:294-296`; çubuk `Ctrl+T` ile gizlenince menüye
+  fareyle ulaşılamıyor), ancak menünün araç çubuğuyla birlikte gizlenmesi **ürün
+  kararı** olarak korunuyor: `Ctrl+T` "metinden başka hiçbir şey" vaadinin parçası ve
+  menüyü ayrı bir kalıcı üst katmana almak tam da o vaadi bozar. Karar 2026-11-11'de
+  ürün sahibi tarafından verilmiştir; P3.0'ın çıkış kapısından ve aşağıdaki tablolardan
+  çıkarıldı.
+- **Yeniden açmanın koşulu:** ürün sınırı kararı (§7 #3) değişir ve kalıcı menü şeridi
+  kapsama girerse U1 bu dalgada değil, P3.3'te yeniden değerlendirilir. Bu bölüm, bulgunun
+  kaybolmadığını ve neden yapılmadığını kayda geçirmek için duruyor.
 
 #### 3.0.4 U2 — WPM tanımı (S2)
 
@@ -135,7 +134,8 @@ saymıyor, WPM saymıyor → ekranda tutarsız iki sayı.
 - **Efor:** AI ~2 saat toplam; İNSAN 15 dk.
 
 **P3.0 çıkış kapısı:** `mvn clean test` yeşil, `package.sh` iki kez geçer, README/NOTICE
-iki dilde tutarlı, U1 görsel onaylı. Tek commit ya da bulgu başına küçük commit'ler
+iki dilde tutarlı. U1 ürün kararıyla kapsam dışı olduğu için görsel onay kapıdan çıktı
+(§3.0.3). Tek commit ya da bulgu başına küçük commit'ler
 (AGENTS: bir commit = bir kendi kendine yeten değişiklik).
 
 ---
@@ -352,7 +352,7 @@ Hiçbir bulgu düşmemeli. `S1`/`S2`/`S3` sınıfları analiz §14'ten alınmı�
 | D13 | S3 | P3.0 | `user.home` |
 | D14 | S3 | P3.0 | `SecurityException` |
 | D2b | S3 | P3.0 | `NAME_MAX` |
-| U1 | S1 | P3.0 | menü/araç çubuğu |
+| U1 | S1 | P3.0 (yapılmayacak) | menü/araç çubuğu — ürün kararı: menü çubukla gizli kalır (§3.0.3) |
 | D1 | S1 | P3.1 | taslak yaşlandırma |
 | D2 | S1 | P3.1 | yol sızıntısı + FX G/Ç |
 | D3 | S1 | P3.1 | kodlama kurtarma |
@@ -391,7 +391,9 @@ Hiçbir bulgu düşmemeli. `S1`/`S2`/`S3` sınıfları analiz §14'ten alınmı�
 | M5 | S3 | P3.4 | bus factor |
 
 `S1` sayısı analizde 9'dur (B1, D1, D2, D3, D4, U1, P1, B2, M1); hepsi burada ve
-**hiçbiri P3.1'den sonraya bırakılmamıştır**, M1 hariç — o kodla kapanmıyor.
+**hiçbiri P3.1'den sonraya bırakılmamıştır**, iki istisnayla: M1 kodla kapanmıyor, U1 ise
+ürün kararıyla **yapılmayacak** olarak işaretlendi — bulgu analizde kalıyor, sıradan
+düşmüyor.
 
 ---
 
@@ -403,7 +405,7 @@ kapanır" teşhisinin doğrudan sonucudur.
 
 | Dalga | AI tarafı | İnsan/dış dünya tarafı | Baskın | Toplam (gerçekçi aralık) |
 |---|---|---|---|---|
-| P3.0 | ~yarım gün (B1, M2, U2, hijyen) | 1 saat karar/gözden geçirme + U1 görsel onay | AI | **yarım–1 gün** |
+| P3.0 | ~yarım gün (B1, M2, U2, hijyen) | ~30 dk karar/gözden geçirme (U1 kapsam dışı, görsel onay yok) | AI | **yarım gün** |
 | P3.1 | ~1,5 gün (D1–D4 çekirdek + kümeler) | D1 yaş politikası, D4 kayıp onayı (2 karar, 1 saat) | AI | **1,5–2,5 gün** |
 | P3.2 | ~1 gün (jlink/modül + yayın hattı) | **iki platformda smoke ve Windows ölçümü**; imza bütçesi kararı | dış dünya | **2–4 gün** (CI/paketleme beklemesi baskın) |
 | P3.3 | ~1 gün (UX borç + test indirgeme) + özellik başına 2–6 saat | §16.3/§16.4 kararları; sözlük/çoklu belge için haftalar | karara bağlı | **2 gün – birkaç hafta** |
@@ -482,7 +484,8 @@ verilmeden P3.2'nin yarısı başlatılamaz; 3↔4 ise P3.3'ün tamamını kilit
 
 P3, ürünün kendi vaadini tutmadığı yerlerden başlar: bir satırlık `.deb` glob'u (B1)
 sürümü fiilen kırıyor, bayat README/NOTICE/javadoc yanlış bilgi veriyor, gizlenen araç
-çubuğu menüyü de götürüyor (U1), WPM yanlış şeyi sayıyor (U2) — bunlar saatler içinde
+çubuğu menüyü de götürüyor (U1 — ürün kararıyla korunuyor, yapılmayacak), WPM yanlış şeyi
+sayıyor (U2) — bunlar saatler içinde
 kapanır ve güveni en ucuza geri verir. Ardından veri güvenliğinin dört S1 deliği (D1–D4)
 ve küçük kurtarma/ayar kümeleri kapatılır; bu dalga, ürünün en güçlü olduğu ekseni
 tartışmasız hâle getirir. Sonra ölçülmüş %49'luk imaj kazancı (P1+P2) ve yayın hattının

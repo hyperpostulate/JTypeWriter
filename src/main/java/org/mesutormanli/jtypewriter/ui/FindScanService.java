@@ -22,7 +22,7 @@ import java.util.function.Consumer;
  * hands the result back on it.
  *
  * <p>The scan is O(document length), and the panel is opened on documents up
- * to the editor's 10 MB ceiling. Scanning inline would freeze the window for
+ * to the editor's 64 MiB ceiling. Scanning inline would freeze the window for
  * the duration of every keystroke in the query field, so the panel submits the
  * scan here and only installs the result once the dispatcher delivers it. The
  * model itself already refuses a result that no longer describes the current
@@ -57,7 +57,7 @@ public final class FindScanService implements AutoCloseable {
     /**
      * Production configuration: one daemon worker of its own.
      *
-     * <p>Deliberately not the shared {@code IoExecutor}: a 10 MB scan must not
+     * <p>Deliberately not the shared {@code IoExecutor}: a 64 MiB scan must not
      * queue in front of a save, and the I/O worker serialises disk operations
      * for reasons that have nothing to do with searching.</p>
      */

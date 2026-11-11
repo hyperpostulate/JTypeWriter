@@ -150,10 +150,10 @@ Hoş geldin ekranı, son dosyalar görünümü ve Hakkında görünümü artık 
 ### Tek Örnek
 
 Kullanıcı hesabı başına yalnızca bir JTypeWriter örneği çalışır: `~/.jtypewriter/`
-altındaki bir kilit dosyası ikinci başlatmayı durdurur; ikinci bir pencere açılmaz,
-yerelleştirilmiş bir uyarı penceresi gösterilir ve uygulama kapanır. Çalışan örnek
-çökerse kilit işletim sistemi tarafından otomatik bırakılır; çökme sizi dışarıda
-bırakmaz.
+altındaki bir kilit dosyası ikinci başlatmayı durdurur. İkinci süreç kendi penceresini
+açmaz - onaylanması gereken yerelleştirilmiş bir uyarı diyaloğu gösterir ve ancak ondan
+sonra kapanır. Çalışan örnek çökerse kilit işletim sistemi tarafından otomatik bırakılır;
+çökme sizi dışarıda bırakmaz.
 
 ### Çoklu Tema
 
@@ -371,31 +371,47 @@ org.mesutormanli.jtypewriter
 │   ├── ExitDisposition.java              # Kurtarma taslağı için çıkış kuralı (CLEAR / PARK / KEEP)
 │   ├── FileService.java                  # Atomik dosya G/Ç (kodlama korumalı)
 │   ├── RecoveryChoice.java               # Kurtarma istemine yanıt (geri yükle / sil / sonra sor)
+│   ├── RecoveryRetention.java            # Park edilen taslaklar için yaş/adet/boyut politikası (saf)
 │   ├── RecoveryStore.java                # Çökme kurtarma taslak deposu
+│   ├── RecoveryTargetPath.java           # Taslağın iddia ettiği orijinal yolun doğrulaması (saf)
+│   ├── StorageFootprint.java             # Kaydedilmiş bir belgenin disk maliyeti (saf)
 │   └── TextCodec.java                    # Kodlama tespiti + kayıpsız gidiş-dönüş
 ├── stats/
-│   └── SessionStats.java                 # Yazma oturumu istatistikleri (WPM, sayımlar)
+│   ├── SessionStats.java                 # Yazma oturumu istatistikleri (WPM, sayımlar)
+│   └── TextChange.java                   # Editörün gördüğü tek değişiklik (saf değer)
 ├── ui/
 │   ├── MainController.java               # Kök yerleşim denetleyicisi
 │   ├── MainMenu.java                     # EditorAction'dan üretilen Dosya/Düzen/Görünüm/Yardım menü düğmesi
 │   ├── MainStage.java                    # Sahne yapılandırması (tam ekran, kapatma)
-│   ├── AppIcons.java                     # /icons/ altından pencere/görev çubuğu/dock ikonları
+│   ├── AppIcons.java                     # /icons/ altından pencere/görev çubuğu ikonları
 │   ├── AppFonts.java                     # Paketlenen arayüz fontu + başsız ölçüm yüzü
 │   ├── WelcomeCard.java                  # Hoş geldin kartı: kısayollar + karşılama opt-out'u
 │   ├── RecentFilesCard.java              # Son dosyalar kartı (Dosya menüsünden açılır)
 │   ├── AboutCard.java                    # Yazar bilgisiyle hakkında kartı
+│   ├── EditorAction.java                 # Komut envanteri: komut başına etiket, kısayol ve etki
 │   ├── KeyboardShortcutHandler.java      # Merkezi klavye kısayolu yönetimi
 │   ├── CrashHandler.java                 # Global çökme ağı: log + hata diyaloğu
 │   ├── DropHandler.java                  # Sahne düzeyinde dosya bırakma tutkalı (çöz, aç, bildir)
 │   ├── DroppedFiles.java                 # Bırakma kararı: tek okunabilir .txt/.md (saf)
+│   ├── FindCommands.java                 # Komut envanterinin açtığı arama/değiştirme portu
 │   ├── FindModel.java                    # Arama/değiştirme taraması, imleç ve değiştirme kararları (saf)
+│   ├── FindPanel.java                    # Editörün üzerinde yüzen arama/değiştirme kartı
+│   ├── FindReplacePolicy.java            # Bir değiştirmenin YOLO onayı gerektirip gerektirmediği (saf)
+│   ├── FindScanService.java              # Kendi daemon işçisinde arka plan arama taraması
+│   ├── OverlayCard.java                  # Metnin üzerinde yüzen kartların taban sınıfı
+│   ├── OverlaySlot.java                  # Aynı anda en fazla bir yüzen kart görünür
+│   ├── ShortcutRows.java                 # EditorAction'dan üretilen kısayol kartı satırları
+│   ├── ShortcutTable.java                # Kartların paylaştığı iki sütunlu kısayol ızgarası
 │   ├── SingleInstanceWarning.java        # "Zaten çalışıyor" uyarı penceresi
+│   ├── DialogButtons.java                # Uygulamanın Alert'leri için özel düğmeler
+│   ├── DialogSizing.java                 # Alert boyutlandırma matematiği (saf)
+│   ├── DialogStyling.java                # Alert diyalog paneline tema stil sayfaları
 │   ├── component/
 │   │   ├── EditorArea.java               # YOLO politikasını uygulayan TextArea
 │   │   ├── YoloPolicy.java               # YOLO modu düzenleme politikası (saf mantık)
 │   │   ├── EditorKeyHandler.java         # Tuş vuruşu sesi + istatistik takibi
-│   │   ├── UndoHistoryReset.java         # Belge yüklenirken geri al/ileri al geçmişini temizler (yansıma)
 │   │   ├── StatsBar.java                 # Alt durum çubuğu (saat + istatistikler)
+│   │   ├── StatsBarModel.java            # Durum çubuğu metin kompozisyonu (JavaFX'siz)
 │   │   ├── StatsBarState.java            # Kalıcı durum çubuğu boyutu (Node olmayan durum)
 │   │   ├── ToolbarView.java              # Üst araç çubuğu (dosya/düzenleme düğmeleri + ayar açılır listeleri)
 │   │   ├── ToolbarFit.java               # Araç çubuğu taşma politikası (saf, başsız ölçüm)
@@ -414,6 +430,7 @@ org.mesutormanli.jtypewriter
 ├── AppVersion.java                       # pom.xml'den derleme anında filtrelenen uygulama sürümü
 ├── AtomicFiles.java                      # Dayanıklı atomik dosya yazımı (fsync + rename)
 ├── InstanceLock.java                     # Kullanıcı başına örnek kilidi (tek örnek)
+├── IoExecutor.java                       # Bloklayan dosya G/Ç için tek geçit
 ├── RecentFiles.java                      # Karşılama kartının son dosya listesi (saf)
 ├── StartupArguments.java                 # CLI/dosya ilişkilendirme argümanını çözer (saf)
 └── FxApplication.java                    # JavaFX yaşam döngüsü köprüsü
@@ -424,7 +441,6 @@ org.mesutormanli.jtypewriter
 | Bileşen | Açıklama |
 |---------|----------|
 | `EditorArea` | Her düzenlemeyi YOLO politikasından geçiren TextArea alt sınıfı; belgeleri `setDocument` ile yükler |
-| `UndoHistoryReset` | Her belge yüklemesinde TextArea'nın geri al/ileri al geçmişini temizler (yansıma ile; JavaFX'te API yok) |
 | `YoloPolicy` | YOLO modu düzenleme politikası (silmeyi engeller, eklemeye izin verir) |
 | `DroppedFiles` | Dosya bırakmanın arkasındaki saf karar: tam olarak bir okunabilir `.txt`/`.md` açılacak belge olur; dosya olmaması, birden çok dosya, başka bir tür, bir klasör ya da kaybolmuş yol arayüz dilinde bir ret bildirimine dönüşür |
 | `DropHandler` | Sahne düzeyinde sürükleme tutkalı: jesti olay filtresi olarak kabul eder (böylece metin alanı onu sürüklenen metin sanamaz), `DroppedFiles` ile çözer ve belgeyi Aç ile aynı kaydedilmemiş değişiklik kapısından geçirerek açar |
@@ -438,7 +454,7 @@ org.mesutormanli.jtypewriter
 | `ToolbarFit` | Araç çubuğu taşma politikası: başlıklı satır sığmadığında açılır liste başlıklarını değere indiren saf, JavaFX'siz ölçüm |
 | `ToolbarState` | YOLO modu ve ses aç/kapa durumunu yönetir |
 | `StatsBarState` | Kalıcı durum çubuğu boyutu; nötr `AppSettings.StatsBarSize` üzerinden Node olmayan durum |
-| `AppIcons` | `/icons/` altından yüklenen pencere, görev çubuğu ve dock ikon seti; eksik varlık açılışı bozmaz |
+| `AppIcons` | `/icons/` altından yüklenen pencere ve görev çubuğu ikon seti; eksik varlık açılışı bozmaz |
 | `FileService` | Atomik dosya G/Ç (geçici dosya + fsync + taşıma), kodlama korumalı |
 | `DialogService` | UI dialog yönetimi (FileChooser, Alert) |
 | `TextCodec` | Kodlama tespiti (BOM/UTF-8), baytları `U+FFFD` ile değiştirmeyi reddeden sıkı çözme ve kayıpsız gidiş-dönüşler |
@@ -503,6 +519,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `EncodingMatrixTest` | Her kodlama için aç→kaydet ve aç→düzenle→kaydet bayt matrisi (BOM'suz UTF-16LE/BE, eski kodlama sorusu üzerinden Windows-1254, CRLF, sekme ve emoji içeren karışık UTF-8); iki paritede de NUL içeren geçerli UTF-8 dosyasının UTF-8 kalmasını ve BOM'suz UTF-16'nın eski kodlama sorusuna asla ulaşmamasını sabitler |
 | `BackupKeeperTest` | Yazımdan önce yedek rotasyonu ve saklama |
 | `RecoveryStoreTest` | Çökme kurtarma taslağı yaşam döngüsü (kaydet/geri yükle/sil); oturum başına tek atomik `.jtw` dosyası, en yeni taslağın devralınması, eşzamanlı oturumların izolasyonu, ertelenen taslağın ayrı dosyaya park edilip aktif slotun serbest bırakılması, bozuk başlık, hatalı zaman damgası, kullanılamayan yol ve geçersiz UTF-8'e tolerans; salt okunur bir dizin `clear()` çağrısının başarısız olduğunu bildirmesini ve `WARNING` loglamasını sağlar |
+| `RecoveryRetentionTest` | Park edilen taslak temizliği kuralı saf fonksiyon olarak: yaş, adet ve boyut bütçeleri, tek başına bütçeyi aşan en yeni girdinin korunması ve aşırı büyük bir girdinin arkasındaki daha küçüğü silmemesi |
 | `AutoSaveServiceTest` | Belge açıldığında veya yeni belge oluşturulduğunda önceki belgenin bayat kurtarma taslağının silinmesi; ertelenen taslağın çıkışta korunması ve yeni belgenin otomatik kaydını artık susturmaması (regresyon); yanıtlanmış çıkışın taslağı silmesi, sorulmamış çıkışın taslağı park etmesi, dondurulmuş slotun dosyayı olduğu gibi koruması ve başarısız anlık görüntü veya park işlemlerinin sağlık durumunu bildirmesi; başarısız bir silmenin uyarıyı diyalog olmadan koruması ve sonraki başarılı silmenin uyarıyı kaldırması; diskteki belgeden daha eski bir taslağın yolu olmadan geri yüklenmesi |
 | `ExitDispositionTest` | Dört yönlü çıkış matrisi: canlı ve dondurulmuş slot karşısında yanıtlanmış ve sorulmamış çıkış; dondurulmuş slot diğer tüm sinyallerin önüne geçer |
 | `DroppedFilesTest` | Bırakma kararı: `null`/boş dosya listesi, tek dosya, `.md`, büyük harfli uzantı, birden çok dosya (sayıyla reddedilir), PDF ve uzantısız dosya, bırakmadan önce kaybolmuş yol, `*.txt` adlı bir klasör, adını koruyan symlink ve yalnız aynı harflerle biten adları reddeden sonek kontrolü |
@@ -518,28 +535,45 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti), Düzen menüsündeki ara/değiştir komutlarının sırası ve komut menüsü sözleşmesi: `MainMenu.layout()` dört sayfada her platformdan bağımsız `EditorAction`'ı tam bir kez taşıyor (altı ayar komutu yerine değer alt menüsüyle temsil ediliyor), Görünüm alt menüleri araç çubuğu açılır listelerinin sunduğu aynı değerleri listeliyor ve işaretliyor, her sayfa başlığı ve satır etiketi altı dilde dolu |
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
 | `AppIconsTest` | Classpath'teki ikon seti: her PNG bildirilen boyutta çözülüyor, `.ico` dosyası beklenen sihirli baytlarla başlıyor (saf bayt kontrolü, toolkit yok) |
+| `AppVersionTest` | Sürüm tek sayıdır: filtrelenen kaynak okunup kırpılır, eksik ya da boş değer hata vermek yerine boş döner, `get()` hiçbir zaman boş değildir ve her okuyucu (Hakkında, ayar şeması) `pom.xml` ile aynı fikirdedir |
 | `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması, ayar şema sürümü, ses düzeyi (eski aç/kapat anahtarının düzey olarak okunması dahil), son dosya listesi ve karşılama opt-out'u |
+| `AppDirsTest` | Veri dizini yerleşimi: ayarlanmamış ya da boş `user.home` hata vermek yerine mutlak, geçici dizin tabanlı bir veri dizinine düşer ve gerçek bir ev dizini `<home>/.jtypewriter` ile altında `recovery/` ve `logs/` verir |
 | `StartupGreetingTest` | Karşılama kartının kendi kendine ne zaman gelebileceği: taze kurulum karşılanır, saklanan opt-out kartı uzak tutar, komut satırında adlandırılan belge asla kartın altında kalmaz |
 | `RecentFilesCardTest` | Son dosya satırının adlandırılması: dosya adı, son öğesi olmayan bir yolda tam yol |
 | `RecentFilesTest` | Son dosyalar kartının belge listesi saf liste işlemleri olarak: en yeni başta, mutlak ve normalleştirilmiş yolla belge başına tek satır, on girişlik tavan en eskiyi düşürüyor, kaybolan belgeler süzülüyor, boş/`null` durumlar ele alınıyor |
 | `StatsBarStateTest` | Kalıcı durum çubuğu boyutu: ayardan başlar, yeni kurulum orta boyutta başlar, her döngü adımı kalıcıdır, bozuk değer orta boyuta düşer, eşleme her iki enum'u iki yönde kapsar |
+| `StatsBarModelTest` | Durum çubuğunun metin mantığı, başsız: kurulumdan hemen sonra doludur, yenileme yeni istatistikleri alır, dil değişimi bildirmeden önce yeniler ve saati de uyarıyı da yeniden çizer, her otomatik kayıt hata türü kendi uyarısını gösterir |
 | `FontSizeManagerTest` | Yazı boyutu kademeleri, kademede olmayan boyutun ayarı değiştirmeden listeye eklenmesi, Ctrl+± için kademe adımlama, desteklenen aralığa kısıtlama ve varsayılan boyuta kalıcı sıfırlama |
 | `ToolbarOptionListsTest` | Altı araç çubuğu açılır listesi: seçenek sırası, yinelenen seçenek olmaması ve her listenin kendi güncel değerini gösterebilmesi |
 | `AtomicFilesTest` | Dayanıklı atomik yazım: içerik bütünlüğü, artık temp dosyası yok, hata sonrası temizlik |
 | `MessagesTest` | 6 dilin tamamında i18n anahtar eşitliği, yerelleştirilmiş tema/renk adları, sistem dilinden bağımsız bundle çözümlemesi |
 | `DialogServiceTest` | "Farklı Kaydet" dosya adlandırma kuralları (uzantı işleme) |
+| `DialogButtonsTest` | Paylaşılan uyarı düğmeleri: birincil Tamam/Bitti, iptal İptal/Kapat, alternatif üçüncü eylem, düğme metni birebir korunur, tek varsayılan ve tek iptal vardır ve kurtarma diyaloğu İptal'i Atla'ya değil Sonra'ya koyar |
+| `DialogSizingTest` | Uyarı boyutlandırma matematiği: sığan tercih edilen boyut değişmeden döner, 768 px'lik ekrana sıkıştırılır, aşırı küçük ekranda tabana iner, kenar boşlukları simetriktir ve paylaşılan içerik sütunu diyalog çerçevesine yer bırakır |
+| `DialogStylingTest` | Her uyarı temalıdır: tema başına stil sayfası sırası (önce base, sonra light/dark/sepia), listelenen her stil sayfası classpath'te çözülür, `base.css` diyalog panelini temalar ve her tema diyalog panellerinin okuduğu belirteçleri tanımlar |
 | `JTypeWriterAppTests` | Ana metod varlığı |
 | `AppLoggingTest` | Log biçimlendiricisinin başlık satırını hata vermeden üretmesi (regresyon) ve fırlatılan istisnalar için neden zinciriyle birlikte girintili yığın izi eklemesi; geçici dizinde log dosyası işleyicisi, kullanılamayan log dizini ve reddedilen ev dizininin yalnızca konsola düşmesi, tekrarlanan `init()` çağrısının işleyici biriktirmemesi |
 | `InstanceLockTest` | Örnek kilidinin alınması, aynı JVM'de ikinci alımın reddedilmesi, bırakma ve yinelenebilir kapatma, kullanılamayan kilit dosyasında fail-open davranışı ve salt okunur bir veri dizininin açılışı engellemek yerine `UNAVAILABLE` bildirmesi |
 | `LanguageTest` | Yerel dil adlarının her sistem dilinde sabit kod sabitleri olması (`getDisplayLanguage` tuzağı yok) |
+| `ThemeCycleTest` | Tema döngüsü: enum sırası araç çubuğuyla aynıdır, varsayılan Koyu'dur, `next` başa döner ve her paket döngüyü varsayılandan başlayarak belgeler |
 | `ToolbarStateTest` | Ses düzeyinin tek ayarlayıcısı: yeniden başlatmada kalıcılık, ses motorunun takip etmesi, sıfırın ikisini de susturması, Açık'ın son duyulur kademeyi geri getirmesi, tekrarların etkisiz olması |
 | `ToolbarFitTest` | Araç çubuğu taşma politikası: başlıklı satırın (düğmeler, açılır listeler, ayırıcı, çerçeve) enjekte edilen ölçülerle nasıl hesaplandığı, FULL→COMPACT geçişi ve 40 px histerezisi; ayrıca Almanca ve Fransızcanın 1280 px'te kırpılmadığını, daraltılmış satırın altı dilde 900 px'e sığdığını ve pencerenin minimum genişliğinin altı pakette ölçülen en geniş daraltılmış satır olduğunu kanıtlayan kabul testleri |
 | `AppFontsTest` | Paketlenen arayüz fontu bir sürüm varlığıdır: iki yüz de `base.css`'in adlandırdığı aile altında sınıf yolunda, altı dilin araç çubuğu etiketlerini (`☰` menü glifi dâhil) çizebiliyor ve sabitlenmiş bir metin sabitlenmiş bir genişlik ölçüyor; böylece sistem fontuna sessiz dönüş derlemeyi düşürüyor |
 | `PackagingNoticesTest` | Paketleme sözleşmesi: `META-INF/THIRD-PARTY-NOTICES` ve üç lisans metni sınıf yolunda; bildirim her paketlenen bileşeni gerçek SPDX kimliğiyle adlandırıyor, FFmpeg'in dağıtılmadığını söylüyor, 100 sütun içinde yalnızca LF kullanıyor ve depodaki dosyayla bayt-özdeş, böylece bayat bir derleme çıktısı testi geçemiyor |
 | `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni, otomatik kayıt uyarısı, araç çubuğu metni, düz popup satırı ya da varsayılan editör metni AA'nın veya 13 px'in altına düşerse (ya da bir tema `base.css`'in hiç okumadığı bir token tanımlarsa), odak halkası 3:1'in altına düşerse, vurgulanan popup satırı metni AA'nın altına düşerse, popup hücresi yazı boyutu kapalı combo'nun boyutundan saparsa, odak rengi yeniden saydamlaşırsa ya da var olmayan bir JavaFX CSS özelliği (`-fx-letter-spacing`, `-fx-transition`) geri dönerse derlemeyi başarısız kılan CSS ayrıştırma korumaları |
 | `CiGatesTest` | CI kapı sözleşmesi: iş akışı ikon güncellik kontrolünü ve artefakt doğrulamasını gerçekten çağırıyor, ikon kontrolü derlemeden önce ve yeniden rasterleştirmeden iki işletim sistemi ayağında koşuyor, artefakt kontrolü paketlemeden sonra koşuyor ve artefakt kapısı Linux ayağında kalıyor (`.deb` paketini açıyor) |
+| `ReadmeTestTableTest` | Test sınıfı tablosu hatırlanmıyor, türetiliyor: `src/test` altındaki her `*Test.java` iki README'de de bir satıra sahiptir, Türkçe tablo İngilizce kadar tamdır ve hiçbir satır artık var olmayan bir sınıfı adlandırmaz |
+| `ReleaseNotesTest` | Yayın sözleşmesi: her artefakt yüklemesi kısa bir saklama süresi taşır, yayın gövdesi depodaki şablondan gelir, şablon iki dilli kalır ve literal sürüm içermez, iki yarı aynı doğrulama komutlarını taşır, not indirme boyutlarını ölçer ve iş akışı kuru çalıştırma yapabilirken elle çalıştırma yayımlayamaz |
+| `ReleaseAssetsScriptTest` | Taşınabilir arşiv betiği: sürücü harfli bir yol `tar` tarafından ana makine adı olarak okunmaz ve düz yollar hâlâ tek üst düzey dizinli bir arşiv üretir |
+| `LicenseHeaderTest` | SPDX başlığı `src/` altındaki her `.java` dosyasının 0. baytında, `package`'tan önce durur ve kanonik ikon SVG'si aynı lisansı bildirir |
 | `EditorActionTest` | Komut envanteri: her sabit kendi etkisini kaydeden bir `Context` üzerinden tam olarak uyguluyor (toolkit yok), her sabit bir etiket ve en az bir akor taşıyor, platforma bırakılan tek komut `EXIT_FULLSCREEN`, araç çubuğu düğmeleri ortak eylemleri çalıştırıyor ve `EditorAction` dışında bir akor literali yeniden yazılırsa kaynak taraması derlemeyi düşürüyor |
 | `ShortcutRowsTest` | Kısayol kartı kopyalanmıyor, envanterden üretiliyor: `EditorAction` ile iki yönlü kapsam, yayımlanmış satır sırası, satır başına yerelleştirilmiş etiket ve açıklama, kartta hiçbir akorun iki kez geçmemesi — altı dilde |
+| `EditorUndoContractTest` | Toolkit'siz geri al/ileri al sözleşmesi: hiçbir üretim kaynağı JavaFX'in özel undo-manager alanlarına uzanmaz ve belge yükleme metni hâlâ tek programatik çağrıda değiştirir |
+| `OverlayCardTest` | Yüzen kartların kapanma sözleşmesi: Escape ve Enter kartı kapatır, diğer tuşlar karta bırakılır |
+| `OverlaySlotTest` | Aynı anda en fazla bir yüzen kart: birini göstermek diğerlerini yok etmeden gizler, aynı kartı iki kez kaydetmek onu bir kez gizler ve kayıtsız bir sahip tüm üyeleri gizler |
+| `AudioAssetTest` | Paketlenen tuş sesi bir yayın varlığıdır: classpath'te, biçimi ve SHA-256'sı `PROVENANCE.md` ile eşleşir, sessizlik değil duyulabilir bir geçiştir ve kaynak bilgisi yazarlığı ve lisansı belirtir |
+| `SoundLevelTest` | Ses merdiveni: kademeler sessizlikten tama yükselir, yalnızca `OFF` sessizdir ve merdiven dışı kalıcı bir ses en yakın kademeye çözülür |
+| `SoundPolicyTest` | Hangi tuşların takırdadığı: bir karakter yazmak takırdar, tanımsız karakter sessizdir, basışta yalnızca silme tuşları takırdar ve bir kısayol akoru hangi tuş olursa olsun sessizdir |
 | `StatsPerfHarnessTest` | Artımlı sayaçların arkasındaki tavan: 10 MiB'lık belgede tek gerçek `StatsBarModel.refresh` (biçimlendirme dâhil) CI'da 50 ms'nin altında kalıyor. Tam metin sürümü saniyede bir ~164 ms ölçüyordu, yani O(n) bir yenileme geri dönerse derleme düşer |
 | `FxThreadIoTest` | Toolkit açmadan FX thread değişmezi: açma, kaydetme ve otomatik kayıt diske yalnız `IoExecutor` üzerinden gidiyor (`fxThreadTasks()` sıfır kalıyor), temiz otomatik kayıt tikinde belge metni kopyalanmıyor ve kaydetme sürerken yazılan metin sonrasında kirli kalıyor |
 | `RecoveryTargetPathTest` | Kurtarma taslağının başlığı ile sonraki kaydetme arasındaki koruma: yol mutlak, kanonik, izinli bir kökün altında ve uygulamanın kendi veri dizininin dışında olmalı. Göreli yol, kök dışına çıkan `..`, kırık symlink ya da izinli kök tanımlanmamış durum reddediliyor (fail closed) ama kurtarılan metin yine sunuluyor |

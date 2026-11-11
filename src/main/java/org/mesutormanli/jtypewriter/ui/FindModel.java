@@ -136,7 +136,7 @@ public final class FindModel {
      * them, and leaves the cursor before the first match.
      *
      * <p>This does the O(n) work on the calling thread. A panel that must not
-     * scan on the FX thread (a 10 MB document) runs {@link #findAll(String,
+     * scan on the FX thread (a 64 MiB document) runs {@link #findAll(String,
      * String, boolean)} on its worker instead, then hands the result to
      * {@link #install(String, String, boolean, List)} back on the FX thread.</p>
      */

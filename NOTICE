@@ -11,7 +11,7 @@ ships at the same relative path inside the jar.
 
 The launcher icon artwork, src/main/resources/icons/jtypewriter.svg, is
 original work by the project author, Copyright (c) 2026 Mesut ORMANLI, and is
-distributed under the Apache License, Version 2.0. The PNG, ICO and ICNS files
+distributed under the Apache License, Version 2.0. The PNG and ICO files
 shipped with the application are generated from that SVG and carry the same
 terms; the SVG is the source of truth.
 
