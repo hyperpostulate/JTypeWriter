@@ -142,6 +142,35 @@ class FxThreadIoTest {
         assertTrue(service.hasUnsavedChanges(), "text typed during the save is still unsaved");
     }
 
+    /**
+     * The recovery path used to be the one hole in the "disk work only on the
+     * I/O worker" rule: {@code restoreRecovered} read the draft's original with
+     * a bare {@code Files.readAllBytes} on whatever thread called it, which at
+     * startup is the FX thread and can be a network share. The read now goes
+     * through the same seam as every other disk operation.
+     */
+    @Test
+    void restoringARecoveredDraftReadsItsOriginalThroughTheIoWorkerOnly(@TempDir Path dir)
+            throws Exception {
+        var fxThread = Thread.currentThread();
+        try (var io = IoExecutor.background(() -> Thread.currentThread() == fxThread,
+                Runnable::run)) {
+            var original = dir.resolve("original.txt");
+            Files.writeString(original, "on disk when the crash happened");
+            var service = new FileService(mock(DialogService.class), mock(Messages.class),
+                    new BackupKeeper(), io);
+
+            service.restoreRecovered(original, "the recovered text");
+
+            assertEquals("the recovered text", service.getCurrentContent());
+            assertEquals(original, service.getCurrentFilePath());
+            assertTrue(io.submittedTasks() >= 1,
+                    "the original's bytes must be read on the I/O seam");
+            assertEquals(0, io.fxThreadTasks(),
+                    "the recovery read must never run on the FX thread");
+        }
+    }
+
     /** An executor whose queued work runs only when the test says so. */
     private static final class QueueingExecutor implements java.util.concurrent.Executor {
         private final java.util.ArrayDeque<Runnable> tasks = new java.util.ArrayDeque<>();

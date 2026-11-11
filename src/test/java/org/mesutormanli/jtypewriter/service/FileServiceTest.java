@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mesutormanli.jtypewriter.AppLogging;
+import org.mesutormanli.jtypewriter.AtomicFiles;
 import org.mesutormanli.jtypewriter.IoExecutor;
 import org.mesutormanli.jtypewriter.locale.Messages;
 
@@ -617,6 +618,41 @@ class FileServiceTest {
     }
 
     @Test
+    void restoringADraftOverAMissingFileForgetsThePreviousDocumentsPath(@TempDir Path dir)
+            throws IOException {
+        var old = dir.resolve("old.txt");
+        Files.writeString(old, "old document");
+        assertTrue(fileService.loadFile(null, old).isPresent());
+
+        fileService.restoreRecovered(dir.resolve("gone.txt"), "draft");
+
+        // Saving the recovered text must not land in the unrelated old document.
+        assertNull(fileService.getCurrentFilePath());
+        assertTrue(fileService.hasUnsavedChanges());
+    }
+
+    @Test
+    void restoringADraftOverAnOversizedOriginalLeavesNoPathAndKeepsTheDraftEncoding(
+            @TempDir Path dir) throws IOException {
+        var old = dir.resolve("old.txt");
+        Files.writeString(old, "old document");
+        assertTrue(fileService.loadFile(null, old).isPresent());
+        var huge = dir.resolve("huge.txt");
+        try (var file = new RandomAccessFile(huge.toFile(), "rw")) {
+            file.setLength(FileService.MAX_DOCUMENT_BYTES + 1L);
+        }
+
+        fileService.restoreRecovered(huge, "draft", TextCodec.WINDOWS_1254, false);
+
+        // The original cannot be verified, so it is not reattached: no path, and
+        // the draft's own encoding hint survives instead of the previous file's.
+        assertNull(fileService.getCurrentFilePath());
+        assertEquals(TextCodec.WINDOWS_1254, fileService.getCurrentCharset());
+        assertFalse(fileService.isCurrentBom());
+        assertTrue(fileService.hasUnsavedChanges());
+    }
+
+    @Test
     void restoredEmptyDraftStaysDirty() {
         // The draft is not on disk at all, so even empty content must not look
         // saved - otherwise autosave would clear the recovery file.
@@ -701,6 +737,62 @@ class FileServiceTest {
         assertEquals("v-1", Files.readString(older));
         assertFalse(Files.exists(BackupKeeper.backupPath(target, 2)));
         verify(dialogService, never()).showError(any(), any(), any());
+    }
+
+    // --- free-space check accounts for the backup staging copy --------------
+
+    @Test
+    void tooLittleFreeSpaceFailsTheSaveBeforeTheBackupIsStaged(@TempDir Path dir)
+            throws IOException {
+        var keeper = mock(BackupKeeper.class);
+        var service = new FileService(dialogService, messages, keeper,
+                IoExecutor.synchronous(), AtomicFiles::writeMoving, () -> 0L);
+        var target = dir.resolve("doc.txt");
+        var oldBytes = "v1".getBytes(StandardCharsets.UTF_8);
+        Files.write(target, oldBytes);
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(target.toFile()));
+        when(messages.errorSave()).thenReturn("Could not save file");
+
+        var saved = service.saveFile(null, "v2");
+
+        // The document and its backup must both fit: staging first would either
+        // fail silently or eat the space the document write then needs.
+        assertTrue(saved.isEmpty());
+        assertArrayEquals(oldBytes, Files.readAllBytes(target));
+        verifyNoInteractions(keeper);
+        assertFalse(Files.exists(BackupKeeper.stagingPath(target)));
+        assertFalse(Files.exists(BackupKeeper.backupPath(target, 0)));
+        verify(dialogService).showError(any(), eq("Could not save file"),
+                org.mockito.ArgumentMatchers.contains("free disk space"));
+    }
+
+    @Test
+    void ampleFreeSpaceLetsTheSaveAndItsBackupProceed(@TempDir Path dir) throws IOException {
+        var service = new FileService(dialogService, messages, new BackupKeeper(),
+                IoExecutor.synchronous(), AtomicFiles::writeMoving, () -> Long.MAX_VALUE);
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "v1");
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(target.toFile()));
+
+        var saved = service.saveFile(null, "v2");
+
+        assertTrue(saved.isPresent());
+        assertEquals("v2", Files.readString(target));
+        assertEquals("v1", Files.readString(BackupKeeper.backupPath(target, 0)));
+    }
+
+    @Test
+    void unknownFreeSpaceNeverBlocksASave(@TempDir Path dir) throws IOException {
+        var service = new FileService(dialogService, messages, new BackupKeeper(),
+                IoExecutor.synchronous(), AtomicFiles::writeMoving, () -> -1L);
+        var target = dir.resolve("doc.txt");
+        Files.writeString(target, "v1");
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(target.toFile()));
+
+        var saved = service.saveFile(null, "v2");
+
+        assertTrue(saved.isPresent());
+        assertEquals("v2", Files.readString(target));
     }
 
     // --- encoding upgrade: never silently turn characters into '?' ---------

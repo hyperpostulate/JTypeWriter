@@ -134,7 +134,18 @@ public final class TextCodec {
         return new Result(decodeLenient(body, charset), charset, prefix.length > 0);
     }
 
-    /** Decodes with an explicitly chosen legacy encoding (never fails). */
+    /**
+     * Decodes with an explicitly chosen encoding, replacing every byte the
+     * charset cannot decode with {@code U+FFFD}. This lossy path exists only
+     * for a user's explicit choice (the "open it as ..." dialog); it must never
+     * be the silent path. Detection uses {@link #decode}, which reports
+     * undecodable bytes as {@code null} or {@link MalformedDocumentException}
+     * instead of inventing replacement characters.
+     *
+     * <p>Windows-1254 is a single-byte charset, so every byte decodes without
+     * loss; UTF-8 is only "lossless" for bytes that already are valid UTF-8,
+     * which is exactly what {@link #decode} would have accepted.</p>
+     */
     public static Result decodeWith(byte[] bytes, Charset charset) {
         return new Result(decodeLenient(bytes, charset), charset, false);
     }

@@ -275,11 +275,13 @@ public class DialogService {
                 + messages.dashSeparator() + file.getFileName());
         alert.setContentText(messages.encodingContent());
 
-        // UTF-8 is the default because it is the lossless choice: it round-trips
-        // every character already in the buffer, while Windows-1254 can only
-        // represent a subset (and that is why it is merely an alternative).
-        var turkishButton = DialogButtons.alternative(messages.encodingTurkish());
-        var utf8Button = DialogButtons.primary(messages.encodingUtf8());
+        // This dialog only appears after TextCodec.decode found the bytes are
+        // not valid UTF-8, so choosing UTF-8 necessarily replaces those invalid
+        // bytes with U+FFFD: it is the lossy choice and must not be the default.
+        // Windows-1254 is a single-byte charset and decodes every byte without
+        // loss, so it carries the default/primary button instead.
+        var turkishButton = DialogButtons.primary(messages.encodingTurkish());
+        var utf8Button = DialogButtons.alternative(messages.encodingUtf8());
         var cancelButton = DialogButtons.cancel(messages.encodingCancel());
         alert.getButtonTypes().setAll(turkishButton, utf8Button, cancelButton);
 

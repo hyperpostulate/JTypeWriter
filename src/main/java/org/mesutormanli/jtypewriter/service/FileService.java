@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.LongSupplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -121,11 +122,22 @@ public class FileService {
         void write(Path target, byte[] bytes) throws IOException;
     }
 
+    /**
+     * Signals "measure the target's file store" from the {@link #usableSpace}
+     * seam. Only tests inject a concrete value; production must always go
+     * through the real file store so the check follows the volume the document
+     * is actually written to.
+     */
+    private static final long MEASURE_USABLE_SPACE = Long.MIN_VALUE;
+
+    private static final LongSupplier MEASURE = () -> MEASURE_USABLE_SPACE;
+
     private final DialogService dialogService;
     private final Messages messages;
     private final BackupKeeper backupKeeper;
     private final IoExecutor ioExecutor;
     private final Writer writer;
+    private final LongSupplier usableSpace;
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
 
     private Path currentFilePath;
@@ -177,11 +189,24 @@ public class FileService {
      */
     FileService(DialogService dialogService, Messages messages, BackupKeeper backupKeeper,
                 IoExecutor ioExecutor, Writer writer) {
+        this(dialogService, messages, backupKeeper, ioExecutor, writer, MEASURE);
+    }
+
+    /**
+     * Visible for tests: additionally lets a test inject the free-space seam,
+     * so the pre-flight check for a backup staging copy can be exercised
+     * without filling a real disk. Production keeps the real file store
+     * ({@link #fileStoreUsableSpace(Path)}) through the {@link #MEASURE}
+     * supplier.
+     */
+    FileService(DialogService dialogService, Messages messages, BackupKeeper backupKeeper,
+                IoExecutor ioExecutor, Writer writer, LongSupplier usableSpace) {
         this.dialogService = dialogService;
         this.messages = messages;
         this.backupKeeper = backupKeeper;
         this.ioExecutor = ioExecutor;
         this.writer = writer;
+        this.usableSpace = usableSpace;
     }
 
     public String getCurrentContent() {
@@ -440,6 +465,16 @@ public class FileService {
     }
 
     /**
+     * Re-attaches a recovered draft as a dirty document, using this build's
+     * default encoding for the recovered text.
+     *
+     * @see #restoreRecovered(Path, String, Charset, boolean)
+     */
+    public void restoreRecovered(Path file, String content) {
+        restoreRecovered(file, content, null, false);
+    }
+
+    /**
      * Re-attaches a recovered draft as a dirty document. The encoding of the
      * on-disk original (when still present) is reused so a subsequent save
      * preserves it.
@@ -449,40 +484,67 @@ public class FileService {
      * offers is windows-1254, so that is assumed here as well: a windows-1254
      * document restored from a draft must stay byte-identical when it is
      * saved, instead of being silently rewritten as UTF-8.</p>
+     *
+     * <p>{@code draftCharset}/{@code draftBom} are what the draft recorded when
+     * it was written; they are used only when the original can no longer be
+     * read, because the file itself is the better evidence. A draft can outlive
+     * its document (a deleted file, an unreadable volume), and without the
+     * hint a windows-1254 document would be restored and then saved as UTF-8 -
+     * an encoding change the user never asked for.</p>
+     *
+     * <p>The original is read through {@link IoExecutor} and bounded by
+     * {@link #MAX_DOCUMENT_BYTES}: this method blocks its caller on the worker,
+     * but it never performs the disk read on the FX thread, and an oversized
+     * original is treated as unverifiable instead of being pulled into memory.
+     * When the original's byte-order mark declares an encoding its bytes do not
+     * satisfy, the document keeps that <em>declared</em> encoding: the damaged
+     * file is not silently converted to UTF-8, and a character the encoding
+     * cannot represent still reaches the existing "save as UTF-8" prompt.</p>
+     *
+     * @param draftCharset the charset recorded in the draft, or {@code null}
+     *        when it predates the metadata
+     * @param draftBom whether the draft recorded a byte-order mark
      */
-    public void restoreRecovered(Path file, String content) {
+    public void restoreRecovered(Path file, String content,
+                                 Charset draftCharset, boolean draftBom) {
         operation++; // the recovered draft replaces whatever was current
         savedFingerprint = null;
+        // Start from "no document on disk": when the original is gone, the
+        // recovered text must not inherit the previous document's path or
+        // encoding and be saved over it. Every failure branch below leaves this
+        // null rather than pointing at an unrelated document.
+        currentFilePath = null;
+        currentCharset = draftCharset == null ? StandardCharsets.UTF_8 : draftCharset;
+        currentBom = draftCharset != null && draftBom;
         if (file != null && Files.isRegularFile(file)) {
             try {
-                var original = Files.readAllBytes(file);
-                // Remember what was on disk at recovery time, so the first save
-                // of the draft asks before replacing a version that changed in
-                // the meantime (the draft itself is newer than this content).
-                savedFingerprint = DiskFingerprint.of(file, original);
-                var onDisk = TextCodec.decode(original);
-                if (onDisk != null) {
-                    currentCharset = onDisk.charset();
-                    currentBom = onDisk.bom();
+                var read = ioExecutor.submit("restore " + file,
+                        () -> readRecoveredOriginal(file)).join();
+                if (read.tooLarge()) {
+                    // Without the bytes the encoding cannot be verified. Treat it
+                    // as an unverifiable original: no path (so a save must ask
+                    // where to go) and the draft hint survives, instead of
+                    // reattaching the draft to a file this build refuses to read.
+                    LOG.log(Level.WARNING, "recovered file " + file + " is "
+                            + read.tooLargeBytes() + " bytes, above the "
+                            + MAX_DOCUMENT_BYTES + "-byte read ceiling; its encoding cannot be"
+                            + " verified, so the draft encoding is kept and the file is not reattached");
                 } else {
-                    // Legacy, BOM-less content that is not valid UTF-8: keep the
-                    // app's fallback encoding so the next save does not convert
-                    // the file to UTF-8 behind the user's back.
-                    currentCharset = TextCodec.WINDOWS_1254;
-                    currentBom = false;
+                    var original = read.bytes();
+                    // Remember what was on disk at recovery time, so the first save
+                    // of the draft asks before replacing a version that changed in
+                    // the meantime (the draft itself is newer than this content).
+                    savedFingerprint = DiskFingerprint.of(file, original);
+                    applyDetectedEncoding(file, original);
+                    currentFilePath = file;
                 }
-                currentFilePath = file;
-            } catch (TextCodec.MalformedDocumentException malformed) {
-                // The draft is what matters here; a damaged original must not
-                // abort the restore, but it must not be silent either.
-                LOG.log(Level.WARNING, "recovered file " + file
-                        + " has malformed " + malformed.declaredCharset().name()
-                        + " content under its byte-order mark; keeping the default encoding", malformed);
-                currentFilePath = file;
-            } catch (IOException e) {
+            } catch (CompletionException failure) {
+                // The worker wraps the real cause; an IOException here means the
+                // original could not be read, so its encoding is unknown.
+                var cause = failure.getCause() == null ? failure : failure.getCause();
                 // The encoding is unknown, so the next save must ask for a path
                 // instead of silently rewriting an unreadable original as UTF-8.
-                LOG.log(Level.WARNING, "could not detect encoding of recovered file " + file, e);
+                LOG.log(Level.WARNING, "could not detect encoding of recovered file " + file, cause);
             }
         }
         // Nothing on disk to compare against: the draft stays dirty even when it
@@ -490,6 +552,57 @@ public class FileService {
         savedContent = null;
         currentContent = content;
         dirty = true;
+    }
+
+    /**
+     * Applies the encoding the original's own bytes declare. A malformed BOM
+     * keeps the declared charset and BOM flag: that is the encoding the file is
+     * written in, so the recovered draft is not silently re-encoded as UTF-8 on
+     * its next save. The malformed content itself is not needed - the draft is
+     * the recovered text - but the declaration must not be dropped.
+     */
+    private void applyDetectedEncoding(Path file, byte[] original) {
+        try {
+            var onDisk = TextCodec.decode(original);
+            if (onDisk != null) {
+                currentCharset = onDisk.charset();
+                currentBom = onDisk.bom();
+            } else {
+                // Legacy, BOM-less content that is not valid UTF-8: keep the
+                // app's fallback encoding so the next save does not convert
+                // the file to UTF-8 behind the user's back.
+                currentCharset = TextCodec.WINDOWS_1254;
+                currentBom = false;
+            }
+        } catch (TextCodec.MalformedDocumentException malformed) {
+            // The draft is what matters here; a damaged original must not abort
+            // the restore. Its BOM still declares the encoding the file is in,
+            // so carry that declaration instead of falling back to UTF-8.
+            currentCharset = malformed.declaredCharset();
+            currentBom = malformed.declaredByBom();
+            LOG.log(Level.WARNING, "recovered file " + file
+                    + " has malformed " + malformed.declaredCharset().name()
+                    + " content under its byte-order mark; restoring it with that declared encoding",
+                    malformed);
+        }
+    }
+
+    /**
+     * Reads the original of a recovered draft with the same size policy as
+     * {@link #read(Path)}. Runs on the I/O worker only.
+     */
+    private static RecoveredRead readRecoveredOriginal(Path file) throws IOException {
+        var size = Files.size(file);
+        if (size > MAX_DOCUMENT_BYTES) {
+            return RecoveredRead.tooLarge(size);
+        }
+        try (var in = Files.newInputStream(file)) {
+            var bytes = in.readNBytes(MAX_DOCUMENT_BYTES + 1);
+            if (bytes.length > MAX_DOCUMENT_BYTES) {
+                return RecoveredRead.tooLarge(bytes.length);
+            }
+            return RecoveredRead.ok(bytes);
+        }
     }
 
     /** Blocking save; production UI uses {@link #saveFileAsync}. */
@@ -676,6 +789,21 @@ public class FileService {
             // The copy is therefore staged first, but failures only warn.
             BackupKeeper.PreparedBackup prepared = null;
             if (!context.unchanged()) {
+                var stagingCopy = Files.isRegularFile(path);
+                if (stagingCopy) {
+                    // The backup staging copy occupies the same volume before the
+                    // document temp file is created. Checking only the document
+                    // bytes would let the copy consume the space the document
+                    // then needs, or silently degrade to "no backup" on a nearly
+                    // full disk. Unknown free space must never block a save.
+                    long required = bytes.length + Files.size(path);
+                    long usable = usableSpace(path);
+                    if (usable >= 0 && required > usable) {
+                        return new WriteFailed("not enough free disk space: " + required
+                                + " bytes needed for the document and its backup, "
+                                + usable + " available");
+                    }
+                }
                 try {
                     prepared = backupKeeper.prepare(path).orElse(null);
                 } catch (IOException | RuntimeException backupFailure) {
@@ -790,6 +918,38 @@ public class FileService {
         return WriteFailed.describe(failure.getCause() == null ? failure : failure.getCause());
     }
 
+    /**
+     * Usable bytes on the volume the save target lives on. The injected seam
+     * wins when a test supplies one; production measures the target's file
+     * store. An unmeasurable store returns {@code -1} ("unknown") so the save
+     * itself decides - a network share or an exotic provider must never be
+     * turned into a false "disk full".
+     */
+    private long usableSpace(Path target) {
+        var supplied = usableSpace.getAsLong();
+        return supplied == MEASURE_USABLE_SPACE ? fileStoreUsableSpace(target) : supplied;
+    }
+
+    /**
+     * Mirrors {@code AtomicFiles.usableSpace}: a total size of zero means the
+     * provider does not know the volume, while a zero <em>usable</em> size on a
+     * known volume is a genuinely full disk and must stay distinguishable from
+     * "unknown".
+     */
+    private static long fileStoreUsableSpace(Path target) {
+        try {
+            var dir = target.toAbsolutePath().getParent();
+            if (dir == null) {
+                return -1;
+            }
+            var store = Files.getFileStore(dir);
+            return store.getTotalSpace() > 0 ? store.getUsableSpace() : -1;
+        } catch (IOException unreadable) {
+            LOG.log(Level.FINE, "cannot read free space for " + target, unreadable);
+            return -1;
+        }
+    }
+
     /** Whole megabytes, rounded up so a limit is never understated in the dialog. */
     private static long megabytes(long bytes) {
         return Math.max(1, (bytes + BYTES_PER_MEGABYTE - 1) / BYTES_PER_MEGABYTE);
@@ -865,6 +1025,20 @@ public class FileService {
         return currentFilePath;
     }
 
+    /**
+     * The charset the current document is written with. Read by
+     * {@link AutoSaveService} so a recovery draft records the encoding its
+     * document needs, and by the UI to describe the document.
+     */
+    public Charset getCurrentCharset() {
+        return currentCharset;
+    }
+
+    /** Whether a save of the current document reproduces a byte-order mark. */
+    public boolean isCurrentBom() {
+        return currentBom;
+    }
+
     /** The shared I/O seam; package-visible so {@link AutoSaveService} can serialise with it. */
     IoExecutor ioExecutor() {
         return ioExecutor;
@@ -902,6 +1076,26 @@ public class FileService {
             return message == null || message.isBlank()
                     ? failure.getClass().getSimpleName()
                     : message;
+        }
+    }
+
+    /**
+     * The original of a recovered draft: either its bounded bytes, or the size
+     * that made it too large to verify. A truncated prefix is never returned as
+     * the "original", because decoding and fingerprinting it would describe a
+     * file the editor refuses to open.
+     */
+    private record RecoveredRead(byte[] bytes, long tooLargeBytes) {
+        static RecoveredRead ok(byte[] bytes) {
+            return new RecoveredRead(bytes, -1);
+        }
+
+        static RecoveredRead tooLarge(long bytes) {
+            return new RecoveredRead(null, bytes);
+        }
+
+        boolean tooLarge() {
+            return tooLargeBytes >= 0;
         }
     }
 

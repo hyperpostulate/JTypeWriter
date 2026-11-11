@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -25,7 +26,9 @@ import java.util.logging.LogRecord;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -169,6 +172,79 @@ class EncodingMatrixTest {
 
         assertArrayEquals(edited.getBytes(TextCodec.WINDOWS_1254), Files.readAllBytes(target));
         verify(dialogService, never()).showEncodingUpgradeDialog(any(), any());
+    }
+
+    @Test
+    void recoveredDraftOfAMalformedUtf16LeOriginalKeepsItsDeclaredEncoding(@TempDir Path dir)
+            throws IOException {
+        // A UTF-16LE BOM followed by an odd number of payload bytes: the BOM
+        // declares UTF-16LE but the payload is malformed, so decode() raises.
+        var damaged = new byte[]{(byte) 0xFF, (byte) 0xFE, 0x41, 0x00, 0x42};
+        var target = dir.resolve("damaged-utf16.txt");
+        write(target, damaged);
+        var draft = "Kurtarılan çöğü metin";
+
+        fileService.restoreRecovered(target, draft, StandardCharsets.UTF_16LE, true);
+        assertTrue(fileService.saveFile(null, draft).isPresent());
+
+        var saved = Files.readAllBytes(target);
+        // The declared BOM survives: the recovered document must not be
+        // silently re-encoded as UTF-8 because its original was damaged.
+        assertArrayEquals(new byte[]{(byte) 0xFF, (byte) 0xFE}, Arrays.copyOf(saved, 2));
+        assertEquals(draft, new String(saved, 2, saved.length - 2, StandardCharsets.UTF_16LE));
+        assertFalse(new String(saved, StandardCharsets.UTF_8).equals(draft));
+    }
+
+    /**
+     * The draft outlived its document: the original was deleted (or lives on a
+     * volume that is gone), so the file can no longer say which encoding it was
+     * in. The draft recorded it, and that record is the only thing standing
+     * between a windows-1254 document and a silent rewrite as UTF-8.
+     */
+    @Test
+    void recoveredDraftOfADeletedWindows1254OriginalKeepsTheDraftEncoding(@TempDir Path dir)
+            throws IOException {
+        var gone = dir.resolve("deleted-ansi.txt");
+        var target = dir.resolve("recovered.txt");
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.of(target.toFile()));
+        var draft = TURKISH + "\nkurtarılan satır: çöğü";
+
+        fileService.restoreRecovered(gone, draft, TextCodec.WINDOWS_1254, false);
+
+        assertNull(fileService.getCurrentFilePath(), "the original is gone: there is no target");
+        assertTrue(fileService.saveFileAs(null, draft).isPresent());
+
+        // The file chooser supplied a new path and the bytes must be
+        // windows-1254, not UTF-8 with question marks.
+        assertArrayEquals(draft.getBytes(TextCodec.WINDOWS_1254), Files.readAllBytes(target));
+        assertFalse(Arrays.equals(draft.getBytes(StandardCharsets.UTF_8), Files.readAllBytes(target)));
+    }
+
+    /**
+     * The lossy path is only reachable by answering the encoding question. For
+     * bytes that are not valid UTF-8, detection reports (never invents
+     * characters); choosing UTF-8 anyway is the user's explicit decision and is
+     * the only way {@code U+FFFD} enters the document.
+     */
+    @Test
+    void invalidUtf8BytesRequireAnExplicitChoiceBeforeAnyReplacement(@TempDir Path dir)
+            throws IOException, TextCodec.MalformedDocumentException {
+        var original = TURKISH.getBytes(TextCodec.WINDOWS_1254);
+        var target = dir.resolve("legacy.txt");
+        write(target, original);
+
+        assertNull(TextCodec.decode(original),
+                "detection must report these bytes, not decode them lossily");
+
+        when(dialogService.showEncodingDialog(any(), any()))
+                .thenReturn(DialogService.EncodingChoice.UTF8);
+        assertTrue(fileService.loadFile(null, target).isPresent());
+
+        verify(dialogService).showEncodingDialog(any(), any());
+        assertTrue(fileService.getCurrentContent().contains("\uFFFD"),
+                "an explicit UTF-8 choice is the only way replacement characters appear");
+        assertNotEquals(TURKISH, fileService.getCurrentContent(),
+                "the test must not be vacuous: the legacy bytes really do not decode as UTF-8");
     }
 
     @Test

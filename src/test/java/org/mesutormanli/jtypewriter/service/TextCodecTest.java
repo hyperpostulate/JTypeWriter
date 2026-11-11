@@ -66,6 +66,26 @@ class TextCodecTest {
         assertNull(TextCodec.decode(ansi));
     }
 
+    /**
+     * Bytes that are neither BOM-marked nor valid UTF-8. An explicit UTF-8
+     * choice is the documented lossy path: it invents U+FFFD, which is why the
+     * silent detection path must refuse them instead of producing the same text.
+     */
+    private static final byte[] INVALID_UTF8 = {(byte) 0xC3, 0x28};
+
+    @Test
+    void invalidUtf8IsReportedAndNeverTurnedIntoReplacementCharacters() throws Exception {
+        assertNull(TextCodec.decode(INVALID_UTF8));
+    }
+
+    @Test
+    void explicitUtf8ChoiceReplacesInvalidBytesWithTheReplacementCharacter() {
+        var decoded = TextCodec.decodeWith(INVALID_UTF8, StandardCharsets.UTF_8);
+
+        assertTrue(decoded.text().contains("\uFFFD"));
+        assertEquals(StandardCharsets.UTF_8, decoded.charset());
+    }
+
     @Test
     void explicitLegacyChoiceDecodesTurkish() {
         var ansi = TURKISH.getBytes(TextCodec.WINDOWS_1254);
