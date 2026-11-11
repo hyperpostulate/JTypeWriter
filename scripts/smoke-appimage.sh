@@ -66,6 +66,21 @@ esac
 note() { echo "smoke: $*"; }
 fail() { echo "smoke: FAIL: $*" >&2; exit 1; }
 
+# P2 of the P3.2 wave: JavaFX must be resolved from named modules. The old
+# layout put its classes on the classpath, so every launch logged
+# "Unsupported JavaFX configuration: classes were loaded from 'unnamed module'"
+# - and the application still started, which is why presence-of-window is not
+# evidence. The launcher log is the evidence, and it is checked on every launch
+# this script performs rather than on one representative run.
+assert_no_unnamed_module() {
+    local log="$1" label="$2"
+    if grep -q 'unnamed module' "$log" 2>/dev/null; then
+        echo "---- $label launcher log ----" >&2
+        cat "$log" >&2 || true
+        fail "$label logged 'unnamed module': JavaFX is still loaded from the classpath"
+    fi
+}
+
 # One scratch tree for every home directory and log file this script creates.
 WORK="$(mktemp -d)"
 APP_PID=""
@@ -203,6 +218,7 @@ smoke_linux_image() {
     wait_for_window "$APP_PID" "image" "$log"
     stop_process "$APP_PID"
     APP_PID=""
+    assert_no_unnamed_module "$log" "image"
     note "image started and stopped cleanly"
 }
 
@@ -228,6 +244,7 @@ smoke_linux_open_sample() {
         "\"$APP_NAME - $(basename "$sample")\""
     stop_process "$APP_PID"
     APP_PID=""
+    assert_no_unnamed_module "$log" "sample document"
     note "the sample document opened from the process argument"
 }
 
@@ -277,6 +294,7 @@ smoke_linux_deb() {
     wait_for_window "$APP_PID" "installed package" "$log"
     stop_process "$APP_PID"
     APP_PID=""
+    assert_no_unnamed_module "$log" "installed package"
     note "installed application started and stopped cleanly"
 
     note "purging the package"
@@ -327,6 +345,7 @@ smoke_windows_image() {
         fi
         sleep 0.5
     done
+    assert_no_unnamed_module "$log" "image"
     note "image launcher stayed alive for $ALIVE_SECONDS s"
 
     taskkill //F //PID "$APP_PID" >/dev/null 2>&1 \
@@ -370,6 +389,7 @@ smoke_windows_open_sample() {
         fi
         sleep 0.5
     done
+    assert_no_unnamed_module "$log" "image with a document argument"
     note "image launcher with a document argument stayed alive for $ALIVE_SECONDS s"
 
     taskkill //F //PID "$APP_PID" >/dev/null 2>&1 \

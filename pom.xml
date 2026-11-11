@@ -251,6 +251,41 @@
                     </execution>
                 </executions>
             </plugin>
+            <!--
+                The packaged application does not run JavaFX from the classpath
+                any more: scripts/package.sh puts these modular jars on the
+                module path and adds them to the image's runtime, so the JVM
+                resolves them as named modules instead of the unnamed one.
+                Copying them here - rather than in the packaging script - keeps
+                the platform decision in Maven, which is the only place that
+                knows the build host and therefore which classifier
+                (linux/win) of the openjfx artifacts is the real one.
+
+                Both variants are copied: the unclassified jar is a 300-byte
+                placeholder with an Automatic-Module-Name that only exists to
+                pull in the classified artifact, and package.sh keeps only the
+                classified jars because two of them would define the module
+                twice.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.10.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-javafx-modules</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeGroupIds>org.openjfx</includeGroupIds>
+                            <includeScope>runtime</includeScope>
+                            <outputDirectory>${project.build.directory}/javafx-modules</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>

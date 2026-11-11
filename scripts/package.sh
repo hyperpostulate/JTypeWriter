@@ -38,6 +38,26 @@ THIRD_PARTY_FILE="THIRD-PARTY-NOTICES"
 LEGAL_DIR="legal"
 MAIN_CLASS="org.mesutormanli.jtypewriter.JTypeWriterApp"
 
+# The JDK modules the application and JavaFX actually need, measured with
+# `jdeps --print-module-deps` over the thin jar and the JavaFX modules rather
+# than copied from a tutorial. Everything else - jdk.compiler with its 10.4 MiB
+# of compiler symbol tables, jdk.jshell, jconsole, the httpserver, the whole
+# XML/JDBC/JNDI tail jpackage's full-JDK runtime carries - was dead weight the
+# user installed and never ran.
+#
+# java.scripting is not obvious and is the one entry that has already gone
+# missing once: javafx.fxml requires it (FXMLLoader evaluates expressions), so
+# leaving it out boots to "Module java.scripting not found, required by
+# javafx.fxml" and no window. jdk.jfr is a static requirement of javafx.base and
+# is deliberately absent - an optional dependency must not cost every user a
+# recording engine.
+RUNTIME_MODULES="java.base,java.desktop,java.logging,java.scripting,jdk.unsupported"
+
+# The directory jpackage copies into lib/ of the application image. The name
+# matters twice: it becomes lib/<name>, and the launcher's --module-path option
+# names it through the $ROOTDIR macro.
+JAVAFX_DIR_NAME="javafx"
+
 # Every artifact must ship the license and the third-party notices. Missing source
 # text is a hard error here rather than a silently license-less release.
 for required in "$LICENSE_FILE" "$NOTICE_FILE" "$THIRD_PARTY_FILE" \
@@ -63,25 +83,31 @@ if [[ "$BUILD" == "1" ]]; then
     mvn -B clean package
 fi
 
-# Exactly one runnable fat jar - a stale artifact from an older version would
-# otherwise silently package the wrong thing.
-FAT_JAR=""
-for candidate in target/jtypewriter-*-jar-with-dependencies.jar; do
+# Exactly one application jar - a stale artifact from an older version would
+# otherwise silently package the wrong thing. The image carries the *thin* jar:
+# JavaFX now reaches the application as modules from lib/javafx, so the fat jar
+# (still built, still the standalone `java -jar` convenience artifact) is not
+# part of any image any more.
+THIN_JAR=""
+for candidate in target/jtypewriter-*.jar; do
+    case "$candidate" in
+        *-jar-with-dependencies.jar|*-sources.jar|*-javadoc.jar) continue ;;
+    esac
     if [[ -f "$candidate" ]]; then
-        if [[ -n "$FAT_JAR" ]]; then
-            echo "more than one jar-with-dependencies under target/ - run 'mvn clean package'" >&2
+        if [[ -n "$THIN_JAR" ]]; then
+            echo "more than one application jar under target/ - run 'mvn clean package'" >&2
             exit 1
         fi
-        FAT_JAR="$candidate"
+        THIN_JAR="$candidate"
     fi
 done
-if [[ -z "$FAT_JAR" ]]; then
-    echo "no jar-with-dependencies found under target/ - run 'mvn package' first" >&2
+if [[ -z "$THIN_JAR" ]]; then
+    echo "no application jar found under target/ - run 'mvn package' first" >&2
     exit 1
 fi
 
 # The version comes out of the build (pom.xml -> artifact name).
-APP_VERSION=$(basename "$FAT_JAR" | sed -e 's/^jtypewriter-//' -e 's/-jar-with-dependencies\.jar$//')
+APP_VERSION=$(basename "$THIN_JAR" | sed -e 's/^jtypewriter-//' -e 's/\.jar$//')
 
 # jpackage accepts one to three dot-separated integers whose first component is
 # greater than zero, so a -SNAPSHOT version must fail here, with an explanation,
@@ -96,6 +122,14 @@ case "$(uname -s)" in
     Linux*)               PLATFORM="linux" ;;
     MINGW*|MSYS*|CYGWIN*) PLATFORM="windows" ;;
     *)                    echo "unsupported platform: $(uname -s) (supported: Linux, Windows)" >&2; exit 1 ;;
+esac
+
+# The openjfx artifacts ship one classifier per platform, and the unclassified
+# jar is only a placeholder that points at the classified one. The classifier
+# names are the Maven ones (linux/win), not ours (linux/windows).
+case "$PLATFORM" in
+    linux)   JAVAFX_CLASSIFIER="linux" ;;
+    windows) JAVAFX_CLASSIFIER="win" ;;
 esac
 
 # jpackage takes a different icon container per platform, all rendered from the
@@ -115,16 +149,60 @@ fi
 
 DEST="releases/$PLATFORM"
 STAGING="target/jpackage-input"
+JFX_MODULES="target/javafx-modules"
+# What jpackage copies into lib/ as one directory: the modular JavaFX jars plus
+# the license text that travels with them. Bundling rather than linking them
+# into the runtime keeps the natives usable - jlink only carries lib/ and bin/
+# out of a modular jar, and JavaFX keeps its .so files at the jar root, so a
+# jlinked JavaFX would start with a missing libglassgtk3.so.
+JFX_BUNDLE="target/jpackage-javafx/$JAVAFX_DIR_NAME"
+JLINK_RUNTIME="target/jlink-runtime"
 
-# jpackage refuses to overwrite existing output; this directory is the script's
-# own build output, so it is always regenerated from scratch.
+if [[ ! -d "$JFX_MODULES" ]]; then
+    echo "no JavaFX modules under $JFX_MODULES - run 'mvn package' first" >&2
+    exit 1
+fi
+
+# jpackage refuses to overwrite existing output; these directories are the
+# script's own build output, so they are always regenerated from scratch.
 rm -rf "$DEST/$APP_NAME"
 rm -f "$DEST/$DEB_PACKAGE"*.deb "$DEST/$APP_NAME"*.msi
-# Start from an empty input directory: with --skip-build a previous run's fat jar
+# Start from an empty input directory: with --skip-build a previous run's jar
 # would otherwise stay here and could be picked up instead of the current one.
-rm -rf "$STAGING"
-mkdir -p "$STAGING" "$DEST"
-cp "$FAT_JAR" "$STAGING/"
+rm -rf "$STAGING" "$JFX_BUNDLE" "$JLINK_RUNTIME"
+mkdir -p "$STAGING" "$DEST" "$JFX_BUNDLE"
+cp "$THIN_JAR" "$STAGING/"
+
+# Only the platform jars: the unclassified openjfx artifact is a 300-byte
+# placeholder whose Automatic-Module-Name (javafx.controlsEmpty and friends)
+# would otherwise put a second, empty module on the path for no reason.
+javafx_jars=0
+for candidate in "$JFX_MODULES"/javafx-*-"$JAVAFX_CLASSIFIER".jar; do
+    [[ -f "$candidate" ]] || continue
+    cp "$candidate" "$JFX_BUNDLE/"
+    javafx_jars=$((javafx_jars + 1))
+done
+if [[ "$javafx_jars" -ne 5 ]]; then
+    echo "expected 5 JavaFX modules for '$JAVAFX_CLASSIFIER' under $JFX_MODULES, found $javafx_jars" >&2
+    echo "(base, graphics, controls, fxml, media) - run 'mvn clean package'" >&2
+    exit 1
+fi
+# The JavaFX jars carry no license text of their own, and they are no longer
+# inside our jar, so the text has to travel next to them: one source of truth
+# (the checked-in legal/) rather than a second copy of the GPL.
+mkdir -p "$JFX_BUNDLE/$LEGAL_DIR"
+cp "$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt" "$JFX_BUNDLE/$LEGAL_DIR/"
+
+# A runtime built from the module list above instead of jpackage's "everything
+# the host JDK has". Measured, not guessed: see RUNTIME_MODULES.
+jlink \
+    --add-modules "$RUNTIME_MODULES" \
+    --strip-debug \
+    --no-header-files \
+    --no-man-pages \
+    --compress=zip-6 \
+    --output "$JLINK_RUNTIME"
+echo "custom runtime written to $JLINK_RUNTIME ($(du -sh "$JLINK_RUNTIME" | cut -f1))"
 
 jpackage \
     --type app-image \
@@ -134,12 +212,16 @@ jpackage \
     --vendor "$VENDOR" \
     --copyright "$COPYRIGHT" \
     --input "$STAGING" \
-    --main-jar "$(basename "$FAT_JAR")" \
+    --main-jar "$(basename "$THIN_JAR")" \
     --main-class "$MAIN_CLASS" \
+    --runtime-image "$JLINK_RUNTIME" \
+    --app-content "$JFX_BUNDLE" \
     --icon "$ICON" \
     --dest "$DEST" \
     --java-options "-Dfile.encoding=UTF-8" \
-    --java-options "--enable-native-access=ALL-UNNAMED"
+    --java-options "--enable-native-access=ALL-UNNAMED,javafx.graphics,javafx.media" \
+    --java-options '--module-path=$ROOTDIR/lib/'"$JAVAFX_DIR_NAME" \
+    --java-options '--add-modules=javafx.controls,javafx.fxml,javafx.media'
 
 echo
 echo "application image written to $DEST/ (version $APP_VERSION)"
@@ -160,19 +242,35 @@ for artifact in "$LICENSE_TARGET" \
     "$(dirname "$LICENSE_TARGET")/$THIRD_PARTY_FILE" \
     "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt" \
     "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/LGPL-2.1.txt" \
-    "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/Bitstream-Vera.txt"; do
+    "$(dirname "$LICENSE_TARGET")/$LEGAL_DIR/Bitstream-Vera.txt" \
+    "$DEST/$APP_NAME/lib/$JAVAFX_DIR_NAME/$LEGAL_DIR/GPL-2.0-with-classpath-exception.txt"; do
     if [[ ! -f "$artifact" ]]; then
         echo "missing from the application image: $artifact" >&2
         exit 1
     fi
 done
+# The image layout is now an assertion rather than an assumption: a JavaFX
+# module that did not make it into lib/<name> boots to "Module ... not found",
+# and a runtime that is the host JDK again would silently undo the jlink gain.
+if [[ ! -d "$DEST/$APP_NAME/lib/$JAVAFX_DIR_NAME" ]]; then
+    echo "JavaFX modules missing from the image at lib/$JAVAFX_DIR_NAME" >&2
+    exit 1
+fi
+if [[ ! -s "$DEST/$APP_NAME/lib/runtime/release" ]]; then
+    echo "the image has no custom runtime (lib/runtime/release is missing)" >&2
+    exit 1
+fi
+if grep -q 'jdk.compiler' "$DEST/$APP_NAME/lib/runtime/release"; then
+    echo "the image runtime still carries jdk.compiler - jlink did not run or was ignored" >&2
+    exit 1
+fi
 for entry in 'META-INF/LICENSE' 'META-INF/NOTICE' \
     'META-INF/THIRD-PARTY-NOTICES' \
     'META-INF/licenses/GPL-2.0-with-classpath-exception.txt' \
     'META-INF/licenses/LGPL-2.1.txt' \
     'META-INF/licenses/Bitstream-Vera.txt'; do
-    if ! jar tf "$FAT_JAR" | grep -x "$entry" >/dev/null; then
-        echo "license missing from $FAT_JAR (expected $entry)" >&2
+    if ! jar tf "$THIN_JAR" | grep -x "$entry" >/dev/null; then
+        echo "license missing from $THIN_JAR (expected $entry)" >&2
         exit 1
     fi
 done
@@ -315,28 +413,11 @@ build_deb_resource_dir() {
         printf '%s\n' 'Upstream-Name: JTypeWriter'
         printf '%s\n' 'Source: https://github.com/hyperpostulate/JTypeWriter'
         printf '\n'
-        printf '%s\n' 'Files: opt/jtypewriter/lib/runtime/*'
-        printf '%s\n' 'Copyright: 2026 Oracle and/or its affiliates, contributors'
-        printf '%s\n' 'License: GPL-2.0-with-classpath-exception'
-        printf '%s\n' ' The bundled OpenJDK runtime ships under GPLv2 with the Classpath'
-        printf '%s\n' ' Exception; its notices, including the licenses of the data'
-        printf '%s\n' ' libraries it contains, are reproduced unchanged in'
-        printf '%s\n' ' opt/jtypewriter/lib/runtime/legal/.'
-        printf '%s\n' ' The JavaFX libraries (GPLv2 with the Classpath Exception) and'
-        printf '%s\n' ' GStreamer Lite (LGPL-2.1-or-later) are not part of that runtime;'
-        printf '%s\n' ' their components, copyrights, license texts and source offers are'
-        printf '%s\n' ' in opt/jtypewriter/THIRD-PARTY-NOTICES and opt/jtypewriter/legal/.'
-        printf '\n'
-        printf '%s\n' 'Files: opt/jtypewriter/lib/app/*'
-        printf '%s\n' 'Copyright: Oracle and/or its affiliates; The GStreamer contributors;'
-        printf '%s\n' ' contributors to the components named in THIRD-PARTY-NOTICES'
-        printf '%s\n' 'License: GPL-2.0-with-classpath-exception and LGPL-2.1-or-later'
-        printf '%s\n' ' The application jar carries the JavaFX classes (GPLv2 with the'
-        printf '%s\n' ' Classpath Exception) and GStreamer Lite (LGPL-2.1-or-later).'
-        printf '%s\n' ' The components, copyrights, license texts and source offers are'
-        printf '%s\n' ' listed in opt/jtypewriter/THIRD-PARTY-NOTICES and reproduced in'
-        printf '%s\n' ' opt/jtypewriter/legal/.'
-        printf '\n'
+        # DEP-5 resolves a file against the *last* stanza whose Files field
+        # matches, so the catch-all has to come first: with it last, every
+        # runtime file would be relicensed as Apache-2.0 and the stanzas below
+        # would be decoration. The stanzas that follow therefore start broad
+        # (our own code) and end narrow (the components we only redistribute).
         printf '%s\n' 'Files: *'
         printf '%s\n' 'Copyright: APPLICATION_COPYRIGHT'
         printf '%s\n' 'License: Apache-2.0'
@@ -345,6 +426,33 @@ build_deb_resource_dir() {
         # opens with a blank line, which would otherwise become a stray " ."
         # before the first line of the license.
         sed -e 's/[[:space:]]*$//' -e '/./,$!d' -e 's/^$/./' -e 's/^/ /' "$LICENSE_FILE"
+        printf '\n'
+        printf '%s\n' 'Files: opt/jtypewriter/lib/runtime/*'
+        printf '%s\n' 'Copyright: 2026 Oracle and/or its affiliates, contributors'
+        printf '%s\n' 'License: GPL-2.0-with-classpath-exception'
+        printf '%s\n' ' The bundled OpenJDK runtime ships under GPLv2 with the Classpath'
+        printf '%s\n' ' Exception; its notices, including the licenses of the data'
+        printf '%s\n' ' libraries it contains, are reproduced unchanged in'
+        printf '%s\n' ' opt/jtypewriter/lib/runtime/legal/.'
+        printf '\n'
+        # JavaFX used to sit inside the application jar; it is now its own
+        # directory of modular jars, which is also where its license text lives.
+        printf '%s\n' 'Files: opt/jtypewriter/lib/javafx/*'
+        printf '%s\n' 'Copyright: Oracle and/or its affiliates; The GStreamer contributors'
+        printf '%s\n' 'License: GPL-2.0-with-classpath-exception and LGPL-2.1-or-later'
+        printf '%s\n' ' The JavaFX modules (GPLv2 with the Classpath Exception) and the'
+        printf '%s\n' ' GStreamer Lite binary inside javafx.media (LGPL-2.1-or-later) are'
+        printf '%s\n' ' reproduced here unmodified. The GPL text is in'
+        printf '%s\n' ' opt/jtypewriter/lib/javafx/legal/, the full component list,'
+        printf '%s\n' ' copyrights and source offers in opt/jtypewriter/THIRD-PARTY-NOTICES'
+        printf '%s\n' ' and opt/jtypewriter/legal/.'
+        printf '\n'
+        printf '%s\n' 'Files: opt/jtypewriter/lib/app/*'
+        printf '%s\n' 'Copyright: Mesut ORMANLI and contributors'
+        printf '%s\n' 'License: Apache-2.0'
+        printf '%s\n' ' The application jar is JTypeWriter itself; see the catch-all stanza'
+        printf '%s\n' ' above for the full license text. It carries no third-party classes'
+        printf '%s\n' ' any more - JavaFX is in opt/jtypewriter/lib/javafx/.'
     } > "$resource_dir/copyright"
     printf '%s' "$resource_dir"
 }
@@ -408,6 +516,23 @@ verify_deb_license() {
     # The bundled runtime is not ours to relicense, so its stanza must survive.
     if [[ "$body" != *"License: GPL-2.0-with-classpath-exception"* ]]; then
         echo "the bundled-runtime stanza is missing from the copyright document in $deb" >&2
+        exit 1
+    fi
+    # ...and it must actually apply. DEP-5 uses the last matching stanza, so a
+    # component stanza placed before the catch-all is silently overwritten by
+    # it: the file would carry the Apache text while looking correctly licensed.
+    if [[ "$body" != *"Files: opt/jtypewriter/lib/javafx/*"* ]]; then
+        echo "the JavaFX stanza is missing from the copyright document in $deb" >&2
+        exit 1
+    fi
+    local wildcard_at runtime_at javafx_at
+    wildcard_at=$(awk '/^Files: \*$/{print NR; exit}' <<<"$body")
+    runtime_at=$(awk '/^Files: opt\/jtypewriter\/lib\/runtime\/\*$/{print NR; exit}' <<<"$body")
+    javafx_at=$(awk '/^Files: opt\/jtypewriter\/lib\/javafx\/\*$/{print NR; exit}' <<<"$body")
+    if [[ -z "$wildcard_at" || -z "$runtime_at" || -z "$javafx_at" ]] \
+        || (( wildcard_at > runtime_at || wildcard_at > javafx_at )); then
+        echo "the copyright stanzas are in the wrong order in $deb: DEP-5 applies the" >&2
+        echo "last matching stanza, so 'Files: *' must come before the component ones" >&2
         exit 1
     fi
     echo "deb license document verified ($deb)"

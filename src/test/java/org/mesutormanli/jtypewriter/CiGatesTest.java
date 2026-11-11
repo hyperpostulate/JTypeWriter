@@ -102,7 +102,8 @@ class CiGatesTest {
      * It has something to compare only after the image and the installer exist,
      * so it must come after the packaging step - before it, the release
      * artifacts under test are a previous run's.
-     */    @Test
+     */
+    @Test
     void theWorkflowRunsTheArtifactCheckAfterPackaging() throws IOException {
         var workflow = workflow();
         var packaging = workflow.indexOf("scripts/package.sh --skip-build --installer");
@@ -195,6 +196,112 @@ class CiGatesTest {
                         + " install aborts the dpkg transaction");
         assertTrue(packageScript.contains("xdg-desktop-menu"),
                 PACKAGE_SCRIPT + " does not mention the maintainer-script call it has to relax");
+    }
+
+    /**
+     * JavaFX must reach the packaged application as named modules. Two of the
+     * three ways to get this wrong are silent: putting the classes back on the
+     * classpath logs a warning and then works, and a runtime built from the host
+     * JDK starts the application fine while shipping 74 MiB of tools nobody
+     * uses. Both are asserted here because both were the shipped behaviour.
+     *
+     * <p>The module path is written with jpackage's {@code $ROOTDIR} macro
+     * rather than {@code $APPDIR}: {@code $APPDIR} is the launcher's own
+     * directory ({@code lib/app}), so a path built from it resolves to
+     * {@code lib/app/lib/javafx} and the application boots to "Module
+     * javafx.controls not found" - a failure that only shows up when the image
+     * is started, not when it is written.</p>
+     */
+    @Test
+    void packageScriptShipsJavaFxAsModules() throws IOException {
+        var packageScript = Files.readString(PACKAGE_SCRIPT, StandardCharsets.UTF_8);
+
+        assertTrue(packageScript.contains("--module-path=$ROOTDIR/lib/"),
+                PACKAGE_SCRIPT + " no longer puts JavaFX on the module path, so the classes are"
+                        + " loaded from the unnamed module again (and $APPDIR/lib would point at"
+                        + " lib/app/lib)");
+        assertTrue(packageScript.contains("--add-modules=javafx.controls"),
+                PACKAGE_SCRIPT + " resolves no JavaFX modules, so the module path is decorative");
+        assertTrue(packageScript.contains("--app-content"),
+                PACKAGE_SCRIPT + " does not copy the JavaFX modules into the image");
+        assertTrue(packageScript.contains("--enable-native-access=ALL-UNNAMED,javafx.graphics"),
+                PACKAGE_SCRIPT + " does not grant javafx.graphics native access, so loading"
+                        + " libglassgtk3.so warns on every launch");
+    }
+
+    /**
+     * The runtime is built from a module list, not from the host JDK. The list
+     * is the measured one ({@code jdeps --print-module-deps}); the entries that
+     * matter are the ones that are easy to get wrong: {@code java.scripting} is
+     * a hard requirement of {@code javafx.fxml} and its absence is a boot
+     * failure, while {@code jdk.compiler} (10.4 MiB of compiler symbol tables),
+     * {@code jdk.jshell} and {@code jdk.jconsole} are the weight jlink exists to
+     * remove.
+     */
+    @Test
+    void packageScriptBuildsTheRuntimeFromAModuleList() throws IOException {
+        var packageScript = Files.readString(PACKAGE_SCRIPT, StandardCharsets.UTF_8);
+
+        assertTrue(packageScript.contains("jlink"),
+                PACKAGE_SCRIPT + " no longer runs jlink, so the image carries the host JDK");
+        assertTrue(packageScript.contains("--runtime-image"),
+                PACKAGE_SCRIPT + " does not hand the jlink runtime to jpackage");
+
+        // The list itself, not the comments around it: the prose names the
+        // modules that must stay out, so a search over the whole file cannot
+        // tell an exclusion from an exclusion's explanation.
+        var listLine = packageScript.lines()
+                .filter(line -> line.stripLeading().startsWith("RUNTIME_MODULES="))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(PACKAGE_SCRIPT + " has no RUNTIME_MODULES list"));
+        assertTrue(listLine.contains("java.base"),
+                "the runtime list does not even name java.base: " + listLine);
+        assertTrue(listLine.contains("java.desktop"),
+                "the runtime list omits java.desktop, which every JavaFX window needs: " + listLine);
+        assertTrue(listLine.contains("java.scripting"),
+                PACKAGE_SCRIPT + " omits java.scripting, which javafx.fxml requires - the"
+                        + " application would boot to 'Module java.scripting not found': " + listLine);
+        for (var dead : java.util.List.of("jdk.compiler", "jdk.jshell", "jdk.jconsole")) {
+            assertFalse(listLine.contains(dead),
+                    PACKAGE_SCRIPT + " puts " + dead + " back on the runtime module path: " + listLine);
+        }
+    }
+
+    /**
+     * The artifact gate is where the layout is asserted. Its comparison loop
+     * would happily pass an image whose runtime is the host JDK again, and the
+     * smoke run would happily pass one whose JavaFX came from the classpath -
+     * both only differ in size and in a log line.
+     */
+    @Test
+    void theArtifactGateAssertsTheImageLayout() throws IOException {
+        var script = Files.readString(Path.of("scripts", "verify-artifacts.sh"),
+                StandardCharsets.UTF_8);
+
+        assertTrue(script.contains("lib/runtime/release"),
+                "scripts/verify-artifacts.sh never reads the image's runtime module list");
+        assertTrue(script.contains("jdk.compiler"),
+                "scripts/verify-artifacts.sh does not fail when the jlink gain is lost");
+        assertTrue(script.contains("lib/javafx"),
+                "scripts/verify-artifacts.sh does not compare the JavaFX modules in the image");
+    }
+
+    /**
+     * The unnamed-module warning is the one symptom of classpath JavaFX that a
+     * user can see, and it appears in a log rather than in the UI - so the
+     * smoke run is the only place it can be caught before a release. Checking it
+     * on every launch, rather than once, costs a grep and covers the installed
+     * package as well as the image.
+     */
+    @Test
+    void theSmokeRunFailsOnClasspathJavaFx() throws IOException {
+        var script = Files.readString(Path.of("scripts", "smoke-appimage.sh"),
+                StandardCharsets.UTF_8);
+
+        assertTrue(script.contains("assert_no_unnamed_module"),
+                "scripts/smoke-appimage.sh does not look for the unnamed-module warning");
+        assertTrue(script.contains("unnamed module"),
+                "scripts/smoke-appimage.sh never names the warning it must reject");
     }
 
     /** The job block around {@code offset}: from its own indentation level onwards. */

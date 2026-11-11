@@ -7,11 +7,17 @@
 #
 # One command compares three copies of the same payload byte for byte:
 #
-#   repository payload  LICENSE, NOTICE, THIRD-PARTY-NOTICES, legal/* and the
-#                       fat jar Maven built from this source tree
+#   repository payload  LICENSE, NOTICE, THIRD-PARTY-NOTICES, legal/*, the thin
+#                       jar Maven built from this source tree, and the JavaFX
+#                       module jars the image ships
 #   application image   releases/<os>/JTypeWriter, as jpackage wrote it
 #   installer payload   the files inside the .deb, unpacked into a temporary
 #                       directory with dpkg-deb
+#
+# The image layout itself is checked as well, because "the application starts"
+# is not evidence of it: the runtime must be the jlink one rather than the host
+# JDK, and the JavaFX modules must be files in lib/javafx rather than classes
+# buried in a jar the JVM loads through the unnamed module.
 #
 # A release is only reproducible if those three agree. package.sh asserts that
 # the files exist and that the legal texts are where they should be; it says
@@ -108,8 +114,34 @@ if [[ -z "$FAT_JAR" ]]; then
     exit 1
 fi
 
-VERSION=$(basename "$FAT_JAR" | sed -e 's/^jtypewriter-//' -e 's/-jar-with-dependencies\.jar$//')
+# The image ships the thin jar now: JavaFX arrives as modules from lib/javafx,
+# so this - not the fat jar - is the application payload whose bytes must match
+# the repository.
+THIN_JAR=""
+for candidate in target/jtypewriter-*.jar; do
+    case "$candidate" in
+        *-jar-with-dependencies.jar|*-sources.jar|*-javadoc.jar) continue ;;
+    esac
+    if [[ -f "$candidate" ]]; then
+        if [[ -n "$THIN_JAR" ]]; then
+            echo "more than one application jar under target/ - run this without --skip-build" >&2
+            exit 1
+        fi
+        THIN_JAR="$candidate"
+    fi
+done
+if [[ -z "$THIN_JAR" ]]; then
+    echo "no application jar under target/ - run 'mvn package' or drop --skip-build" >&2
+    exit 1
+fi
+
+VERSION=$(basename "$THIN_JAR" | sed -e 's/^jtypewriter-//' -e 's/\.jar$//')
 DEST="releases/$PLATFORM"
+
+case "$PLATFORM" in
+    linux)   JAVAFX_CLASSIFIER="linux" ;;
+    windows) JAVAFX_CLASSIFIER="win" ;;
+esac
 
 IMAGE="$DEST/$APP_NAME"
 if [[ ! -d "$IMAGE" ]]; then
@@ -117,14 +149,55 @@ if [[ ! -d "$IMAGE" ]]; then
     exit 1
 fi
 
-# The image keeps the fat jar under lib/app/; find it rather than hard-coding.
-IMAGE_JAR=$(find "$IMAGE" -type f -name 'jtypewriter-*-jar-with-dependencies.jar' -print)
+# The image keeps the application jar under lib/app/; find it rather than
+# hard-coding, and insist there is exactly one so a stale jar cannot hide.
+IMAGE_JAR=$(find "$IMAGE/lib/app" -type f -name 'jtypewriter-*.jar' -print)
 if [[ -z "$IMAGE_JAR" || "$(printf '%s\n' "$IMAGE_JAR" | wc -l)" -ne 1 ]]; then
     echo "expected exactly one application jar inside '$IMAGE', found: ${IMAGE_JAR:-none}" >&2
     exit 1
 fi
 
-compare "fat jar" "$FAT_JAR" "$IMAGE_JAR"
+compare "application jar" "$THIN_JAR" "$IMAGE_JAR"
+
+# JavaFX is shipped as modular jars, not linked into the runtime, so each one is
+# a file whose bytes must match the build like any other payload.
+JFX_IMAGE_DIR="$IMAGE/lib/javafx"
+for module_jar in target/javafx-modules/javafx-*-"$JAVAFX_CLASSIFIER".jar; do
+    [[ -f "$module_jar" ]] || continue
+    compare "javafx $(basename "$module_jar")" "$module_jar" "$JFX_IMAGE_DIR/$(basename "$module_jar")"
+done
+
+# The JavaFX license text travels beside the modules (the jars carry none of
+# their own), and it is the same checked-in file as everywhere else.
+compare "javafx license" "legal/GPL-2.0-with-classpath-exception.txt" \
+    "$JFX_IMAGE_DIR/legal/GPL-2.0-with-classpath-exception.txt"
+
+# The runtime is the jlink one: a runtime that silently reverted to the host JDK
+# would still start the application, so the difference is asserted rather than
+# felt in the download size.
+if [[ ! -s "$IMAGE/lib/runtime/release" ]]; then
+    echo "FAIL the image has no custom runtime (lib/runtime/release)" >&2
+    FAILURES=$((FAILURES + 1))
+else
+    CHECKS=$((CHECKS + 1))
+    runtime_modules=$(sed -n 's/^MODULES="\(.*\)"$/\1/p' "$IMAGE/lib/runtime/release")
+    for required in java.base java.desktop java.logging java.scripting; do
+        if [[ " $runtime_modules " != *" $required "* ]]; then
+            echo "FAIL the image runtime is missing $required" >&2
+            FAILURES=$((FAILURES + 1))
+        fi
+    done
+    for dead in jdk.compiler jdk.jshell jdk.jconsole; do
+        if [[ " $runtime_modules " == *" $dead "* ]]; then
+            echo "FAIL the image runtime still ships $dead (jlink gain lost)" >&2
+            FAILURES=$((FAILURES + 1))
+        fi
+    done
+    if [[ ! -d "$IMAGE/lib/runtime/legal" ]]; then
+        echo "FAIL the image runtime carries no legal/ tree" >&2
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
 
 # The legal payload sits next to the launcher in the image root. package.sh
 # wrote it there, so the location is known; the comparison is about the bytes at
@@ -144,27 +217,31 @@ for relative in "${LEGAL_FILES[@]}"; do
 done
 
 # The jar's own entries are what every runtime unpacking the artifact reads, so
-# the packed notice must be the checked-in one - not merely present.
+# the packed notice must be the checked-in one - not merely present. Both jars
+# are checked: the thin one ships in the image, the fat one is still the
+# standalone `java -jar` artifact and makes the same promise.
 if command -v unzip >/dev/null 2>&1; then
-    for entry in META-INF/THIRD-PARTY-NOTICES META-INF/LICENSE META-INF/NOTICE \
-        META-INF/licenses/GPL-2.0-with-classpath-exception.txt \
-        META-INF/licenses/LGPL-2.1.txt \
-        META-INF/licenses/Bitstream-Vera.txt; do
-        work=$(mktemp)
-        if ! unzip -p "$FAT_JAR" "$entry" > "$work" 2>/dev/null; then
-            echo "FAIL $entry: missing from $FAT_JAR" >&2
-            FAILURES=$((FAILURES + 1))
+    for packed_jar in "$THIN_JAR" "$FAT_JAR"; do
+        for entry in META-INF/THIRD-PARTY-NOTICES META-INF/LICENSE META-INF/NOTICE \
+            META-INF/licenses/GPL-2.0-with-classpath-exception.txt \
+            META-INF/licenses/LGPL-2.1.txt \
+            META-INF/licenses/Bitstream-Vera.txt; do
+            work=$(mktemp)
+            if ! unzip -p "$packed_jar" "$entry" > "$work" 2>/dev/null; then
+                echo "FAIL $entry: missing from $packed_jar" >&2
+                FAILURES=$((FAILURES + 1))
+                rm -f "$work"
+                continue
+            fi
+            case "$entry" in
+                META-INF/THIRD-PARTY-NOTICES) source_file="THIRD-PARTY-NOTICES" ;;
+                META-INF/LICENSE)             source_file="LICENSE" ;;
+                META-INF/NOTICE)              source_file="NOTICE" ;;
+                META-INF/licenses/*)          source_file="legal/${entry#META-INF/licenses/}" ;;
+            esac
+            compare "jar entry $entry ($(basename "$packed_jar"))" "$source_file" "$work"
             rm -f "$work"
-            continue
-        fi
-        case "$entry" in
-            META-INF/THIRD-PARTY-NOTICES) source_file="THIRD-PARTY-NOTICES" ;;
-            META-INF/LICENSE)             source_file="LICENSE" ;;
-            META-INF/NOTICE)              source_file="NOTICE" ;;
-            META-INF/licenses/*)          source_file="legal/${entry#META-INF/licenses/}" ;;
-        esac
-        compare "jar entry $entry" "$source_file" "$work"
-        rm -f "$work"
+        done
     done
 else
     echo "note: unzip not available - skipping the jar-entry comparisons"
@@ -206,13 +283,24 @@ else
         compare "deb $relative" "$relative" "$DEB_PAYLOAD/$relative"
     done
 
-    DEB_JAR=$(find "$DEB_PAYLOAD/lib/app" -type f -name 'jtypewriter-*-jar-with-dependencies.jar' -print 2>/dev/null || true)
+    DEB_JAR=$(find "$DEB_PAYLOAD/lib/app" -type f -name 'jtypewriter-*.jar' -print 2>/dev/null || true)
     if [[ -z "$DEB_JAR" ]]; then
         echo "FAIL no application jar inside the .deb payload" >&2
         FAILURES=$((FAILURES + 1))
     else
-        compare "deb fat jar" "$FAT_JAR" "$DEB_JAR"
+        compare "deb application jar" "$THIN_JAR" "$DEB_JAR"
     fi
+
+    # The JavaFX modules and their license text must survive the installer the
+    # same way they survive the image; jpackage copies lib/ wholesale, so a
+    # missing file here would mean the payload was completed from somewhere else.
+    for module_jar in target/javafx-modules/javafx-*-"$JAVAFX_CLASSIFIER".jar; do
+        [[ -f "$module_jar" ]] || continue
+        compare "deb javafx $(basename "$module_jar")" "$module_jar" \
+            "$DEB_PAYLOAD/lib/javafx/$(basename "$module_jar")"
+    done
+    compare "deb javafx license" "legal/GPL-2.0-with-classpath-exception.txt" \
+        "$DEB_PAYLOAD/lib/javafx/legal/GPL-2.0-with-classpath-exception.txt"
 fi
 
 echo
