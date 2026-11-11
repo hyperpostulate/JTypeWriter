@@ -497,13 +497,20 @@ rağmen bellekte kalan anahtarlar bir sonraki yazmada kalıcılaşıyor
 | Dışarıdan dosya değişti | özet karşılaştırması → üç seçenek | **güvenli** |
 | Dosya dışarıdan silindi | "değişti" sayılıp soruluyor | **güvenli** |
 | Symlink üzerinden kaydetme | link korunuyor, hedef yazılıyor | **güvenli** |
-| Sarkan symlink | link düz dosyayla değişiyor | **bozulma** (D-küçük) |
-| Bozuk BOM'lu orijinalden kurtarma + kaydet | UTF-8'e dönüşebilir | **bozulma** (D3) |
-| Bilinmeyen kodlama + "UTF-8" seçimi | `U+FFFD` kalıcı | **bozulma** (D4) |
-| Kurtarma sonrası eski belgeye yazma | teorik: `currentFilePath` sızıntısı | **bozulma** (D2) |
+| Sarkan symlink | kayıt reddediliyor, link ve belge yerinde kalıyor | **güvenli** (D4c) |
+| Bozuk BOM'lu orijinalden kurtarma + kaydet | BOM'un bildirdiği kodlama korunuyor | **güvenli** (D3) |
+| Bilinmeyen kodlama + kodlama seçimi | algılama bildiriyor; kayıplı UTF-8 yalnız açık seçimde | **güvenli** (D4) |
+| Kurtarma sonrası eski belgeye yazma | kurtarma yolu her dalda sıfırlanıyor | **güvenli** (D2) |
 | Bir kez yedek yazılamaması | kayıt başarılı, yedek yok | kabul edilebilir |
 | Ayar dosyası yazılamıyor | bir kez uyarı, oturum sürüyor | **güvenli** |
-| Taslak silinemiyor | durum çubuğu uyarısı (erken susabiliyor) | D7 |
+| Taslak silinemiyor | uyarı diskteki duruma bağlı, her alt sistem kendi uyarısını çekiyor | **güvenli** (D7) |
+| Canlı taslak dosyaları birikiyor | 30 gün + 20 dosya, çalışan örnek korunuyor | **güvenli** (D1) |
+| Gizle/göster sonrası otomatik kayıt | pencere yeniden görününce zamanlayıcı devam ediyor | **güvenli** (D9) |
+
+> **Durum (2026-11-11):** matriste "bozulma" satırı kalmadı; P3.1 dalgası bu satırların
+> dördünü de kapattı. Yeni davranış `AtomicFilesTest`, `EncodingMatrixTest`,
+> `FileServiceTest`, `RecoveryStoreTest` ve `FxThreadIoTest` ile sabitlendi; kapı kanıtı
+> `product-roadmap.md` §3.1'de. Tablodaki "D-küçük" kimliği D4c olarak adlandırıldı.
 
 ---
 

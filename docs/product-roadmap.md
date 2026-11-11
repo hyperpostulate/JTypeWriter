@@ -36,7 +36,7 @@ kanıtlanabilir; 2. madde yeni ölçüm ister; 3. madde kod dışıdır.
 | Dalga | Ad | Kapsam | Baskın efor | Çıkış kapısı |
 |---|---|---|---|---|
 | **P3.0** ✅ Tamamlandı | Yol açıcı düzeltmeler | B1, M2, U2, U8, B5, D5, D13, D14, D2b (U1 ürün kararıyla kapsam dışı) | AI (saatler) | `package.sh` iki kez üst üste geçer; ağaç temiz |
-| **P3.1** | Veri güvenliği kapanışı | D1, D2, D3, D4, D6–D10, D4b–D4d, A4, D11, D12 | AI (1–2 gün) + 2 karar | `FxThreadIoTest` kurtarma yolunu kapsar; kodlama matrisi büyür |
+| **P3.1** ✅ Tamamlandı | Veri güvenliği kapanışı | D1, D2, D3, D4, D6–D10, D4b–D4d, A4, D11, D12 | AI (1–2 gün) + 2 karar | `FxThreadIoTest` kurtarma yolunu kapsar; kodlama matrisi büyür |
 | **P3.2** | Dağıtım ve yayın güveni | P1, P2, B2, B3, B4, B6–B8, Q1 | AI + dış karar | İmaj ≤ ~75 MiB; yayın hattı kapıları koşar |
 | **P3.3** | Editör yetkinliği | U3–U7, U9, A1, A7, P4, §8.2 özellikleri | Karara bağlı | Ürün sınırı kararı yazılı; seçilen özellik testli |
 | **P3.4** | Talep ve sürdürülebilirlik | M1, M3, M4, M5 | İNSAN | Dağıtım kanalı + katkı altyapısı canlı |
@@ -160,13 +160,25 @@ iki dilde tutarlı. U1 ürün kararıyla kapsam dışı olduğu için görsel on
 
 ---
 
-### P3.1 — Veri güvenliği kapanışı
+### P3.1 — Veri güvenliği kapanışı ✅ Tamamlandı
 
 Amaç: ürünün **en çok güvendiği vaadi** (kaybetmeyen taslak + kodlama korunur) sıfır
 bilinen delikle kapatmak. Analiz §7.7 kayıp matrisinde "bozulma" işaretli dört satır
 tam olarak bu dalganın kapsamıdır.
 
-#### 3.1.1 S1 dörtlüsü
+> **Durum (2026-11-11):** tamamlandı. Kapı kanıtı: `mvn clean test` → **631 test, 0 hata**
+> (P3.0 sonrası 598'di; yeni sınıf açılmadı, mevcut sınıflara 33 test eklendi);
+> `./scripts/package.sh --skip-build --installer` iki kez → `0`/`0`, `releases/linux/`
+> içinde tek `.deb`; `./scripts/verify-artifacts.sh --skip-build` → `0`, "all 20
+> comparisons passed". §7.7 matrisinde **"bozulma" satırı kalmadı**; `FxThreadIoTest`
+> kurtarma yolunu kapsıyor (`restoreRecovered` diski yalnız I/O işçisinde okuyor);
+> `EncodingMatrixTest` üç yeni senaryo kazandı (bozuk BOM, silinmiş orijinal, kayıplı
+> UTF-8'in açık seçim olması). İki kapı bilinçli olarak kod yorumuyla kapatıldı, testle
+> değil: kodlama diyaloğunun varsayılan düğmesi bir `Stage`, gizle/göster sonrası
+> zamanlayıcının yeniden başlaması bir `Timeline` ister; ikisi de JavaFX toolkit'i
+> başlatır ve "hiçbir test toolkit başlatmaz" kuralını bozar.
+
+#### 3.1.1 S1 dörtlüsü ✅ Tamamlandı
 
 1. **D1 — canlı taslakların sınırsız birikmesi.** `RecoveryRetention` yalnız `pending-*`
    yaşlandırıyor; `draft-*` yalnız *en yeni* benimsendiğinde siliniyor
@@ -177,6 +189,11 @@ tam olarak bu dalganın kapsamıdır.
      olmalı (öneri: 30 gün + 20 dosya) — **ürün kararı**, varsayılan öneriyle ilerlenir.
    - **Kapı:** `RecoveryStoreTest` + `RecoveryRetentionTest`: 25 taslak → en yeni kalır,
      yaşlı-küçük olan boyut kuralına takılmaz.
+   - **Sonuç:** `RecoveryRetention.MAX_FILES` 20'ye çıktı ve yaşlandırma artık **iki**
+     öneki kapsıyor (`expiredParked` → `expiredDrafts`). İki güvenlik filtresi
+     `RecoveryStore`'da: bu oturumun kendi slotu ve son 10 dakikada yazılmış herhangi bir
+     taslak aday değil — ikinci bir örnek 30 saniyede bir taslağını tazeliyor, yani taze
+     bir dosya hâlâ birinin tek kopyası olabilir. "En yeni benimsenir" kuralı korunuyor.
 2. **D2 — `currentFilePath` sızıntısı + FX-thread sınırsız okuma.**
    `restoreRecovered` dosya yoksa/`file == null` ise önceki belgenin yolunu bırakıyor
    (`FileService.java:453-493`, atama yalnız `:482`). Aynı metot orijinali
@@ -186,6 +203,12 @@ tam olarak bu dalganın kapsamıdır.
      sınırını uygula. Bu, A3'ün de kapanışıdır.
    - **Kapı:** `FxThreadIoTest` kurtarma yolunu da saysın (`restoreRecovered`,
      `loadDraft`, `clear`) — bugün kapsam dışı (§12.3).
+   - **Sonuç:** `restoreRecovered` durumu metodun başında sıfırlıyor (yol, kodlama, BOM,
+     özet) ve her hata dalı `currentFilePath == null` bırakıyor; önceki belgenin yolu
+     artık hiçbir koşulda devralınmıyor. Orijinalin okuması tek bir `ioExecutor.submit`
+     içinde: önce `Files.size`, 64 MiB üstü "doğrulanamaz orijinal" sayılıp taslak
+     ipucuyla devam ediyor, aksi hâlde `readNBytes(MAX + 1)`. `FxThreadIoTest`
+     kurtarma okumasının yalnız I/O işçisinde çalıştığını sabitliyor.
 3. **D3 — bozuk BOM'lu orijinalden kurtarmada kodlama kaybı.** `MalformedDocumentException`
    dalı `currentFilePath`'i atıyor ama `currentCharset`/`currentBom`'a dokunmuyor
    (`FileService.java:475-481`); eski windows-1254 belge sonraki kayıtta sessizce UTF-8'e
@@ -193,6 +216,12 @@ tam olarak bu dalganın kapsamıdır.
    - **İş:** kodlama/BOM'u orijinalden taşı (ya da "bilinmiyor" olarak işaretle ve
      kaydetmede sor). Sessiz varsayılan yasak.
    - **Kapı:** `EncodingMatrixTest`'e "bozuk BOM → kurtar → kaydet" bayt senaryosu.
+   - **Sonuç:** istisna zaten bildirimi taşıyordu
+     (`declaredCharset()`/`declaredByBom()`); dal artık onu `currentCharset`/`currentBom`'a
+     yazıyor ve `currentFilePath`'i koruyor, yani belge bir sonraki kayıtta yine kendi
+     BOM'unu ve kodlamasını üretiyor. `EncodingMatrixTest` senaryosu bozuk UTF-16LE BOM'lu
+     orijinali kurtarıp kaydediyor ve yazılan baytların hâlâ UTF-16LE BOM'uyla başladığını
+     doğruluyor.
 4. **D4 — "kayıpsız UTF-8" seçeneğinin kayıplı olması.** `TextCodec.decodeWith(...,
    REPLACE)` (`FileService.java:829-833`, `TextCodec.java:265-275`) geçersiz baytları
    `U+FFFD` yapıyor; diyalog metni UTF-8'i kayıpsız diye sunuyor.
@@ -201,30 +230,66 @@ tam olarak bu dalganın kapsamıdır.
      mevcut yanlışı kapatır.
    - **Kapı:** `TextCodecTest` + `EncodingMatrixTest`: geçersiz bayt → `?`/`U+FFFD`
      sessizce yazılmaz.
+   - **Sonuç:** ürün kararı "kayıplı seçenek açık kalsın, ama varsayılan olmasın" oldu.
+     Sessiz yol zaten `REPORT` ile bildiriyor (`TextCodec.decode`); `decodeWith` yalnız
+     kullanıcının açık seçimi için duruyor ve Javadoc'u bunu söylüyor. Diyalogda
+     birincil/varsayılan düğme artık **Windows-1254** (tek baytlık kodlama her baytı
+     kayıpsız çözer), UTF-8 ise "karakterler kaybolabilir" etiketiyle alternatif. Altı
+     paketteki metinler zaten doğruydu, değişmedi.
 
-#### 3.1.2 Kurtarma/otomatik kayıt kümesi (S2/S3)
+#### 3.1.2 Kurtarma/otomatik kayıt kümesi (S2/S3) ✅ Tamamlandı
 
-| ID | İş | Neden |
-|---|---|---|
-| D7 | `DRAFT_DELETE` uyarısı başarılı anlık görüntüde erken susmasın; uyarı **diskteki duruma** bağlanmalı | `AutoSaveService.java:367-369`; bugün bayat taslak dururken uyarı siliniyor |
-| D9 | `WINDOW_HIDDEN` sonrası zamanlayıcı yeniden başlasın | `AutoSaveService.java:300-303`; gizle/göster otomatik kaydı sessizce öldürüyor |
-| D8 | Taslak biçimine imleç/satır sonu/BOM/kodlama taşı (undo geçmişi taşınmayabilir — ama geri kalanı taşınmalı) | kurtarma bugün yalnız metin+yol+zaman |
-| D10 | `jtw-draft-*.tmp` artıkları açılışta süpürülsün | sert öldürme artığı hiçbir yerde temizlenmiyor |
-| D4b | POSIX sahipliği korunsun (izin kopyası yetmiyor); yeni belge `0600` yerine `umask`'a uysun | `AtomicFiles.java:166-179` |
-| D4c | Sarkan symlink düz dosyayla değiştirilmesin (reddet + sor) | `AtomicFiles.java:109-117` |
-| D4d | Boş alan kontrolü yedek staging'ini (`prepared`) hesaba katsın | `FileService.java:677-687`; `StorageFootprint` 6× diyor, kontrol yok |
+| ID | İş | Neden | Durum |
+|---|---|---|---|
+| D7 | `DRAFT_DELETE` uyarısı başarılı anlık görüntüde erken susmasın; uyarı **diskteki duruma** bağlanmalı | `AutoSaveService.java:367-369`; bugün bayat taslak dururken uyarı siliniyor | ✅ Tamamlandı |
+| D9 | `WINDOW_HIDDEN` sonrası zamanlayıcı yeniden başlasın | `AutoSaveService.java:300-303`; gizle/göster otomatik kaydı sessizce öldürüyor | ✅ Tamamlandı |
+| D8 | Taslak biçimine imleç/satır sonu/BOM/kodlama taşı (undo geçmişi taşınmayabilir — ama geri kalanı taşınmalı) | kurtarma bugün yalnız metin+yol+zaman | ✅ Tamamlandı |
+| D10 | `jtw-draft-*.tmp` artıkları açılışta süpürülsün | sert öldürme artığı hiçbir yerde temizlenmiyor | ✅ Tamamlandı |
+| D4b | POSIX sahipliği korunsun (izin kopyası yetmiyor); yeni belge `0600` yerine `umask`'a uysun | `AtomicFiles.java:166-179` | ✅ Tamamlandı |
+| D4c | Sarkan symlink düz dosyayla değiştirilmesin (reddet + sor) | `AtomicFiles.java:109-117` | ✅ Tamamlandı (reddediyor; soru sormuyor — kaydetme başarısız olur, belge kirli kalır) |
+| D4d | Boş alan kontrolü yedek staging'ini (`prepared`) hesaba katsın | `FileService.java:677-687`; `StorageFootprint` 6× diyor, kontrol yok | ✅ Tamamlandı |
 
-#### 3.1.3 Ayarlar kümesi (S2)
+- **Not (D7):** uyarı artık tek bir "her şey yolunda" bayrağı değil: `AutosaveHealth.clear(Problem)`
+  yalnız adı geçen sorunu çekiyor, yani başarılı bir yazma başarısız bir silmenin uyarısını
+  söndüremiyor. Her alt sistem kendi başarısıyla kendi uyarısını geri alıyor.
+- **Not (D8):** biçim `JTypeWriter-Draft/3`; `cursor=`, `charset=`, `bom=` başlık anahtarları
+  eklendi ve `/2` dosyaları hâlâ tam taslak olarak okunuyor (metin + yol + zaman, imleç -1).
+  Satır sonu ayrı alan değil: gövde belgenin birebir metni, CRLF bayt-bayt korunuyor.
+- **Not (D9):** `WINDOW_SHOWN` var olan zaman çizelgesini yeniden başlatıyor
+  (`resumeSnapshots()`); ikinci bir `Timeline` yok ve dondurulmuş slot bastırılmış kalıyor.
 
-| ID | İş | Not |
-|---|---|---|
-| A4 | `set` + `save` atomik olsun; `props.store` mutasyon sırasında gezmesin | `AppSettings.java:551-588` |
-| D11 | Kısmen okunmuş bozuk dosyanın anahtarları kalıcılaşmasın ("varsayılanlarla aç" sözü tutulsun) | `AppSettings.java:478-511` |
-| D12 | Taşan sürüm segmenti "sürümsüz" sayılıp daha yeni dosyayı aşağı sürümlemesin | `AppSettings.java:410-417,457-476` |
+#### 3.1.3 Ayarlar kümesi (S2) ✅ Tamamlandı
+
+| ID | İş | Not | Durum |
+|---|---|---|---|
+| A4 | `set` + `save` atomik olsun; `props.store` mutasyon sırasında gezmesin | `AppSettings.java:551-588` | ✅ Tamamlandı |
+| D11 | Kısmen okunmuş bozuk dosyanın anahtarları kalıcılaşmasın ("varsayılanlarla aç" sözü tutulsun) | `AppSettings.java:478-511` | ✅ Tamamlandı |
+| D12 | Taşan sürüm segmenti "sürümsüz" sayılıp daha yeni dosyayı aşağı sürümlemesin | `AppSettings.java:410-417,457-476` | ✅ Tamamlandı |
+
+- **Not (A4):** `save()` kopyayı `Properties` monitörü altında alıyor, dosyayı o monitörün
+  dışında özel bir `writeLock` altında yazıyor. Ayar okuyucular çok anahtarlı değerleri aynı
+  monitörde okuyor; `setSoundEnabled` kararını kilit altında verip yazmayı dışarıda yapıyor,
+  böylece kilit sırası ters dönmüyor. Kilit altında yazmak yerine anlık görüntü almanın
+  nedeni: `props.store` giriş kümesini gezerek yazar ve yavaş bir diskte monitörü dakikalarca
+  tutmak her ayar okumasını bloke ederdi.
+- **Not (D11):** yükleme taze bir `Properties`'e yapılıyor, `props`'a yalnız tam başarılı
+  ayrıştırmadan sonra `putAll` ediliyor; bozuk dosya yine karantinaya taşınıyor ama artık
+  yarısı okunmuş anahtarlar bir sonraki kayıtta dosyaya geri yazılmıyor.
+- **Not (D12):** iki "boş" sonuç ayrıldı: hiç rakam dizisi yoksa dosya gerçekten sürümsüz
+  (mevcut sürüm damgalanır), rakam dizisi `long`'a sığmıyorsa dosya bu derlemenin
+  yorumlayamadığı bir sürümden geliyor (değer olduğu gibi bırakılır, FINE loglanır).
 
 **P3.1 çıkış kapısı:** §7.7 kayıp matrisinde "**bozulma**" satırı kalmaz; `FxThreadIoTest`
 kurtarma yolunu kapsar; `EncodingMatrixTest` en az üç yeni senaryo; `mvn clean test`
 yeşil. Bu dalga bittiğinde **veri güvenliği 4,5 → 5,0** gerekçesi yazılabilir olmalı.
+
+> **Kapı sonucu (2026-11-11):** karşılandı. §7.7'de bozulma satırı yok; `FxThreadIoTest`
+> `restoreRecovered` okumasını kapsıyor; `EncodingMatrixTest` üç senaryo kazandı (bozuk
+> UTF-16LE BOM, silinmiş windows-1254 orijinal, kayıplı UTF-8'in yalnız açık seçimde
+> oluşması); `mvn clean test` → 631 test / 0 hata. **Veri güvenliği 4,5 → 5,0**: matriste
+> kullanıcıya görünen tek "bozulma" sınıfı kalmadı, kalan iki satır (bir kez yazılamayan
+> yedek) tasarım gereği kabul edilebilir ve artık diskteki durumu yansıtan uyarılarla
+> görünür.
 
 ---
 
