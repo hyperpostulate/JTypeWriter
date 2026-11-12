@@ -1,9 +1,10 @@
 # Builds, tests and packages JTypeWriter on every platform we ship for.
-# Each job runs the test suite and then calls scripts/package.sh, which
-# produces the native application image and wraps it into the platform
-# installer (.deb / .msi). The application version lives in pom.xml
-# only - package.sh reads it back from the build - so nothing here can drift.
-# The results are uploaded, so releases are always reproducible from source.
+#
+# The build itself lives in the shared verify-build.yml workflow, because the
+# release pipeline has to run exactly the same gates: one definition is the
+# only way a branch and a tag can be proven the same way. This file is the
+# pull-request entry point plus the badge publisher, which is the one job that
+# needs a write token and therefore stays outside the shared workflow.
 
 name: Java CI with Maven
 
@@ -19,179 +20,13 @@ permissions:
   contents: read
 
 jobs:
+  # Icon hashes, the build, the tr-TR/de-DE runs, package.sh, the byte
+  # comparison and the smoke launch: all of it is the called workflow's job, so
+  # this entry point cannot run a cheaper subset. The release pipeline calls the
+  # same workflow with a version, and CiGatesTest keeps both callers honest.
   build:
-    name: Build & package (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      # Every action is pinned to a full commit SHA instead of a mutable major
-      # tag: a tag can be re-pointed at any commit, so a compromised or hijacked
-      # release would run with this repository's token. A SHA cannot move.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          # The build never pushes with the checkout credential; not leaving it
-          # in .git/config keeps the token out of every later step.
-          persist-credentials: false
-
-      - name: Set up JDK 25
-        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78  # v6.2.0
-        with:
-          java-version: '25'
-          distribution: 'temurin'
-          cache: maven
-
-      # The icon assets are committed binaries rendered from
-      # src/main/resources/icons/jtypewriter.svg, so nothing else in the build
-      # notices when they stop matching the artwork - a stale set looks right on
-      # the machine that made it and ships everywhere else. --check compares
-      # every asset's hash against the one recorded in icons.manifest, which
-      # needs neither ImageMagick nor a display, so this runs on both legs and
-      # before the build: red in a minute instead of after the package step.
-      #
-      # It deliberately does not re-rasterise. The pixels a renderer produces
-      # belong to that renderer, and ImageMagick encodes an identical picture to
-      # different bytes on different builds; comparing fresh output in CI would
-      # compare toolchains, not artwork. scripts/generate-icons.py --render is
-      # the pixel comparison, and it is meant for the machine that owns the
-      # assets. The interpreter is resolved because the two runners disagree on
-      # whether it is called python or python3.
-      - name: Verify icon assets match the canonical artwork
-        shell: bash
-        run: |
-          PY=$(command -v python3 || command -v python)
-          "$PY" scripts/generate-icons.py --check
-
-      - name: Build and test with Maven
-        run: mvn -B package --file pom.xml
-
-      # Localization regressions hide behind the system locale: the i18n tests
-      # must pass on a Turkish and a German machine too (see MessagesTest).
-      #
-      # Every run keeps its own reports, because the badge publishes the sum of
-      # all of them: a later run must never erase an earlier one. Surefire 3.5.6
-      # (the version pinned in pom.xml) has no user property for
-      # reportsDirectory - -Dsurefire.reportsDirectory is accepted by Maven and
-      # silently ignored - so each run is moved aside before the next one writes
-      # into the default directory again. The three directories are then
-      # target/surefire-reports-main, -tr and -de; the last run leaves no
-      # default one behind.
-      - name: Re-run tests under non-English system locales
-        shell: bash
-        run: |
-          mv target/surefire-reports target/surefire-reports-main
-          mvn -B test --file pom.xml -DargLine="-Duser.language=tr -Duser.country=TR"
-          mv target/surefire-reports target/surefire-reports-tr
-          mvn -B test --file pom.xml -DargLine="-Duser.language=de -Duser.country=DE"
-          mv target/surefire-reports target/surefire-reports-de
-
-      # The badge job reads the counts instead of running the suite again. All
-      # three report directories are uploaded - not just the last locale - so
-      # the publisher can sum them. The reports are identical on both OS
-      # legs, so only Linux uploads them. One day is enough because the badge
-      # job consumes them in the same run; retention is a storage budget, not a
-      # history, and ReleaseNotesTest enforces the limit.
-      - name: Upload test reports
-        if: runner.os == 'Linux' && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
-        with:
-          name: surefire-reports
-          path: target/surefire-reports*
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Install Linux packaging tools
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y fakeroot
-
-      - name: Build application image and platform installer
-        shell: bash
-        run: bash scripts/package.sh --skip-build --installer
-
-      # package.sh proves the legal files are *present*; this proves they are
-      # the same bytes in the repository, in the application image and in the
-      # installer payload, and that the jar entries match the checked-in texts.
-      # A stale jar, a hand-edited notice or an installer built from an older
-      # image all pass package.sh and fail here - which is exactly the drift a
-      # release cannot detect after the fact.
-      #
-      # Linux only: the installer half of the comparison unpacks the .deb with
-      # dpkg-deb. On Windows the .msi is compared only as part of the
-      # application image, so this step has nothing extra to say there.
-      - name: Verify packaged artifacts match the repository
-        if: runner.os == 'Linux'
-        shell: bash
-        run: bash scripts/verify-artifacts.sh --skip-build
-
-      # The packaged installers are rebuildable from source, so keeping every
-      # main push for 90 days is pure storage cost.
-      - name: Upload release artifacts
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
-        with:
-          name: JTypeWriter-${{ matrix.os }}
-          path: releases/
-          if-no-files-found: error
-          retention-days: 7
-
-  # package.sh and verify-artifacts.sh prove the bytes, not the experience: a
-  # runtime missing a shared library, a launcher that cannot resolve its app
-  # directory or a .deb whose payload is incomplete all pass those gates and
-  # fail on the user's first double-click. This job consumes the artifact the
-  # build job already produced instead of packaging a second time, then runs
-  # scripts/smoke-appimage.sh: Linux starts the image under Xvfb and installs,
-  # launches and purges the .deb; Windows starts the image and requires the
-  # launcher to stay alive. xwininfo rather than a fixed sleep is what keeps
-  # the Linux leg honest on a slow runner - the window query is the assertion.
-  smoke:
-    name: Smoke test packaged app (${{ matrix.os }})
-    needs: build
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          # Nothing here pushes; keeping the token out of .git/config keeps it
-          # out of every later step.
-          persist-credentials: false
-
-      # The build job uploaded releases/ as one artifact per OS; downloading it
-      # into releases/ restores the same releases/<os>/ layout the script and
-      # verify-artifacts.sh expect, without rebuilding anything.
-      - name: Download packaged artifacts
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
-        with:
-          name: JTypeWriter-${{ matrix.os }}
-          path: releases
-
-      - name: Install virtual display and window query tools
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y xvfb x11-utils
-
-      # Zipped artifacts lose Unix file modes: everything comes back 644, so a
-      # perfectly good image would fail the smoke test on "Permission denied"
-      # rather than on anything about the app. Only the two launch entry points
-      # (and the runtime pieces the launcher spawns) are restored, not a blanket
-      # chmod, so an image whose launcher was never executable still fails.
-      - name: Restore launcher file modes lost in the artifact archive
-        shell: bash
-        run: |
-          chmod +x releases/linux/JTypeWriter/bin/JTypeWriter 2>/dev/null || true
-          chmod +x releases/linux/JTypeWriter/lib/runtime/bin/* 2>/dev/null || true
-          chmod +x releases/linux/JTypeWriter/lib/runtime/lib/jspawnhelper 2>/dev/null || true
-          chmod +x releases/windows/JTypeWriter/JTypeWriter.exe 2>/dev/null || true
-
-      - name: Smoke test the packaged application
-        shell: bash
-        run: bash scripts/smoke-appimage.sh --skip-build --open-sample
+    name: Build and verify
+    uses: ./.github/workflows/verify-build.yml
 
   # GitHub has no step-level permissions, so the badge push to gh-pages lives in
   # its own job: only this job needs contents: write. It runs only one leg of

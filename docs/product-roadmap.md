@@ -408,7 +408,7 @@ Bu dalga yeni ölçüm ister; analizin **A**-seviyesi iki sayısı hedefi veriyo
   platformun `JFX_MODULE_PATH` yazımı da dosyada bulunmalı; `smoke-appimage.sh` root'suz
   durumda yükü gerçekten çalıştırmalı.
 
-#### 3.2.2 B2 — yayın hattı kendi kapılarını koşsun
+#### 3.2.2 B2 — yayın hattı kendi kapılarını koşsun ✅ Tamamlandı
 
 `release.yml:132-141` yalnız `mvn package` + `package.sh` koşuyor; ikon `--check`,
 `verify-artifacts.sh`, `tr-TR`/`de-DE` koşuları ve smoke **yok**. Tag doğrulanmamış
@@ -419,6 +419,39 @@ commit'e atılırsa yayın bunu bilmez.
   kapı taşınırsa test de taşınmalı (test burada doğru davranıyor).
 - **Kapı:** kasıtlı bozuk bir tag'de (ör. ikon hash'i bozuk) yayın **düşer**.
 - **Efor:** AI ~3 saat; İNSAN 20 dk.
+
+**Sonuç:** kapılar tek bir yeniden kullanılabilir workflow'a taşındı:
+`.github/workflows/verify-build.yml` (`on: workflow_call`) ikon hash kontrolünü, derlemeyi,
+`tr-TR`/`de-DE` koşularını, `package.sh --skip-build --installer`'ı, `verify-artifacts.sh`'i
+ve smoke'u içeriyor. `maven.yml` ve `release.yml` artık **yalnız** bu işi çağırıyor; yayın
+bacağı `version` girdisini geçtiği için aynı iş normalleştirilmiş `dist/` varlıklarını da
+üretip yükleyen tek tanım oluyor. Kopyala-yapıştır yerine `uses:` seçilmesinin nedeni
+yapısal: bir iş ya `uses:` çağrısıdır ya adım listesidir; yayın işi geri dönerse kapıları
+atlayan ayrı bir liste olur, ve `CiGatesTest` bu dönüşü (`mvn -B package` / `package.sh`
+metinlerinin yayın build bloğunda **yokluğunu**) pinliyor.
+
+İki ayrıntı ölçümden geldi. **Birincisi:** varlık sahneleme doğrulama işinin *içinde*
+kalmalı; bir artifact indirildiğinde Unix dosya kipleri kayboluyor (smoke işinin `chmod`
+adımı bunu zaten kaydediyor), indirilen `releases/` ağacından `.tar.gz` üretmek
+çalıştırılamayan bir başlatıcı yayınlardı. **İkincisi:** yayın işi artık `pattern:
+JTypeWriter-dist-*` ile yalnız normalleştirilmiş varlıkları indiriyor; geniş desen, smoke
+için yüklenen ham `releases/` ağaçlarını da `dist/`e karıştırıp beş-varlık assert'ini
+gürültüyle geçirirdi.
+
+Testler taşındı ve genişledi: `CiGatesTest` artık paylaşılan dosyayı okuyor, iki giriş
+noktasının da onu çağırdığını, yayın build'inin **yalnız** çağrı olduğunu ve publish
+işinin yalnız `dist` desenini indirdiğini denetliyor. `ReleaseNotesTest`'in
+`retention-days` taraması elle sayılmış iki dosyadan tüm `.github/workflows/*.yml`
+dosyalarına çevrildi: yeni bir workflow aksi hâlde 90 günlük varsayılanı sessizce
+miras alabilirdi.
+
+**Kapı kanıtı (yerel):** `jtypewriter-16.png`'ye bir bayt eklenince
+`generate-icons.py --check` → `out of date` / çıkış 1, `git checkout` sonrası → 11 dosya
+eşleşti / çıkış 0; yani bozuk ikonlu bir tag paylaşılan işin ilk adımında düşer.
+`mvn clean test` → **640 test / 0 hata** (637'den +3 yeni `CiGatesTest` senaryosu).
+CI'da gerçek bir tag koşusu bu değişiklikle henüz yapılmadı; kapı bağlantısı testle,
+ikon düşüşü yerel script koşusuyla doğrulandı.
+
 
 #### 3.2.3 B3/B4/B6/B7/B8/Q1 — olgunluk eksenleri (karar bağımlı)
 

@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 class ReleaseNotesTest {
 
     private static final Path WORKFLOWS = Path.of(".github", "workflows");
-    private static final Path MAVEN_WORKFLOW = WORKFLOWS.resolve("maven.yml");
     private static final Path RELEASE_WORKFLOW = WORKFLOWS.resolve("release.yml");
     private static final Path TEMPLATE = Path.of("docs", "release-notes-template.md");
 
@@ -39,13 +38,17 @@ class ReleaseNotesTest {
      * GitHub's default retention is 90 days. The budget here is "long enough
      * for the in-flight consumer, short enough to be free", which no upload
      * needs more than a week of.
+     *
+     * <p>Every workflow file is scanned, not a hand-listed pair: P3.2.2 moved
+     * the uploads into a shared workflow, and a list of files to check is
+     * exactly the kind of thing that stops noticing the next upload.</p>
      */
     private static final int MAX_RETENTION_DAYS = 7;
 
     @Test
     void everyArtifactUploadHasAShortRetention() throws IOException {
         var failures = new ArrayList<String>();
-        for (var workflow : List.of(MAVEN_WORKFLOW, RELEASE_WORKFLOW)) {
+        for (var workflow : workflowFiles()) {
             var lines = lines(workflow);
             for (var i = 0; i < lines.size(); i++) {
                 if (!lines.get(i).contains("uses: actions/upload-artifact@")) {
@@ -320,6 +323,15 @@ class ReleaseNotesTest {
             indent++;
         }
         return indent;
+    }
+
+    /** Every workflow file, so a new one cannot inherit the 90-day default. */
+    private static List<Path> workflowFiles() throws IOException {
+        try (var files = Files.list(WORKFLOWS)) {
+            return files.filter(path -> path.getFileName().toString().endsWith(".yml"))
+                    .sorted()
+                    .toList();
+        }
     }
 
     private static List<String> lines(Path path) throws IOException {

@@ -25,6 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * workflow is the only input these checks need - no network, no toolkit, no
  * writes - so they run with the rest of the headless suite.</p>
  *
+ * <p>Since P3.2.2 the gates live in one reusable workflow,
+ * {@code verify-build.yml}, and both entry points - the branch build and the
+ * release pipeline - call it. That is what stops a tag from publishing an
+ * artifact that only passed the cheap half of the pipeline, so the tests below
+ * pin two things: the gates are in the shared workflow, and both callers
+ * actually invoke it. A gate moved out of the shared file still fails here.
+ * </p>
+ *
  * <p>Each gate also has to run where it can honestly run. The artifact
  * comparison unpacks a {@code .deb} with {@code dpkg-deb}, which exists on the
  * Linux runner only, so it is pinned there.</p>
@@ -41,13 +49,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class CiGatesTest {
 
-    private static final Path MAVEN_WORKFLOW =
-            Path.of(".github", "workflows", "maven.yml");
+    private static final Path WORKFLOWS = Path.of(".github", "workflows");
+
+    private static final Path MAVEN_WORKFLOW = WORKFLOWS.resolve("maven.yml");
+
+    private static final Path RELEASE_WORKFLOW = WORKFLOWS.resolve("release.yml");
+
+    /** The one definition of the gate battery; both entry points call it. */
+    private static final Path GATE_WORKFLOW = WORKFLOWS.resolve("verify-build.yml");
+
+    private static final String GATE_WORKFLOW_REF =
+            "uses: ./.github/workflows/verify-build.yml";
 
     private static final Path PACKAGE_SCRIPT = Path.of("scripts", "package.sh");
 
     private static String workflow() throws IOException {
-        return Files.readString(MAVEN_WORKFLOW, StandardCharsets.UTF_8);
+        return Files.readString(GATE_WORKFLOW, StandardCharsets.UTF_8);
+    }
+
+    private static String entrypoint(Path path) throws IOException {
+        return Files.readString(path, StandardCharsets.UTF_8);
     }
 
     /**
@@ -57,7 +78,7 @@ class CiGatesTest {
     @Test
     void theWorkflowRunsTheIconCheck() throws IOException {
         assertTrue(workflow().contains("generate-icons.py --check"),
-                MAVEN_WORKFLOW + " never runs scripts/generate-icons.py --check");
+                GATE_WORKFLOW + " never runs scripts/generate-icons.py --check");
     }
 
     /**
@@ -71,8 +92,8 @@ class CiGatesTest {
         var check = workflow.indexOf("generate-icons.py --check");
         var build = workflow.indexOf("mvn -B package");
 
-        assertTrue(check >= 0, MAVEN_WORKFLOW + " never runs scripts/generate-icons.py --check");
-        assertTrue(build >= 0, MAVEN_WORKFLOW + " never runs mvn -B package");
+        assertTrue(check >= 0, GATE_WORKFLOW + " never runs scripts/generate-icons.py --check");
+        assertTrue(build >= 0, GATE_WORKFLOW + " never runs mvn -B package");
         assertTrue(check < build, "the icon gate runs after the build, so it fails late");
     }
 
@@ -88,7 +109,7 @@ class CiGatesTest {
     void theIconCheckRunsOnEveryLeg() throws IOException {
         var workflow = workflow();
         var check = workflow.indexOf("generate-icons.py --check");
-        assertTrue(check >= 0, MAVEN_WORKFLOW + " never runs scripts/generate-icons.py --check");
+        assertTrue(check >= 0, GATE_WORKFLOW + " never runs scripts/generate-icons.py --check");
 
         var step = stepContaining(workflow, check);
         assertFalse(step.contains("if:"),
@@ -109,8 +130,8 @@ class CiGatesTest {
         var packaging = workflow.indexOf("scripts/package.sh --skip-build --installer");
         var verify = workflow.indexOf("verify-artifacts.sh --skip-build");
 
-        assertTrue(verify >= 0, MAVEN_WORKFLOW + " never runs scripts/verify-artifacts.sh");
-        assertTrue(packaging >= 0, MAVEN_WORKFLOW + " never runs scripts/package.sh");
+        assertTrue(verify >= 0, GATE_WORKFLOW + " never runs scripts/verify-artifacts.sh");
+        assertTrue(packaging >= 0, GATE_WORKFLOW + " never runs scripts/package.sh");
         assertTrue(packaging < verify,
                 "the artifact gate runs before packaging, so it compares nothing built by this run");
     }
@@ -124,7 +145,7 @@ class CiGatesTest {
     void theArtifactGateIsLimitedToTheLinuxLeg() throws IOException {
         var workflow = workflow();
         var verify = workflow.indexOf("verify-artifacts.sh --skip-build");
-        assertTrue(verify >= 0, MAVEN_WORKFLOW + " never runs scripts/verify-artifacts.sh");
+        assertTrue(verify >= 0, GATE_WORKFLOW + " never runs scripts/verify-artifacts.sh");
 
         assertTrue(stepContaining(workflow, verify).contains("if: runner.os == 'Linux'"),
                 "the artifact gate is not limited to the Linux leg");
@@ -137,7 +158,7 @@ class CiGatesTest {
      * every other gate and fails on the user's first double-click, which is
      * exactly the gap {@code scripts/smoke-appimage.sh} closes.
      *
-     * <p>The job must consume what the build job produced rather than package
+     * <p>The job must consume what the verify job produced rather than package
      * again: a second packaging run would prove that packaging is reproducible
      * twice on the same runner, not that the artifact a user downloads works.
      * The {@code --skip-build} flag is the checkable form of that intent.</p>
@@ -147,17 +168,73 @@ class CiGatesTest {
         var workflow = workflow();
         var job = workflow.indexOf("\n  smoke:");
 
-        assertTrue(job >= 0, MAVEN_WORKFLOW + " has no smoke job, so no artifact is ever started");
+        assertTrue(job >= 0, GATE_WORKFLOW + " has no smoke job, so no artifact is ever started");
         var block = jobBlock(workflow, job);
-        assertTrue(block.contains("needs: build"),
-                "the smoke job does not depend on the build, so it may run before an artifact exists");
+        assertTrue(block.contains("needs: verify"),
+                "the smoke job does not depend on the verify job, so it may run before an artifact exists");
         assertTrue(block.contains("smoke-appimage.sh --skip-build"),
                 "the smoke job does not run scripts/smoke-appimage.sh --skip-build");
         assertTrue(block.contains("download-artifact"),
-                "the smoke job repackages instead of consuming the artifact the build job uploaded");
+                "the smoke job repackages instead of consuming the artifact the verify job uploaded");
         assertTrue(block.contains("--open-sample"),
                 "the smoke job never names a document on the command line, so nothing in CI"
                         + " proves that a file association or a typed argument opens the file");
+    }
+
+    /**
+     * The shared workflow is only shared if both pipelines call it. P3.2.2's
+     * finding was that the tag pipeline ran {@code mvn package} and
+     * {@code package.sh} while the branch pipeline ran five more gates, so the
+     * difference was invisible until a release published it. These assertions
+     * hold both entry points to the one definition.
+     */
+    @Test
+    void bothEntrypointsRunTheSharedGateWorkflow() throws IOException {
+        for (var entrypoint : java.util.List.of(MAVEN_WORKFLOW, RELEASE_WORKFLOW)) {
+            assertTrue(entrypoint(entrypoint).contains(GATE_WORKFLOW_REF),
+                    entrypoint + " no longer calls " + GATE_WORKFLOW_REF
+                            + ", so its build is a separate copy of the gates");
+        }
+    }
+
+    /**
+     * A release job that still ran Maven or package.sh itself could look like it
+     * used the shared gates while bypassing them: a job is either a
+     * {@code uses:} call or a step list, and the return to a step list is how
+     * the two pipelines diverged in the first place. The version input is
+     * pinned beside it because without it the shared workflow verifies but
+     * stages nothing, and the publish job has no dist/ to assemble.
+     */
+    @Test
+    void theReleaseBuildIsTheSharedGateWorkflowAndNothingElse() throws IOException {
+        var release = entrypoint(RELEASE_WORKFLOW);
+        var build = jobBlock(release, release.indexOf("\n  build:"));
+
+        assertTrue(build.contains(GATE_WORKFLOW_REF),
+                RELEASE_WORKFLOW + " does not build through " + GATE_WORKFLOW_REF);
+        assertTrue(build.contains("version: ${{ needs.prepare.outputs.version }}"),
+                "the release call does not pass the version, so no dist/ assets are staged");
+        assertFalse(build.contains("mvn -B package"),
+                "the release build still runs Maven itself, so it can skip the shared gates");
+        assertFalse(build.contains("package.sh"),
+                "the release build still packages itself, so it can skip the shared gates");
+    }
+
+    /**
+     * The publish job must consume the normalised assets only. The shared
+     * workflow also uploads each leg's raw {@code releases/} tree for its own
+     * smoke job, so a broad pattern would merge installers and application
+     * images into {@code dist/} beside the normalised names.
+     */
+    @Test
+    void theReleaseDownloadsOnlyTheNormalisedAssets() throws IOException {
+        var release = entrypoint(RELEASE_WORKFLOW);
+        var download = stepBlock(release, release.indexOf("Download staged assets"));
+
+        assertTrue(download.contains("pattern: JTypeWriter-dist-*"),
+                "the publish job does not download only the normalised dist artifacts:\n" + download);
+        assertFalse(download.contains("pattern: JTypeWriter-*"),
+                "the publish job merges the raw releases/ artifacts into dist/:\n" + download);
     }
 
     /**
@@ -383,14 +460,32 @@ class CiGatesTest {
                 "scripts/smoke-appimage.sh never names the warning it must reject");
     }
 
-    /** The job block around {@code offset}: from its own indentation level onwards. */
+    /**
+     * The job block around {@code offset}: from its own indentation level
+     * onwards, up to the next two-space job key. Written generally because the
+     * shared workflow's jobs are not the entry points' jobs, and a helper that
+     * knows only one workflow's job names silently returns the rest of the file.
+     */
     private static String jobBlock(String workflow, int offset) {
-        var end = workflow.indexOf("\n  # ", offset + 1);
-        var nextJob = workflow.indexOf("\n  badge:", offset + 1);
-        if (nextJob >= 0 && (end < 0 || nextJob < end)) {
-            end = nextJob;
+        assertTrue(offset >= 0, "the workflow no longer contains the job this test looks for");
+        var position = offset + 1;
+        var first = true;
+        for (var line : workflow.substring(position).split("\n", -1)) {
+            if (!first && line.matches("^  [A-Za-z0-9_-]+:.*")) {
+                return workflow.substring(offset, position - 1);
+            }
+            first = false;
+            position += line.length() + 1;
         }
-        return end < 0 ? workflow.substring(offset) : workflow.substring(offset, end);
+        return workflow.substring(offset);
+    }
+
+    /** The step block around {@code offset}: from its own {@code - name:} to the next step. */
+    private static String stepBlock(String workflow, int offset) {
+        var start = workflow.lastIndexOf("- name:", offset);
+        assertTrue(start >= 0, "the workflow no longer contains the step this test looks for");
+        var end = workflow.indexOf("\n      - ", offset);
+        return end < 0 ? workflow.substring(start) : workflow.substring(start, end);
     }
 
     /** The step block around {@code offset}: from its own {@code - name:} onwards. */

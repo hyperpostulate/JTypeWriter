@@ -51,7 +51,14 @@ platforms on purpose.
   both legs and `verify-artifacts.sh --skip-build` after packaging on the Linux leg; those two
   are pinned by `CiGatesTest`, so moving or dropping a gate fails the suite. A separate `smoke`
   job downloads the uploaded artifact and runs `smoke-appimage.sh --skip-build` on both legs —
-  it is pinned there too, including its `needs: build` dependency and `--skip-build`.
+  it is pinned there too, including its `needs: verify` dependency and `--skip-build`.
+- All of that lives in one reusable workflow, `.github/workflows/verify-build.yml`
+  (`on: workflow_call`); `maven.yml` and `release.yml` both call it, and the release passes its
+  version so the same job also stages the normalised `dist/` assets. Never give the release
+  build its own step list: that is how it came to publish artifacts the branch gates had never
+  looked at. `CiGatesTest` pins both callers, the release call's emptiness of `mvn`/`package.sh`,
+  and that staging stays inside the verify job (a downloaded artifact loses the executable bits
+  the portable `.tar.gz` needs).
 
 Run Maven from the repo root: several tests read `src/`, `docs/` and `.github/` through
 relative paths and fail if Surefire's CWD is elsewhere.
