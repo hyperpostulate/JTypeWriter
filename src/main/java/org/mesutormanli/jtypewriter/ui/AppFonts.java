@@ -47,7 +47,44 @@ public final class AppFonts {
     /** Every file that has to register for the CSS family to resolve. */
     public static final List<String> RESOURCES = List.of(REGULAR_RESOURCE, BOLD_RESOURCE);
 
+    /**
+     * Family of the bundled monospace face - the editor's on-screen font and
+     * the one print and PDF export are rendered with.
+     *
+     * <p>It is bundled for the same reason as the chrome face, only more so:
+     * the editor used to name a system stack ({@code "JetBrains Mono"},
+     * {@code "Fira Code"}, {@code "Courier New"}, {@code monospace}), so the
+     * screened text was a property of the host. Print and PDF export have to
+     * carry the family with them - a PDF cannot embed a font it has no file
+     * for - and "the same font as on screen" is only true if both sides name
+     * the same bytes. One file, one family, one measurement.</p>
+     */
+    public static final String MONO_FAMILY = "DejaVu Sans Mono";
+
+    /** Regular face: the editor, print and PDF export. No bold/italic is used. */
+    public static final String MONO_RESOURCE = "/fonts/DejaVuSansMono.ttf";
+
+    /** Every file that has to register for {@link #MONO_FAMILY} to resolve. */
+    public static final List<String> MONO_RESOURCES = List.of(MONO_RESOURCE);
+
     private AppFonts() {
+    }
+
+    /**
+     * The bundled monospace face at {@code sizePx}, for AWT text layout.
+     *
+     * <p>This is what print and PDF pagination measure with: at 12 points the
+     * AWT advance width in "pixels at 72 dpi" is the width in PDF points, so a
+     * line that fits here fits on the page. Fails loudly rather than falling
+     * back, exactly like {@link #awt(double)}.</p>
+     */
+    public static Font monoAwt(double sizePx) {
+        return Loaded.MONO.deriveFont((float) sizePx);
+    }
+
+    /** Whether every code point in {@code text} exists in the bundled monospace face. */
+    public static boolean monoCanDisplay(String text) {
+        return text != null && Loaded.MONO.canDisplayUpTo(text) < 0;
     }
 
     /**
@@ -72,6 +109,7 @@ public final class AppFonts {
     /** Lazy holder: one classloader read per face, never a partial font. */
     private static final class Loaded {
         static final Font REGULAR = load(REGULAR_RESOURCE);
+        static final Font MONO = load(MONO_RESOURCE);
 
         private static Font load(String resource) {
             try (InputStream stream = AppFonts.class.getResourceAsStream(resource)) {

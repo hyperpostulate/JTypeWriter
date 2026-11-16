@@ -49,7 +49,7 @@ class EditorActionTest {
     /** Every way two actions could differ; a constant must use exactly one. */
     private enum Effect {
         TOGGLE_TOOLBAR, CYCLE_THEME, UNDO, REDO, TOGGLE_YOLO, CYCLE_TEXT_COLOR,
-        OPEN_DOCUMENT, NEW_DOCUMENT, SAVE, SAVE_AS, INCREASE_FONT, DECREASE_FONT,
+        OPEN_DOCUMENT, NEW_DOCUMENT, SAVE, SAVE_AS, PRINT, EXPORT_PDF, INCREASE_FONT, DECREASE_FONT,
         RESET_FONT, OPEN_FIND, OPEN_REPLACE, FIND_NEXT, FIND_PREVIOUS,
         TOGGLE_FULLSCREEN, EXIT_FULLSCREEN
     }
@@ -164,6 +164,8 @@ class EditorActionTest {
             case OPEN -> Effect.OPEN_DOCUMENT;
             case SAVE -> Effect.SAVE;
             case SAVE_AS -> Effect.SAVE_AS;
+            case PRINT -> Effect.PRINT;
+            case EXPORT_PDF -> Effect.EXPORT_PDF;
             case FIND -> Effect.OPEN_FIND;
             case FIND_NEXT -> Effect.FIND_NEXT;
             case FIND_PREVIOUS -> Effect.FIND_PREVIOUS;
@@ -230,6 +232,16 @@ class EditorActionTest {
         @Override
         public void saveAs() {
             record(Effect.SAVE_AS);
+        }
+
+        @Override
+        public void print() {
+            record(Effect.PRINT);
+        }
+
+        @Override
+        public void exportPdf() {
+            record(Effect.EXPORT_PDF);
         }
 
         @Override

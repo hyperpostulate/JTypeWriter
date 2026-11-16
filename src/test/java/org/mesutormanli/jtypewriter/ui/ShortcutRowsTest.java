@@ -97,6 +97,7 @@ class ShortcutRowsTest {
             assertEquals(List.of("Ctrl+T", "Ctrl+Shift+T", "Ctrl+Shift+Y", "Ctrl+Shift+C",
                             "Ctrl++", "Ctrl+-", "Ctrl+0", "Ctrl+Z", "Ctrl+Shift+Z", "Ctrl+Y",
                             "Ctrl+N", "Ctrl+O", "Ctrl+S", "Ctrl+Shift+S",
+                            "Ctrl+P", "Ctrl+Shift+E",
                             "Ctrl+F", "F3", "Shift+F3", "Ctrl+H", "F11", "Escape"),
                     rowsFor(language).stream().map(ShortcutRows.Row::keys).toList(),
                     language + ": the row order changed");

@@ -78,6 +78,12 @@ public enum EditorAction {
     SAVE_AS(List.of(ctrlShift("Ctrl+Shift+S", KeyCode.S)),
             Messages::shortcutSaveAs, Context::saveAs),
 
+    PRINT(List.of(ctrl("Ctrl+P", KeyCode.P)),
+            Messages::shortcutPrint, Context::print),
+
+    EXPORT_PDF(List.of(ctrlShift("Ctrl+Shift+E", KeyCode.E)),
+            Messages::shortcutExportPdf, Context::exportPdf),
+
     FIND(List.of(ctrl("Ctrl+F", KeyCode.F)),
             Messages::shortcutFind, Context::openFind),
 
@@ -118,6 +124,12 @@ public enum EditorAction {
         void save();
 
         void saveAs();
+
+        /** Prints the saved document; the editor buffer is never printed. */
+        void print();
+
+        /** Exports the saved document as a PDF file. */
+        void exportPdf();
 
         /** Opens the find/replace panel with the find field focused. */
         void openFind();

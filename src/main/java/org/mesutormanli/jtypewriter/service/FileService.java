@@ -114,6 +114,14 @@ public class FileService {
      */
     public static final int MAX_DOCUMENT_BYTES = 64 * 1024 * 1024;
 
+    /**
+     * A document as it exists in its {@code .txt} file, never as the editor
+     * holds it. Print and PDF export consume only this value: the saved file is
+     * the single source of truth for output.
+     */
+    public record SavedDocument(Path path, String text) {
+    }
+
     private static final long BYTES_PER_MEGABYTE = 1024L * 1024L;
 
     /** The atomic writer; an interface so a test can simulate a failed save. */
@@ -217,7 +225,6 @@ public class FileService {
         this.currentContent = content;
         this.dirty = differsFromSaved(content);
     }
-
     public boolean hasUnsavedChanges() {
         return dirty;
     }
@@ -636,6 +643,109 @@ public class FileService {
             return CompletableFuture.completedFuture(Optional.empty());
         }
         return writeAsync(stage, file.get().toPath(), content);
+    }
+
+    /**
+     * The document exactly as its {@code .txt} file stores it, after making
+     * sure the edits the user has not saved are saved.
+     *
+     * <p>The saved file is the single source of truth for printing and PDF
+     * export. Unsaved editor text is <em>never</em> printed: a dirty document
+     * (or one that has no file at all) first gets the save-before-output
+     * prompt, and only an explicit Save lets the operation continue. Reading
+     * the bytes back from disk - rather than using {@link #getCurrentContent()}
+     * - proves that what leaves the application is exactly what the file
+     * contains, in its own charset and byte-order-mark convention, and the same
+     * {@link #MAX_DOCUMENT_BYTES} ceiling still applies.</p>
+     *
+     * <p>Completes empty when the user cancels the save prompt, the save fails
+     * or is cancelled, there is no file, or the file cannot be read. The caller
+     * then does nothing: there is no fallback to the in-memory buffer, because
+     * that would break the promise above.</p>
+     */
+    public CompletableFuture<Optional<SavedDocument>> savedDocumentAsync(javafx.stage.Stage stage) {
+        if (currentFilePath != null && !hasUnsavedChanges()) {
+            return readSavedAsync(stage, currentFilePath);
+        }
+        var answer = dialogService.showSaveBeforeOutputDialog(stage)
+                .orElse(DialogService.SaveBeforeOutput.CANCEL);
+        if (answer == DialogService.SaveBeforeOutput.CANCEL) {
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
+        return saveFileAsync(stage, currentContent).thenCompose(saved -> saved
+                .map(path -> readSavedAsync(stage, path))
+                .orElseGet(() -> CompletableFuture.completedFuture(Optional.empty())));
+    }
+
+    /** Reads a saved document off the I/O worker, then commits it on the FX thread. */
+    private CompletableFuture<Optional<SavedDocument>> readSavedAsync(javafx.stage.Stage stage,
+                                                                      Path path) {
+        // Captured before leaving the FX thread: a concurrent load cannot change
+        // the encoding between the save gate and the read-back.
+        var charset = currentCharset;
+        var bom = currentBom;
+        return ioExecutor.submit("read saved " + path, () -> readSaved(path, charset, bom))
+                .thenCompose(read -> ioExecutor.completeOnFx(
+                        () -> commitSavedRead(stage, path, read)));
+    }
+
+    private static SavedRead readSaved(Path path, Charset charset, boolean bom) {
+        var read = read(path);
+        if (read.tooLarge()) {
+            return SavedRead.tooLarge(read.tooLargeBytes());
+        }
+        if (read.failure() != null) {
+            return SavedRead.failed(WriteFailed.describe(read.failure()));
+        }
+        try {
+            var body = bom ? withoutBom(read.bytes(), charset) : read.bytes();
+            return SavedRead.ok(TextCodec.decodeWith(body, charset).text());
+        } catch (RuntimeException failure) {
+            return SavedRead.failed(WriteFailed.describe(failure));
+        }
+    }
+
+    private Optional<SavedDocument> commitSavedRead(javafx.stage.Stage stage, Path path,
+                                                    SavedRead read) {
+        if (read.tooLarge()) {
+            dialogService.showReadFailure(stage, messages.errorOpenTooLargeContent(
+                    path.getFileName().toString(), megabytes(read.tooLargeBytes()),
+                    megabytes(MAX_DOCUMENT_BYTES)));
+            return Optional.empty();
+        }
+        if (read.failure() != null) {
+            dialogService.showReadFailure(stage, read.failure());
+            return Optional.empty();
+        }
+        return Optional.of(new SavedDocument(path, read.text()));
+    }
+
+    /**
+     * Strips the byte-order mark before the encoding-explicit decode, because
+     * {@link TextCodec#decodeWith} treats the bytes literally and would
+     * otherwise leave a U+FEFF at the start of the printed text. Only the
+     * prefixes of the encodings a document can actually declare are removed.
+     */
+    private static byte[] withoutBom(byte[] bytes, Charset charset) {
+        byte[] prefix;
+        if (StandardCharsets.UTF_8.equals(charset)) {
+            prefix = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+        } else if (StandardCharsets.UTF_16LE.equals(charset)) {
+            prefix = new byte[]{(byte) 0xFF, (byte) 0xFE};
+        } else if (StandardCharsets.UTF_16BE.equals(charset)) {
+            prefix = new byte[]{(byte) 0xFE, (byte) 0xFF};
+        } else {
+            return bytes;
+        }
+        if (bytes.length < prefix.length) {
+            return bytes;
+        }
+        for (int i = 0; i < prefix.length; i++) {
+            if (bytes[i] != prefix[i]) {
+                return bytes;
+            }
+        }
+        return Arrays.copyOfRange(bytes, prefix.length, bytes.length);
     }
 
     /**
@@ -1116,6 +1226,29 @@ public class FileService {
 
         static ReadResult tooLarge(long bytes) {
             return new ReadResult(null, null, bytes, null);
+        }
+
+        boolean tooLarge() {
+            return tooLargeBytes >= 0;
+        }
+    }
+
+    /**
+     * A saved-document read: decoded text, a human-readable failure, or the
+     * size that exceeded the ceiling. Never a partial text.
+     */
+    private record SavedRead(String text, String failure, long tooLargeBytes) {
+
+        static SavedRead ok(String text) {
+            return new SavedRead(text, null, -1);
+        }
+
+        static SavedRead failed(String failure) {
+            return new SavedRead(null, failure, -1);
+        }
+
+        static SavedRead tooLarge(long bytes) {
+            return new SavedRead(null, null, bytes);
         }
 
         boolean tooLarge() {

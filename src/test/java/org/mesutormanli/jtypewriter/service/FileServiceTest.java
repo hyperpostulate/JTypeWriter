@@ -1031,4 +1031,103 @@ class FileServiceTest {
 
         assertEquals(List.of("new"), events);
     }
+
+    @Test
+    void savedDocumentReturnsTheFileTextWithoutAPromptForACleanDocument(@TempDir Path dir)
+            throws IOException {
+        var target = dir.resolve("clean.txt");
+        Files.writeString(target, "saved on disk");
+        assertTrue(fileService.loadFile(null, target).isPresent());
+
+        var saved = fileService.savedDocumentAsync(null).join();
+
+        assertEquals("saved on disk", saved.orElseThrow().text());
+        assertEquals(target, saved.orElseThrow().path());
+        verify(dialogService, never()).showSaveBeforeOutputDialog(any());
+    }
+
+    @Test
+    void savedDocumentReadsBackTheFileNotTheEditorBufferAfterSaving(@TempDir Path dir)
+            throws IOException {
+        // The writer deliberately stores different text than the encoded
+        // content, so the assertion can only pass when the read-back comes from
+        // the file rather than from currentContent.
+        var service = new FileService(dialogService, messages, new BackupKeeper(),
+                IoExecutor.synchronous(),
+                (path, ignored) -> Files.writeString(path, "actually written to disk"));
+        var target = dir.resolve("dirty.txt");
+        Files.writeString(target, "original");
+        assertTrue(service.loadFile(null, target).isPresent());
+        service.setCurrentContent("editor buffer");
+        when(dialogService.showSaveBeforeOutputDialog(any()))
+                .thenReturn(Optional.of(DialogService.SaveBeforeOutput.SAVE));
+
+        var saved = service.savedDocumentAsync(null).join();
+
+        assertEquals("actually written to disk", saved.orElseThrow().text());
+        assertEquals("actually written to disk", Files.readString(target));
+    }
+
+    @Test
+    void savedDocumentCancelsSilentlyAndLeavesTheFileUntouched(@TempDir Path dir) throws IOException {
+        var target = dir.resolve("dirty.txt");
+        Files.writeString(target, "disk text");
+        assertTrue(fileService.loadFile(null, target).isPresent());
+        fileService.setCurrentContent("edited in memory");
+        when(dialogService.showSaveBeforeOutputDialog(any())).thenReturn(Optional.empty());
+
+        var saved = fileService.savedDocumentAsync(null).join();
+
+        assertTrue(saved.isEmpty());
+        assertEquals("disk text", Files.readString(target));
+        verify(dialogService, never()).showSaveDialog(any(), any());
+    }
+
+    @Test
+    void savedDocumentOfANeverSavedDocumentGoesThroughTheSaveDialog() {
+        fileService.setCurrentContent("untitled draft");
+        when(dialogService.showSaveBeforeOutputDialog(any()))
+                .thenReturn(Optional.of(DialogService.SaveBeforeOutput.SAVE));
+        when(dialogService.showSaveDialog(any(), any())).thenReturn(Optional.empty());
+
+        var saved = fileService.savedDocumentAsync(null).join();
+
+        assertTrue(saved.isEmpty());
+        verify(dialogService).showSaveBeforeOutputDialog(any());
+        verify(dialogService).showSaveDialog(any(), any());
+    }
+
+    @Test
+    void savedDocumentReadsBackTheDocumentsOwnEncodingWithoutItsBom(@TempDir Path dir)
+            throws IOException {
+        // A UTF-16LE document is the case that would print a stray U+FEFF if
+        // the read-back reused the raw bytes: the BOM is encoding metadata, not
+        // the document's first character, so it must not reach the page.
+        var target = dir.resolve("utf16.txt");
+        var text = "şğü line";
+        var body = text.getBytes(StandardCharsets.UTF_16LE);
+        var bytes = new byte[body.length + 2];
+        bytes[0] = (byte) 0xFF;
+        bytes[1] = (byte) 0xFE;
+        System.arraycopy(body, 0, bytes, 2, body.length);
+        Files.write(target, bytes);
+        assertTrue(fileService.loadFile(null, target).isPresent());
+
+        var saved = fileService.savedDocumentAsync(null).join();
+
+        assertEquals(text, saved.orElseThrow().text(),
+                "the read-back must decode the stored charset and drop the BOM");
+    }
+
+    @Test
+    void savedDocumentReportsAReadFailureAndCompletesEmpty(@TempDir Path dir) throws IOException {        var target = dir.resolve("vanished.txt");
+        Files.writeString(target, "text");
+        assertTrue(fileService.loadFile(null, target).isPresent());
+        Files.delete(target);
+
+        var saved = fileService.savedDocumentAsync(null).join();
+
+        assertTrue(saved.isEmpty());
+        verify(dialogService).showReadFailure(any(), anyString());
+    }
 }

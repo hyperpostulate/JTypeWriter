@@ -9,9 +9,11 @@ import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.audio.TypewriterSound;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
+import org.mesutormanli.jtypewriter.print.PdfExport;
 import org.mesutormanli.jtypewriter.service.AutoSaveService;
 import org.mesutormanli.jtypewriter.service.BackupKeeper;
 import org.mesutormanli.jtypewriter.service.DialogService;
+import org.mesutormanli.jtypewriter.service.ExportService;
 import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.service.RecoveryStore;
 import org.mesutormanli.jtypewriter.service.StorageFootprint;
@@ -67,6 +69,13 @@ public final class AppGraph {
     public final IoExecutor ioExecutor = IoExecutor.background();
     public final FileService fileService = new FileService(
             dialogService, messages, new BackupKeeper(), ioExecutor);
+    /**
+     * Printing and PDF export share the document service and the I/O worker:
+     * both consume the saved file, and the PDF write must serialise with
+     * document saves and backups.
+     */
+    public final ExportService exportService = new ExportService(
+            fileService, dialogService, messages, ioExecutor, PdfExport::render);
     public final RecoveryStore recoveryStore = new RecoveryStore(AppDirs.recoveryDir());
     public final AutoSaveService autoSaveService = new AutoSaveService(
             recoveryStore, fileService, dialogService, messages, ioExecutor);
@@ -120,6 +129,7 @@ public final class AppGraph {
     private volatile Stage stage;
 
     public AppGraph() {
+        shortcutHandler.setExportService(exportService);
         // session statistics follow the document, not the application lifetime,
         // and the last document is remembered for the next session
         fileService.addListener(new FileService.Listener() {

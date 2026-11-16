@@ -72,19 +72,23 @@ JTypeWriter release.
    Required notice: this software is based in part on the work of the
                     Independent JPEG Group
 
-5. DejaVu Sans Condensed (Regular and Bold)
-   Files: fonts/DejaVuSansCondensed.ttf and
-          fonts/DejaVuSansCondensed-Bold.ttf, in the fat jar and in the
-          application image.
+5. DejaVu Sans Condensed (Regular and Bold) and DejaVu Sans Mono
+   Files: fonts/DejaVuSansCondensed.ttf,
+          fonts/DejaVuSansCondensed-Bold.ttf and fonts/DejaVuSansMono.ttf,
+          in the fat jar and in the application image.
    License: Bitstream-Vera
    Copyright: Copyright (c) 2003 by Bitstream, Inc. All Rights Reserved.
               Bitstream Vera is a trademark of Bitstream, Inc.
               DejaVu changes are in public domain.
    License text: legal/Bitstream-Vera.txt
    Source: https://dejavu-fonts.github.io/ (release 2.37)
-   This is the UI chrome font and the face the toolbar measures its labels
-   with. It ships unmodified; its provenance and file hashes are recorded in
-   fonts/PROVENANCE.md next to the files.
+   The Condensed faces are the UI chrome font and the face the toolbar
+   measures its labels with. DejaVu Sans Mono is the editor's face and the
+   one printing and PDF export render with; PDF export embeds that same file
+   whole in every exported document, which its installable-embedding
+   permission (OS/2.fsType 0) allows. All three ship unmodified; their
+   provenance and file hashes are recorded in fonts/PROVENANCE.md next to the
+   files.
 
 
 Libraries loaded from the system at runtime (not distributed)

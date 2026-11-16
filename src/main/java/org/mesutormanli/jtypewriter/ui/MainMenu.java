@@ -199,7 +199,9 @@ public final class MainMenu {
                         command(EditorAction.NEW_DOCUMENT),
                         command(EditorAction.OPEN),
                         command(EditorAction.SAVE),
-                        command(EditorAction.SAVE_AS))),
+                        command(EditorAction.SAVE_AS),
+                        command(EditorAction.PRINT),
+                        command(EditorAction.EXPORT_PDF))),
                 new MenuSpec(Page.EDIT, List.of(
                         command(EditorAction.UNDO),
                         command(EditorAction.REDO),

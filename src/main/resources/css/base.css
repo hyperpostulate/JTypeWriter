@@ -17,8 +17,14 @@
     -fx-faint-focus-color: transparent;
 }
 
+/* The editor's face, and the one print and PDF export are rendered with: the
+   bundled DejaVu Sans Mono (AppFonts.MONO_FAMILY). It used to be a system
+   stack ("JetBrains Mono" -> "Fira Code" -> "Courier New" -> monospace), which
+   made the screened text a property of the host and left the export with no
+   file to embed. One bundled file is what makes "the same font as on screen"
+   literally true - in the window, on the page and in the PDF. */
 .editor-area {
-    -fx-font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+    -fx-font-family: "DejaVu Sans Mono";
     -fx-font-size: 16px;
     -fx-padding: 24px;
     -fx-background-color: -editor-bg;

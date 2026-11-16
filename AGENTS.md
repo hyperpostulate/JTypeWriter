@@ -13,7 +13,7 @@ platforms on purpose.
 
 - JDK 25 + Maven 3.8+ are hard requirements (`maven-enforcer-plugin` at `validate`, floor
   derived from `java.version`). There is deliberately no Maven wrapper — don't add one.
-- `mvn clean test` — full suite (637 tests, no toolkit, no display needed). The number is a
+- `mvn clean test` — full suite (683 tests, no toolkit, no display needed). The number is a
   floor that moves with every card; don't treat it as a target.
 - `mvn test -Dtest=FileServiceTest` / `-Dtest=FileServiceTest#methodName` — focused run.
 - `mvn clean package` — tests + thin JAR + `jar-with-dependencies`, plus the classified
@@ -109,6 +109,15 @@ suite is the gate, and it enforces several non-code invariants below.
   `TextCodec`), then unit-test those. Follow it instead of testing nodes.
 - `service/` is JavaFX-free; user-facing `FileChooser`/`Alert` work is isolated in
   `DialogService`, which tests mock. `FileService` also owns unsaved-change flow.
+- `print/` is the rendering half of printing and PDF export and is JavaFX-free except for
+  `Printing`, which needs `PrinterJob`. `DocumentLayout` is the single pagination model both
+  outputs share — never teach one of them to break lines itself. Output is deliberately
+  **fixed**: the bundled `DejaVu Sans Mono` at 12 pt, black on white, with no theme, text
+  colour or font-size input. `PdfExport` writes the PDF by hand (no library, no new
+  dependency) and must stay byte-deterministic: no `/ID`, no timestamp, no hash-ordered
+  output. Both commands go through `FileService.savedDocumentAsync`, which refuses to run
+  on unsaved text and reads the result back **from the `.txt` file** — the saved file is the
+  single source of truth, so never render `EditorArea`'s buffer or `getCurrentContent()`.
 - Concurrency/state where it matters: `FileService` listeners live in a `CopyOnWriteArrayList`;
   enum-based state models (`ExitDisposition`, `AutosaveHealth.Problem`) encode exit/autosave
   rules. Read a class Javadoc before changing its policy — data-safety semantics (atomic

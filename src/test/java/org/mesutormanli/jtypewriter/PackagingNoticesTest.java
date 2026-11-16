@@ -76,7 +76,8 @@ class PackagingNoticesTest {
         var notice = read(NOTICE_RESOURCE);
         assertNotNull(notice, NOTICE_RESOURCE + " is not on the classpath");
         for (var component : List.of("JavaFX", "OpenJFX", "GStreamer", "KISS FFT",
-                "Independent JPEG Group", "GCC", "DejaVu Sans Condensed")) {
+                "Independent JPEG Group", "GCC", "DejaVu Sans Condensed",
+                "DejaVu Sans Mono")) {
             assertTrue(notice.contains(component),
                     NOTICE_RESOURCE + " does not name the bundled component: " + component);
         }

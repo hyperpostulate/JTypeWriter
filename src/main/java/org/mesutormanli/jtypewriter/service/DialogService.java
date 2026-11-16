@@ -27,6 +27,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -107,6 +108,70 @@ public class DialogService {
         return Optional.of(target);
     }
 
+    /**
+     * PDF export target chooser. It starts from the text file's own name and
+     * directory, because the PDF is a companion of that document and must not
+     * land somewhere the user did not expect; only a never-saved document
+     * (which the export gate normally refuses before this point) falls back to
+     * the timestamped name the save dialog uses.
+     *
+     * <p>The overwrite confirmation after the chooser is the same rule as
+     * {@link #showSaveDialog}: appending {@code .pdf} can turn the typed name
+     * into a different, existing file that the chooser itself never asked
+     * about.</p>
+     */
+    public Optional<File> showPdfExportDialog(Stage stage, Path textFile) {
+        var chooser = new FileChooser();
+        chooser.setTitle(messages.exportPdfTitle());
+        if (textFile != null) {
+            var parent = textFile.toAbsolutePath().getParent();
+            if (parent != null) {
+                applyInitialDirectory(chooser, Optional.of(parent));
+            }
+            chooser.setInitialFileName(pdfName(textFile));
+        } else {
+            applyInitialDirectory(chooser, settings.getLastDirectory());
+            chooser.setInitialFileName("JTypeWriter_" + fileStamp(LocalDateTime.now()) + ".pdf");
+        }
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter(messages.filePdfFile(), "*.pdf")
+        );
+        var chosen = chooser.showSaveDialog(stage);
+        if (chosen == null) {
+            return Optional.empty();
+        }
+        var target = withPdfExtension(chosen);
+        if (!target.equals(chosen) && target.exists() && !confirmOverwrite(stage, target)) {
+            return Optional.empty();
+        }
+        rememberDirectory(target);
+        return Optional.of(target);
+    }
+
+    /** The PDF companion name of a text file: {@code notes.txt} suggests {@code notes.pdf}. */
+    static String pdfName(Path textFile) {
+        var name = textFile.getFileName().toString();
+        var dot = name.lastIndexOf('.');
+        var base = dot > 0 ? name.substring(0, dot) : name;
+        return base + ".pdf";
+    }
+
+    /**
+     * Ensures the exported file is a {@code .pdf}: the check is
+     * case-insensitive, so {@code notes.PDF} is left exactly as typed while
+     * {@code notes} gains the extension. Anything else is appended to, never
+     * reinterpreted: typing {@code notes.txt} yields {@code notes.txt.pdf}
+     * rather than silently becoming {@code notes.pdf}, because a chooser must
+     * not rename a target the user just typed (and the pre-filled name has
+     * already dropped the {@code .txt}).
+     */
+    static File withPdfExtension(File file) {
+        if (file.getName().toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+            return file;
+        }
+        return file.toPath().resolveSibling(file.getName() + ".pdf").toFile();
+    }
+
     /** @return {@code true} when the user accepts replacing an existing file */
     private boolean confirmOverwrite(Stage stage, File target) {
         var alert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -162,6 +227,39 @@ public class DialogService {
         if (result.get() == saveButton) return SaveChoice.SAVE;
         if (result.get() == discardButton) return SaveChoice.DISCARD;
         return SaveChoice.CANCEL;
+    }
+
+    /** The two answers the save-before-output gate accepts. */
+    public enum SaveBeforeOutput { SAVE, CANCEL }
+
+    /**
+     * Asks the user to save before printing or exporting, and offers no way
+     * around it.
+     *
+     * <p>There is deliberately no "Discard" or "Print anyway" button: the
+     * product promise is that only the saved {@code .txt} file is printed or
+     * exported, so an option to continue with unsaved text would contradict
+     * the rule it is meant to enforce. Closing the window (or Escape) is the
+     * cancel answer, exactly like the Cancel button.</p>
+     *
+     * @return {@link SaveBeforeOutput#SAVE} when the caller must save first,
+     *         empty when the operation must be abandoned silently
+     */
+    public Optional<SaveBeforeOutput> showSaveBeforeOutputDialog(Stage stage) {
+        var alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(messages.saveBeforeOutputTitle());
+        alert.setHeaderText(messages.saveBeforeOutputHeader());
+        alert.setContentText(messages.saveBeforeOutputContent());
+
+        var saveButton = DialogButtons.primary(messages.saveBeforeOutputConfirm());
+        var cancelButton = DialogButtons.cancel(messages.saveBeforeOutputCancel());
+        alert.getButtonTypes().setAll(saveButton, cancelButton);
+
+        var result = show(alert, stage);
+        if (result.isPresent() && result.get() == saveButton) {
+            return Optional.of(SaveBeforeOutput.SAVE);
+        }
+        return Optional.empty();
     }
 
     /** How to interpret a document that is neither BOM-marked nor valid UTF-8. */
@@ -375,6 +473,44 @@ public class DialogService {
         alert.setHeaderText(header);
         alert.setContentText(content);
         show(alert, owner);
+    }
+
+    /**
+     * Reports a PDF that could not be written: the target is part of the
+     * message because "export failed" without a path leaves the user unable to
+     * tell which of several exports went wrong.
+     */
+    public void showExportFailure(Stage stage, Path target, String reason) {
+        var alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(messages.exportFailedTitle());
+        alert.setHeaderText(messages.exportFailedHeader());
+        alert.setContentText(messages.exportFailedContent(target.toString(), reason));
+        show(alert, stage);
+    }
+
+    /**
+     * Reports a printer failure. A cancelled print dialog is not a failure and
+     * never reaches this method; only a missing printer or a failed job does.
+     */
+    public void showPrintFailure(Stage stage, String reason) {
+        var alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(messages.printFailedTitle());
+        alert.setHeaderText(messages.printFailedHeader());
+        alert.setContentText(messages.printFailedContent(reason));
+        show(alert, stage);
+    }
+
+    /**
+     * Reports that the saved {@code .txt} file could not be read after the
+     * save gate. The print/export is abandoned: falling back to the editor's
+     * buffer would print text the user's file does not contain.
+     */
+    public void showReadFailure(Stage stage, String reason) {
+        var alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(messages.readFailedTitle());
+        alert.setHeaderText(messages.readFailedHeader());
+        alert.setContentText(messages.readFailedContent(reason));
+        show(alert, stage);
     }
 
     /**

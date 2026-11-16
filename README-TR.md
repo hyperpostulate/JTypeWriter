@@ -69,6 +69,16 @@ Canlı istatistik çubuğu:
 - Durum çubuğu metni varsayılan olarak 13 px'tir ve çift tıklandığında küçük, orta ve büyük arasında döner; rengi üç temada da WCAG AA kontrastını (en az 4.5:1) karşılar
 - Başarılı bir kayıt, saatini arayüz dilinin kendi saat biçimiyle durum çubuğuna yazar (ör. Türkçe `Kaydedildi 12:04`, İngilizce `Saved 12:04 PM`); sonraki düzenlemede temizlenir ve 30 saniyelik otomatik kayıt taslağı anlık görüntüsünü değil gerçek bir kaydı gösterir
 
+### Yazdırma ve PDF Dışa Aktarma
+
+`Ctrl+P` belgeyi yazdırır, `Ctrl+Shift+E` PDF olarak dışa aktarır; ikisi de Dosya menüsünde yer alır.
+
+- **Tek doğruluk kaynağı kaydedilmiş `.txt` dosyasıdır.** İki komut da editör tamponunu yazdırmaz: belgede kaydedilmemiş değişiklik varsa - ya da belge hiç kaydedilmemişse - önce Kaydet / Vazgeç sorusu çıkar ve vazgeçmek hiçbir şeyin yazdırılmaması, hiçbir şeyin dışa aktarılmaması demektir. Bilinçli olarak "yine de yazdır" düğmesi yoktur; olsaydı kâğıt dosyayla çelişebilirdi. Kayıttan sonra metin **diskten** belgenin kendi kodlamasıyla geri okunur, yani uygulamadan çıkan şey dosyanın tuttuğu şeyin aynısıdır.
+- **Ekrandan alınan aile, gerisi değil.** İki çıktı da paketlenmiş `DejaVu Sans Mono` yazı tipini sabit 12 punto, beyaz üzerine siyah kullanır. Tema, metin rengi ve editörün yazı boyutu bilerek yok sayılır: sayfa sayfadır ve okunması pencerenin Koyu modda olmasına ya da yakınlaştırmanın 24 px'te olmasına bağlı olmamalıdır.
+- **PDF kendi kendine yeter ve bizim tarafımızdan yazılır.** Hiçbir PDF kütüphanesi bağlanmaz: `PdfExport` dosyayı doğrudan yazar, editörün çizdiği yazı tipi dosyasının aynısını gömer (Type0 / Identity-H ve `/ToUnicode` eşlemesi, yani metin çıkarılabilir ve kopyalanabilir) ve aynı belge için bayt bayt aynı çıktıyı üretir. Yazdırma ile PDF aynı sayfalama modelini paylaşır, yani kâğıt ve dosya satırları aynı yerden kırar.
+- **Yerleşim kâğıdı izler.** Satırlar metin bloğunda sarılır (önce boşluklardan, tek parça çok uzun bir dizi için kod noktası sınırlarından), sekmeler dört hücrelik duraklara ilerler, satır sonları korunur ve dışa aktarım 20 mm kenar boşluklu A4 dikeydir. Yazdırırken sayfalama yazıcının kendi basılabilir alanını alır, böylece dar bir yazıcı satırları kâğıdın zorladığı yerden kırar.
+- Hatalar bildirilir, başarılar bildirilmez: yazıcı yokluğu, reddedilen iş ya da yazılamayan PDF bir uyarı açar; tamamlanan bir yazdırma veya yazılan dosya hiçbir şey söylemez.
+
 ### Tam Ekran ve Araç Çubuğu
 
 - **`F11` ekranı devralır, `Escape` geri verir:** tam ekran `F11` ile açılıp kapanır, `Escape` ile çıkılır (platformun varsayılan çıkış ipucu gizlenir)
@@ -204,6 +214,8 @@ Kısayollar Windows ve Linux'ta `Ctrl` ile çalışır. Numpad `+`, `-` ve `0` t
 | `Ctrl+O` | Dosya aç |
 | `Ctrl+S` | Dosyayı kaydet |
 | `Ctrl+Shift+S` | Farklı kaydet |
+| `Ctrl+P` | Kaydedilmiş belgeyi yazdır |
+| `Ctrl+Shift+E` | Kaydedilmiş belgeyi PDF olarak dışa aktar |
 | `Ctrl+F` | Ara/değiştir kartını aç |
 | `F3` | Sonraki eşleşme (sarar) |
 | `Shift+F3` | Önceki eşleşme (sarar) |
@@ -394,12 +406,20 @@ org.mesutormanli.jtypewriter
 │   ├── Language.java                     # Desteklenen diller enum'u
 │   ├── LocaleManager.java                # Dil değiştirme + dinleyici desteği
 │   └── Messages.java                     # ResourceBundle tabanlı i18n erişici
+├── print/
+│   ├── DocumentLayout.java               # Yazdırma ve PDF için tek sayfalama modeli (saf)
+│   ├── PageGeometry.java                 # Nokta cinsinden sayfa boyutu ve kenar boşlukları (saf değer)
+│   ├── PdfExport.java                    # Gömülü mono yüzle bağımlılıksız PDF yazıcısı
+│   ├── PdfWriter.java                    # PDF nesneleri, akışlar ve xref tablosu
+│   ├── Printing.java                     # PrinterJob çıktısı: biçemsiz beyaz sayfada siyah 12 punto
+│   └── TrueTypeFont.java                 # Asgari TTF okuyucusu: metrikler, cmap, glif kimlikleri
 ├── service/
 │   ├── AutoSaveService.java              # Dönemsel taslak kaydı + kurtarma teklifi
 │   ├── AutosaveHealth.java               # Yapışkan otomatik kayıt hata durumu (DRAFT_WRITE / DRAFT_PARK / DRAFT_DELETE)
 │   ├── BackupKeeper.java                 # Yazımdan önce dönen .bak yedekleri
 │   ├── DialogService.java                # FileChooser ve Alert dialog yönetimi
 │   ├── ExitDisposition.java              # Kurtarma taslağı için çıkış kuralı (CLEAR / PARK / KEEP)
+│   ├── ExportService.java                # Yazdırma/dışa aktarma için kayıt kapısı + PDF yazımı
 │   ├── FileService.java                  # Atomik dosya G/Ç (kodlama korumalı)
 │   ├── RecoveryChoice.java               # Kurtarma istemine yanıt (geri yükle / sil / sonra sor)
 │   ├── RecoveryRetention.java            # Park edilen taslaklar için yaş/adet/boyut politikası (saf)
@@ -545,7 +565,8 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | Test Sınıfı | Kapsam |
 |-------------|--------|
 | `SessionStatsTest` | Kelime/karakter/satır sayısı, tuş vuruşları, sıfırlama, aktif yazım süreli WPM (durağanlık bozulması regresyonu) |
-| `FileServiceTest` | Açık sırasında ve yeni belgede kaydedilmemiş değişiklik akışı (iptal/atla/önce kaydet), atomik yazım, dönen yedekler, kodlama gidiş-dönüşü (temsil edilemeyen karakterler için UTF-8'e geçiş), yeni belgede kodlama sıfırlama, yaşam döngüsü dinleyicileri, kurtarma bağlama |
+| `FileServiceTest` | Açık sırasında ve yeni belgede kaydedilmemiş değişiklik akışı (iptal/atla/önce kaydet), atomik yazım, dönen yedekler, kodlama gidiş-dönüşü (temsil edilemeyen karakterler için UTF-8'e geçiş), yeni belgede kodlama sıfırlama, yaşam döngüsü dinleyicileri, kurtarma bağlama ve yazdırma/dışa aktarma kapısı: geri verilen metin dosyadan okunur (editör tamponundan asla), iptal edilen kayıt hiçbir şey döndürmez, temiz belge istem göstermeden okunur ve okuma hatası yazdırmak yerine bildirilir |
+| `ExportServiceTest` | Yazdırma ve dışa aktarmanın kullanıcıya dönük yarısı: boş kapı hiçbir şey yazmaz ve seçici açmaz, seçilen hedef tam olarak çizicinin baytlarını alır, çizici hatası uyarı yoluyla bildirilir ve yarım dosya bırakmaz, PDF diyaloğuna ancak kayıt kapısı bir dosya ürettikten sonra ulaşılır |
 | `TextCodecTest` | Kodlama tespiti (BOM, sıkı UTF-8), eski kodlama sorusu, kayıpsız kodlama gidiş-dönüşü, sıkı kodlama (temsil edilemeyen karakterler `?` olmak yerine hata verir) |
 | `EncodingMatrixTest` | Her kodlama için aç→kaydet ve aç→düzenle→kaydet bayt matrisi (BOM'suz UTF-16LE/BE, eski kodlama sorusu üzerinden Windows-1254, CRLF, sekme ve emoji içeren karışık UTF-8); iki paritede de NUL içeren geçerli UTF-8 dosyasının UTF-8 kalmasını ve BOM'suz UTF-16'nın eski kodlama sorusuna asla ulaşmamasını sabitler |
 | `BackupKeeperTest` | Yazımdan önce yedek rotasyonu ve saklama |
@@ -589,7 +610,10 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `ThemeCycleTest` | Tema döngüsü: enum sırası araç çubuğuyla aynıdır, varsayılan Koyu'dur, `next` başa döner ve her paket döngüyü varsayılandan başlayarak belgeler |
 | `ToolbarStateTest` | Ses düzeyinin tek ayarlayıcısı: yeniden başlatmada kalıcılık, ses motorunun takip etmesi, sıfırın ikisini de susturması, Açık'ın son duyulur kademeyi geri getirmesi, tekrarların etkisiz olması |
 | `ToolbarFitTest` | Araç çubuğu taşma politikası: başlıklı satırın (düğmeler, açılır listeler, ayırıcı, çerçeve) enjekte edilen ölçülerle nasıl hesaplandığı, FULL→COMPACT geçişi ve 40 px histerezisi; ayrıca Almanca ve Fransızcanın 1280 px'te kırpılmadığını, daraltılmış satırın altı dilde 900 px'e sığdığını ve pencerenin minimum genişliğinin altı pakette ölçülen en geniş daraltılmış satır olduğunu kanıtlayan kabul testleri |
-| `AppFontsTest` | Paketlenen arayüz fontu bir sürüm varlığıdır: iki yüz de `base.css`'in adlandırdığı aile altında sınıf yolunda, altı dilin araç çubuğu etiketlerini (`☰` menü glifi dâhil) çizebiliyor ve sabitlenmiş bir metin sabitlenmiş bir genişlik ölçüyor; böylece sistem fontuna sessiz dönüş derlemeyi düşürüyor |
+| `AppFontsTest` | Paketlenen fontlar birer sürüm varlığıdır: arayüz yüzleri ve monospace yüz, `base.css`'in adlandırdığı aileler altında (sırasıyla `.root` ve `.editor-area`) sınıf yolunda, altı dilin araç çubuğu etiketlerini (`☰` menü glifi dâhil) çizebiliyor, monospace yüz gerçekten eşaralıklı ve sabitlenmiş bir metin sabitlenmiş bir genişlik ölçüyor; böylece sistem fontuna sessiz dönüş derlemeyi düşürüyor |
+| `DocumentLayoutTest` | Yazdırma ve PDF'in paylaştığı tek sayfalama modeli: ölçülen genişlikte açgözlü sarma, açık ve sondaki satır sonları, sekmelerin dört hücrelik duraklara açılması, metin bloğundan geniş tek parçanın vekil çiftleri bozulmadan kod noktası sınırlarından kırılması, tam sığan satırın bölünmemesi, taban çizgisi aritmetiği ve her sayfada sıfırlanması, yeni sayfaya taşma, boş belgenin tek boş sayfa olarak yerleştirilmesi ve `PageGeometry`'nin kenar boşluğu hesabı (yer bırakmayan geometri dâhil) |
+| `PdfExportTest` | PDF yazıcısı, ürettiği dosyanın kurallarına karşı: başlık ve sonlandırıcı, her xref ofsetinin kendi `<n> 0 obj` kaydına düşmesi, her akışın `/Length` değerinin baytlarıyla eşleşmesi (Flate akışları açılarak), A4 `/MediaBox`, sayfalama sayısı kadar sayfa, gömülü `/FontFile2`'nin paketlenmiş monospace TTF'ye bayt bayt açılması, `/ToUnicode`'un glifleri kod noktalarına geri eşlemesi (Türkçe karakterler dâhil), her içerik akışında beyaz sayfanın ve siyah metnin boyanması ve aynı metnin iki kez çiziminin bayt bayt aynı olması |
+| `TrueTypeFontTest` | Dışa aktarma ve yazdırmanın arkasındaki asgari TTF okuyucusu: `unitsPerEm`, pozitif glif sayısı, 'A' ve 'ş' harflerinin gerçek gliflere eşlenmesi, 'i' ile 'W' ilerlemelerinin eşitliğiyle yüzün eşaralıklı olduğunun kanıtlanması, pozitif yükseliş ve font olmayan baytların çöp olarak ayrıştırılmak yerine reddedilmesi |
 | `PackagingNoticesTest` | Paketleme sözleşmesi: `META-INF/THIRD-PARTY-NOTICES` ve üç lisans metni sınıf yolunda; bildirim her paketlenen bileşeni gerçek SPDX kimliğiyle adlandırıyor, FFmpeg'in dağıtılmadığını söylüyor, 100 sütun içinde yalnızca LF kullanıyor ve depodaki dosyayla bayt-özdeş, böylece bayat bir derleme çıktısı testi geçemiyor |
 | `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni, otomatik kayıt uyarısı, araç çubuğu metni, düz popup satırı ya da varsayılan editör metni AA'nın veya 13 px'in altına düşerse (ya da bir tema `base.css`'in hiç okumadığı bir token tanımlarsa), odak halkası 3:1'in altına düşerse, vurgulanan popup satırı metni AA'nın altına düşerse, popup hücresi yazı boyutu kapalı combo'nun boyutundan saparsa, odak rengi yeniden saydamlaşırsa ya da var olmayan bir JavaFX CSS özelliği (`-fx-letter-spacing`, `-fx-transition`) geri dönerse derlemeyi başarısız kılan CSS ayrıştırma korumaları |
 | `CiGatesTest` | CI kapı sözleşmesi: ortak iş akışı ikon güncellik kontrolünü ve artefakt doğrulamasını gerçekten çağırıyor, ikon kontrolü derlemeden önce ve yeniden rasterleştirmeden iki işletim sistemi ayağında koşuyor, artefakt kontrolü paketlemeden sonra koşuyor, artefakt kapısı Linux ayağında kalıyor (`.deb` paketini açıyor), `maven.yml` ile `release.yml` kendi adım listelerini tutmak yerine ortak iş akışını çağırıyor ve yayın yalnız normalleştirilmiş `dist/` varlıklarını indiriyor |
@@ -613,7 +637,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 
 ## Lisans
 
-JTypeWriter, Apache Lisansı 2.0 ile lisanslanmıştır. Tam metin için [LICENSE](LICENSE), atıf bildirimleri için [NOTICE](NOTICE) dosyasına bakın. [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) paketlenen her bileşeni lisans kimliği, telif satırı ve kaynağıyla listeler; tam metinler [legal/](legal) altındadır. İkisi de fat JAR içinde `META-INF/THIRD-PARTY-NOTICES` ve `META-INF/licenses/` olarak, native imajda ise kök dizinde bulunur. Paketlenen JavaFX kütüphaneleri GPLv2 + Classpath Exception, GStreamer Lite ise LGPL-2.1-or-later altında kalır; OpenJDK çalışma zamanı kendi bildirimlerini `lib/runtime/legal/` altında taşır. Paketlenen tuş sesi (`src/main/resources/audio/keystroke.wav`) yazarın kendi eseridir, üçüncü taraf bir örnek içermez ve aynı Apache-2.0 lisansı kapsamındadır; kaynağı ve SHA-256 özeti [src/main/resources/audio/PROVENANCE.md](src/main/resources/audio/PROVENANCE.md) dosyasında kayıtlıdır. Arayüz fontu DejaVu Sans Condensed (regular ve bold) değiştirilmeden, Bitstream Vera lisansı altında paketlenir; kaynağı ve dosya özetleri [src/main/resources/fonts/PROVENANCE.md](src/main/resources/fonts/PROVENANCE.md) dosyasındadır.
+JTypeWriter, Apache Lisansı 2.0 ile lisanslanmıştır. Tam metin için [LICENSE](LICENSE), atıf bildirimleri için [NOTICE](NOTICE) dosyasına bakın. [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) paketlenen her bileşeni lisans kimliği, telif satırı ve kaynağıyla listeler; tam metinler [legal/](legal) altındadır. İkisi de fat JAR içinde `META-INF/THIRD-PARTY-NOTICES` ve `META-INF/licenses/` olarak, native imajda ise kök dizinde bulunur. Paketlenen JavaFX kütüphaneleri GPLv2 + Classpath Exception, GStreamer Lite ise LGPL-2.1-or-later altında kalır; OpenJDK çalışma zamanı kendi bildirimlerini `lib/runtime/legal/` altında taşır. Paketlenen tuş sesi (`src/main/resources/audio/keystroke.wav`) yazarın kendi eseridir, üçüncü taraf bir örnek içermez ve aynı Apache-2.0 lisansı kapsamındadır; kaynağı ve SHA-256 özeti [src/main/resources/audio/PROVENANCE.md](src/main/resources/audio/PROVENANCE.md) dosyasında kayıtlıdır. Paketlenen fontlar DejaVu Sans Condensed (regular ve bold, arayüz) ve DejaVu Sans Mono (editör, yazdırma ve PDF dışa aktarma) olup değiştirilmeden Bitstream Vera lisansı altındadır; monospace dosya ayrıca her dışa aktarılan PDF'e gömülür, buna kurulabilir gömme izni elverir. Kaynakları ve dosya özetleri [src/main/resources/fonts/PROVENANCE.md](src/main/resources/fonts/PROVENANCE.md) dosyasındadır.
 
 ---
 

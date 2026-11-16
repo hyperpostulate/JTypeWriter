@@ -69,6 +69,16 @@ Live stats bar showing:
 - The status bar text is 13 px by default and cycles between small, medium and large when you double-click it; its colour meets WCAG AA contrast (at least 4.5:1) in all three themes
 - A successful save stamps the status bar with its time in the UI language's own clock format (e.g. `Saved 12:04 PM` in English, `Kaydedildi 12:04` in Turkish); it clears on the next edit, and it marks a real save rather than the 30-second autosave draft snapshot
 
+### Printing and PDF Export
+
+`Ctrl+P` prints the document and `Ctrl+Shift+E` exports it as a PDF; both are also on the File menu.
+
+- **The saved `.txt` file is the single source of truth.** Neither command prints the editor buffer: if the document has unsaved changes - or has never been saved - a Save / Cancel prompt appears first, and cancelling means nothing is printed or exported. There is deliberately no "print it anyway" button, because then the paper could disagree with the file. After the save, the text is read back **from disk** in the document's own encoding, so what leaves the app is exactly what the file holds.
+- **What you see is the family, nothing else.** Both outputs use the bundled `DejaVu Sans Mono` at a fixed 12 pt, black on white. The theme, the text colour and the editor font size are ignored on purpose: a page is a page, and reading it should not depend on whether the window is in Dark mode or the zoom is at 24 px.
+- **The PDF is self-contained and written by us.** No PDF library is linked: `PdfExport` writes the file directly, embeds the same font file the editor renders with (Type0 / Identity-H with a `/ToUnicode` map, so text is extractable and copyable) and produces byte-identical output for the same document. Print and PDF share one pagination model, so the sheet and the file break lines at the same place.
+- **Layout follows the paper.** Lines wrap at the text block (spaces first, then code-point boundaries for a long unbreakable run), tabs advance to four-cell stops, newlines are kept, and the export is A4 portrait with 20 mm margins. A printer's own printable area is what pagination gets when printing, so a narrow printer breaks lines where its paper forces it to.
+- Failures are reported, successes are not: a missing printer, a rejected job or an unwritable PDF opens an alert, while a completed print or a written file says nothing.
+
 ### Fullscreen & Toolbar
 
 - **`F11` takes over the screen, `Escape` gives it back:** `F11` toggles fullscreen and `Escape` leaves it (the platform's default exit hint is suppressed)
@@ -204,6 +214,8 @@ Shortcuts use `Ctrl` on Windows and Linux. Numpad `+`, `-` and `0` are accepted 
 | `Ctrl+O` | Open file |
 | `Ctrl+S` | Save file |
 | `Ctrl+Shift+S` | Save file as |
+| `Ctrl+P` | Print the saved document |
+| `Ctrl+Shift+E` | Export the saved document as PDF |
 | `Ctrl+F` | Find and replace card |
 | `F3` | Find next (wraps) |
 | `Shift+F3` | Find previous (wraps) |
@@ -402,12 +414,20 @@ org.mesutormanli.jtypewriter
 │   ├── Language.java                     # Supported languages enum
 │   ├── LocaleManager.java                # Language switching + listener support
 │   └── Messages.java                     # ResourceBundle-based i18n accessor
+├── print/
+│   ├── DocumentLayout.java               # One pagination model for print and PDF (pure)
+│   ├── PageGeometry.java                 # Page size and margins in points (pure value)
+│   ├── PdfExport.java                    # Dependency-free PDF writer with the embedded mono face
+│   ├── PdfWriter.java                    # PDF objects, streams and the xref table
+│   ├── Printing.java                     # PrinterJob output, black 12 pt on an unstyled white page
+│   └── TrueTypeFont.java                 # Minimal TTF reader: metrics, cmap, glyph ids
 ├── service/
 │   ├── AutoSaveService.java              # Periodic draft snapshots + recovery offer
 │   ├── AutosaveHealth.java               # Sticky autosave failure state (DRAFT_WRITE / DRAFT_PARK / DRAFT_DELETE)
 │   ├── BackupKeeper.java                 # Rotating .bak backups before overwrites
 │   ├── DialogService.java                # FileChooser & Alert dialog management
 │   ├── ExitDisposition.java              # Exit-path rule for the recovery draft (CLEAR / PARK / KEEP)
+│   ├── ExportService.java                # Save gate + PDF write for print/export
 │   ├── FileService.java                  # Atomic file I/O (encoding-stable)
 │   ├── RecoveryChoice.java               # Answer to the "recover draft" prompt (restore / discard / later)
 │   ├── RecoveryRetention.java            # Age/count/size policy for parked drafts (pure)
@@ -553,7 +573,8 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | Test Class | Coverage |
 |------------|----------|
 | `SessionStatsTest` | Word count, char count, line count, keystrokes, reset, WPM from active typing time (idle decay regression) |
-| `FileServiceTest` | Unsaved-change handling on open and on a new document (cancel/discard/save-first), atomic writes, rotated backups, encoding round trips incl. the UTF-8 upgrade for unrepresentable characters, encoding reset for a new document, lifecycle listeners, recovery attachment |
+| `FileServiceTest` | Unsaved-change handling on open and on a new document (cancel/discard/save-first), atomic writes, rotated backups, encoding round trips incl. the UTF-8 upgrade for unrepresentable characters, encoding reset for a new document, lifecycle listeners, recovery attachment, and the print/export gate: the text handed back is read from the file on disk (never the editor buffer), a cancelled save returns nothing, a clean document reads without a prompt, and a read failure reports instead of printing |
+| `ExportServiceTest` | The user-facing half of print and export: an empty gate writes nothing and opens no chooser, a chosen target receives exactly the renderer's bytes, a renderer failure reports through the alert and leaves no half-written file behind, and the PDF dialog is never reached before the save gate has produced a file |
 | `TextCodecTest` | Encoding detection (BOMs, strict UTF-8), legacy prompts, lossless encoding round trips, strict encode (unrepresentable characters fail instead of turning into `?`) |
 | `EncodingMatrixTest` | The open→save and open→edit→save byte matrix per encoding (BOM-less UTF-16LE/BE, Windows-1254 via the legacy prompt, mixed UTF-8 with CRLF, tab and emoji), pinning that a valid-UTF-8 file with NULs on both parities stays UTF-8 and that BOM-less UTF-16 never reaches the legacy prompt |
 | `BackupKeeperTest` | Pre-overwrite backup rotation and retention |
@@ -597,7 +618,10 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `ThemeCycleTest` | The theme cycle: enum order matches the toolbar, Dark is the default, `next` wraps back to the start, and every bundle documents the cycle starting at the default |
 | `ToolbarStateTest` | The sound level's single setter: persistence across a restart, the audio engine follows, zero silences both, On restores the last audible rung, repeats are no-ops |
 | `ToolbarFitTest` | Toolbar overflow policy: how the captioned row is measured (buttons, dropdowns, spacer, chrome) with injected metrics, the FULL→COMPACT switch and its 40 px hysteresis, plus acceptance tests proving German and French are not clipped at 1280 px and that the collapsed row fits 900 px in all six languages, and that the window's minimum width is the widest collapsed row measured across the six bundles |
-| `AppFontsTest` | The bundled UI font is a release asset: both faces are on the classpath under the family `base.css` names, they render every toolbar label in all six languages (including the `☰` menu glyph), and a pinned string measures to a pinned width, so a fallback to a system font fails the build |
+| `AppFontsTest` | The bundled fonts are release assets: the chrome faces and the monospace face are on the classpath under the families `base.css` names (`.root` and `.editor-area` respectively), they render every toolbar label in all six languages (including the `☰` menu glyph), the monospace face really is monospaced, and a pinned string measures to a pinned width, so a fallback to a system font fails the build |
+| `DocumentLayoutTest` | The one pagination model print and PDF share: greedy wrapping at the measured width, explicit and trailing newlines, tabs expanded to four-cell stops, a run wider than the text block broken at code-point boundaries with surrogate pairs intact, an exact-fit line kept whole, the baseline arithmetic and its reset on every page, overflow onto a new page, an empty document laid out as one empty page, and `PageGeometry`'s margin maths including geometry that leaves no room |
+| `PdfExportTest` | The PDF writer against the file it emits: header and trailer, every xref offset landing on its `<n> 0 obj`, every stream's `/Length` matching its bytes (Flate streams inflated), an A4 `/MediaBox`, one page per layout page, the embedded `/FontFile2` inflating to the bundled monospace TTF byte for byte, `/ToUnicode` mapping glyphs back to code points (Turkish characters included), the white sheet and black text painted in every content stream, and two renders of the same text being byte-identical |
+| `TrueTypeFontTest` | The minimal TTF reader behind export and print: `unitsPerEm`, a positive glyph count, 'A' and 'ş' mapping to real glyphs, equal advances for 'i' and 'W' proving the face is monospaced, a positive ascent, and non-font bytes rejected instead of parsed as garbage |
 | `PackagingNoticesTest` | The packaging contract: `META-INF/THIRD-PARTY-NOTICES` and all three license texts are on the classpath, the notice names every bundled component with its real SPDX id, states that FFmpeg is not distributed, stays LF-only within 100 columns, and is byte-identical to the checked-in file so a stale build output cannot pass |
 | `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text, the autosave warning, the toolbar text, a plain popup row or the default editor text drops below AA or 13 px (or a theme declares a token `base.css` never reads), the focus ring drops below 3:1, highlighted popup-row text drops below AA, the popup cell font size drifts from the closed combo's, the focus colour becomes transparent again, or a non-existent JavaFX CSS property (`-fx-letter-spacing`, `-fx-transition`) returns |
 | `CiGatesTest` | The CI gate contract: the shared workflow really invokes the icon freshness check and the artifact verification, the icon check runs before the build and on both OS legs without re-rasterising, the artifact check runs after packaging, that artifact gate stays on the Linux leg (it unpacks the `.deb`), both `maven.yml` and `release.yml` call the shared workflow rather than keeping their own step lists, and the release downloads only the normalised `dist/` assets |
@@ -621,7 +645,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 
 ## License
 
-JTypeWriter is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the full text and [NOTICE](NOTICE) for attribution notices. [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) lists every bundled component with its license id, copyright line and source, and the full texts sit in [legal/](legal); both ship inside the fat JAR as `META-INF/THIRD-PARTY-NOTICES` and `META-INF/licenses/`, and at the root of the native image. The bundled JavaFX libraries stay under GPLv2 with the Classpath Exception and GStreamer Lite under LGPL-2.1-or-later; the OpenJDK runtime carries its own notices under `lib/runtime/legal/`. The bundled keystroke sound (`src/main/resources/audio/keystroke.wav`) is the author's own work, contains no third-party sample, and is covered by the same Apache-2.0 licence; its provenance and SHA-256 are recorded in [src/main/resources/audio/PROVENANCE.md](src/main/resources/audio/PROVENANCE.md). The UI chrome font is DejaVu Sans Condensed (regular and bold), unmodified, under the Bitstream Vera licence; its provenance and file hashes are in [src/main/resources/fonts/PROVENANCE.md](src/main/resources/fonts/PROVENANCE.md).
+JTypeWriter is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the full text and [NOTICE](NOTICE) for attribution notices. [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) lists every bundled component with its license id, copyright line and source, and the full texts sit in [legal/](legal); both ship inside the fat JAR as `META-INF/THIRD-PARTY-NOTICES` and `META-INF/licenses/`, and at the root of the native image. The bundled JavaFX libraries stay under GPLv2 with the Classpath Exception and GStreamer Lite under LGPL-2.1-or-later; the OpenJDK runtime carries its own notices under `lib/runtime/legal/`. The bundled keystroke sound (`src/main/resources/audio/keystroke.wav`) is the author's own work, contains no third-party sample, and is covered by the same Apache-2.0 licence; its provenance and SHA-256 are recorded in [src/main/resources/audio/PROVENANCE.md](src/main/resources/audio/PROVENANCE.md). The bundled fonts are DejaVu Sans Condensed (regular and bold, the UI chrome) and DejaVu Sans Mono (the editor, printing and PDF export), unmodified, under the Bitstream Vera licence; the monospace file is also embedded in every exported PDF, which its installable-embedding permission allows. Their provenance and file hashes are in [src/main/resources/fonts/PROVENANCE.md](src/main/resources/fonts/PROVENANCE.md).
 
 ---
 

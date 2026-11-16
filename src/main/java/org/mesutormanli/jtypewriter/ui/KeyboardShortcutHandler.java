@@ -8,6 +8,7 @@ package org.mesutormanli.jtypewriter.ui;
 import javafx.event.EventTarget;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
+import org.mesutormanli.jtypewriter.service.ExportService;
 import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 import org.mesutormanli.jtypewriter.ui.component.ToolbarView;
@@ -22,6 +23,13 @@ import org.mesutormanli.jtypewriter.ui.component.ToolbarView;
 public class KeyboardShortcutHandler implements EditorAction.Context {
 
     private final FileService fileService;
+
+    /**
+     * Printing and PDF export. Optional so a unit test can construct the
+     * handler with only a {@link FileService}: unset means the two commands are
+     * silent no-ops, exactly like the default {@link FindCommands}.
+     */
+    private ExportService exportService;
 
     private EditorArea editorArea;
     private ToolbarView toolbarView;
@@ -77,6 +85,15 @@ public class KeyboardShortcutHandler implements EditorAction.Context {
      */
     public void setFindCommands(FindCommands findCommands) {
         this.findCommands = findCommands == null ? this.findCommands : findCommands;
+    }
+
+    /**
+     * Installs the print/PDF service. Named explicitly rather than passed to
+     * {@link #bind} because it needs the same stage, which is only known once
+     * {@code MainController.setStage} runs.
+     */
+    public void setExportService(ExportService exportService) {
+        this.exportService = exportService;
     }
 
     /** Runs a command; the one entry point shared by the key filter and the toolbar. */
@@ -166,6 +183,20 @@ public class KeyboardShortcutHandler implements EditorAction.Context {
     @Override
     public void saveAs() {
         fileService.saveFileAsAsync(stage, editorArea.getText());
+    }
+
+    @Override
+    public void print() {
+        if (exportService != null) {
+            exportService.printAsync(stage);
+        }
+    }
+
+    @Override
+    public void exportPdf() {
+        if (exportService != null) {
+            exportService.exportPdfAsync(stage);
+        }
     }
 
     @Override

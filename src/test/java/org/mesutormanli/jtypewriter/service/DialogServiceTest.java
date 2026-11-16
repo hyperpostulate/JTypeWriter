@@ -67,6 +67,39 @@ class DialogServiceTest {
         assertEquals(new File("novels/notes.txt"), saved);
     }
 
+    /**
+     * The PDF companion name: a document's base name with {@code .pdf}. The
+     * default matters because "Export" on {@code novel.txt} must not suggest a
+     * timestamped stranger, the same reason the save dialog offers the current
+     * name.
+     */
+    @Test
+    void thePdfCompanionNameKeepsTheDocumentsBaseName() {
+        assertEquals("novel.pdf", DialogService.pdfName(Path.of("/tmp/novel.txt")));
+        assertEquals("my.notes.pdf", DialogService.pdfName(Path.of("/tmp/my.notes.txt")));
+        // No extension at all, and a dot-leading hidden name, both keep their stem.
+        assertEquals("draft.pdf", DialogService.pdfName(Path.of("/tmp/draft")));
+        assertEquals(".notes.pdf", DialogService.pdfName(Path.of("/tmp/.notes")));
+    }
+
+    /**
+     * Export always writes a PDF: the check is case-insensitive (a typed
+     * {@code notes.PDF} is left alone) and any other name simply gains the
+     * extension - {@code notes} becomes {@code notes.pdf} and {@code notes.txt}
+     * becomes {@code notes.txt.pdf}, so the chooser never renames what the user
+     * just typed. That appended target may not be the one the chooser asked
+     * about, which is why the overwrite confirmation still runs afterwards.
+     */
+    @Test
+    void exportTargetsAlwaysEndInPdf() {
+        assertEquals("notes.pdf", DialogService.withPdfExtension(new File("notes")).getName());
+        assertEquals("notes.txt.pdf",
+                DialogService.withPdfExtension(new File("notes.txt")).getName());
+        assertEquals("notes.PDF", DialogService.withPdfExtension(new File("notes.PDF")).getName());
+        assertEquals(new File("/tmp/notes.pdf"),
+                DialogService.withPdfExtension(new File("/tmp/notes")));
+    }
+
     @Test
     void closingTheRecoveryPromptMeansLaterNeverDiscard() {
         // -1 = closed without a choice: the draft must survive, so this is not DISCARD

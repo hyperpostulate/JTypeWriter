@@ -131,20 +131,27 @@ public class FxApplication extends Application {
     }
 
     /**
-     * Registers the bundled UI chrome font with the JavaFX font registry
-     * before the first {@code Scene} is built, so {@code -fx-font-family:
-     * "DejaVu Sans Condensed"} in {@code base.css} resolves to the bytes the
-     * toolbar measures with ({@link AppFonts}). A file that fails to load is a
-     * startup failure, not a silent fallback to whichever font the host has:
-     * a fallback would make the fit decision depend on the machine again.
+     * Registers the bundled fonts with the JavaFX font registry before the
+     * first {@code Scene} is built, so {@code -fx-font-family} in
+     * {@code base.css} resolves to the bytes the measurements use
+     * ({@link AppFonts}): the chrome face for the toolbar's fit decision and
+     * the monospace face for the editor, print and PDF export. A file that
+     * fails to load is a startup failure, not a silent fallback to whichever
+     * font the host has: a fallback would make the fit decision depend on the
+     * machine again.
      */
     private static void registerBundledFonts() {
-        for (var resource : AppFonts.RESOURCES) {
+        register(AppFonts.RESOURCES, AppFonts.FAMILY);
+        register(AppFonts.MONO_RESOURCES, AppFonts.MONO_FAMILY);
+    }
+
+    private static void register(java.util.List<String> resources, String family) {
+        for (var resource : resources) {
             try (InputStream stream = FxApplication.class.getResourceAsStream(resource)) {
                 var font = stream == null ? null : Font.loadFont(stream, 12);
-                if (font == null || !AppFonts.FAMILY.equals(font.getFamily())) {
+                if (font == null || !family.equals(font.getFamily())) {
                     throw new IllegalStateException("bundled font " + resource
-                            + " did not register as " + AppFonts.FAMILY);
+                            + " did not register as " + family);
                 }
             } catch (IOException error) {
                 throw new IllegalStateException("cannot read bundled font " + resource, error);

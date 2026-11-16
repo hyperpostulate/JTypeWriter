@@ -235,6 +235,14 @@ public class Messages {
         return bundle.getString("shortcutSaveAs");
     }
 
+    public String shortcutPrint() {
+        return bundle.getString("shortcutPrint");
+    }
+
+    public String shortcutExportPdf() {
+        return bundle.getString("shortcutExportPdf");
+    }
+
     public String shortcutFind() {
         return bundle.getString("shortcutFind");
     }
@@ -279,6 +287,10 @@ public class Messages {
         return bundle.getString("fileTextFile");
     }
 
+    public String filePdfFile() {
+        return bundle.getString("filePdfFile");
+    }
+
     public String unsavedTitle() {
         return bundle.getString("unsavedTitle");
     }
@@ -301,6 +313,70 @@ public class Messages {
 
     public String unsavedCancel() {
         return bundle.getString("unsavedCancel");
+    }
+
+    public String saveBeforeOutputTitle() {
+        return bundle.getString("saveBeforeOutputTitle");
+    }
+
+    public String saveBeforeOutputHeader() {
+        return bundle.getString("saveBeforeOutputHeader");
+    }
+
+    public String saveBeforeOutputContent() {
+        return bundle.getString("saveBeforeOutputContent");
+    }
+
+    public String saveBeforeOutputConfirm() {
+        return bundle.getString("saveBeforeOutputConfirm");
+    }
+
+    public String saveBeforeOutputCancel() {
+        return bundle.getString("saveBeforeOutputCancel");
+    }
+
+    public String exportPdfTitle() {
+        return bundle.getString("exportPdfTitle");
+    }
+
+    public String exportFailedTitle() {
+        return bundle.getString("exportFailedTitle");
+    }
+
+    public String exportFailedHeader() {
+        return bundle.getString("exportFailedHeader");
+    }
+
+    public String exportFailedContent(String target, String reason) {
+        return format("exportFailedContent", target, reason);
+    }
+
+    public String printFailedTitle() {
+        return bundle.getString("printFailedTitle");
+    }
+
+    public String printFailedHeader() {
+        return bundle.getString("printFailedHeader");
+    }
+
+    public String printFailedContent(String reason) {
+        return format("printFailedContent", reason);
+    }
+
+    public String printFailedNoPrinter() {
+        return bundle.getString("printFailedNoPrinter");
+    }
+
+    public String readFailedTitle() {
+        return bundle.getString("readFailedTitle");
+    }
+
+    public String readFailedHeader() {
+        return bundle.getString("readFailedHeader");
+    }
+
+    public String readFailedContent(String reason) {
+        return format("readFailedContent", reason);
     }
 
     public String overwriteTitle() {
