@@ -511,6 +511,37 @@ class AutoSaveServiceTest {
         assertEquals(doc.toAbsolutePath(), service.restoreTarget(draft));
     }
 
+    /**
+     * The status bar may only say "backup saved" after a write that actually
+     * happened: a failed write and a clean tick (which writes nothing) must stay
+     * silent, else a broken recovery directory would be reported as a working
+     * safety net.
+     */
+    @Test
+    void theSnapshotListenerHearsOnlySuccessfulDirtyWrites() throws Exception {
+        var store = mock(RecoveryStore.class);
+        when(store.clear()).thenReturn(true);
+        doThrow(new IOException("read-only recovery directory"))
+                .doNothing()
+                .when(store).saveDraft(anyString(), any(), anyInt(), any(), anyBoolean());
+        var fileService = mock(FileService.class);
+        when(fileService.hasUnsavedChanges()).thenReturn(true).thenReturn(false);
+        var service = newService(store, fileService);
+
+        var notifications = new AtomicInteger();
+        service.addSnapshotListener(notifications::incrementAndGet);
+
+        service.snapshot("fails");
+        assertEquals(0, notifications.get(), "a failed write has nothing to claim");
+
+        service.snapshot("clean document");
+        assertEquals(0, notifications.get(), "a clean tick writes no draft at all");
+
+        when(fileService.hasUnsavedChanges()).thenReturn(true);
+        service.snapshot("succeeds");
+        assertEquals(1, notifications.get(), "the write is the confirmation");
+    }
+
     private static AutoSaveService newService(RecoveryStore store, FileService fileService) {
         return new AutoSaveService(store, fileService, mock(DialogService.class), mock(Messages.class));
     }

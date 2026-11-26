@@ -60,9 +60,10 @@ public class StatsBar extends BorderPane {
         statsLabel = new Label();
         statsLabel.getStyleClass().add("stats-label");
 
-        // "Saved 12:04" appears next to the clock on a successful save
-        // and is cleared by the next edit; unlike the stats text it only
-        // changes when MainController says so, never on the one-second tick.
+        // "Saved 12:04" (or "Backup saved 12:04" for a recovery snapshot)
+        // appears next to the clock and is withdrawn by the next edit; unlike
+        // the stats text it only changes when MainController says so, never on
+        // the one-second tick.
         saveStatus = new Label();
         saveStatus.getStyleClass().add("stats-save");
 
@@ -124,12 +125,13 @@ public class StatsBar extends BorderPane {
     }
 
     /**
-     * Shows the localised save status (e.g. {@code "Saved 12:04"}) in
-     * the stats bar. {@code null} or blank clears it. MainController owns the
-     * lifecycle: set on the dirty→clean transition of a real save, cleared on
-     * the next edit and on open/new, so a stale "saved" claim never sits under
-     * a dirty document. The autosave draft snapshot does not pass through here
-     * - it does not clean the document.
+     * Shows the localised status claim in the stats bar: {@code "Saved 12:04"}
+     * after a real save, or {@code "Backup saved 12:04"} after a periodic
+     * recovery snapshot. {@code null} or blank clears it. The slot holds one
+     * claim at a time; MainController owns the lifecycle and the priority - a
+     * real save outranks a backup, an open or a new document clears both, and
+     * the next edit withdraws the saved claim so a stale "saved" line never sits
+     * under a dirty document.
      */
     public void setSaveStatus(String text) {
         var value = text == null ? "" : text;

@@ -259,6 +259,21 @@ class MainControllerTest {
         assertEquals("Help", help.page().title(messagesFor(Language.EN, dir)));
     }
 
+    /**
+     * The backup confirmation is a second, differently worded claim in the same
+     * slot: it says a recovery copy exists, not that the document is on disk, so
+     * it must not be confused with "Saved". Same time formatting, own wording.
+     */
+    @Test
+    void backupStatusIsLocalisedThroughTheBundles(@TempDir Path dir) {
+        assertEquals("Backup saved: 12:04\u202fPM",
+                backupStatusFromBundle(Language.EN, LocalTime.of(12, 4), dir));
+        assertEquals("Yedek kaydedildi: 12:04",
+                backupStatusFromBundle(Language.TR, LocalTime.of(12, 4), dir));
+        assertEquals("Sicherung erstellt: 12:04",
+                backupStatusFromBundle(Language.DE, LocalTime.of(12, 4), dir));
+    }
+
     private static Messages messagesFor(Language language, Path dir) {
         var localeManager = new LocaleManager(
                 new AppSettings(dir.resolve("menu-settings-" + language.code() + ".properties")));
@@ -272,5 +287,11 @@ class MainControllerTest {
         localeManager.setLanguage(language);
         var messages = new Messages(localeManager);
         return MainController.savedStatusFor(messages.savedStatusTemplate(), savedAt, messages.locale());
+    }
+
+    private static String backupStatusFromBundle(Language language, LocalTime savedAt, Path dir) {
+        var messages = messagesFor(language, dir);
+        return MainController.savedStatusFor(
+                messages.backupSavedStatusTemplate(), savedAt, messages.locale());
     }
 }

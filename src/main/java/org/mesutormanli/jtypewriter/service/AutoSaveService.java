@@ -77,6 +77,14 @@ public class AutoSaveService {
     private final IoExecutor ioExecutor;
     private final AutosaveHealth health = new AutosaveHealth();
 
+    /**
+     * Told after a snapshot actually reached the disk, so the status bar can
+     * name the moment the recovery copy was written. A failed snapshot reports
+     * through {@link AutosaveHealth} instead - there is nothing to claim.
+     */
+    private Runnable snapshotListener = () -> {
+    };
+
     private Timeline timeline;
     private Stage stage;
 
@@ -203,6 +211,17 @@ public class AutoSaveService {
     /** The observable state behind the status-bar warning. */
     public AutosaveHealth health() {
         return health;
+    }
+
+    /**
+     * Registers the consumer told after every successful snapshot - the
+     * status-bar "backup saved" confirmation. It fires on the FX thread, after
+     * the write committed, and only for a dirty document: a clean tick writes
+     * nothing, so claiming a backup would be a lie.
+     */
+    public void addSnapshotListener(Runnable listener) {
+        this.snapshotListener = listener == null ? () -> {
+        } : listener;
     }
 
     /**
@@ -426,6 +445,7 @@ public class AutoSaveService {
                     reportFailure(AutosaveHealth.Problem.DRAFT_WRITE, true);
                 } else {
                     health.clear(AutosaveHealth.Problem.DRAFT_WRITE);
+                    snapshotListener.run();
                 }
                 return null;
             }));

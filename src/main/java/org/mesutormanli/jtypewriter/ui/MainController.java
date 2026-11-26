@@ -61,6 +61,20 @@ public class MainController implements Initializable {
      */
     private LocalTime lastSavedAt;
     /**
+     * When the last recovery snapshot was written, or {@code null} while there
+     * is no draft on disk to point at. Kept beside {@link #lastSavedAt} so a
+     * language switch and a later edit can re-render the same claim instead of
+     * losing it.
+     */
+    private LocalTime lastBackupAt;
+    /**
+     * True between {@code onSavingChanged(true)} and the commit/failure. While a
+     * save is on the worker the bar owns the {@code "Saving..."} line, so a
+     * snapshot that lands in that window records its time without repainting
+     * over it.
+     */
+    private boolean saveInProgress;
+    /**
      * The title last handed to the native window, so a keystroke that only
      * changes the text is not turned into a {@code stage.setTitle} call.
      */
@@ -130,7 +144,7 @@ public class MainController implements Initializable {
         fileService.addListener(new FileService.Listener() {
             @Override
             public void onLoaded(java.nio.file.Path file) {
-                clearSaveStatus(); // a freshly opened file was not saved here
+                clearStatuses(); // a freshly opened file was not saved here
                 refreshTitle();
             }
 
@@ -138,15 +152,18 @@ public class MainController implements Initializable {
             public void onSaved(java.nio.file.Path file) {
                 // The onSaved listener is the dirty→clean seam in FileService (the
                 // autosave draft snapshot never reaches it), so this is the
-                // one honest moment to show "Saved 12:04" in the stats bar.
+                // one honest moment to say the document itself is on disk.
                 lastSavedAt = clock.get();
+                // The successful save also deletes the recovery draft, so a
+                // "backup saved at ..." claim is no longer true.
+                lastBackupAt = null;
                 refreshSaveStatus();
                 refreshTitle();
             }
 
             @Override
             public void onNewDocument() {
-                clearSaveStatus(); // a never-saved document has nothing to claim
+                clearStatuses(); // a never-saved document has nothing to claim
                 refreshTitle();
             }
 
@@ -159,6 +176,7 @@ public class MainController implements Initializable {
              */
             @Override
             public void onSavingChanged(boolean saving) {
+                saveInProgress = saving;
                 if (saving) {
                     statsBar.setSaveStatus(messages.savingStatus());
                 } else {
@@ -179,6 +197,7 @@ public class MainController implements Initializable {
             aboutCard.relocalise();
         });
         autoSaveService.health().addListener(this::refreshAutosaveWarning);
+        autoSaveService.addSnapshotListener(this::showBackupStatus);
         refreshTitle();
         // A failure can precede the wiring: parking the draft happens inside
         // offerRecovery, before this controller sees the stage.
@@ -197,20 +216,55 @@ public class MainController implements Initializable {
         statsBar.setAutosaveProblem(autoSaveService.health().problem().orElse(null));
     }
 
-    /** Drops the "Saved ..." claim: the document is dirty or was never saved. */
+    /**
+     * Drops the "Saved ..." claim: the document is dirty or was never saved.
+     * The backup claim survives, because the draft it names is still on disk -
+     * it is the reason the next 30 seconds of typing are not the only copy.
+     */
     private void clearSaveStatus() {
+        if (lastSavedAt == null) {
+            return; // already withdrawn; keeps the per-keystroke path a null check
+        }
         lastSavedAt = null;
-        statsBar.setSaveStatus(null);
+        refreshSaveStatus();
+    }
+
+    /** Drops both claims: after an open or a new document there is no draft of it. */
+    private void clearStatuses() {
+        lastSavedAt = null;
+        lastBackupAt = null;
+        refreshSaveStatus();
+    }
+
+    /**
+     * A successful snapshot is the only moment a recovery copy exists, so this
+     * is where the bar may say "Backup saved 12:04". A failed snapshot reports
+     * through {@link #refreshAutosaveWarning} instead - there is nothing to
+     * claim.
+     */
+    private void showBackupStatus() {
+        lastBackupAt = clock.get();
+        if (!saveInProgress) { // never overwrite the in-flight "Saving..." line
+            refreshSaveStatus();
+        }
     }
 
     /**
      * Renders the stored save time in the current language, or clears the
-     * status when there is nothing to claim.
+     * status when there is nothing to claim. A real save wins over the backup
+     * time: the document is on disk then, which is the stronger statement, and
+     * the draft that the backup claim would name has just been deleted.
      */
     private void refreshSaveStatus() {
-        statsBar.setSaveStatus(lastSavedAt == null
-                ? null
-                : savedStatusFor(messages.savedStatusTemplate(), lastSavedAt, messages.locale()));
+        if (lastSavedAt != null) {
+            statsBar.setSaveStatus(
+                    savedStatusFor(messages.savedStatusTemplate(), lastSavedAt, messages.locale()));
+        } else if (lastBackupAt != null) {
+            statsBar.setSaveStatus(
+                    savedStatusFor(messages.backupSavedStatusTemplate(), lastBackupAt, messages.locale()));
+        } else {
+            statsBar.setSaveStatus(null);
+        }
     }
 
     /**

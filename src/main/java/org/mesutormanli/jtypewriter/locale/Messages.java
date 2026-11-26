@@ -859,6 +859,19 @@ public class Messages {
     }
 
     /**
+     * Raw {@code MessageFormat} pattern for the backup confirmation in the
+     * stats bar, {@code {0}} being the localised snapshot time. Returned as the
+     * pattern for the same reason as {@link #savedStatusTemplate()}: the
+     * composition (and the clock) stay in the pure, headless
+     * {@code MainController.savedStatusFor}. The wording is kept apart from
+     * {@code savedStatus} because the two claims are different events: this one
+     * says a recovery copy exists, not that the document is on disk.
+     */
+    public String backupSavedStatusTemplate() {
+        return bundle.getString("backupSavedStatus");
+    }
+
+    /**
      * The short status-bar text shown while a save is still on the I/O worker.
      * A slow or network write must not look like a frozen window, so the bar
      * states what is happening until the save commits or fails.
