@@ -18,31 +18,30 @@
 
 <p align="center">English version: <a href="README.md">README.md</a></p>
 
-JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap yok, bulut yok, proje biçimi yok. Metnin, seçtiğin dosyada ve o dosyanın zaten sahip olduğu kodlamada kalır. Paketlenmiş uygulama kendi Java çalışma zamanını taşır, yani önce hiçbir şey kurmanız gerekmez; kaynaktan derleme veya fat JAR'ı çalıştırma JDK 25 ve Maven 3.8+ gerektirir. Linux ve Windows'ta çalışır ve arayüzü İngilizce, Türkçe, Almanca, Fransızca, İspanyolca ve İtalyanca konuşur.
+JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap yok, bulut yok, proje biçimi yok. Metniniz seçtiğiniz dosyada ve o dosyanın zaten sahip olduğu kodlamada kalır. Paketlenmiş uygulama kendi Java çalışma zamanını taşır, yani önce hiçbir şey kurmanız gerekmez. Linux ve Windows'ta çalışır ve arayüzü İngilizce, Türkçe, Almanca, Fransızca, İspanyolca ve İtalyanca konuşur.
 
-**Neler var?**
+## Neler var?
 
-- **Kazara mahvedemeyeceğin bir taslak.** YOLO modu Backspace, Delete, Kes ve Geri Al/İleri Al'ı kapatır; yalnızca ileri yazabilirsin. Her kayıt atomiktir ve dönen yedekler tutar; kaydedilmemiş iş 30 saniyede bir anlık görüntülenir - çökmeden sonra taslak geri teklif edilir ve o iletiyi kapatmak taslağı asla silmez.
-- **Yazma hissi.** Yazarken, Backspace veya Delete'e bastığında - seçtiğin ses düzeyinde - daktilo sesi, üç tema (koyu, açık, sepya) ve altı metin rengi; hepsi yazarken değiştirilebilir.
+- **Kazara mahvedemeyeceğiniz bir taslak.** YOLO modu Backspace, Delete, Kes ve Geri Al/İleri Al'ı kapatır; yalnızca ileri yazabilirsiniz. Her kayıt atomiktir, dönen yedekler tutar ve kaydedilmemiş iş 30 saniyede bir yedeklenir.
+- **Görünür bir güvenlik ağı.** Durum çubuğu her otomatik yedeği saatiyle onaylar; çökmeden sonra taslak geri teklif edilir ve o iletiyi kapatmak taslağı asla silmez.
+- **Yazma hissi.** Yazarken, Backspace veya Delete'e bastığınızda - seçtiğiniz ses düzeyinde - daktilo sesi, üç tema ve altı metin rengi; hepsi yazarken değiştirilebilir.
 - **Yazdıkça sayılar.** Kelime, boşluklu ve boşluksuz karakter, satır, tuş vuruşu, oturum süresi ve molaları saymayan sürdürülebilir kelime/dakika.
 - **Ekranda yalnızca metin.** `F11` tam ekran, `Ctrl+T` araç çubuğunu ve içinde duran komut menüsünü birlikte gizler; pencere başlığı hangi belgenin açık olduğunu ve kaydedilip kaydedilmediğini söyler.
-- **Kaldığın yerden devam eden oturum.** Dil, tema, metin rengi, yazı boyutu, son belge ve pencere geometrisi bir sonraki açılışta geri yüklenir.
+- **Kaldığınız yerden devam eden oturum.** Dil, tema, metin rengi, yazı boyutu, son belge ve pencere geometrisi bir sonraki açılışta geri yüklenir.
+- **Hiçbir şey makinenizden çıkmaz.** Hesap yok, telemetri yok, güncelleme denetimi yok, ağ isteği yok.
 
 ---
 
 ## İçindekiler
 
+- [Neler var?](#neler-var)
 - [Özellikler](#özellikler)
 - [Verileriniz](#verileriniz)
 - [Klavye Kısayolları](#klavye-kısayolları)
 - [Temalar](#temalar)
 - [Desteklenen Diller](#desteklenen-diller)
-- [Gereksinimler](#gereksinimler)
 - [Kurulum](#kurulum)
-- [Derleme ve Çalıştırma](#derleme-ve-çalıştırma)
-- [CI/CD](#cicd)
-- [Mimari](#mimari)
-- [Testler](#testler)
+- [Teknik Referans](#teknik-referans)
 - [Lisans](#lisans)
 - [Geliştirici](#geliştirici)
 - [Katkıda Bulunma](#katkıda-bulunma)
@@ -53,132 +52,136 @@ JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap 
 
 ### Daktilo Ses Efektleri
 
-Tuş sayfaya metin yazdığında otantik daktilo sesi. İmleç hareketi, fonksiyon tuşları ve kısayollar sessizdir, çünkü daktilo yalnızca yazdığında ya da üstünü çizdiğinde takırdar. Araç çubuğundaki Ses açılır listesi hızlı bir aç/kapat'tır; `Görünüm → Ses` düzey merdivenini açar - Kapalı, %25, %50, %75, %100 - ve seçim yeniden başlatmalar arasında hatırlanır; 0 tam sessizliktir. Her tık kendi sesini başlatır, öncekini kesmez; böylece hızlı yazım kekeleme değil hızlı yazım gibi duyulur.
+- Karakter yazmak takırdar; imleç hareketi, fonksiyon tuşları ve kısayollar sessizdir.
+- Ses düzeyi araç çubuğundaki Ses açılır listesinden ya da `Görünüm → Ses` menüsünden seçilir: Kapalı, %25, %50, %75, %100. Seçim yeniden başlatmalar arasında hatırlanır.
+- Her tık kendi sesini başlatır, öncekini kesmez; böylece hızlı yazım kekeleme değil hızlı yazım gibi duyulur.
 
 ### YOLO Modu
 
-"YOLO Modu" (You Only Live Once) kazara silmeyi önler. Etkinleştirildiğinde Backspace, Delete, Cut ve Geri Al/İleri Al devre dışı kalır (sağ-tık menüsünde Kes soluk/devre dışı gösterilir; yalnızca Kopyala/Yapıştır/Tümünü Seç kullanılabilir); böylece hiçbir düzenleme belgedeki mevcut karakterleri silemez. İlk taslak yazımında geriye bakmadan ileriye giden yazım için mükemmeldir. Mod, `[YOLO]` başlık rozeti ve araç çubuğundaki YOLO açılır listesi ile görünür tutulur; tema renkleri her iki durumda da değişmez.
+- `Ctrl+Shift+Y` Backspace, Delete, Kes ve Geri Al/İleri Al'ı devre dışı bırakır; böylece hiçbir düzenleme belgedeki mevcut karakterleri silemez.
+- Kopyala, Yapıştır ve Tümünü Seç çalışmaya devam eder; sağ-tık menüsünde Kes soluk gösterilir.
+- Modun açık olduğunu `[YOLO]` başlık rozeti ve araç çubuğundaki YOLO açılır listesi gösterir.
+- Bilinçli olarak hatırlanmaz: silmeyi engelleyen bir mod bir sonraki açılışta hâlâ etkin olmamalıdır.
 
 ### Gerçek Zamanlı İstatistikler
 
-Canlı istatistik çubuğu:
-- Kelime sayısı, karakter sayısı (boşluklu/boşluksuz), satır sayısı
-- Toplam tuş vuruşu
-- Oturum süresi (SS:DD:SS)
-- Dakikada kelime (WPM) - aktif yazım süresine dayalı kalıcı hız; molalar değeri düşürmez
-- Durum çubuğu metni varsayılan olarak 13 px'tir ve çift tıklandığında küçük, orta ve büyük arasında döner; rengi üç temada da WCAG AA kontrastını (en az 4.5:1) karşılar
-- Başarılı bir kayıt, saatini arayüz dilinin kendi saat biçimiyle durum çubuğuna yazar (ör. Türkçe `Kaydedildi 12:04`, İngilizce `Saved 12:04 PM`); sonraki düzenlemede temizlenir ve 30 saniyelik otomatik kayıt taslağı anlık görüntüsünü değil gerçek bir kaydı gösterir
+Alt çubuk canlı olarak şunları gösterir:
+
+- Kelime sayısı, boşluklu ve boşluksuz karakter sayısı, satır sayısı.
+- Toplam tuş vuruşu ve oturum süresi (`SS:DD:SS`).
+- Yalnızca aktif yazım süresine dayanan kelime/dakika; molalar değeri düşürmez.
+- `Ctrl+S` sonrası bir kayıt onayı (`Kaydedildi 12:04`) ve her otomatik yedekten sonra ayrı bir onay (`Yedek kaydedildi: 12:04`); böylece gerçek bir kayıt kurtarma kopyasıyla karışmaz.
+- Varsayılan 13 px metin; çift tıklayarak küçük, orta ve büyük arasında geçiş yapılır ve seçim hatırlanır.
+
+Kayıt onayı sonraki düzenlemede kaybolur; yedek onayı ise gerçek bir kayıt onun yerini alana ya da yeni bir belge açılana kadar kalır.
 
 ### Yazdırma ve PDF Dışa Aktarma
 
-`Ctrl+P` belgeyi yazdırır, `Ctrl+Shift+E` PDF olarak dışa aktarır; ikisi de Dosya menüsünde yer alır.
-
-- **Tek doğruluk kaynağı kaydedilmiş `.txt` dosyasıdır.** İki komut da editör tamponunu yazdırmaz: belgede kaydedilmemiş değişiklik varsa - ya da belge hiç kaydedilmemişse - önce Kaydet / Vazgeç sorusu çıkar ve vazgeçmek hiçbir şeyin yazdırılmaması, hiçbir şeyin dışa aktarılmaması demektir. Bilinçli olarak "yine de yazdır" düğmesi yoktur; olsaydı kâğıt dosyayla çelişebilirdi. Kayıttan sonra metin **diskten** belgenin kendi kodlamasıyla geri okunur, yani uygulamadan çıkan şey dosyanın tuttuğu şeyin aynısıdır.
-- **Ekrandan alınan aile, gerisi değil.** İki çıktı da paketlenmiş `DejaVu Sans Mono` yazı tipini sabit 12 punto, beyaz üzerine siyah kullanır. Tema, metin rengi ve editörün yazı boyutu bilerek yok sayılır: sayfa sayfadır ve okunması pencerenin Koyu modda olmasına ya da yakınlaştırmanın 24 px'te olmasına bağlı olmamalıdır.
-- **PDF kendi kendine yeter ve bizim tarafımızdan yazılır.** Hiçbir PDF kütüphanesi bağlanmaz: `PdfExport` dosyayı doğrudan yazar, editörün çizdiği yazı tipi dosyasının aynısını gömer (Type0 / Identity-H ve `/ToUnicode` eşlemesi, yani metin çıkarılabilir ve kopyalanabilir) ve aynı belge için bayt bayt aynı çıktıyı üretir. Yazdırma ile PDF aynı sayfalama modelini paylaşır, yani kâğıt ve dosya satırları aynı yerden kırar.
-- **Yerleşim kâğıdı izler.** Satırlar metin bloğunda sarılır (önce boşluklardan, tek parça çok uzun bir dizi için kod noktası sınırlarından), sekmeler dört hücrelik duraklara ilerler, satır sonları korunur ve dışa aktarım 20 mm kenar boşluklu A4 dikeydir. Yazdırırken sayfalama yazıcının kendi basılabilir alanını alır, böylece dar bir yazıcı satırları kâğıdın zorladığı yerden kırar.
-- Hatalar bildirilir, başarılar bildirilmez: yazıcı yokluğu, reddedilen iş ya da yazılamayan PDF bir uyarı açar; tamamlanan bir yazdırma veya yazılan dosya hiçbir şey söylemez.
+- `Ctrl+P` belgeyi yazdırır, `Ctrl+Shift+E` PDF olarak dışa aktarır; ikisi de Dosya menüsünde yer alır.
+- İkisi de **kaydedilmiş `.txt` dosyasını** kullanır, editör tamponunu değil: kaydedilmemiş değişiklik - ya da hiç kaydedilmemiş bir belge - önce Kaydet / Vazgeç sorusu çıkarır ve vazgeçmek hiçbir şeyin yazdırılmaması, hiçbir şeyin dışa aktarılmaması demektir.
+- Sayfa sabittir: paketlenmiş DejaVu Sans Mono, 12 punto, beyaz üzerine siyah, 20 mm kenar boşluklu A4 dikey. Tema, metin rengi ve editör yazı boyutu uygulanmaz.
+- PDF'i uygulamanın kendisi yazar ve aynı yazı tipini gömer, yani metni seçilebilir ve kopyalanabilir kalır.
+- Yazdırma ile PDF tek bir yerleşimi paylaşır; kâğıt ve dosya satırları aynı yerden kırar.
+- Hatalar uyarı açar; tamamlanan yazdırma ya da yazılan dosya hiçbir şey söylemez.
 
 ### Tam Ekran ve Araç Çubuğu
 
-- **`F11` ekranı devralır, `Escape` geri verir:** tam ekran `F11` ile açılıp kapanır, `Escape` ile çıkılır (platformun varsayılan çıkış ipucu gizlenir)
-- **Araç çubuğu tamamen kaybolabilir:** ekranda yalnızca metin kalsın istediğinizde `Ctrl+T` onu kaldırır
-- **Araç çubuğu ikinci satıra geçmez:** her genişlikte tek yatay satır kalır. Test edilen pencere boyutlarında altı açılır liste de değeriyle birlikte bir başlık gösterir ("Tema: Koyu", "Boyut: 16", "Dil: Deutsch") ve hiçbir şey taşmaz - 1280 px'te tam başlıklı, 900 px'te başlıklar yalın değere iner ("Koyu", "16", "Deutsch"), altı dilin tamamında, gerçek yerelleştirilmiş etiketlerden ölçülür. Pencere, en geniş daraltılmış satır ile pencere süslemesinin toplamının altına indirilemez (889 px, İspanyolca etiketlerden); böylece satır hiç kırpılmak zorunda kalmaz: minimum genişlik tahmin edilmez, altı paketten ölçülür ve bir çeviri etiketi büyütürse onu pinleyen test düşer. Eski bir yapıdan kalan ve bundan dar olan bir pencere boyutu minimumda geri gelir; saklanan değer o oturumun sonunda kendini onarır. Komut menüsü düğmesi ve altı düz düğme (ara, aç, kaydet, geri al, ileri al, hakkında) hiçbir zaman daralmaz ve her zaman görünür kalır
-  - **Her kontrole ulaşılır ve her kontrol açıklanır.** `Tab` sabitlenmiş görsel sırayı izler: Menü, Ara, Aç, Kaydet, Geri Al, İleri Al, Tema, YOLO, Ses, Renk, Boyut, Hakkında, Dil. Sıra `viewOrder` ile ayarlanır; JavaFX bu özelliği çizim ve isabet alma için belgeler, yani odak sırası araç takımı garantisi değil uygulama sözleşmesidir. Her kontrol görünür bir odak halkası ve arayüz dilinden gelen, varsa kısayolu da içeren bir tooltip taşır, örneğin "Kaydet (Ctrl+S)"
-- **Yerleşiminiz hatırlanır:** araç çubuğunun görünür veya gizli durumu, tam ekran ve durum çubuğunun boyutu yeniden başlatmalarda korunur; bir tercih yalnızca çıkışta değil, her değiştirdiğinizde kaydedilir
-  - **Tam ekran pencere geometrisiyle çakışmaz.** Tam ekranda bırakılan bir pencere yeniden tam ekran açılır; açılışta tam ekran, hatırlanan konum ve boyuta karşı kazanır, sonradan çıkıldığında hatırlanan konuma dönülür
+- `F11` tam ekranı açar ve kapatır, `Escape` tam ekrandan çıkar.
+- `Ctrl+T` araç çubuğunu - ve içinde yaşayan komut menüsünü - gizler, ekranda yalnızca metin kalır.
+- Araç çubuğu her genişlikte tek satır kalır: dar pencerede açılır liste başlıkları yalın değere iner, hiçbir kontrol kırpılmaz veya alt satıra geçmez.
+- Her kontrole `Tab` ile sabit bir sırada ulaşılır ve her kontrol, varsa kısayolunu da içeren arayüz dili tooltip'i taşır ("Kaydet (Ctrl+S)").
+- Görünür veya gizli durum, tam ekran ve durum çubuğu boyutu hatırlanır; her değişiklik o anda kaydedilir.
+- Tam ekranda bırakılan bir pencere yeniden tam ekran açılır; sonradan çıkıldığında hatırlanan konuma dönülür.
 
 ### Komut Menüsü
 
-Araç çubuğunun en solundaki kontrol, dört menüyü taşıyan bir `☰` düğmesidir: Dosya, Düzen ve Görünüm editör komutlarını, Yardım ise Hakkında'yı içerir. Kalıcı bir menü şeridi değil bir menü düğmesidir: ikinci bir krom satırı tam ekranda da sizinle gelir ve `Ctrl+T` sözünü bozar; bu yüzden menü, içinde yaşadığı araç çubuğuyla birlikte gizlenir. Platformun kendisinin yürütmediği her editör komutu, kısayollar ve araç çubuğu düğmeleriyle aynı `EditorAction` envanterinden üretilir; böylece `Yeni` (`Ctrl+N`) ve `Farklı Kaydet` (`Ctrl+Shift+S`) yalnız klavyede kalmaz, görünür bir yere de kavuşur. Görünüm bir sıralı-komut listesi değil: Tema, YOLO, Renk ve Boyut'un her biri, araç çubuğundaki açılır listelerin aynı değerlerini listeleyen ve o anki değeri işaretli gösteren ikinci seviye bir alt menü açar - `Görünüm → Tema → Koyu` gerçekten Koyu demektir, "sıradaki tema" değil. Ses ise düzey merdivenini açar (Kapalı, %25, %50, %75, %100); araç çubuğundaki Açık/Kapalı listesi ikinci bir ayar değil, aynı değerin kısayoludur. Bu alt menüler araç çubuğuyla aynı seçenek listelerinden üretilir ve aynı uygulama yolundan yazar, yani iki giriş noktası çelişemez. Etiketler ve hızlandırıcılar arayüz dilini izler (hızlandırıcılar açıklamadır - tuşu tuş filtresi yürütür), açılan menü araç çubuğundaki açılır listelerle aynı tema belirteçlerinden boyanır (Koyu, Açık ve Sepya ile değişir) ve Yardım → Hakkında, Hakkında kartını açar. Menüler elle yazılmadığı için bir komut artık bir giriş noktasında varken diğerinde eksik kalamaz.
+- Araç çubuğunun solundaki `☰` düğmesi Dosya, Düzen, Görünüm ve Yardım menülerini taşır.
+- Kalıcı bir menü şeridi değil bir menü düğmesidir; içinde yaşadığı araç çubuğuyla birlikte gizlenir, tam ekranda da peşinizden gelmez.
+- Platformun kendisinin yürütmediği her komut burada listelenir; `Yeni` (`Ctrl+N`) ve `Farklı Kaydet` (`Ctrl+Shift+S`) dahil.
+- `Görünüm → Tema`, `YOLO`, `Renk` ve `Boyut` o anki değeri işaretli gösteren alt menüler açar; `Ses` düzey merdivenini açar; `Yardım → Hakkında` Hakkında kartını açar.
+- Menü girdileri, kısayollar ve araç çubuğu düğmeleri tek bir komut listesinden üretilir, yani birbirinden kopamaz.
 
 ### Ara ve Değiştir
 
-`Ctrl+F` pencerenin sağ üst köşesinde, metnin üzerinde kompakt bir ara/değiştir kartı açar; `Ctrl+H` aynı kartı değiştirme alanı odaklı açar. Notepad++'ın diyaloğu örnek alındı: tek "Aranan" alanı, tek "Yeni metin" alanı, "Büyük/küçük harf duyarlı" onay kutusu, Sonrakini bul / Öncekini bul / Değiştir / Tümünü değiştir düğmeleri ve canlı bir durum satırı ("3 / 12", "12 eşleşme", "Eşleşme yok"). Kart bir modal pencere değil panel: arama bir kiptir, belge görünür kalır, sorguyu yazıp `F3` ile art arda gezilir ve kart `Escape` ya da Kapat düğmesiyle kapansa bile sorgu bir sonraki `F3` için saklanır.
-
-- **Aynı komutlar her yerde:** araç çubuğundaki `⚲` düğmesi, Düzen menüsü (`Ara`, `Sonrakini bul`, `Öncekini bul`, `Değiştir`) ve dört kısayol tek bir `EditorAction` yürütür, yani birbirinden kopamaz.
-- **F3 ve Shift+F3 eşleşmeler arasında gezer** ve iki yönde sarar; kart kapandıktan sonra da çalışır. Henüz sorgu yoksa `F3` hiçbir şey yapmamak yerine kartı açar.
-- **Arama düz metindir, regex değil:** `a.*b` o beş karakteri, `$1` dört karakteri anlatır; geçersiz desen diye ikinci bir hata yolu yoktur.
-- **10 MB'lık belge pencereyi kilitlemez.** Tarama kendi iş parçacığında koşar ve yalnızca hâlâ güncel metni, sorguyu ve harf duyarlılığını anlatıyorsa FX thread'inde kurulur; siz bir karakter daha yazdıktan sonra gelen sonuç atılır. Gerçek modelle 10 MiB'lık belgede ölçüldü: tam belge taraması 26-53 ms (0 eşleşme, 197 845 eşleşme ve tek harflik sorguda 1 187 069 eşleşme), hiçbiri FX thread'inde değil.
-- **Tümünü değiştir tek geri alma adımıdır:** yeni metin özgün eşleşmelerden hesaplanır ve tek düzenleme olarak uygulanır, böylece `Ctrl+Z` belgeyi tek hamlede geri alır. Değiştirme kendi çıktısını taramaz, yani `a` yerine `aa` yazmak sonlanır.
-- **YOLO modu önce sorar.** Mod, hiçbir düzenlemenin karakter silmediği sözünü verir; değiştirme eşleşen aralığı siler, bu yüzden YOLO açıkken kart her işlem için bir kez sorar ve iptal hiçbir şey yazmaz. Değişiklik sonrasında normal ve geri alınabilir bir düzenlemedir.
-- **Kart temayı izler:** yüzey, kenarlık, alanlar, onay kutusu, düğmeler ve durum satırı araç çubuğuyla aynı belirteçlerden çözülür; Koyu, Sepya ve Açık'ta yerel görünür - Modena'nın koyu temada beyaz boyayacağı giriş alanları dahil.
+- `Ctrl+F` pencerenin sağ üst köşesinde, metnin üzerinde bir ara/değiştir kartı açar; `Ctrl+H` aynı kartı değiştirme alanı odaklı açar.
+- Tek "Aranan" alanı, tek "Yeni metin" alanı, "Büyük/küçük harf duyarlı" onay kutusu, Sonrakini bul / Öncekini bul / Değiştir / Tümünü değiştir düğmeleri ve canlı bir durum satırı ("3 / 12", "Eşleşme yok").
+- Kart bir panel, modal pencere değil: belge görünür ve düzenlenebilir kalır.
+- `F3` ve `Shift+F3` eşleşmeler arasında iki yönde gezer ve sarar; kart kapandıktan sonra da çalışır, henüz sorgu yoksa `F3` kartı açar.
+- Kartı `Escape` ya da Kapat düğmesiyle kapatmak sorguyu bir sonraki `F3` için saklar.
+- Arama düz metindir, regex değil.
+- `Tümünü değiştir` tek bir geri alma adımıdır ve değiştirme kendi çıktısını taramaz.
+- YOLO açıkken değiştirme her işlem için bir kez sorar ve iptal hiçbir şey yazmaz.
+- Büyük belgeler pencereyi kilitlemez: tarama arka planda koşar.
 
 ### Hoş Geldin, Son Dosyalar ve Hakkında Kartları
 
-Hoş geldin ekranı, son dosyalar görünümü ve Hakkında görünümü artık ayrı pencereler değil, ara/değiştir panelinin durduğu sağ üst köşede birer kart. Köşeyi onunla paylaşıyorlar: biri açıldığında orada duran kart kapanır, yani gördüğünüz her zaman en son istediğiniz karttır.
-
-- **Belge kullanılabilir kalır.** Kart modal değil, yani açıkken içinden bir kısayol kopyalayabilirsiniz; kart kapandığında imleç metne geri döner.
-- **`Escape` ve `Enter` kartı kapatır**, diyalog olduğu zamanki gibi; kartın sağ üst köşesindeki `Kapat` düğmesi de aynısını yapar - ara paneldeki gibi bir simge değil, bir sözcük. Kartın tek düğmesi odur: içerik okunmak için vardır, alttaki ikinci bir eylem düğmesiyle kapatılmak için değil. Kart açılırken odağı bu düğme alır, yani bu tuşlar hemen çalışır; `Tab` yine kartın kontrollerini gezer.
-- **Sınırı ekran değil pencere.** Kısa bir pencerede karttan daha uzun bir kart pencereye sığacak kadar küçülür ve kaydırılır, kenardan taşmaz; araç çubuğuyla aynı tema belirteçlerinden boyandığı için Koyu, Sepya ve Açık'ta yerel görünür.
-- **Açıldığı dilde konuşur.** İçerik her açılışta ve dil değişiminde paketten yeniden kurulur, yani açık kalan bir kart dili değiştirdikten sonra önceki dilde kalamaz.
-- **Karşılama sizi karşılamayı bırakabilir.** Hoş geldin kartındaki "bir daha gösterme" onay kutusu kalıcı bir tercihtir; işaretlendiğinde kart açılışta bir daha açılmaz. Geri dönüş yolu `Dosya → Karşılama Kartını Göster`'dir: tercihi temizler ve kartı hemen açar, yani vazgeçme bir daha açılamayan bir kapı olmaz.
-
-**Son dosya listesi kendi kartındadır**, `Dosya → Son Dosyalar` ile açılır. Önceden hoş geldin kartının içindeydi ve listeyi, kullanıcının kapatabileceği bir karşılamaya bağlıyordu: karşılanmak istemeyen biri belgelerini yine de ister. İkisini ayırmak, karşılamanın kalıcı olarak kapatılabilmesini listeyi kaybetmeden sağlar; liste de her an yeniden açılabilir.
-
-- **On belge, en yenisi başta.** Aynı belgeyi yeniden açmak ikinci bir satır eklemek yerine onu başa taşır; göreli bir yolla ya da `..` üzerinden ulaşılan aynı dosya da aynı belge sayılır. Liste dolduğunda düşen **en eski** girdidir, asla en yenisi.
-- **Satır dosya adıyla adlandırılır**, böylece liste okunur kalır ve ev dizininiz ekrana gelmez; tam yol satırın ipucudur. Boş bir kart boş bir panel göstermek yerine bunu söyler.
-- **`Aç` ile aynı kapıdan açar.** İptal, başarısız bir kaydetme ve kodlama sorusu menüden veya sürükle-bırakla açmaktakiyle birebir aynı davranır - kart sonraki belgeyi adlandırır, düzenleyicideki belgeyi atmanın ikinci bir yolu değildir.
-- **Uygulama dışında silinen belge** listeden sessizce düşer, tıklandığında hata veren bir satıra dönüşmez.
+- Üçü de ara/değiştir panelinin durduğu sağ üst köşede, metnin üzerinde kart olarak açılır; biri açıldığında orada duran kart kapanır.
+- Modal değildir: belge kullanılabilir kalır; `Escape`, `Enter` ya da `Kapat` düğmesi kartı kapatır ve imleci metne geri verir.
+- Kısa bir pencerede karttan daha uzun bir kart pencereye sığacak kadar küçülür ve kaydırılır, kenardan taşmaz.
+- İçerik her açılışta ve dil değişiminde yeniden kurulur, yani açık kalan bir kart önceki dilde kalamaz.
+- Hoş geldin kartındaki "bir daha gösterme" onay kutusu hatırlanır; geri dönüş yolu `Dosya → Karşılama kartını göster`'dir.
+- `Dosya → Son Dosyalar` son on belgeyi en yenisi başta olacak şekilde listeler. Satırlar dosya adını gösterir, tam yol ipucundadır; uygulama dışında silinen bir belge listeden sessizce düşer.
+- Son dosya satırı `Aç` ile aynı kaydedilmemiş değişiklik kapısından geçer - düzenleyiciyi atmanın ikinci bir yolu değildir.
 
 ### Veri Güvenliği ve Kurtarma
 
-- **Atomik ve dayanıklı kayıt + yedek:** her kayıt geçici dosyaya yazılır, fsync edilir ve yeniden adlandırılarak yerine konur; böylece kayıt ortasında çökme ya da elektrik kesintisi belgeyi yarım bırakamaz
-  - **Yedek yol da güvenli.** Dosya sistemi atomik taşımayı desteklemiyorsa yeniden adlandırma düz taşımaya düşer ve baytlar o anda zaten diskte olur.
-  - **Üzerine yazma geçmişi ve izinleri korur.** Dönen yedekler (`dosya.bak`, `.bak.1`, `.bak.2`) tutulur ve belgenin mevcut dosya izinleri korunur.
-- **Belge farkındalığı:** pencere başlığı açık belgenin adını ve kaydedilmemiş değişiklik varken bir `*` işaretini gösterir (`[YOLO]` rozetinin yanında)
-  - **Yeni belge gerçek bir karardır.** `Ctrl+N` boş, adlandırılmamış bir belge açar - dosya açarken sorulan kaydet / kaydetme / iptal sorusu burada da sorulur - ve YOLO modu açıkken de çalışır.
-  - **Geri alma belge sınırında durur.** Belge açmak veya yeni belge oluşturmak geri alma geçmişini sıfırlar, böylece `Ctrl+Z` önceki belgenin metnini asla geri getiremez.
-- **Otomatik kayıt ve kurtarma:** kaydedilmemiş çalışma 30 saniyede bir ve odak kaybında `~/.jtypewriter/recovery/` altına alınır; çökmeden kalan taslak bir sonraki açılışta geri yükleme için teklif edilir. İstem geri yükle / sil / sonra sor seçeneklerini sunar; kapatmak hiçbir şeyi silmez.
-  - **Silme istisnadır.** Taslak yalnızca pencerenin kapatma isteği kapatma yönünde yanıtlandığında silinir - belge kaydedildiyse ya da açıkça atmayı seçtiyseniz. Diğer tüm çıkış yolları (`Platform.exit()`, oturumdan çıkış, pencerenin yalnızca gizlenmesi) taslağı `pending-<uuid>.jtw` olarak park eder, böylece bir sonraki açılışta yeniden teklif edilir.
-  - **Yazmaya devam edersiniz.** Ertelenen taslak aktif slotu serbest bırakır, yani üzerinde çalıştığınız belge için otomatik kayıt devam eder; park edilemezse slot dondurulur ve dosyaya hiç dokunulmaz.
-  - **Bayat taslak belgeyi geriye çeviremez.** Diskteki dosya taslaktan kesinlikle daha yeniyse (eşit zaman damgaları bayat sayılmaz), metin yine de geri yüklenir - kurtarılabilir metin asla atılmaz - ancak özgün yolu olmadan; böylece sonraki kayıt Farklı Kaydet'e zorlanır.
-  - **Arızalar görünür.** Başarısız bir kurtarma yazımı, sonraki yazım başarılı olana kadar durum çubuğunda uyarı bırakır ve ne yapılacağını açıklayan tek bir diyalog açar. Başarısız bir silme kendi uyarısını gösterir, bu uyarı sonraki başarılı silmede kalkar ve diyalog açılmaz - diyalog yalnızca kopya yazılamadığında gösterilir.
-- **Kodlama güvenliği:** BOM'lu bir dosya, BOM'unun belirttiği kodlamayla çözülür; BOM'suz bir dosya geçerli UTF-8 olmalı ya da UTF-16'nın bayt düzenini taşımalıdır; aksi halde sessiz bozulma yerine Windows-1254 mü UTF-8 mi olduğu sorulur
-  - **Uyuşmayan bayt sıra işareti tahmin değil, sorudur.** UTF-8 veya UTF-16 bildiren ancak bazı baytları o kodlama için geçersiz olan bir bayt sıra işareti sessizce çözülmez: uygulama işaretin içerikle eşleşmediğini söyler, bildirilen kodlamayı ve dosyayı adlandırır ve açmadan önce sorar. Yine de açmak bozuk baytları değiştirme karakterleri olarak gösterir ve bunu loglar; iptal etmek mevcut belgeye dokunmaz
-  - **Kayıt kodlamayı korur.** Belgeler aynı kodlamayla geri yazılır; yalnızca metin o kodlamaya sığmadığında (örn. Windows-1254 dosyaya yapıştırılan emoji) sunulan UTF-8'e geçişi kabul ederseniz kodlama değişir - temsil edilemeyen karakterler asla sessizce `?` yapılmaz
-  - **BOM'suz UTF-16 dosyası tahmin edilmez, tanınır.** Bayt sıra işareti olmayan ve baytları UTF-16 parite düzenine uyan bir belge, NUL yüklü UTF-8 olarak kabul edilip sonraki kayıtta yeniden yazılmak yerine UTF-16LE veya UTF-16BE olarak açılır (ve loglanır); iki düzene de uymayan metin sessiz bir varsayım yerine yine Windows-1254/UTF-8 sorusunu alır
-- **Hata görünürlüğü:** beklenmeyen hatalar `~/.jtypewriter/logs/` altına tam yığın iziyle (neden zinciri dahil) yazılır; yakalanmamış çökmeler ve yazılamayan veya park edilemeyen bir kurtarma taslağı da sessizce kaybolmak yerine hata diyaloğu açar.
-  - **Bazı yollar yalnızca loglanır.** Başarısız bir tuş sesi ve başarısız bir geri alma geçmişi sıfırlaması diyalog olmadan loglanır; başarısız bir ayar yazımı ise dosyayı adlandıran tek bir uyarı açar, çünkü aksi halde o andan sonra değiştirilen her tercih sessizce kaybolurdu. Başarısız bir taslak silme diyalog değil durum çubuğu uyarısı gösterir.
-  - **Bozuk durum üzerine yazılmaz, kenara alınır.** Bozuk ayar dosyası `settings.properties.corrupt` olarak kenara alınır ve içeriği tanılama için korunur.
-  - **Loglama açılışı engelleyemez.** Log dosyası oluşturulamazsa - JVM ev dizinine erişimi reddederse veya log konumu salt okunursa - uygulama yalnızca konsol loglamasıyla açılır.
+- **Atomik kayıt.** Her kayıt geçici bir dosyaya yazılır, diske indirilir ve yerine taşınır; böylece kayıt ortasında çökme ya da elektrik kesintisi belgeyi yarım bırakamaz.
+- **Dönen yedekler.** Üzerine yazma `<document>.bak`, `.bak.1` ve `.bak.2` bırakır ve belgenin dosya izinlerini korur.
+- **Otomatik yedekler.** Kaydedilmemiş iş 30 saniyede bir ve pencere odağı kaybolduğunda anlık görüntülenir; durum çubuğu her birini saatiyle onaylar.
+- **Çökmeden sonra kurtarma.** Geriye kalan taslak bir sonraki açılışta teklif edilir: geri yükle, sil ya da sonra sor. Bu iletiyi kapatmak hiçbir şeyi silmez.
+- **Silme istisnadır.** Taslak yalnızca kapatma istemi yanıtlandığında silinir - belge kaydedildiyse ya da açıkça atmayı seçtiyseniz. Diğer tüm çıkışlar taslağı bir sonraki açılış için saklar.
+- **Yedek belgeyi geriye çeviremez.** Diskteki dosya taslaktan daha yeniyse metin yine geri yüklenir, ancak özgün yolu olmadan; böylece kayıt Farklı Kaydet'e zorlanır.
+- **Arızalar görünür.** Yazılamayan bir yedek, sonraki yazım başarılı olana kadar durum çubuğunda uyarı bırakır ve tek bir diyalogla ne yapılacağını açıklar. Başarısız bir taslak silme kendi kısa uyarısını gösterir ve diyalog açmaz.
+- **Belge farkındalığı.** Başlık belgenin adını, kaydedilmemiş değişiklik varken `*` işaretini ve mod açıkken `[YOLO]` rozetini gösterir.
+- **Yeni belge gerçek bir karardır.** `Ctrl+N` aynı kaydet / kaydetme / iptal sorusunu sorar ve geri alma geçmişi belge sınırında durur.
+
+### Kodlama Güvenliği
+
+- Belge, açıldığı kodlamayla geri kaydedilir.
+- BOM'lu bir dosya, BOM'unun belirttiği kodlamayla çözülür.
+- BOM'suz bir dosya geçerli UTF-8 olmalı ya da UTF-16 bayt düzenini izlemelidir; aksi halde sessiz bozulma yerine Windows-1254 mü UTF-8 mi olduğu sorulur.
+- Bayt sıra işareti içerikle çelişiyorsa bu bir tahmin değil sorudur: uygulama bildirilen kodlamayı ve dosyayı adlandırır, açmadan önce sorar.
+- Kodlamanın temsil edemediği karakterler sessizce `?` yapılmaz; UTF-8'e geçiş teklif edilir.
 
 ### Ayarlar ve Oturum Geri Yükleme
 
-- **Neler hatırlanır:** dil, tema, metin rengi, font boyutu, ses düzeyi, son belge ve klasörü ile pencere geometrisi `~/.jtypewriter/settings.properties` dosyasına kaydedilir; bir sonraki oturum öncekinin bittiği yerden başlar - aynı görünüm, aynı belge, aynı pencere
-  - **Hiçbir şey açılışı engellemez.** Aradan geçen sürede silinmiş bir belge sessizce atlanır, bozuk bir ayar dosyası ise başlangıcı engellemek yerine varsayılanlara döner
-  - **Dosya kendi şema sürümünü taşır.** `schema.version`, eski bir sürümün yazdığı dosyanın yeni sürümde değer kaybetmeden açılmasını sağlar; daha yeni bir sürümün dosyası ise bu sürümün anladığı kadarıyla okunur ve asla geriye düşürülmez. Göç bellekte yapılır; dosya ancak bir sonraki gerçek değişiklikte yeniden yazılır
-  - **Yazılamayan ayar dosyası bir kez bildirilir.** Pencere çalışmaya devam eder ve belgelerinize dokunulmaz; uyarı dosyayı adlandırır ve dil, tema, yazı tipi boyutu ile pencere konumunun bu oturumdan sonra hatırlanmayacağını söyler
-  - **YOLO modu bilinçli olarak *kaydedilmez*.** Silmeyi engelleyen bir modun bir sonraki açılışta hâlâ etkin olması istenmez
+- Hatırlananlar: dil, tema, metin rengi, yazı boyutu, ses düzeyi, son belge ve klasörü, pencere geometrisi, araç çubuğu görünürlüğü, durum çubuğu boyutu ve tam ekran.
+- Hiçbir şey açılışı engellemez: kaybolmuş bir belge sessizce atlanır, bozuk bir ayar dosyası varsayılanlara döner.
+- Yazılamayan bir ayar dosyası bir kez uyarır, dosyayı adlandırır ve neyin hatırlanmayacağını söyler.
+- Eski bir sürümün yazdığı dosya değer kaybetmeden açılır; daha yeni bir sürümün dosyası bu sürümün anladığı kadarıyla okunur ve asla geriye düşürülmez.
+- YOLO modu bilinçli olarak **geri yüklenmez**.
 
 ### Uygulama Dışından Belge Açma
 
-`JTypeWriter notlar.txt` belgeyi doğrudan açar; dosya ilişkilendirmesi veya çift tıklama aynı yolu aynı koddan geçirir, böylece iki giriş noktası aynı davranır. Yalnızca bir dosya adlandırılabilir: ikinci argüman sessizce ilkini seçmek yerine adını söyleyen bir iletişim kutusuyla reddedilir. Var olmayan, normal bir dosya olmayan ya da yol olarak çözülemeyen bir metin arayüz dilinde bildirilir - başlangıç asla sessizce boş bir düzenleyiciye düşmez, çünkü bu tam olarak kaybolmuş bir belge gibi görünürdü. Argüman yoksa, kendi onay kutusuyla kapatmadığınız sürece karşılama kartı görünür (Dosya menüsü onu yeniden açar). Kurtarılan taslak komut satırındaki belgeden yine önce gelir: o metnin tek kopyası odur, adlandırılan dosya ise hâlâ diskte. Sembolik bağlantı kendi adını korur; kaydetme yolu bağlantıyı hedefine kadar zaten izler. Bir örnek çalışırken ikinci örnek başlatmak tek örnek kilidi tarafından yine reddedilir - devir yoktur, yani çalışan pencereye dosyayı açması söylenmez.
-
-**Dosya sürükleyip bırakmak da aynı anlama gelir.** Bir `.txt` veya `.md` dosyasını pencerenin üzerine - metne, durum çubuğuna, herhangi bir yere - sürükleyin; dosya Aç ile aynı koddan geçerek açılır: kirli belge için önce sorulur ve İptal ya da iptal edilen bir kaydetme düzenleyiciyi olduğu gibi bırakır, yani bırakma kaydetme sorusunu atlayan bir kısayol değildir. Hedef tüm penceredir çünkü imleç oradadır ve jest, metin alanı onu sürüklenen metin sanmadan önce yakalanır. Düzenleyici içindeki düz metin sürüklemeleri eskisi gibi çalışır. Hiç dosya olmaması, aynı anda birden çok dosya, bir klasör, bir PDF ya da sürükleme ile bırakma arasında kaybolmuş bir dosya, neyin bırakıldığını söyleyen bir diyalogla reddedilir - sessizce hiçbir şey yapmayan bir bırakma, bozuk bir pencere gibi görünürdü.
+- `JTypeWriter notlar.txt` o belgeyi açar; dosya ilişkilendirmesi veya çift tıklama aynı yolu aynı koddan geçirir.
+- Yalnızca bir dosya adlandırılabilir: ikinci argüman adını söyleyen bir diyalogla reddedilir.
+- Olmayan bir yol, bir klasör ya da çözülemeyen bir argüman, sessizce boş bir düzenleyiciye düşmek yerine arayüz dilinde bildirilir.
+- Argüman yoksa, kendi onay kutusuyla kapatmadığınız sürece karşılama kartı görünür.
+- Kurtarılan taslak komut satırındaki belgeden önce gelir: o metnin tek kopyası odur, adlandırılan dosya ise hâlâ diskte.
+- **Sürükle-bırak da aynı şekilde çalışır.** Bir `.txt` veya `.md` dosyasını pencerenin herhangi bir yerine bırakın; dosya Aç ile aynı kapıdan, kaydetme sorusu dahil, açılır.
+- Hiç dosya olmaması, birden çok dosya, bir klasör, bir PDF ya da bırakmadan önce kaybolmuş bir dosya, neyin bırakıldığını söyleyen bir diyalogla reddedilir.
 
 ### Tek Örnek
 
-Kullanıcı hesabı başına yalnızca bir JTypeWriter örneği çalışır: `~/.jtypewriter/`
-altındaki bir kilit dosyası ikinci başlatmayı durdurur. İkinci süreç kendi penceresini
-açmaz - onaylanması gereken yerelleştirilmiş bir uyarı diyaloğu gösterir ve ancak ondan
-sonra kapanır. Çalışan örnek çökerse kilit işletim sistemi tarafından otomatik bırakılır;
-çökme sizi dışarıda bırakmaz.
+- Kullanıcı hesabı başına bir örnek; `~/.jtypewriter/` altındaki bir kilit dosyası ikinci başlatmayı durdurur.
+- İkinci başlatma kendi penceresini açmaz: yerelleştirilmiş bir uyarı gösterir, onaylanmayı bekler ve kapanır.
+- Çalışan örnek çökerse kilit işletim sistemi tarafından bırakılır, yani çökme sizi dışarıda bırakmaz.
 
-### Çoklu Tema
+### Temalar
 
-Üç yerleşik tema. Varsayılan Koyu; `Ctrl+Shift+T` bu sırayla geçer: Koyu → Sepya → Açık (araç çubuğundaki Tema açılır listesinden doğrudan da seçilebilir):
-- **Açık** - Temiz ve parlak
-- **Koyu** - Varsayılan, göz yormaz
-- **Sepya** - Sıcak, kağıt hissi
+- **Koyu** - varsayılan; göz yormaz.
+- **Açık** - temiz ve parlak.
+- **Sepya** - sıcak, kâğıt hissi.
+
+`Ctrl+Shift+T` Koyu → Sepya → Açık sırasıyla gezer; araç çubuğundaki Tema açılır listesi ve `Görünüm → Tema` doğrudan seçer. Temalar yazarken değiştirilebilir ve durum çubuğu metni üç temada da WCAG AA kontrastını (en az 4.5:1) karşılar.
 
 ### Metin Renkleri
 
-Altı metin rengi (bir varsayılan + beş vurgu rengi): Varsayılan, Adaçayı, Lavanta, Kum, Çelik, Gül
+Altı renk - Varsayılan, Adaçayı, Lavanta, Kum, Çelik, Gül. `Ctrl+Shift+C` sırayla gezer; araç çubuğu ve `Görünüm → Renk` doğrudan seçer.
 
-### Çoklu Dil Desteği
+### Desteklenen Diller
 
-6 dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca, İspanyolca. Dil değiştirildiğinde araç çubuğu, diyaloglar, pencere başlığı ve durum çubuğu anında güncellenir; sabit bir desen yerine her tarih ve saat o dilin kendi biçimiyle yazılır.
+Altı dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca ve İspanyolca. Dil değiştirildiğinde araç çubuğu, menüler, diyaloglar, kartlar, pencere başlığı ve durum çubuğu anında güncellenir; her tarih ve saat o dilin kendi biçimiyle yazılır.
 
 ---
 
@@ -186,11 +189,14 @@ Altı metin rengi (bir varsayılan + beş vurgu rengi): Varsayılan, Adaçayı, 
 
 JTypeWriter'ın sakladığı her şey makinenizde kalır. Hesap yok, telemetri yok, güncelleme denetimi yok ve ağ isteği yok: uygulama kendisi hiçbir şey göndermez; dışa açılan tek eylem, Hakkında kartındaki e-posta bağlantısıdır ve `mailto:` adresini kendi posta istemcinize devreder.
 
-- **Nerede durur:** `~/.jtypewriter/` - `settings.properties` (dil, tema, metin rengi, yazı boyutu, ses, araç çubuğu görünürlüğü, durum çubuğu boyutu, pencere geometrisi ve son belge ile klasörü mutlak yol olarak), `recovery/` (çökme kurtarma taslakları), `logs/` ve belge içeriği taşımayan danışma amaçlı tek örnek kilidi `instance.lock`.
-- **Taslaklar metninizi içerir.** Her `recovery/draft-<uuid>.jtw` kaydedilmemiş belgenin metnini birebir tutar; ertelenen taslak `pending-<uuid>.jtw` olarak park edilir ve temiz çıkıştan sonra da kalır. Taslak, metnin geldiği mutlak yolu da yazar; ayırıcılar ve satır sonları bozulmasın diye Base64 ile kodlanmıştır - bu bir kodlamadır, şifreleme değildir - yani taslak, geldiği belgeden daha uzun yaşayabilir. Tarama yalnızca düz dosyaları okur: taslak gibi adlandırılmış bir sembolik bağ izlenmez, yok sayılır; 64 MiB'ın üzerindeki bir dosya başlangıçta yüklenmek yerine atlanır. Park edilmiş taslaklar bir temizlik meselesidir - 30 gün sonra süresi dolar ve küme 10 dosya / 64 MiB ile sınırlıdır - oysa etkin bir `draft-<uuid>.jtw` asla süresi dolmaz, çünkü başka bir çalışan örneğe ait olabilir.
-- **Belgelerinizin yanında:** üzerine yazma `<document>.bak`, `.bak.1` ve `.bak.2` bırakır; kayıt, dosyayı yerine taşımadan önce yanına `jtw-<name>*.tmp` yazar. İkisi de belge metnini içerir. Bu yüzden bir belge diskte boyutunun dört katı yer kaplar, kayıt yazılırken kısa süreliğine altı katına çıkar; ilk kayıt bunu bir kez söyler.
-- **Loglar:** `logs/jtypewriter-0.log` ile `jtypewriter-2.log` arası, her biri bir megabaytlık, dönen üç kuşak. Dosya yollarını, hata iletilerini ve tam yığın izlerini içerirler.
-- **Hepsini silmek:** önce uygulamayı kapatın, aksi halde log tutucusu ve `instance.lock` yeniden oluşturulur; sonra `~/.jtypewriter` dizinini ve belgelerinizin yanındaki `<document>.bak*` ile artık kalmış `jtw-*.tmp` dosyalarını silin. Uygulama içinde "tüm verileri sil" komutu yoktur ve uygulamayı kaldırmak bu veriyi silmez - kurulu imajı veya paketi kaldırmak `~/.jtypewriter` dizinini yerinde bırakır.
+- **Nerede durur:** `~/.jtypewriter/` - tercihler, kurtarma taslakları, loglar ve tek örnek kilidi.
+- **Taslaklar metninizi içerir.** Her kurtarma taslağı kaydedilmemiş belgenin metnini birebir tutar; ertelediğiniz taslak temiz çıkıştan sonra da kalır ve bir sonraki açılışta yeniden teklif edilir.
+- **Yedekler belgelerinizin yanında durur.** Üzerine yazma `<document>.bak`, `.bak.1` ve `.bak.2` bırakır; kayıt, dosyayı yerine taşımadan önce yanına `jtw-*.tmp` geçici dosyası yazar. İkisi de belge metnini içerir, bu yüzden bir belge diskte boyutunun dört katı yer kaplar - kayıt sırasında kısa süreliğine altı katına çıkar. İlk kayıt bunu bir kez söyler.
+- **Loglar** her biri bir megabaytlık, dönen üç dosyada tutulur; dosya yollarını, hata iletilerini ve yığın izlerini içerir.
+- **Kurtarma taslakları temizlenir.** Ertelenen taslakların süresi 30 gün sonra dolar ve park edilmiş küme 10 dosya / 64 MiB ile sınırlıdır; etkin bir taslağın süresi asla dolmaz - başka bir çalışan örneğe ait olabilir.
+- **Hepsini silmek:** önce uygulamayı kapatın - aksi halde log tutucusu ve kilit yeniden oluşturulur - sonra `~/.jtypewriter` dizinini ve belgelerinizin yanındaki `<document>.bak*` ile artık kalmış `jtw-*.tmp` dosyalarını silin. Uygulama içinde "tüm verileri sil" komutu yoktur ve uygulamayı kaldırmak bu veriyi silmez.
+
+Dosya adları, kodlamalar ve sınırların ayrıntısı [Diskteki veriler](#diskteki-veriler) bölümündedir.
 
 ---
 
@@ -225,53 +231,28 @@ Kısayollar Windows ve Linux'ta `Ctrl` ile çalışır. Numpad `+`, `-` ve `0` t
 
 ---
 
-## Temalar
+## Kurulum
 
-CSS dosyaları `src/main/resources/css/` konumundadır:
+Kurulum paketini (Linux'ta `.deb`, Windows'ta `.msi`) ya da taşınabilir `.tar.gz` dosyasını
+[GitHub Releases sayfasından](https://github.com/hyperpostulate/JTypeWriter/releases),
+doğrulamak için `SHA256SUMS` dosyasıyla birlikte indirin.
 
-| Tema | Dosya | Açıklama |
-|------|-------|----------|
-| Temel | `base.css` | Tüm temalarda paylaşılan stiller |
-| Koyu | `dark.css` | Koyu arka plan, açık metin |
-| Açık | `light.css` | Açık arka plan, koyu metin |
-| Sepya | `sepia.css` | Sıcak sepya tonlu arka plan |
-
----
-
-## Desteklenen Diller
-
-| Dil | Dosya | Kod |
-|-----|-------|-----|
-| İngilizce | `messages.properties` | `EN` |
-| Türkçe | `messages_tr.properties` | `TR` |
-| Almanca | `messages_de.properties` | `DE` |
-| Fransızca | `messages_fr.properties` | `FR` |
-| İtalyanca | `messages_it.properties` | `IT` |
-| İspanyolca | `messages_es.properties` | `ES` |
+- İki kanal da gömülü çalışma zamanı taşır, yani hiçbiri Java kurulumu gerektirmez.
+- `.tar.gz` arşivini açıp doğrudan çalıştırırsınız: kurulum adımı ve root hakkı gerekmez.
+- Kaynaktan derlemek isterseniz [Derleme ve Çalıştırma](#derleme-ve-çalıştırma) bölümüne bakın.
 
 ---
 
-## Gereksinimler
+## Teknik Referans
+
+### Gereksinimler
 
 | Gereksinim | Sürüm |
 |------------|-------|
 | Paketlenmiş uygulama | Java gerekmez (gömülü JDK çalışma zamanı) |
 | Kaynaktan derleme / fat JAR | Java 25+, Maven 3.8+ |
 
----
-
-## Kurulum
-
-### İndirme (son kullanıcılar)
-
-Kurulum paketini (Linux'ta `.deb`, Windows'ta `.msi`) ya da taşınabilir `.tar.gz` dosyasını
-[GitHub Releases sayfasından](https://github.com/hyperpostulate/JTypeWriter/releases),
-doğrulamak için `SHA256SUMS` dosyasıyla birlikte
-indirin. İki kanal da gömülü çalışma zamanı taşır, yani hiçbiri Java kurulumu
-gerektirmez. Aşağıdaki `git clone` ve `mvn clean install` adımları geliştirici
-yoludur, kullanıcı yolu değildir.
-
-### Manuel Derleme
+### Derleme ve Çalıştırma
 
 ```bash
 git clone https://github.com/hyperpostulate/JTypeWriter.git
@@ -279,9 +260,7 @@ cd JTypeWriter
 mvn clean install
 ```
 
----
-
-## Derleme ve Çalıştırma
+Günlük komutlar:
 
 ```bash
 mvn clean javafx:run                 # Uygulamayı derle ve başlat
@@ -377,24 +356,46 @@ varlıklarla karşılaştırır (tam eşleşme %0,00 fark; kasıtlı bir palet d
 eski sürüm 6'nın `convert` komutunu da kabul eder; böylece yeniden üretim hem
 geliştirici makinesinde hem ImageMagick 6 paketleyen bir çalıştırıcıda çalışır.
 
----
+### Tema ve dil kaynakları
 
-## CI/CD
+CSS dosyaları `src/main/resources/css/` konumundadır:
 
-GitHub Actions iş akışları: `main` dalına her push ve pull request'te derleme ve test (`.github/workflows/maven.yml`), sürüm tag'inde yayın (`.github/workflows/release.yml`). Kapıları ikisi de kendisi tanımlamıyor: ikisi de ortak `.github/workflows/verify-build.yml` iş akışını çağırıyor, böylece bir tag dalın koştuğu ikon kontrolünü, yerel ayar koşularını, bayt karşılaştırmasını ve smoke açılışını aynen koşuyor.
+| Tema | Dosya | Açıklama |
+|------|-------|----------|
+| Temel | `base.css` | Tüm temalarda paylaşılan stiller |
+| Koyu | `dark.css` | Koyu arka plan, açık metin |
+| Açık | `light.css` | Açık arka plan, koyu metin |
+| Sepya | `sepia.css` | Sıcak sepya tonlu arka plan |
 
-- **Tetikleme**: `main` dalına her push ve pull request'te çalışır
-- **Ortam**: Ubuntu ve Windows (build matrisi)
-- **JDK**: Temurin 25
-- **Komut**: `mvn -B package` (derleme + testler), ardından `scripts/package.sh --skip-build --installer`
-- **Kapılar**: `scripts/generate-icons.py --check` iki işletim sistemi ayağında da derlemeden önce koşar: her simgenin özetini `icons.manifest` ile karşılaştırır, böylece kanonik görselle artık eşleşmeyen bir varlık on dakika sonra değil bir dakika içinde kırmızı olur. Bilerek yeniden rasterleştirmez: ImageMagick aynı pikselleri farklı derlemelerde farklı baytlara kodlar, yani CI'da bayt ya da piksel karşılaştırması görseli değil araç zincirini karşılaştırırdı. `scripts/verify-artifacts.sh --skip-build` paketlemeden sonra koşar (Linux ayağı, çünkü `.deb` paketini `dpkg-deb` ile açar) ve depo yükü, uygulama görüntüsü ile kurulum paketi arasındaki bayt bayt karşılaştırmayı yeniden kanıtlar. Ayrı bir `smoke` işi paketlenen artefaktı indirip `scripts/smoke-appimage.sh --skip-build` betiğini iki işletim sistemi ayağında çalıştırır: Linux imajı Xvfb altında başlatır, `.deb` paketini kurar, çalıştırır ve kaldırır; Windows başlatıcının ayakta kalmasını şart koşar
-- **Diller**: test paketi Türkçe ve Almanca sistem dillerinde de çalışır; böylece yerelleştirme regresyonları (ör. bir dilin sessizce sistem diline çözülmesi) gözden kaçamaz
-- **Artefaktlar**: her işletim sistemi için yerel uygulama görüntüsü ve platform kurulum paketi (`.deb` / `.msi`)
-- **Sürümler**: `pom.xml` sürümüyle eşleşen bir `v*` tag'i itildiğinde iki platform da derlenip bir GitHub Release'e yüklenir; yanına `SHA256SUMS` dosyası eklenir, böylece ikililer birkaç gün sonra silinen Actions artefaktlarına bağlı kalmaz. Aynı iş akışı elle **kuru koşu** olarak da başlatılabilir: `prepare`, iki işletim sistemi derlemesi, varlık/kaynak/özet birleştirmesi, beş varlık assert'i ve sürüm notu üretimi aynen koşar; yayımlama yerine bir artefakt yüklenir ve içinde tam olarak yayımlanacak set bulunur. Elle başlatılan bir koşu yayımlayamaz - dal ucundan üretilen bir sürüm kendi tag'inden yeniden üretilemez - bu yüzden `dry_run` varsayılanı `true`'dur ve `false` isteği `prepare` içinde reddedilir. Yayımlanan sürüm normal bir sürümdür, ön sürüm değil: `v1.1.0` `--prerelease` işaretini, nottaki erken erişim cümlesiyle birlikte kaldırdı, çünkü proje artık kullanıma hazır dediği bir sürümü yayımlıyor. Bayrak ile cümle aynı şeyin iki iddiasıdır; bu yüzden `ReleaseNotesTest` ikisini bir çift olarak pinliyor - yayımlama adımında bayrak yok, notun iki yarısında da erken derleme ifadesi yok - ve biri diğeri olmadan geri gelemez
+Yerelleştirilmiş metin, `src/main/resources/` altında dil başına bir pakette durur:
 
----
+| Dil | Dosya | Kod |
+|-----|-------|-----|
+| İngilizce | `messages.properties` | `EN` |
+| Türkçe | `messages_tr.properties` | `TR` |
+| Almanca | `messages_de.properties` | `DE` |
+| Fransızca | `messages_fr.properties` | `FR` |
+| İtalyanca | `messages_it.properties` | `IT` |
+| İspanyolca | `messages_es.properties` | `ES` |
 
-## Mimari
+### Diskteki veriler
+
+JTypeWriter'ın kendi verisi `~/.jtypewriter/` altındadır:
+
+| Yol | İçerik |
+|-----|--------|
+| `settings.properties` | dil, tema, metin rengi, yazı boyutu, ses düzeyi, araç çubuğu görünürlüğü, durum çubuğu boyutu, pencere geometrisi, son belge ve klasör (mutlak yollar) ve `schema.version` |
+| `recovery/draft-<uuid>.jtw` | etkin oturumun kaydedilmemiş taslağı |
+| `recovery/pending-<uuid>.jtw` | kullanıcının "sonra" dediği, bir sonraki açılış için saklanan taslak |
+| `logs/jtypewriter-0.log` .. `-2.log` | her biri bir megabayta kadar, dönen üç kuşak |
+| `instance.lock` | belge içeriği taşımayan danışma amaçlı tek örnek kilidi |
+
+- Taslak, küçük bir başlık ile metinden oluşur. Başlık, metnin geldiği mutlak yolu Base64 ile kodlanmış olarak tutar; böylece ayırıcılar ve satır sonları bozulmaz - bu bir kodlama, şifreleme değil - yani taslak, geldiği belgeden daha uzun yaşayabilir.
+- Kurtarma taraması yalnızca düz dosyaları okur: taslak gibi adlandırılmış bir sembolik bağ izlenmez, yok sayılır; 64 MiB'ın üzerindeki bir dosya başlangıçta yüklenmek yerine atlanır.
+- Park edilen taslakların süresi 30 gün sonra dolar ve park edilmiş küme 10 dosya / 64 MiB ile sınırlıdır; etkin bir `draft-<uuid>.jtw` asla süresi dolmaz, çünkü başka bir çalışan örneğe ait olabilir.
+- Ayrıştırılamayan bir ayar dosyası `settings.properties.corrupt` olarak kenara alınır ve tanılama için saklanır.
+
+### Mimari
 
 ```
 org.mesutormanli.jtypewriter
@@ -487,7 +488,7 @@ org.mesutormanli.jtypewriter
 └── FxApplication.java                    # JavaFX yaşam döngüsü köprüsü
 ```
 
-### Temel Bileşenler
+#### Temel Bileşenler
 
 | Bileşen | Açıklama |
 |---------|----------|
@@ -531,7 +532,7 @@ org.mesutormanli.jtypewriter
 | `LocaleManager` | Değişiklik dinleyicileriyle çoklu dil desteği |
 | `Messages` | Resource bundle tabanlı mesaj erişici |
 
-### Bağımlılıklar
+#### Bağımlılıklar
 
 | Bağımlılık | Sürüm | Amaç |
 |------------|-------|------|
@@ -543,11 +544,9 @@ org.mesutormanli.jtypewriter
 
 JavaFX Graphics ve Base, Controls ile dolaylı olarak gelir. Bağımlılık enjeksiyonu framework'süzdür: nesne grafiğini `AppGraph` elle kurar.
 
----
+### Testler
 
-## Testler
-
-### Test Çalıştırma
+#### Test Çalıştırma
 
 ```bash
 # Tüm testler
@@ -560,7 +559,7 @@ mvn test -Dtest=SessionStatsTest
 mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 ```
 
-### Test Sınıfları
+#### Test Sınıfları
 
 | Test Sınıfı | Kapsam |
 |-------------|--------|
@@ -632,6 +631,19 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `StatsPerfHarnessTest` | Artımlı sayaçların arkasındaki tavan: 10 MiB'lık belgede tek gerçek `StatsBarModel.refresh` (biçimlendirme dâhil) CI'da 50 ms'nin altında kalıyor. Tam metin sürümü saniyede bir ~164 ms ölçüyordu, yani O(n) bir yenileme geri dönerse derleme düşer |
 | `FxThreadIoTest` | Toolkit açmadan FX thread değişmezi: açma, kaydetme ve otomatik kayıt diske yalnız `IoExecutor` üzerinden gidiyor (`fxThreadTasks()` sıfır kalıyor), temiz otomatik kayıt tikinde belge metni kopyalanmıyor ve kaydetme sürerken yazılan metin sonrasında kirli kalıyor |
 | `RecoveryTargetPathTest` | Kurtarma taslağının başlığı ile sonraki kaydetme arasındaki koruma: yol mutlak, kanonik, izinli bir kökün altında ve uygulamanın kendi veri dizininin dışında olmalı. Göreli yol, kök dışına çıkan `..`, kırık symlink ya da izinli kök tanımlanmamış durum reddediliyor (fail closed) ama kurtarılan metin yine sunuluyor |
+
+### CI/CD
+
+GitHub Actions iş akışları: `main` dalına her push ve pull request'te derleme ve test (`.github/workflows/maven.yml`), sürüm tag'inde yayın (`.github/workflows/release.yml`). Kapıları ikisi de kendisi tanımlamıyor: ikisi de ortak `.github/workflows/verify-build.yml` iş akışını çağırıyor, böylece bir tag dalın koştuğu ikon kontrolünü, yerel ayar koşularını, bayt karşılaştırmasını ve smoke açılışını aynen koşuyor.
+
+- **Tetikleme**: `main` dalına her push ve pull request'te çalışır
+- **Ortam**: Ubuntu ve Windows (build matrisi)
+- **JDK**: Temurin 25
+- **Komut**: `mvn -B package` (derleme + testler), ardından `scripts/package.sh --skip-build --installer`
+- **Kapılar**: `scripts/generate-icons.py --check` iki işletim sistemi ayağında da derlemeden önce koşar: her simgenin özetini `icons.manifest` ile karşılaştırır, böylece kanonik görselle artık eşleşmeyen bir varlık on dakika sonra değil bir dakika içinde kırmızı olur. Bilerek yeniden rasterleştirmez: ImageMagick aynı pikselleri farklı derlemelerde farklı baytlara kodlar, yani CI'da bayt ya da piksel karşılaştırması görseli değil araç zincirini karşılaştırırdı. `scripts/verify-artifacts.sh --skip-build` paketlemeden sonra koşar (Linux ayağı, çünkü `.deb` paketini `dpkg-deb` ile açar) ve depo yükü, uygulama görüntüsü ile kurulum paketi arasındaki bayt bayt karşılaştırmayı yeniden kanıtlar. Ayrı bir `smoke` işi paketlenen artefaktı indirip `scripts/smoke-appimage.sh --skip-build` betiğini iki işletim sistemi ayağında çalıştırır: Linux imajı Xvfb altında başlatır, `.deb` paketini kurar, çalıştırır ve kaldırır; Windows başlatıcının ayakta kalmasını şart koşar
+- **Diller**: test paketi Türkçe ve Almanca sistem dillerinde de çalışır; böylece yerelleştirme regresyonları (ör. bir dilin sessizce sistem diline çözülmesi) gözden kaçamaz
+- **Artefaktlar**: her işletim sistemi için yerel uygulama görüntüsü ve platform kurulum paketi (`.deb` / `.msi`)
+- **Sürümler**: `pom.xml` sürümüyle eşleşen bir `v*` tag'i itildiğinde iki platform da derlenip bir GitHub Release'e yüklenir; yanına `SHA256SUMS` dosyası eklenir, böylece ikililer birkaç gün sonra silinen Actions artefaktlarına bağlı kalmaz. Aynı iş akışı elle **kuru koşu** olarak da başlatılabilir: `prepare`, iki işletim sistemi derlemesi, varlık/kaynak/özet birleştirmesi, beş varlık assert'i ve sürüm notu üretimi aynen koşar; yayımlama yerine bir artefakt yüklenir ve içinde tam olarak yayımlanacak set bulunur. Elle başlatılan bir koşu yayımlayamaz - dal ucundan üretilen bir sürüm kendi tag'inden yeniden üretilemez - bu yüzden `dry_run` varsayılanı `true`'dur ve `false` isteği `prepare` içinde reddedilir. Yayımlanan sürüm normal bir sürümdür, ön sürüm değil: `v1.1.0` `--prerelease` işaretini, nottaki erken erişim cümlesiyle birlikte kaldırdı, çünkü proje artık kullanıma hazır dediği bir sürümü yayımlıyor. Bayrak ile cümle aynı şeyin iki iddiasıdır; bu yüzden `ReleaseNotesTest` ikisini bir çift olarak pinliyor - yayımlama adımında bayrak yok, notun iki yarısında da erken derleme ifadesi yok - ve biri diğeri olmadan geri gelemez
 
 ---
 

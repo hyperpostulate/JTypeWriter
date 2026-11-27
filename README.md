@@ -18,31 +18,30 @@
 
 <p align="center">Türkçe sürüm: <a href="README-TR.md">README-TR.md</a></p>
 
-JTypeWriter opens a single plain-text document and then stays out of the way: no accounts, no cloud, no project format. Your text lives in the file you picked, in the encoding that file already had. The packaged download carries its own Java runtime, so nothing has to be installed first; building from source or running the fat JAR needs JDK 25 and Maven 3.8+. It runs on Linux and Windows, and the interface speaks English, Turkish, German, French, Spanish and Italian.
+JTypeWriter opens a single plain-text document and then stays out of the way: no accounts, no cloud, no project format. Your text lives in the file you picked, in the encoding that file already had. The packaged download carries its own Java runtime, so nothing has to be installed first. It runs on Linux and Windows, and the interface speaks English, Turkish, German, French, Spanish and Italian.
 
-**What you get?**
+## What you get
 
-- **A draft you cannot wreck by accident.** YOLO mode turns off Backspace, Delete, Cut and Undo/Redo so you can only move forward. Every save is atomic and keeps rotating backups, and unsaved work is snapshotted every 30 seconds - after a crash the draft is offered back, and closing that prompt never deletes it.
-- **The feel of typing.** A typewriter keystroke when you type, backspace or delete - at a volume you set - plus three themes (dark, light, sepia) and six text colours, all switchable while you write.
+- **A draft you cannot wreck by accident.** YOLO mode turns off Backspace, Delete, Cut and Undo/Redo so you can only move forward. Every save is atomic, keeps rotating backups, and unsaved work is backed up every 30 seconds.
+- **A safety net you can see.** The status bar confirms each automatic backup with its time, and after a crash the draft is offered back. Closing that prompt never deletes it.
+- **The feel of typing.** A typewriter keystroke when you type, backspace or delete - at a volume you set - plus three themes and six text colours, all switchable while you write.
 - **Numbers as you go.** Words, characters with and without spaces, lines, keystrokes, session time and a sustained words-per-minute figure that ignores your breaks.
 - **Only text on screen.** `F11` goes fullscreen, `Ctrl+T` hides the toolbar along with the command menu it hosts, and the window title tells you which document is open and whether it is saved.
 - **A session that comes back.** Language, theme, text colour, font size, last document and window geometry are restored on the next start.
+- **Nothing leaves your machine.** No account, no telemetry, no update check, no network request.
 
 ---
 
 ## Table of Contents
 
+- [What you get](#what-you-get)
 - [Features](#features)
 - [Your Data](#your-data)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Themes](#themes)
 - [Supported Languages](#supported-languages)
-- [Requirements](#requirements)
 - [Installation](#installation)
-- [Build & Run](#build--run)
-- [CI/CD](#cicd)
-- [Architecture](#architecture)
-- [Testing](#testing)
+- [Technical Reference](#technical-reference)
 - [License](#license)
 - [Developer](#developer)
 - [Contributing](#contributing)
@@ -53,132 +52,136 @@ JTypeWriter opens a single plain-text document and then stays out of the way: no
 
 ### Typewriter Sound Effects
 
-Authentic typewriter keystroke sound when a key puts text on the page. Caret movement, function keys and shortcuts stay silent, because a typewriter only clacks when it writes or strikes through. The toolbar's Sound dropdown is a quick on/off; `View → Sound` opens the level ladder - Off, 25%, 50%, 75%, 100% - and the choice is remembered across restarts, with 0 completely silent. Each click starts its own voice instead of cutting off the previous one, so fast typing sounds like fast typing rather than a stutter.
+- Typing a character clicks; moving the caret, function keys and shortcuts stay silent.
+- Volume from the toolbar's Sound dropdown or `View → Sound`: Off, 25%, 50%, 75%, 100%. The choice is remembered across restarts.
+- Every click starts its own voice instead of cutting off the previous one, so fast typing sounds like fast typing.
 
 ### YOLO Mode
 
-"YOLO Mode" (You Only Live Once) prevents accidental deletion. When enabled, Backspace, Delete, Cut and Undo/Redo are disabled (the right-click menu shows Cut greyed out, with only Copy/Paste/Select All usable), so no edit can remove characters that are already in the document. Perfect for first-draft writing where you push forward without looking back. The mode stays visible through the `[YOLO]` title badge and the toolbar's YOLO dropdown; theme colours stay untouched in both states.
+- `Ctrl+Shift+Y` disables Backspace, Delete, Cut and Undo/Redo, so no edit can remove characters that are already in the document.
+- Copy, Paste and Select All keep working; Cut is greyed out in the right-click menu.
+- The `[YOLO]` title badge and the toolbar's YOLO dropdown show that the mode is on.
+- Deliberately not remembered: a mode that blocks deletions should not still be armed at the next start.
 
 ### Real-Time Statistics
 
-Live stats bar showing:
-- Word count, character count (with/without spaces), line count
-- Total keystrokes
-- Session duration (HH:MM:SS)
-- Words per minute (WPM) - sustained speed based on active typing time, so breaks do not drag it down
-- The status bar text is 13 px by default and cycles between small, medium and large when you double-click it; its colour meets WCAG AA contrast (at least 4.5:1) in all three themes
-- A successful save stamps the status bar with its time in the UI language's own clock format (e.g. `Saved 12:04 PM` in English, `Kaydedildi 12:04` in Turkish); it clears on the next edit, and it marks a real save rather than the 30-second autosave draft snapshot
+The bottom bar shows, live:
+
+- Word count, character count with and without spaces, and line count.
+- Total keystrokes and session duration (`HH:MM:SS`).
+- Words per minute based on active typing time only, so breaks do not drag it down.
+- A save confirmation after `Ctrl+S` (`Saved 12:04`), and a separate one after every automatic backup (`Backup saved: 12:04`), so a real save is never confused with a recovery copy.
+- Text size of 13 px by default; double-click the bar to cycle small, medium and large, and the choice is remembered.
+
+The save confirmation disappears with the next edit; the backup confirmation stays until a real save replaces it or a new document is opened.
 
 ### Printing and PDF Export
 
-`Ctrl+P` prints the document and `Ctrl+Shift+E` exports it as a PDF; both are also on the File menu.
-
-- **The saved `.txt` file is the single source of truth.** Neither command prints the editor buffer: if the document has unsaved changes - or has never been saved - a Save / Cancel prompt appears first, and cancelling means nothing is printed or exported. There is deliberately no "print it anyway" button, because then the paper could disagree with the file. After the save, the text is read back **from disk** in the document's own encoding, so what leaves the app is exactly what the file holds.
-- **What you see is the family, nothing else.** Both outputs use the bundled `DejaVu Sans Mono` at a fixed 12 pt, black on white. The theme, the text colour and the editor font size are ignored on purpose: a page is a page, and reading it should not depend on whether the window is in Dark mode or the zoom is at 24 px.
-- **The PDF is self-contained and written by us.** No PDF library is linked: `PdfExport` writes the file directly, embeds the same font file the editor renders with (Type0 / Identity-H with a `/ToUnicode` map, so text is extractable and copyable) and produces byte-identical output for the same document. Print and PDF share one pagination model, so the sheet and the file break lines at the same place.
-- **Layout follows the paper.** Lines wrap at the text block (spaces first, then code-point boundaries for a long unbreakable run), tabs advance to four-cell stops, newlines are kept, and the export is A4 portrait with 20 mm margins. A printer's own printable area is what pagination gets when printing, so a narrow printer breaks lines where its paper forces it to.
-- Failures are reported, successes are not: a missing printer, a rejected job or an unwritable PDF opens an alert, while a completed print or a written file says nothing.
+- `Ctrl+P` prints the document and `Ctrl+Shift+E` exports a PDF; both are also in the File menu.
+- Both use the **saved `.txt` file**, never the editor buffer: unsaved changes - or a document that was never saved - trigger a Save / Cancel prompt first, and Cancel means nothing is printed or exported.
+- The page is fixed: bundled DejaVu Sans Mono at 12 pt, black on white, A4 portrait with 20 mm margins. Theme, text colour and editor font size do not apply.
+- The PDF is written by the application itself and embeds the same font, so its text stays selectable and copyable.
+- Print and PDF share one layout, so the sheet and the file break lines at the same place.
+- Failures open an alert; a completed print or a written file says nothing.
 
 ### Fullscreen & Toolbar
 
-- **`F11` takes over the screen, `Escape` gives it back:** `F11` toggles fullscreen and `Escape` leaves it (the platform's default exit hint is suppressed)
-- **The toolbar can disappear completely:** `Ctrl+T` removes it when you want nothing but text on screen
-- **The toolbar never wraps to a second row:** at every width it stays one horizontal row. At the tested window sizes the six dropdowns show a caption with their value ("Theme: Dark", "Size: 16", "Language: Deutsch") and nothing overflows - fully captioned at 1280 px, captions collapsed to the bare value ("Dark", "16", "Deutsch") at 900 px in all six languages, measured from the actual localised labels. The window cannot be narrowed below the widest collapsed row plus the window decoration (889 px, from the Spanish labels), so the row never has to clip: the minimum width is measured from the six bundles, not guessed, and a translation that grows a label fails the test that pins it. A window size remembered from an older build that is narrower than that comes back at the minimum, and the stored value repairs itself at the end of that session. The command-menu button and the six plain buttons (find, open, save, undo, redo, about) never collapse and always stay visible
-  - **Every control is reachable and explained.** `Tab` follows the pinned visual order: Menu, Find, Open, Save, Undo, Redo, Theme, YOLO, Sound, Color, Size, About, Language. The order is set with `viewOrder`; JavaFX documents that property for rendering and picking, so the focus order is an application convention rather than a toolkit guarantee. Each control keeps a visible focus ring and a tooltip from the UI language that includes the shortcut where one exists, such as "Save (Ctrl+S)"
-- **Your layout is remembered:** the toolbar's shown or hidden state, fullscreen and the status bar's size all survive a restart, and a choice is saved the moment you toggle it rather than only on exit
-  - **Fullscreen never fights the window geometry.** A window left in fullscreen comes back in fullscreen; fullscreen wins at startup over the remembered position and size, and leaving it later lands on the remembered position
+- `F11` toggles fullscreen and `Escape` leaves it.
+- `Ctrl+T` hides the toolbar - and with it the command menu that lives in it - so nothing but text is on screen.
+- The toolbar stays one row at every width: dropdown captions collapse to their bare values on narrow windows and no control is clipped or wrapped.
+- Every control is reachable with `Tab` in a fixed order and carries a tooltip in the UI language, including its shortcut where one exists ("Save (Ctrl+S)").
+- Shown or hidden state, fullscreen and the status bar size are remembered, and a change is saved the moment you make it.
+- A window left in fullscreen comes back in fullscreen; leaving it later lands on the remembered position.
 
 ### Command Menu
 
-The leftmost toolbar control is a `☰` button holding four menus - File, Edit and View with the editor commands, Help with About. It is a menu button rather than a permanent menu strip: a second chrome row would follow you into fullscreen and undermine `Ctrl+T`, so the menu hides with the toolbar it lives in. Every editor command the platform does not handle itself is generated from the same `EditorAction` inventory as the shortcuts and toolbar buttons, so `New` (`Ctrl+N`) and `Save As` (`Ctrl+Shift+S`) are now discoverable instead of keyboard-only. View is not a list of cycling commands: Theme, YOLO, Text Color and Font Size each open a second-level submenu listing the same values as the toolbar dropdowns, with the current one checked - `View → Theme → Dark` means Dark, not "the next theme". Sound opens the level ladder (Off, 25%, 50%, 75%, 100%); the toolbar's On/Off dropdown is a shortcut over that same value rather than a second setting. They are generated from the same option lists and write through the same apply paths as the dropdowns, so the two entry points can never disagree. Labels and accelerators follow the UI language (the accelerators are descriptive - the key filter performs them), the open popup is painted from the same theme tokens as the toolbar dropdowns so it follows Dark, Light and Sepia, and Help → About opens the About card. Because the menus are generated rather than hand-written, a command can no longer exist in one entry point and be missing from another.
+- The `☰` button on the left of the toolbar holds File, Edit, View and Help.
+- It is a menu button, not a permanent menu strip, so it hides with the toolbar instead of following you into fullscreen.
+- Every command the platform does not handle itself is listed, including `New` (`Ctrl+N`) and `Save As` (`Ctrl+Shift+S`).
+- `View → Theme`, `YOLO`, `Text Color` and `Font Size` open value submenus with the current value checked; `Sound` opens the volume ladder; `Help → About` opens the About card.
+- Menu entries, shortcuts and toolbar buttons all come from one command list, so they cannot drift apart.
 
 ### Find & Replace
 
-`Ctrl+F` opens a compact find/replace card in the window's top-right corner, over the text; `Ctrl+H` opens the same card with the replace field focused. It is modelled on Notepad++'s dialog: one "Find what" field, one "Replace with" field, a "Match case" checkbox, Find Next / Find Previous / Replace / Replace All, and a live status line ("3 of 12", "12 matches", "No matches"). The card is a panel rather than a modal window because finding is a mode: the document stays visible while you type a query and press `F3` repeatedly, and closing the card with `Escape` or its Close button keeps the query for the next `F3`.
-
-- **The same commands exist everywhere:** the toolbar's `⚲` button, the Edit menu (`Find`, `Find Next`, `Find Previous`, `Replace`) and the four shortcuts all run one `EditorAction`, so they cannot drift.
-- **F3 and Shift+F3 walk the matches** and wrap in both directions, and they keep working after the card is closed. With no query yet, `F3` opens the card instead of doing nothing.
-- **Search is literal text, never a regex:** `a.*b` means those five characters and `$1` is four characters, so there is no invalid-pattern mode and no second error path.
-- **A 10 MB document never freezes the window.** The scan runs on its own worker and is installed back on the FX thread only if it still describes the current text, query and case mode; a result that arrives after you typed another character is dropped. Measured with the real model on a 10 MiB document: 26-53 ms for a whole-document scan (0 matches, 197 845 matches, and 1 187 069 matches for a single-letter query), none of it on the FX thread.
-- **Replace All is one undo step:** the new text is computed from the original matches and applied as a single edit, so `Ctrl+Z` takes the document back in one move. Replacing does not search its own output, so replacing `a` with `aa` terminates.
-- **YOLO mode asks first.** The mode promises that no edit removes characters; a replacement removes the matched range, so with YOLO on the card asks once per operation and cancelling writes nothing. The change is then a normal, undoable edit.
-- **The card follows the theme:** surface, border, fields, checkbox, buttons and status line resolve through the same tokens as the toolbar, so it is native in Dark, Sepia and Light - including the input backgrounds, which Modena would otherwise paint white in the dark theme.
+- `Ctrl+F` opens a find/replace card in the window's top-right corner over the text; `Ctrl+H` opens the same card with the replace field focused.
+- One "Find what" field, one "Replace with" field, a "Match case" checkbox, Find Next / Find Previous / Replace / Replace All, and a live status line ("3 of 12", "No matches").
+- The card is a panel, not a modal window: the document stays visible and editable while you search.
+- `F3` and `Shift+F3` walk the matches in both directions and wrap; they keep working after the card is closed, and with no query yet `F3` opens the card.
+- Closing the card with `Escape` or its Close button keeps the query for the next `F3`.
+- Search is literal text, never a regex.
+- `Replace All` is a single undo step, and replacing does not search its own output.
+- With YOLO on, a replacement asks once per operation and cancelling writes nothing.
+- Large documents do not freeze the window: the scan runs in the background.
 
 ### Welcome, Recent Files and About Cards
 
-The welcome view, the recent-files view and the About view are cards in the same top-right corner as the find panel, not windows of their own. They share that corner with it: opening one closes whatever card was there, so what you see is always exactly the card you last asked for.
-
-- **The document stays usable.** The card is not modal, so a shortcut can be copied out of it while it is open, and closing it puts the caret back in the text.
-- **`Escape` and `Enter` dismiss it**, exactly as they did when it was a dialog, and so does the `Close` button in the card's top-right corner - a word, like the find panel's. That button is the card's only one: the content is there to be read, not to be dismissed through a second call-to-action at the bottom. The close button takes focus when the card opens, so either key works immediately; `Tab` still walks the card's controls.
-- **It is bounded by the window, not by the screen.** A card taller than a short window shrinks to it and scrolls, instead of running past the edge, and it is painted from the same theme tokens as the toolbar, so it is native in Dark, Sepia and Light.
-- **It speaks the language it is opened in.** The content is rebuilt from the bundle on every opening and on a language switch, so a card that is up cannot keep the previous language after you change it.
-- **The greeting can stop greeting you.** The "don't show this again" checkbox on the welcome card is a stored preference, so the card no longer opens at launch once it is ticked. `File → Show Welcome Card` is the way back: it clears the preference and opens the card immediately, so the opt-out is never a door you cannot reopen.
-
-**The recent list is a card of its own**, opened from `File → Recent Files`. It used to sit on the welcome card, which tied the list to a greeting the user might switch off: someone who does not want to be greeted still wants their files. Keeping the two apart means the greeting can be dismissed for good without losing the list, and the list can be reopened at any time.
-
-- **Ten documents, newest first.** Opening the same document again moves it to the top instead of adding a second row, and the same file reached through a relative path or `..` is recognised as the same document. When the list is full, the oldest entry falls off - never the newest.
-- **A row is named by its file name**, so the list stays readable and does not put your home directory on screen; the full path is the row's tooltip. A card with nothing in it says so rather than showing an empty panel.
-- **It opens through the same gate as `Open`.** Cancel, a failing save and the encoding question all behave exactly as they do from the menu or a drop - the card names the next document, it is not a second way to discard the one in the editor.
-- **A document deleted outside the app leaves the list silently** instead of becoming a row that fails when clicked.
+- All three open as cards in the same top-right corner as the find panel, over the text; opening one closes whatever card was there.
+- They are not modal: the document stays usable, and `Escape`, `Enter` or the `Close` button dismisses a card and puts the caret back in the text.
+- A card that is taller than a short window shrinks to it and scrolls instead of running past the edge.
+- Content is rebuilt on every opening and on a language switch, so an open card cannot stay in the previous language.
+- The welcome card's "don't show this again" checkbox is remembered; `File → Show Welcome Card` is the way back.
+- `File → Recent Files` lists the last ten documents, newest first. Rows show the file name, with the full path as their tooltip, and a document deleted outside the app drops off silently.
+- A recent row opens through the same unsaved-changes gate as Open - it is not a second way to discard the editor.
 
 ### Data Safety & Crash Recovery
 
-- **Atomic, durable saves with backups:** every save is written to a temp file, fsynced and then renamed into place, so a crash mid-save or a power cut cannot leave a truncated document
-  - **The fallback is still safe.** When the file system does not support an atomic move, the rename degrades to a plain move with the bytes already on disk.
-  - **Overwrites keep history and permissions.** Rotating backups (`file.bak`, `.bak.1`, `.bak.2`) are kept and the document's existing file permissions are preserved.
-- **Document awareness:** the window title shows the open document name and a `*` while there are unsaved changes (alongside the `[YOLO]` badge)
-  - **A new document is a real decision.** `Ctrl+N` starts a fresh untitled document - after the same save/discard/cancel prompt as opening a file - and it also works while YOLO mode is on.
-  - **Undo stops at the document boundary.** Loading or creating a document clears the undo history, so `Ctrl+Z` can never bring back the previous document's text.
-- **Autosave & recovery:** unsaved work is snapshotted every 30 seconds and on focus loss to `~/.jtypewriter/recovery/`, and a draft left by a crash is offered for restore at the next start. The prompt offers restore, discard and later; closing it never deletes anything.
-  - **Deleting is the exception.** The draft is deleted only when the window's close request was answered in favour of closing - the document was saved, or you explicitly chose to discard it. Every other way out (`Platform.exit()`, a session log-out, the window simply hiding) parks it as `pending-<uuid>.jtw`, so the next start offers it again.
-  - **You keep writing.** A postponed draft leaves the live slot free, so autosave keeps running for the document you are editing; if it cannot be parked, the slot is frozen and the file is left untouched.
-  - **A stale draft cannot roll the document back.** When the file on disk is strictly newer than the draft (equal timestamps are not stale), the text is still restored - recoverable text is never discarded - but without its original path, so the next save forces Save As.
-  - **Failures are visible.** A recovery write that fails keeps a status-bar warning until a later write succeeds and raises one dialog with what to do. A delete that fails gets its own warning, which clears on the next successful delete, and no dialog - the dialog stays reserved for a copy that cannot be written.
-- **Encoding safety:** a BOM-marked file is decoded with the encoding of its BOM; a file without a BOM must be valid UTF-8 or carry the UTF-16 byte pattern, otherwise you are asked whether it is Windows-1254 or UTF-8 instead of getting silent corruption
-  - **A mismatched byte-order mark is a question, not a guess.** A BOM that declares UTF-8 or UTF-16 while some bytes are invalid for that encoding is not decoded silently: the app says the mark does not match the content, names the declared encoding and the file, and asks before opening. Opening anyway shows the broken bytes as replacement characters and logs it; cancelling leaves the current document untouched
-  - **Saves keep the encoding.** Documents are written back in the same encoding unless you accept the offered switch to UTF-8 when the text no longer fits (e.g. a pasted emoji in a Windows-1254 file) - unmappable characters are never silently replaced with `?`
-  - **A BOM-less UTF-16 file is recognised, not guessed or rewritten.** A document without a byte-order mark whose bytes follow the UTF-16 parity pattern is opened as UTF-16LE or UTF-16BE (and logged) instead of being accepted as NUL-heavy UTF-8 and rewritten on the next save; text that fits neither pattern still gets the Windows-1254/UTF-8 question rather than a silent assumption
-- **Error visibility:** unexpected errors are logged to `~/.jtypewriter/logs/` with their full stack trace (including the cause chain); uncaught crashes and a recovery draft that cannot be written or parked also open an error dialog instead of failing silently.
-  - **Some paths log only.** A failing keystroke sound and a failed undo-history reset are logged without a dialog; a failed settings write raises one warning that names the file, because otherwise every preference changed from then on would be lost silently. A failed draft delete raises a status-bar warning, not a dialog.
-  - **Bad state is set aside, not overwritten.** A corrupt settings file is moved aside as `settings.properties.corrupt` and its content kept for diagnostics.
-  - **Logging cannot block startup.** If the log file cannot be created - a home directory the JVM denies or a read-only log location - the app starts with console logging only.
+- **Atomic saves.** Every save is written to a temp file, flushed and renamed into place, so a crash mid-save or a power cut cannot leave a truncated document.
+- **Rotating backups.** An overwrite keeps `<document>.bak`, `.bak.1` and `.bak.2` and preserves the document's file permissions.
+- **Automatic backups.** Unsaved work is snapshotted every 30 seconds and whenever the window loses focus; the status bar confirms each one with its time.
+- **Recovery after a crash.** A surviving draft is offered at the next start: restore, discard, or later. Closing that prompt never deletes anything.
+- **Deleting is the exception.** A draft is deleted only when the close prompt was answered - the document was saved, or you explicitly chose to discard it. Any other exit keeps it for the next start.
+- **A backup cannot roll a document back.** If the file on disk is newer than the draft, the text is still restored, but without its original path, so saving forces Save As.
+- **Failures are visible.** A backup that cannot be written shows a status bar warning until a write succeeds again and explains itself in one dialog. A failed draft delete gets its own brief warning and no dialog.
+- **Document awareness.** The title shows the document name, a `*` while there are unsaved changes and the `[YOLO]` badge while the mode is on.
+- **A new document is a real decision.** `Ctrl+N` asks the same save / discard / cancel question, and undo history stops at the document boundary.
+
+### Encoding Safety
+
+- A document is saved back in the encoding it was opened with.
+- A BOM-marked file is decoded with the encoding of its BOM.
+- A BOM-less file must be valid UTF-8 or follow the UTF-16 byte pattern; otherwise you are asked whether it is Windows-1254 or UTF-8 instead of getting silent corruption.
+- A BOM that contradicts the bytes is a question, not a guess: the app names the declared encoding and the file and asks before opening.
+- Characters the encoding cannot represent are never silently replaced with `?`; you are offered a switch to UTF-8.
 
 ### Settings & Session Restore
 
-- **What is remembered:** language, theme, text colour, font size, sound level, the last document and its folder, and the window geometry are persisted to `~/.jtypewriter/settings.properties`, so the next session starts where the last one ended - same look, same document, same window
-  - **Nothing blocks startup.** A document that has disappeared in the meantime is skipped silently, and a broken settings file falls back to the defaults instead of blocking startup
-  - **The file carries its own schema version.** `schema.version` lets a file written by an older build open in a newer one without losing values, while a file from a newer build is read as far as this build understands it and is never downgraded. Migration happens in memory; the file is rewritten only by the next real change
-  - **A settings file that cannot be written is reported once.** The window keeps working and your documents are untouched; the warning names the file and says that language, theme, font size and window position will not be remembered after this session
-  - **YOLO mode is deliberately *not* persisted.** A mode that blocks deletions should not still be armed at the next start
+- Remembered: language, theme, text colour, font size, sound level, last document and folder, window geometry, toolbar visibility, status bar size and fullscreen.
+- Nothing blocks startup: a document that has disappeared is skipped, and a broken settings file falls back to the defaults.
+- A settings file that cannot be written warns once, names the file and says what will not be remembered.
+- A file written by an older build opens without losing values; a file from a newer build is read as far as this build understands it and never downgraded.
+- YOLO mode is deliberately **not** restored.
 
 ### Opening Documents from Outside the App
 
-`JTypeWriter notes.txt` opens that document directly, and a file association or double-click hands the same path through the same code, so both entry points behave alike. Only one file can be named: a second argument is refused with a dialog that names it, rather than silently picking the first. A path that does not exist, is not a regular file, or cannot be parsed as a path is reported in the UI language - startup never silently falls back to an empty editor, which would look exactly like a lost document. With no argument the welcome card appears unless you turned it off with its own checkbox (the File menu reopens it). A recovered draft still wins over the command-line document: it is the only copy of that text, while the named file is still on disk. A symbolic link keeps its own name; the save path already follows the link to its target. Starting a second instance while one is running is still refused by the single-instance lock - there is no hand-off, so the already-running window is not asked to open the file.
-
-**Dropping a file works too, and means the same thing.** Drag a `.txt` or `.md` onto the window - the text, the status bar, anywhere - and it opens through the same code as Open: a dirty document is asked about first, and Cancel or a cancelled save leaves the editor exactly as it was, so a drop is never a shortcut past the save prompt. The whole window is the target because that is where the pointer happens to be, and the gesture is intercepted before the text area can treat it as dragged text. Plain-text drags inside the editor still work as before. Zero files, several files at once, a folder, a PDF or a file that vanished between the drag and the drop are each refused with a dialog naming what was dropped - a drop that silently did nothing would look like a broken window.
+- `JTypeWriter notes.txt` opens that document, and a file association or double-click hands the same path through the same code.
+- Only one file can be named: a second argument is refused with a dialog that names it.
+- A missing path, a folder or an unparsable argument is reported in the UI language instead of falling back to an empty editor.
+- With no argument the welcome card appears, unless you turned it off with its own checkbox.
+- A recovered draft wins over the command-line document: it is the only copy of that text, while the named file is still on disk.
+- **Drag and drop works the same way.** Drop a `.txt` or `.md` anywhere on the window and it opens through the same gate as Open, including the save prompt.
+- Zero files, several files, a folder, a PDF or a file that vanished before the drop are each refused with a dialog naming what was dropped.
 
 ### Single Instance
 
-Only one JTypeWriter instance runs per user account: a lock file in `~/.jtypewriter/`
-stops a second start. That second process opens no window of its own - it shows a
-localized warning dialog that has to be acknowledged, and only then exits. The
-operating system releases the lock automatically if the running instance crashes, so
-a crash never locks you out.
+- One instance per user account, guarded by a lock file in `~/.jtypewriter/`.
+- A second start opens no window of its own: it shows a localised warning, waits to be acknowledged and exits.
+- The operating system releases the lock if the running instance crashes, so a crash never locks you out.
 
-### Multiple Themes
+### Themes
 
-Three built-in themes. Dark is the default, and `Ctrl+Shift+T` cycles Dark → Sepia → Light (the toolbar's Theme dropdown picks any of them directly):
-- **Light** - Clean and bright
-- **Dark** - Default, easy on the eyes
-- **Sepia** - Warm, paper-like feel
+- **Dark** - the default; low-glare, easy on the eyes.
+- **Light** - clean and bright.
+- **Sepia** - warm, paper-like.
+
+`Ctrl+Shift+T` cycles Dark → Sepia → Light; the toolbar's Theme dropdown and `View → Theme` pick any of them directly. Themes can be changed while you write, and the status bar text meets WCAG AA contrast (at least 4.5:1) in all three.
 
 ### Text Colors
 
-Six text colors (one default plus five accents): Default, Sage, Lavender, Sand, Steel, Rose.
+Six colours - Default, Sage, Lavender, Sand, Steel, Rose. `Ctrl+Shift+C` cycles; the toolbar and `View → Text Color` pick directly.
 
-### Multi-Language Support
+### Supported Languages
 
-6 languages: English, Turkish, German, French, Italian, Spanish. Toolbar, dialogs, the window title and the status bar update immediately when the language is switched, and every date and time is rendered in that language's own format rather than a fixed pattern.
+Six languages: English, Turkish, German, French, Italian and Spanish. Toolbar, menus, dialogs, cards, the window title and the status bar update immediately when the language is switched, and every date and time is rendered in that language's own format.
 
 ---
 
@@ -186,11 +189,14 @@ Six text colors (one default plus five accents): Default, Sage, Lavender, Sand, 
 
 Everything JTypeWriter keeps stays on your machine. There is no account, no telemetry, no update check and no network request: the application itself sends nothing, and the only outbound action is the e-mail link in the About card, which hands a `mailto:` address to your own mail client.
 
-- **Where it lives:** `~/.jtypewriter/` - `settings.properties` (language, theme, text colour, font size, sound, toolbar visibility, status-bar size, window geometry, and the last document and folder as absolute paths), `recovery/` (crash-recovery drafts), `logs/`, and `instance.lock`, the advisory single-instance lock that carries no document content.
-- **Drafts contain your text.** Each `recovery/draft-<uuid>.jtw` holds the unsaved document verbatim; a postponed draft is parked as `pending-<uuid>.jtw` and survives a clean exit. A draft also records the absolute path the text came from, Base64-encoded so separators and newlines survive - that is encoding, not encryption - so a draft can outlive the document it came from. The scan only reads plain files: a symlink named like a draft is ignored rather than followed, and a file above 64 MiB is skipped instead of being loaded at startup. Parked drafts are housekeeping - they expire after 30 days, and the set is capped at 10 files / 64 MiB - while an active `draft-<uuid>.jtw` is never expired, because it may belong to another running instance.
-- **Next to your documents:** an overwrite keeps `<document>.bak`, `.bak.1` and `.bak.2`, and a save stages a `jtw-<name>*.tmp` file beside the document before renaming it into place. Both contain document text. That is why a document occupies four times its size on disk, and briefly up to six times while a save is being written; the first save says so once.
-- **Logs:** `logs/jtypewriter-0.log` to `jtypewriter-2.log` - three rotating generations of up to one megabyte each. They hold file paths, error messages and full stack traces.
-- **Deleting all of it:** quit the application first, otherwise the log handler and `instance.lock` are recreated, then delete `~/.jtypewriter` and any `<document>.bak*` or leftover `jtw-*.tmp` next to your documents. There is no in-app "delete all data" command, and uninstalling the application does not remove this data - removing an installed app image or package leaves `~/.jtypewriter` in place.
+- **Where it lives:** `~/.jtypewriter/` - preferences, recovery drafts, logs and the single-instance lock.
+- **Drafts contain your text.** Each recovery draft holds the unsaved document verbatim; a draft you postponed survives a clean exit and is offered again on the next start.
+- **Backups sit next to your documents.** An overwrite keeps `<document>.bak`, `.bak.1` and `.bak.2`, and a save stages a temporary `jtw-*.tmp` file beside the document before renaming it into place. Both contain document text, which is why a document can take four times its size on disk - and briefly up to six times while it is being saved. The first save says so once.
+- **Logs** rotate through three files of up to one megabyte each and hold file paths, error messages and stack traces.
+- **Recovery drafts are cleaned up.** Postponed drafts expire after 30 days and the parked set is capped at 10 files / 64 MiB, while an active draft is never expired - it may belong to another running instance.
+- **Deleting all of it:** quit the application first - otherwise the log handler and the lock are recreated - then delete `~/.jtypewriter` and any `<document>.bak*` or leftover `jtw-*.tmp` next to your documents. There is no in-app "delete all data" command, and uninstalling the application does not remove this data.
+
+Exact file names, encodings and limits are in [Data on disk](#data-on-disk).
 
 ---
 
@@ -225,54 +231,28 @@ Shortcuts use `Ctrl` on Windows and Linux. Numpad `+`, `-` and `0` are accepted 
 
 ---
 
-## Themes
+## Installation
 
-CSS files are located in `src/main/resources/css/`:
+Download the installer (`.deb` on Linux, `.msi` on Windows) or the portable `.tar.gz` from
+[the GitHub Releases page](https://github.com/hyperpostulate/JTypeWriter/releases), together
+with the `SHA256SUMS` file that lets you verify it.
 
-| Theme | File | Description |
-|-------|------|-------------|
-| Base | `base.css` | Shared styles across all themes |
-| Dark | `dark.css` | Dark background, light text |
-| Light | `light.css` | Light background, dark text |
-| Sepia | `sepia.css` | Warm sepia-toned background |
-
----
-
-## Supported Languages
-
-| Language | File | Code |
-|----------|------|------|
-| English | `messages.properties` | `EN` |
-| Turkish | `messages_tr.properties` | `TR` |
-| German | `messages_de.properties` | `DE` |
-| French | `messages_fr.properties` | `FR` |
-| Italian | `messages_it.properties` | `IT` |
-| Spanish | `messages_es.properties` | `ES` |
+- Both channels carry a bundled runtime, so neither needs Java installed.
+- The `.tar.gz` is unpack-and-run: no installation step and no root rights.
+- To build from source instead, see [Build and run](#build-and-run).
 
 ---
 
-## Requirements
+## Technical Reference
+
+### Requirements
 
 | Requirement | Version |
 |-------------|---------|
 | Packaged application | No Java required (bundled JDK runtime) |
 | Building from source / fat JAR | Java 25+, Maven 3.8+ |
 
----
-
-## Installation
-
-### Download (end users)
-
-Download the installer (`.deb` on Linux, `.msi` on Windows) or the portable
-`.tar.gz` from
-[the GitHub Releases page](https://github.com/hyperpostulate/JTypeWriter/releases),
-together with the `SHA256SUMS` file that lets you
-verify it. Both channels carry a bundled runtime, so neither needs Java
-installed. The `git clone` and `mvn clean install` steps below are the
-developer path, not the user path.
-
-### Manual Build
+### Build and run
 
 ```bash
 git clone https://github.com/hyperpostulate/JTypeWriter.git
@@ -280,9 +260,7 @@ cd JTypeWriter
 mvn clean install
 ```
 
----
-
-## Build & Run
+Everyday commands:
 
 ```bash
 mvn clean javafx:run                 # Build and launch the application
@@ -385,24 +363,46 @@ a deliberate palette tweak at 0.33%). The script accepts either ImageMagick 7's
 developer machine and on a runner whose distribution still packages ImageMagick
 6.
 
----
+### Theme and language resources
 
-## CI/CD
+CSS files are located in `src/main/resources/css/`:
 
-GitHub Actions workflows: build and test on every push and pull request to `main` (`.github/workflows/maven.yml`), release on a version tag (`.github/workflows/release.yml`). Neither defines the gates itself: both call the shared `.github/workflows/verify-build.yml`, so a tag runs the same icon check, locale runs, byte comparison and smoke launch a branch does.
+| Theme | File | Description |
+|-------|------|-------------|
+| Base | `base.css` | Shared styles across all themes |
+| Dark | `dark.css` | Dark background, light text |
+| Light | `light.css` | Light background, dark text |
+| Sepia | `sepia.css` | Warm sepia-toned background |
 
-- **Trigger**: Runs on every push and pull request to `main`
-- **Environment**: Ubuntu and Windows (build matrix)
-- **JDK**: Temurin 25
-- **Command**: `mvn -B package` (build + tests), then `scripts/package.sh --skip-build --installer`
-- **Gates**: `scripts/generate-icons.py --check` runs before the build on both OS legs: it compares every icon's hash with `icons.manifest`, so a committed asset that no longer matches the canonical artwork fails in a minute rather than shipping. It verifies hashes rather than re-rasterising on purpose - ImageMagick encodes the same pixels to different bytes on different builds, so a byte or pixel comparison in CI would compare toolchains, not artwork. `scripts/verify-artifacts.sh --skip-build` runs after packaging (Linux leg, because it unpacks the `.deb` with `dpkg-deb`) and re-proves the byte-for-byte comparison between the repository payload, the application image and the installer payload. A separate `smoke` job then consumes the packaged artifact and runs `scripts/smoke-appimage.sh --skip-build` on both OS legs: Linux starts the image under Xvfb and installs, launches and purges the `.deb`; Windows requires the launcher to stay alive
-- **Locales**: the test suite also runs under Turkish and German system locales, so i18n regressions (e.g. a language that silently resolves to the system language) cannot slip through
-- **Artifacts**: native application image plus a platform installer (`.deb` / `.msi`) per OS
-- **Releases**: pushing a `v*` tag that matches the `pom.xml` version builds both platforms and publishes them to a GitHub Release together with a `SHA256SUMS` file, so the binaries no longer live in Actions artifacts that expire after a few days. The same workflow can be started by hand as a **dry run**: `prepare`, both OS builds, the asset/source/checksum assembly, the five-asset assertion and the release-note rendering all run, but publication is replaced by an artifact holding exactly the assembled set. A manual run cannot publish - a release from a branch tip could not be reproduced from its tag - so `dry_run` defaults to true and asking for false is refused in `prepare`. A published release is a normal release, not a pre-release: `v1.1.0` dropped `--prerelease` together with the early-access sentence in the note, because the project now publishes a version it calls ready to use. The flag and the sentence are two claims about the same thing, so `ReleaseNotesTest` pins them as a pair - no flag in the publish step and no early-build wording in either half of the note - and one cannot come back without the other
+Localised text lives in one bundle per language, under `src/main/resources/`:
 
----
+| Language | File | Code |
+|----------|------|------|
+| English | `messages.properties` | `EN` |
+| Turkish | `messages_tr.properties` | `TR` |
+| German | `messages_de.properties` | `DE` |
+| French | `messages_fr.properties` | `FR` |
+| Italian | `messages_it.properties` | `IT` |
+| Spanish | `messages_es.properties` | `ES` |
 
-## Architecture
+### Data on disk
+
+JTypeWriter's own data lives under `~/.jtypewriter/`; backups and temporaries sit next to the document itself:
+
+| Path | Contents |
+|------|----------|
+| `settings.properties` | language, theme, text colour, font size, sound level, toolbar visibility, status bar size, window geometry, the last document and folder (absolute paths) and `schema.version` |
+| `recovery/draft-<uuid>.jtw` | the live session's unsaved draft |
+| `recovery/pending-<uuid>.jtw` | a draft the user postponed with "later", kept for the next start |
+| `logs/jtypewriter-0.log` .. `-2.log` | three rotating generations of up to one megabyte each |
+| `instance.lock` | the advisory single-instance lock; it carries no document content |
+
+- A draft is a small header plus the text. The header records the absolute path the text came from, Base64-encoded so separators and newlines survive - encoding, not encryption - so a draft can outlive the document it came from.
+- The recovery scan reads plain files only: a symlink named like a draft is ignored rather than followed, and a file above 64 MiB is skipped instead of being loaded at startup.
+- Parked drafts expire after 30 days and the parked set is capped at 10 files / 64 MiB; an active `draft-<uuid>.jtw` is never expired, because it may belong to another running instance.
+- A settings file that cannot be parsed is moved aside as `settings.properties.corrupt` and kept for diagnostics.
+
+### Architecture
 
 ```
 org.mesutormanli.jtypewriter
@@ -495,7 +495,7 @@ org.mesutormanli.jtypewriter
 └── FxApplication.java                    # JavaFX application lifecycle bridge
 ```
 
-### Core Components
+#### Core Components
 
 | Component | Description |
 |-----------|-------------|
@@ -539,7 +539,7 @@ org.mesutormanli.jtypewriter
 | `LocaleManager` | Multi-language support with change listeners |
 | `Messages` | Resource bundle-based message accessor |
 
-### Dependencies
+#### Dependencies
 
 | Dependency | Version | Purpose |
 |------------|---------|---------|
@@ -551,11 +551,9 @@ org.mesutormanli.jtypewriter
 
 JavaFX Graphics and Base come in transitively with Controls. Dependency injection is framework-free: `AppGraph` wires the object graph manually.
 
----
+### Testing
 
-## Testing
-
-### Running Tests
+#### Running Tests
 
 ```bash
 # All tests
@@ -568,7 +566,7 @@ mvn test -Dtest=SessionStatsTest
 mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 ```
 
-### Test Classes
+#### Test Classes
 
 | Test Class | Coverage |
 |------------|----------|
@@ -640,6 +638,19 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `StatsPerfHarnessTest` | The ceiling behind the incremental counters: one real `StatsBarModel.refresh` (formatting included) on a 10 MiB document stays under 50 ms in CI. The whole-text version measured ~164 ms once a second, so an O(n) refresh coming back fails the build |
 | `FxThreadIoTest` | The FX-thread invariant without starting a toolkit: opening, saving and autosaving reach the disk through `IoExecutor` only (`fxThreadTasks()` stays zero), a clean autosave tick never copies the document text, and text typed while a save is in flight stays dirty afterwards |
 | `RecoveryTargetPathTest` | The guard between a recovery draft's header and the next save: the path must be absolute, canonical, under an allowed root and outside the app's own data directory. A relative path, a traversal escape, a dangling symlink or a path without allowed roots is dropped (fail closed) while the recovered text is still offered |
+
+### CI/CD
+
+GitHub Actions workflows: build and test on every push and pull request to `main` (`.github/workflows/maven.yml`), release on a version tag (`.github/workflows/release.yml`). Neither defines the gates itself: both call the shared `.github/workflows/verify-build.yml`, so a tag runs the same icon check, locale runs, byte comparison and smoke launch a branch does.
+
+- **Trigger**: Runs on every push and pull request to `main`
+- **Environment**: Ubuntu and Windows (build matrix)
+- **JDK**: Temurin 25
+- **Command**: `mvn -B package` (build + tests), then `scripts/package.sh --skip-build --installer`
+- **Gates**: `scripts/generate-icons.py --check` runs before the build on both OS legs: it compares every icon's hash with `icons.manifest`, so a committed asset that no longer matches the canonical artwork fails in a minute rather than shipping. It verifies hashes rather than re-rasterising on purpose - ImageMagick encodes the same pixels to different bytes on different builds, so a byte or pixel comparison in CI would compare toolchains, not artwork. `scripts/verify-artifacts.sh --skip-build` runs after packaging (Linux leg, because it unpacks the `.deb` with `dpkg-deb`) and re-proves the byte-for-byte comparison between the repository payload, the application image and the installer payload. A separate `smoke` job then consumes the packaged artifact and runs `scripts/smoke-appimage.sh --skip-build` on both OS legs: Linux starts the image under Xvfb and installs, launches and purges the `.deb`; Windows requires the launcher to stay alive
+- **Locales**: the test suite also runs under Turkish and German system locales, so i18n regressions (e.g. a language that silently resolves to the system language) cannot slip through
+- **Artifacts**: native application image plus a platform installer (`.deb` / `.msi`) per OS
+- **Releases**: pushing a `v*` tag that matches the `pom.xml` version builds both platforms and publishes them to a GitHub Release together with a `SHA256SUMS` file, so the binaries no longer live in Actions artifacts that expire after a few days. The same workflow can be started by hand as a **dry run**: `prepare`, both OS builds, the asset/source/checksum assembly, the five-asset assertion and the release-note rendering all run, but publication is replaced by an artifact holding exactly the assembled set. A manual run cannot publish - a release from a branch tip could not be reproduced from its tag - so `dry_run` defaults to true and asking for false is refused in `prepare`. A published release is a normal release, not a pre-release: `v1.1.0` dropped `--prerelease` together with the early-access sentence in the note, because the project now publishes a version it calls ready to use. The flag and the sentence are two claims about the same thing, so `ReleaseNotesTest` pins them as a pair - no flag in the publish step and no early-build wording in either half of the note - and one cannot come back without the other
 
 ---
 
