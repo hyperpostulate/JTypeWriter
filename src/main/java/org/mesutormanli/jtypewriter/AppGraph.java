@@ -124,7 +124,7 @@ public final class AppGraph {
             autoSaveService, findPanel, welcomeCard, recentCard, aboutCard,
             settings, LocalTime::now);
     public final MainStage mainStage = new MainStage(
-            fileService, settings, autoSaveService, dropHandler);
+            fileService, settings, autoSaveService, dropHandler, editorArea);
 
     private volatile Stage stage;
 

@@ -160,15 +160,23 @@ public class FxApplication extends Application {
     }
 
     /**
-     * Reopens the document from the last session. A document that has vanished
+     * Reopens the document from the last session, including the caret and
+     * scroll position that document was left at. A document that has vanished
      * is silently skipped: a stale settings entry must never turn startup into
-     * an error parade.
+     * an error parade. The stored position is applied only after
+     * {@code setDocument} has replaced the text - and only when its recorded
+     * path matches the restored file, so a stale pair cannot move the caret in
+     * a different document.
      */
     private void restoreLastSession(Stage stage) {
         app.settings.getLastFile()
                 .filter(java.nio.file.Files::isRegularFile)
                 .flatMap(path -> app.fileService.loadFile(stage, path))
-                .ifPresent(path -> app.editorArea.setDocument(app.fileService.getCurrentContent()));
+                .ifPresent(path -> {
+                    app.editorArea.setDocument(app.fileService.getCurrentContent());
+                    app.settings.getDocumentPosition(path).ifPresent(position ->
+                            app.editorArea.restorePosition(position.caret(), position.scrollTop()));
+                });
     }
 
     /**

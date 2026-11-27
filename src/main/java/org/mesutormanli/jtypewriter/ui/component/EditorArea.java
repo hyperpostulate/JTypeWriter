@@ -182,6 +182,22 @@ public class EditorArea extends TextArea {
     }
 
     /**
+     * Puts the caret and the viewport back where the previous session left
+     * them.
+     *
+     * <p>Both inputs come from persisted settings, so they are hints rather
+     * than trusted state: the document may have shrunk since the offset was
+     * stored (an external edit, a restored draft), and a caret beyond the text
+     * must land at its end instead of throwing. The scroll offset is a pixel
+     * value - the unit {@link TextArea#getScrollTop()} uses - and JavaFX clamps
+     * it to the document's own maximum when the skin lays out.</p>
+     */
+    public void restorePosition(int caret, double scrollTop) {
+        positionCaret(Math.max(0, Math.min(caret, getLength())));
+        setScrollTop(Double.isFinite(scrollTop) ? Math.max(0d, scrollTop) : 0d);
+    }
+
+    /**
      * Undo only when YOLO mode permits it. Undoing an insertion removes
      * characters, so it is a deletion and must be blocked while drafting.
      */

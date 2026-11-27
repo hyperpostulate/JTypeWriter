@@ -27,7 +27,7 @@ JTypeWriter opens a single plain-text document and then stays out of the way: no
 - **The feel of typing.** A typewriter keystroke when you type, backspace or delete - at a volume you set - plus three themes and six text colours, all switchable while you write.
 - **Numbers as you go.** Words, characters with and without spaces, lines, keystrokes, session time and a sustained words-per-minute figure that ignores your breaks.
 - **Only text on screen.** `F11` goes fullscreen, `Ctrl+T` hides the toolbar along with the command menu it hosts, and the window title tells you which document is open and whether it is saved.
-- **A session that comes back.** Language, theme, text colour, font size, last document and window geometry are restored on the next start.
+- **A session that comes back.** Language, theme, text colour, font size, last document with its caret and scroll position, and window geometry are restored on the next start.
 - **Nothing leaves your machine.** No account, no telemetry, no update check, no network request.
 
 ---
@@ -145,7 +145,7 @@ The save confirmation disappears with the next edit; the backup confirmation sta
 
 ### Settings & Session Restore
 
-- Remembered: language, theme, text colour, font size, sound level, last document and folder, window geometry, toolbar visibility, status bar size and fullscreen.
+- Remembered: language, theme, text colour, font size, sound level, last document, its caret and scroll position, its folder, window geometry, toolbar visibility, status bar size and fullscreen.
 - Nothing blocks startup: a document that has disappeared is skipped, and a broken settings file falls back to the defaults.
 - A settings file that cannot be written warns once, names the file and says what will not be remembered.
 - A file written by an older build opens without losing values; a file from a newer build is read as far as this build understands it and never downgraded.
@@ -391,7 +391,7 @@ JTypeWriter's own data lives under `~/.jtypewriter/`; backups and temporaries si
 
 | Path | Contents |
 |------|----------|
-| `settings.properties` | language, theme, text colour, font size, sound level, toolbar visibility, status bar size, window geometry, the last document and folder (absolute paths) and `schema.version` |
+| `settings.properties` | language, theme, text colour, font size, sound level, toolbar visibility, status bar size, window geometry, the last document and folder (absolute paths), the last document's caret and scroll position, and `schema.version` |
 | `recovery/draft-<uuid>.jtw` | the live session's unsaved draft |
 | `recovery/pending-<uuid>.jtw` | a draft the user postponed with "later", kept for the next start |
 | `logs/jtypewriter-0.log` .. `-2.log` | three rotating generations of up to one megabyte each |
@@ -594,7 +594,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
 | `AppIconsTest` | The icon set on the classpath: every PNG decodes to the declared size, and the `.ico` file starts with its expected magic bytes (pure byte checks, no toolkit) |
 | `AppVersionTest` | The version is one number: the filtered resource is read and trimmed, a missing or blank value is empty rather than throwing, `get()` is never blank, and every reader (About, the settings schema) agrees with `pom.xml` |
-| `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it, the settings schema version, the sound level (including the legacy on/off key read as a level), and the recent-document list plus the welcome opt-out |
+| `AppSettingsTest` | Preference persistence across restarts, restored toolbar/fullscreen/status-bar-size state and their corrupt-value fallbacks, defaults, tolerance for unknown values and unusable paths, quarantine of a corrupt settings file instead of silently overwriting it, the settings schema version, the sound level (including the legacy on/off key read as a level), the last document's caret/scroll position and its file scoping, and the recent-document list plus the welcome opt-out |
 | `AppDirsTest` | The data-directory layout: an unset or blank `user.home` falls back to an absolute temp-based data directory instead of throwing, and a real home yields `<home>/.jtypewriter` with `recovery/` and `logs/` under it |
 | `StartupGreetingTest` | When the welcome card may arrive on its own: a fresh install is greeted, a stored opt-out keeps it away, and a document named on the command line is never covered by it |
 | `RecentFilesCardTest` | How a recent-document row is named: the file name, falling back to the whole path when a path has no last element |

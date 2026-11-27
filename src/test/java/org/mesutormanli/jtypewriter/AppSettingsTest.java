@@ -108,6 +108,65 @@ class AppSettingsTest {
     }
 
     @Test
+    void caretAndScrollPositionSurviveARestart(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        var document = dir.resolve("novel.txt").toAbsolutePath();
+        var settings = new AppSettings(file);
+
+        settings.setDocumentPosition(document, 1234, 42.5);
+
+        var restored = new AppSettings(file).getDocumentPosition(document).orElseThrow();
+        assertEquals(1234, restored.caret());
+        assertEquals(42.5, restored.scrollTop());
+    }
+
+    /**
+     * The position is stored with its document: a stale pair from one file must
+     * never move the caret in the text that replaced it.
+     */
+    @Test
+    void aRememberedPositionIsIgnoredForAnotherDocument(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        var first = dir.resolve("first.txt").toAbsolutePath();
+        var second = dir.resolve("second.txt").toAbsolutePath();
+        var settings = new AppSettings(file);
+
+        settings.setDocumentPosition(first, 12, 30);
+
+        assertTrue(new AppSettings(file).getDocumentPosition(second).isEmpty());
+    }
+
+    /** Opening another document drops the previous document's position. */
+    @Test
+    void rememberingAnotherDocumentDropsTheOldPosition(@TempDir Path dir) {
+        var file = dir.resolve("settings.properties");
+        var first = dir.resolve("first.txt").toAbsolutePath();
+        var second = dir.resolve("second.txt").toAbsolutePath();
+        var settings = new AppSettings(file);
+        settings.setDocumentPosition(first, 12, 30);
+
+        settings.rememberFile(second);
+
+        assertTrue(new AppSettings(file).getDocumentPosition(first).isEmpty());
+    }
+
+    /** A corrupt position degrades to "nothing remembered", never to a broken restore. */
+    @Test
+    void aCorruptPositionIsIgnored(@TempDir Path dir) throws IOException {
+        var file = dir.resolve("settings.properties");
+        var document = dir.resolve("novel.txt").toAbsolutePath();
+        var stored = new Properties();
+        stored.setProperty("document.position.file", document.toString());
+        stored.setProperty("document.position.caret", "-3");
+        stored.setProperty("document.position.scroll", "Infinity");
+        try (var out = Files.newOutputStream(file)) {
+            stored.store(out, "corrupt position");
+        }
+
+        assertTrue(new AppSettings(file).getDocumentPosition(document).isEmpty());
+    }
+
+    @Test
     void windowGeometrySurvivesARestart(@TempDir Path dir) {
         var file = dir.resolve("settings.properties");
         var settings = new AppSettings(file);

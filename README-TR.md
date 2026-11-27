@@ -27,7 +27,7 @@ JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap 
 - **Yazma hissi.** Yazarken, Backspace veya Delete'e bastığınızda - seçtiğiniz ses düzeyinde - daktilo sesi, üç tema ve altı metin rengi; hepsi yazarken değiştirilebilir.
 - **Yazdıkça sayılar.** Kelime, boşluklu ve boşluksuz karakter, satır, tuş vuruşu, oturum süresi ve molaları saymayan sürdürülebilir kelime/dakika.
 - **Ekranda yalnızca metin.** `F11` tam ekran, `Ctrl+T` araç çubuğunu ve içinde duran komut menüsünü birlikte gizler; pencere başlığı hangi belgenin açık olduğunu ve kaydedilip kaydedilmediğini söyler.
-- **Kaldığınız yerden devam eden oturum.** Dil, tema, metin rengi, yazı boyutu, son belge ve pencere geometrisi bir sonraki açılışta geri yüklenir.
+- **Kaldığınız yerden devam eden oturum.** Dil, tema, metin rengi, yazı boyutu, son belge ve onun imleç/scroll konumu ile pencere geometrisi bir sonraki açılışta geri yüklenir.
 - **Hiçbir şey makinenizden çıkmaz.** Hesap yok, telemetri yok, güncelleme denetimi yok, ağ isteği yok.
 
 ---
@@ -145,7 +145,7 @@ Kayıt onayı sonraki düzenlemede kaybolur; yedek onayı ise gerçek bir kayıt
 
 ### Ayarlar ve Oturum Geri Yükleme
 
-- Hatırlananlar: dil, tema, metin rengi, yazı boyutu, ses düzeyi, son belge ve klasörü, pencere geometrisi, araç çubuğu görünürlüğü, durum çubuğu boyutu ve tam ekran.
+- Hatırlananlar: dil, tema, metin rengi, yazı boyutu, ses düzeyi, son belge, onun imleç/scroll konumu ve klasörü, pencere geometrisi, araç çubuğu görünürlüğü, durum çubuğu boyutu ve tam ekran.
 - Hiçbir şey açılışı engellemez: kaybolmuş bir belge sessizce atlanır, bozuk bir ayar dosyası varsayılanlara döner.
 - Yazılamayan bir ayar dosyası bir kez uyarır, dosyayı adlandırır ve neyin hatırlanmayacağını söyler.
 - Eski bir sürümün yazdığı dosya değer kaybetmeden açılır; daha yeni bir sürümün dosyası bu sürümün anladığı kadarıyla okunur ve asla geriye düşürülmez.
@@ -384,7 +384,7 @@ JTypeWriter'ın kendi verisi `~/.jtypewriter/` altındadır:
 
 | Yol | İçerik |
 |-----|--------|
-| `settings.properties` | dil, tema, metin rengi, yazı boyutu, ses düzeyi, araç çubuğu görünürlüğü, durum çubuğu boyutu, pencere geometrisi, son belge ve klasör (mutlak yollar) ve `schema.version` |
+| `settings.properties` | dil, tema, metin rengi, yazı boyutu, ses düzeyi, araç çubuğu görünürlüğü, durum çubuğu boyutu, pencere geometrisi, son belge ve klasör (mutlak yollar), son belgenin imleç/scroll konumu ve `schema.version` |
 | `recovery/draft-<uuid>.jtw` | etkin oturumun kaydedilmemiş taslağı |
 | `recovery/pending-<uuid>.jtw` | kullanıcının "sonra" dediği, bir sonraki açılış için saklanan taslak |
 | `logs/jtypewriter-0.log` .. `-2.log` | her biri bir megabayta kadar, dönen üç kuşak |
@@ -587,7 +587,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
 | `AppIconsTest` | Classpath'teki ikon seti: her PNG bildirilen boyutta çözülüyor, `.ico` dosyası beklenen sihirli baytlarla başlıyor (saf bayt kontrolü, toolkit yok) |
 | `AppVersionTest` | Sürüm tek sayıdır: filtrelenen kaynak okunup kırpılır, eksik ya da boş değer hata vermek yerine boş döner, `get()` hiçbir zaman boş değildir ve her okuyucu (Hakkında, ayar şeması) `pom.xml` ile aynı fikirdedir |
-| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması, ayar şema sürümü, ses düzeyi (eski aç/kapat anahtarının düzey olarak okunması dahil), son dosya listesi ve karşılama opt-out'u |
+| `AppSettingsTest` | Tercihlerin yeniden başlatmada korunması, geri yüklenen araç çubuğu/tam ekran/durum çubuğu boyutu durumu ve bozuk değerlerde varsayılana düşmesi, varsayılanlar, bilinmeyen değerlere ve kullanılamayan yollara tolerans, bozuk ayar dosyasının sessizce ezilmek yerine karantinaya alınması, ayar şema sürümü, ses düzeyi (eski aç/kapat anahtarının düzey olarak okunması dahil), son belgenin imleç/scroll konumu ve dosyaya bağlılığı, son dosya listesi ve karşılama opt-out'u |
 | `AppDirsTest` | Veri dizini yerleşimi: ayarlanmamış ya da boş `user.home` hata vermek yerine mutlak, geçici dizin tabanlı bir veri dizinine düşer ve gerçek bir ev dizini `<home>/.jtypewriter` ile altında `recovery/` ve `logs/` verir |
 | `StartupGreetingTest` | Karşılama kartının kendi kendine ne zaman gelebileceği: taze kurulum karşılanır, saklanan opt-out kartı uzak tutar, komut satırında adlandırılan belge asla kartın altında kalmaz |
 | `RecentFilesCardTest` | Son dosya satırının adlandırılması: dosya adı, son öğesi olmayan bir yolda tam yol |

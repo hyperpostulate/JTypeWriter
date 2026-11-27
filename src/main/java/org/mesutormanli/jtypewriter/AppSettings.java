@@ -57,14 +57,28 @@ import java.util.regex.Pattern;
  * </ul>
  * Persisted: language, theme, text colour, font size, sound on/off, toolbar
  * visibility, the stats bar size, the last document (for session restore) and
- * its directory (for file choosers), and the window geometry including
- * fullscreen. YOLO mode is deliberately <em>not</em> persisted: a
- * user who left it on would come back to an editor that refuses to delete.
+ * its directory (for file choosers), the caret and scroll position of that
+ * document, and the window geometry including fullscreen. YOLO mode is
+ * deliberately <em>not</em> persisted: a user who left it on would come back
+ * to an editor that refuses to delete.
  */
 public final class AppSettings {
 
     /** Window geometry as remembered at shutdown. */
     public record WindowState(boolean maximized, double x, double y, double width, double height) {
+    }
+
+    /**
+     * Where the reader was in a document when the window hid.
+     *
+     * <p>Both values are kept together because they describe one place: the
+     * caret without its scroll offset can leave the viewport at the top of a
+     * long document, and the scroll offset without the caret makes the next
+     * insertion happen somewhere the user is not looking. {@code caret} is a
+     * character offset and {@code scrollTop} is the {@code TextArea}'s vertical
+     * scroll in pixels, exactly the two values the control exposes.</p>
+     */
+    public record DocumentPosition(int caret, double scrollTop) {
     }
 
     /**
@@ -117,6 +131,15 @@ public final class AppSettings {
     private static final String KEY_RECENT_PREFIX = "recent.file.";
     private static final String KEY_LAST_FILE = "last.file";
     private static final String KEY_LAST_DIR = "last.directory";
+    /**
+     * The document the caret/scroll pair belongs to. Storing the path beside
+     * the position makes a stale pair harmless: a session that ends on another
+     * document (or on an untitled one) can never restore the previous
+     * document's offset into the wrong text.
+     */
+    private static final String KEY_POSITION_FILE = "document.position.file";
+    private static final String KEY_POSITION_CARET = "document.position.caret";
+    private static final String KEY_POSITION_SCROLL = "document.position.scroll";
     private static final String KEY_WINDOW_MAXIMIZED = "window.maximized";
     private static final String KEY_WINDOW_FULLSCREEN = "window.fullscreen";
     private static final String KEY_WINDOW_X = "window.x";
@@ -350,6 +373,66 @@ public final class AppSettings {
         }
     }
 
+    /**
+     * The caret and scroll position remembered for {@code document}, or empty
+     * when the stored pair belongs to another file (or is unusable).
+     *
+     * <p>The path check is the whole safety rule: a settings file is a
+     * convenience, so a position left over from a different document must never
+     * be applied to the text that replaced it. A stored caret that is negative
+     * or a scroll value that is not finite is treated like a missing one, the
+     * same way every other corrupt setting is.</p>
+     */
+    public Optional<DocumentPosition> getDocumentPosition(Path document) {
+        if (document == null) {
+            return Optional.empty();
+        }
+        var absolute = document.toAbsolutePath();
+        synchronized (props) {
+            var stored = optionalPath(KEY_POSITION_FILE);
+            if (stored.isEmpty() || !stored.get().toAbsolutePath().equals(absolute)) {
+                return Optional.empty();
+            }
+            var caret = getInt(KEY_POSITION_CARET, -1);
+            if (caret < 0) {
+                return Optional.empty();
+            }
+            var scrollTop = optionalDouble(KEY_POSITION_SCROLL).orElse(0d);
+            return Optional.of(new DocumentPosition(caret, Math.max(0d, scrollTop)));
+        }
+    }
+
+    /**
+     * Remembers where the reader was in {@code document}. A {@code null} path
+     * (an untitled document) or a negative caret clears the stored pair
+     * instead: an untitled buffer has no file whose next session could restore
+     * it, and leaving the previous document's pair behind would be a lie.
+     */
+    public void setDocumentPosition(Path document, int caret, double scrollTop) {
+        if (document == null || caret < 0) {
+            clearDocumentPosition();
+            return;
+        }
+        var absolute = document.toAbsolutePath();
+        synchronized (props) {
+            props.setProperty(KEY_POSITION_FILE, absolute.toString());
+            props.setProperty(KEY_POSITION_CARET, String.valueOf(caret));
+            props.setProperty(KEY_POSITION_SCROLL,
+                    String.valueOf(Double.isFinite(scrollTop) ? Math.max(0d, scrollTop) : 0d));
+        }
+        save();
+    }
+
+    /** Drops a remembered position, e.g. when the session ends on an untitled document. */
+    public void clearDocumentPosition() {
+        synchronized (props) {
+            props.remove(KEY_POSITION_FILE);
+            props.remove(KEY_POSITION_CARET);
+            props.remove(KEY_POSITION_SCROLL);
+        }
+        save();
+    }
+
     /** Remembers a document that was opened or saved (both file and directory). */
     public void rememberFile(Path document) {
         if (document == null) {
@@ -361,6 +444,14 @@ public final class AppSettings {
             var parent = absolute.getParent();
             if (parent != null) {
                 props.setProperty(KEY_LAST_DIR, parent.toString());
+            }
+            // A position belongs to one document. Remembering a different file
+            // must not leave the old pair behind for a later restore to find.
+            var positioned = optionalPath(KEY_POSITION_FILE);
+            if (positioned.isPresent() && !positioned.get().toAbsolutePath().equals(absolute)) {
+                props.remove(KEY_POSITION_FILE);
+                props.remove(KEY_POSITION_CARET);
+                props.remove(KEY_POSITION_SCROLL);
             }
             // Opening or saving a document is the one event both the session
             // restore and the welcome card's recent list care about, so they

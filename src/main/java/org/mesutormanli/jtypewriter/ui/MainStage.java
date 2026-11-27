@@ -13,6 +13,7 @@ import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.service.AutoSaveService;
 import org.mesutormanli.jtypewriter.service.FileService;
+import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 
 import java.util.List;
 
@@ -58,13 +59,15 @@ public class MainStage {
     private final AppSettings settings;
     private final AutoSaveService autoSaveService;
     private final DropHandler dropHandler;
+    private final EditorArea editorArea;
 
     public MainStage(FileService fileService, AppSettings settings, AutoSaveService autoSaveService,
-                     DropHandler dropHandler) {
+                     DropHandler dropHandler, EditorArea editorArea) {
         this.fileService = fileService;
         this.settings = settings;
         this.autoSaveService = autoSaveService;
         this.dropHandler = dropHandler;
+        this.editorArea = editorArea;
     }
 
     public void configure(Stage stage, Scene scene) {
@@ -146,11 +149,18 @@ public class MainStage {
             });
         });
 
-        // Geometry is remembered on hide, so it survives both a clean close
-        // and a close that goes through the unsaved-changes prompt.
-        stage.setOnHidden(event -> settings.setWindowState(new AppSettings.WindowState(
-                stage.isMaximized(), stage.getX(), stage.getY(),
-                stage.getWidth(), stage.getHeight())));
+        // Geometry and the reader's place are remembered on hide, so they
+        // survive both a clean close and a close that goes through the
+        // unsaved-changes prompt. The path is written with the position so a
+        // later session can tell whether the pair still belongs to the text it
+        // is about to restore.
+        stage.setOnHidden(event -> {
+            settings.setWindowState(new AppSettings.WindowState(
+                    stage.isMaximized(), stage.getX(), stage.getY(),
+                    stage.getWidth(), stage.getHeight()));
+            settings.setDocumentPosition(fileService.getCurrentFilePath(),
+                    editorArea.getCaretPosition(), editorArea.getScrollTop());
+        });
     }
 
     /**
