@@ -366,12 +366,22 @@ public class FindPanel extends VBox implements FindCommands {
         return true;
     }
 
-    /** Selects and scrolls a match into view. */
+    /**
+     * Selects and scrolls a match into view.
+     *
+     * <p>{@code selectRange} is deliberately the only thing that touches the
+     * selection: it puts the anchor at {@code start} and the caret at
+     * {@code end}, which is the highlighted range the user asked to see. A
+     * following {@code positionCaret(start)} or {@code positionCaret(end)} must
+     * not be added - JavaFX implements {@code positionCaret(pos)} as
+     * {@code selectRange(pos, pos)}, so it would collapse the match to an empty
+     * selection and the found text would look unselected.</p>
+     */
     private void reveal(FindModel.Match match) {
         editorArea.selectRange(match.start(), match.end());
-        editorArea.positionCaret(match.end());
         // TextArea exposes no follow-caret method; SHOW_TEXT_RANGE is the one
         // public action that asks the skin to scroll the caret's line into view.
+        // It only scrolls - it never moves the caret or the selection.
         if (editorArea.getSkin() != null) {
             editorArea.executeAccessibleAction(
                     AccessibleAction.SHOW_TEXT_RANGE, match.start(), match.end());

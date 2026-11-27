@@ -589,6 +589,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `YoloPolicyTest` | YOLO mode edit policy (deletions blocked, insertions allowed, safe replacement) |
 | `FindReplacePolicyTest` | When a replacement needs the user's consent: YOLO on requires the prompt, YOLO off asks nothing |
 | `FindScanServiceTest` | The scan runs off the FX thread and its result is delivered only through the injected FX dispatcher (`fxThreadScans()` stays zero) |
+| `FindPanelContractTest` | Source contract of the find card's `reveal`: a match is selected with `selectRange` and never followed by `positionCaret`, which JavaFX implements as `selectRange(pos, pos)` and would collapse the selection |
 | `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S), Ctrl+N for a new document, the find chords (Ctrl+F / F3 / Shift+F3 / Ctrl+H, where F3 and Shift+F3 must stay distinct) and numpad equivalents |
 | `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge), the Edit menu's find/replace placement, and the command-menu contract: `MainMenu.layout()` carries every platform-independent `EditorAction` exactly once across the four pages (six settings commands are represented by their value submenu instead), the View submenus list and check the same values the toolbar dropdowns offer, and every page title and row label is non-empty in all six languages |
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |

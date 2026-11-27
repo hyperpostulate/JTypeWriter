@@ -582,6 +582,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `YoloPolicyTest` | YOLO modu düzenleme politikası (silme engelli, ekleme serbest, güvenli değiştirme) |
 | `FindReplacePolicyTest` | Bir değiştirmenin ne zaman kullanıcı onayı istediği: YOLO açıkken sorar, kapalıyken hiçbir şey sormaz |
 | `FindScanServiceTest` | Taramanın FX thread'i dışında koştuğu ve sonucun yalnızca enjekte edilen FX dağıtıcısından geldiği (`fxThreadScans()` sıfır kalır) |
+| `FindPanelContractTest` | Bul kartının `reveal` kaynak sözleşmesi: eşleşme `selectRange` ile seçilir ve ardından `positionCaret` çağrılmaz; JavaFX onu `selectRange(pos, pos)` olarak uyguladığı için seçimi daraltırdı |
 | `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S), yeni belge için Ctrl+N ve numpad eşdeğerleri |
 | `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti), Düzen menüsündeki ara/değiştir komutlarının sırası ve komut menüsü sözleşmesi: `MainMenu.layout()` dört sayfada her platformdan bağımsız `EditorAction`'ı tam bir kez taşıyor (altı ayar komutu yerine değer alt menüsüyle temsil ediliyor), Görünüm alt menüleri araç çubuğu açılır listelerinin sunduğu aynı değerleri listeliyor ve işaretliyor, her sayfa başlığı ve satır etiketi altı dilde dolu |
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
