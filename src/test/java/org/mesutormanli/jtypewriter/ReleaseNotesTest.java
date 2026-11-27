@@ -88,8 +88,9 @@ class ReleaseNotesTest {
             assertTrue(template.contains("\n" + heading + "\n"),
                     TEMPLATE + " has no '" + heading + "' section");
         }
-        assertTrue(template.indexOf("## English") < template.indexOf("## Türkçe"),
-                TEMPLATE + " must read English first, Turkish second");
+        assertTrue(template.indexOf("## Türkçe") < template.indexOf("## English"),
+                TEMPLATE + " must read Turkish first, English second: the project's own"
+                        + " language leads its release notes");
 
         for (var placeholder : List.of("@VERSION@", "@TAG@")) {
             assertTrue(template.contains(placeholder),
@@ -101,19 +102,79 @@ class ReleaseNotesTest {
                 TEMPLATE + " hardcodes a version string instead of @VERSION@");
     }
 
+    /** The halves in reading order: Turkish first, then English. */
+    private static String turkishHalf(String template) {
+        var start = template.indexOf("## Türkçe");
+        var end = template.indexOf("## English");
+        assertTrue(start >= 0 && end > start, TEMPLATE + " has no Turkish section"
+                + " followed by an English one, so the two halves cannot be compared");
+        return template.substring(start, end);
+    }
+
+    private static String englishHalf(String template) {
+        var start = template.indexOf("## English");
+        assertTrue(start >= 0, TEMPLATE + " has no '## English' section");
+        return template.substring(start);
+    }
+
     @Test
     void bothHalvesCarryTheSameVerificationCommands() throws IOException {
         var template = Files.readString(TEMPLATE, StandardCharsets.UTF_8);
-        var split = template.indexOf("## Türkçe");
-        assertTrue(split > 0, TEMPLATE + " has no '## Türkçe' section, so the two halves "
-                + "cannot be compared");
-        var english = template.substring(0, split);
-        var turkish = template.substring(split);
+        var english = englishHalf(template);
+        var turkish = turkishHalf(template);
         for (var command : List.of("sha256sum -c SHA256SUMS", "certutil -hashfile")) {
             assertTrue(english.contains(command), "English half is missing: " + command);
             assertTrue(turkish.contains(command), "Turkish half is missing: " + command
                     + " - the two halves must offer the same steps");
         }
+    }
+
+    /**
+     * The reader's first question about a release is what changed in it, and the
+     * answer has to come from the repository rather than from someone's memory
+     * of the sprint. The list is therefore rendered from the commit subjects
+     * between the previous tag and this one, and it sits directly under the
+     * opening paragraph - above the platform, size and checksum material - so
+     * it is not buried under the download instructions.
+     *
+     * <p>Both halves carry it: a change list in one language only would leave a
+     * Turkish reader scrolling a note that never states what changed. Only
+     * subjects are rendered, never the bodies, and merge commits are excluded:
+     * a merge says how branches met, not what the release does.</p>
+     */
+    @Test
+    void bothHalvesListTheCommitSubjectsAboveThePlatformNotes() throws IOException {
+        var template = Files.readString(TEMPLATE, StandardCharsets.UTF_8);
+
+        var turkish = turkishHalf(template);
+        var english = englishHalf(template);
+        for (var half : List.of(turkish, english)) {
+            assertTrue(half.contains("@COMMITS@"),
+                    "a language half has no @COMMITS@ placeholder, so it never lists the"
+                            + " changes: " + half);
+        }
+        assertTrue(turkish.indexOf("@COMMITS@") < turkish.indexOf("Desteklenen platformlar"),
+                "the Turkish change list must come before the platform notes");
+        assertTrue(english.indexOf("@COMMITS@") < english.indexOf("Supported platforms"),
+                "the English change list must come before the platform notes");
+        assertTrue(template.indexOf("### Bu sürümde yapılan değişiklikler")
+                        < template.indexOf("### Changes in this release"),
+                "the Turkish change heading must lead, like the Turkish half itself");
+        assertTrue(template.indexOf("### Changes in this release") > 0,
+                TEMPLATE + " has no English change heading");
+
+        var release = Files.readString(RELEASE_WORKFLOW, StandardCharsets.UTF_8);
+        assertTrue(release.contains("git log --no-merges"),
+                "release.yml does not render the commit list from git history");
+        assertTrue(release.contains("--pretty='- %s'"),
+                "release.yml does not reduce each commit to its subject line; pasting bodies"
+                        + " would turn the note into a repository changelog");
+        assertTrue(release.contains("fetch-depth: 0"),
+                "release.yml checks out a shallow clone, so the tag range behind the commit"
+                        + " list is unresolvable and the list comes out empty");
+        assertTrue(release.indexOf("git log --no-merges") < release.indexOf("unsubstituted placeholder"),
+                "the commit list must be rendered before the leftover-placeholder check, or"
+                        + " every release fails on the placeholder it was supposed to fill");
     }
 
     /**
@@ -206,11 +267,9 @@ class ReleaseNotesTest {
     @Test
     void neitherHalfOfTheNoteCallsTheReleaseAnEarlyBuild() throws IOException {
         var template = Files.readString(TEMPLATE, StandardCharsets.UTF_8);
-        var split = template.indexOf("## Türkçe");
-        assertTrue(split > 0, TEMPLATE + " has no '## Türkçe' section");
-        var english = template.substring(0, split).toLowerCase(java.util.Locale.ROOT);
+        var english = englishHalf(template).toLowerCase(java.util.Locale.ROOT);
         // Turkish dotted capital I lowercases to i + combining dot under ROOT.
-        var turkish = template.substring(split).toLowerCase(java.util.Locale.ROOT).replace('\u0130', 'i');
+        var turkish = turkishHalf(template).toLowerCase(java.util.Locale.ROOT).replace('\u0130', 'i');
 
         for (var phrase : List.of("early access", "pre-release", "prerelease")) {
             assertFalse(english.contains(phrase),

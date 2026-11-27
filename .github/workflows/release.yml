@@ -138,6 +138,12 @@ jobs:
           # The tag must exist locally for git archive and --verify-tag; no push
           # credential is needed for either.
           persist-credentials: false
+          # The note lists the commit subjects between the previous release and
+          # this one, which needs the tags and the history a shallow clone does
+          # not carry. Without this the range is unresolvable and the list would
+          # silently come out empty.
+          fetch-depth: 0
+          fetch-tags: true
 
       # Only the normalised assets: the shared workflow also uploads each leg's
       # raw releases/ tree for its own smoke job, and merging that in would put
@@ -209,8 +215,9 @@ jobs:
       # as a checked-in template makes that pairing reviewable (a diff shows both
       # halves) instead of hiding it inside an inline block.
       #
-      # The template carries @VERSION@, @TAG@ and @ASSET_SIZES@ placeholders; the
-      # checks below make a half-rendered note impossible to publish.
+      # The template carries @VERSION@, @TAG@, @ASSET_SIZES@ and @COMMITS@
+      # placeholders; the checks below make a half-rendered note impossible to
+      # publish.
       - name: Write release notes
         shell: bash
         run: |
@@ -236,18 +243,49 @@ jobs:
             done
           } > "$RUNNER_TEMP/asset-sizes.md"
 
+          # The change list is the commit subjects between the previous release
+          # tag and this one, newest first - the order the reader expects and
+          # the order `git log` already produces. Only subjects are listed: the
+          # bodies carry rationale and test evidence meant for reviewers, and
+          # pasting them would turn a release note into a changelog of the
+          # repository. Merge commits are dropped because they say nothing about
+          # what changed, only about how the branches met.
+          #
+          # The previous tag is the highest version merged into HEAD, excluding
+          # this release's own tag, so the same line works on a tag push and on
+          # a dry run. With no earlier tag at all (the first release) the whole
+          # history is listed instead of an unusable `..` range.
+          tag="${{ needs.prepare.outputs.tag }}"
+          previous=$(git tag --merged HEAD --sort=-v:refname | grep -vx "$tag" | head -n 1 || true)
+          if [[ -n "$previous" ]]; then
+            range="$previous..HEAD"
+          else
+            range="HEAD"
+          fi
+          git log --no-merges --pretty='- %s' "$range" > "$RUNNER_TEMP/commits.md"
+          if [[ ! -s "$RUNNER_TEMP/commits.md" ]]; then
+            echo "no commits found for the release note range ($range)" >&2
+            exit 1
+          fi
+
           sed \
             -e "s/@VERSION@/${{ needs.prepare.outputs.version }}/g" \
             -e "s/@TAG@/${{ needs.prepare.outputs.tag }}/g" \
             docs/release-notes-template.md > "$RUNNER_TEMP/release-notes.raw"
 
-          # Both language halves carry the same size list, so every occurrence
-          # of the placeholder is replaced. The list is reopened per occurrence
-          # because getline consumes it.
-          awk -v sizes="$RUNNER_TEMP/asset-sizes.md" '
+          # Both language halves carry the same size list and the same commit
+          # list, so every occurrence of each placeholder is replaced. Each list
+          # is reopened per occurrence because getline consumes it.
+          awk -v sizes="$RUNNER_TEMP/asset-sizes.md" \
+              -v commits="$RUNNER_TEMP/commits.md" '
             /@ASSET_SIZES@/ {
               while ((getline line < sizes) > 0) print line
               close(sizes)
+              next
+            }
+            /@COMMITS@/ {
+              while ((getline line < commits) > 0) print line
+              close(commits)
               next
             }
             { print }

@@ -88,9 +88,12 @@ suite is the gate, and it enforces several non-code invariants below.
 - `THIRD-PARTY-NOTICES` must name every bundled component with its real SPDX id, stay LF-only
   within 100 columns, contain no zero-width spaces, and be byte-identical to the copy packed
   into `target/classes/META-INF`. After editing it, re-run tests (a stale build output fails).
-- `docs/release-notes-template.md` must stay bilingual (English section before Türkçe), use
+- `docs/release-notes-template.md` must stay bilingual (Türkçe section before English), use
   `@VERSION@`/`@TAG@`, contain no literal semver, and repeat the same verification commands in
-  both halves. `release.yml` fails the release if either half is gone.
+  both halves. Both halves also carry `@COMMITS@`, filled from the commit **subjects** between
+  the previous tag and this one (newest first, merge commits excluded, bodies never pasted), and
+  that list sits directly under the opening paragraph, above the platform notes. `release.yml`
+  fails the release if either half is gone.
 - Every `actions/upload-artifact` step in the workflows needs `retention-days` (max 7).
 - No test may start a JavaFX toolkit. Keep new UI logic testable without one.
 
