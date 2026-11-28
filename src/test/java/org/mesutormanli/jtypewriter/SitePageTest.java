@@ -44,6 +44,9 @@ class SitePageTest {
     private static final String RELEASES_LATEST =
             "https://github.com/hyperpostulate/JTypeWriter/releases/latest";
 
+    /** The address the About card prints, and the only non-GitHub link on the page. */
+    private static final String AUTHOR_EMAIL = "mesutormanli@gmail.com";
+
     /**
      * The six languages the editor itself ships, in the order the page lists
      * them. Deliberately the same set as {@code Messages}' bundles: a page that
@@ -100,10 +103,10 @@ class SitePageTest {
         for (var language : LANGUAGES) {
             var messages = bundle(language);
 
-            assertEquals(squash(attributeOf(html, "tagline", language)),
+            assertEquals(squash(elementText(html, "tagline", language)),
                     squash(messages.getString("appTagline")),
                     "the " + language + " appTagline has drifted from the page's .tagline");
-            assertEquals(squash(attributeOf(html, "lede", language)),
+            assertEquals(squash(elementText(html, "lede", language)),
                     squash(messages.getString("appTaglineDetail")),
                     "the " + language + " appTaglineDetail has drifted from the page's .lede");
         }
@@ -155,9 +158,54 @@ class SitePageTest {
         }
 
         for (var external : externalLinks(html)) {
-            assertTrue(external.startsWith("https://github.com/hyperpostulate/JTypeWriter"),
+            // One mailto: link, because the footer carries the About card's
+            // address. Everything else is the project's own GitHub.
+            assertTrue(external.startsWith("https://github.com/hyperpostulate/JTypeWriter")
+                            || external.equals("mailto:" + AUTHOR_EMAIL),
                     "the page links outside the project: " + external);
         }
+    }
+
+    /**
+     * The footer's four legal sentences are the About card's, word for word and
+     * in its order - copyright, the author's address, the licence, the warranty
+     * disclaimer - so the page and the application cannot describe the licensing
+     * differently. The strings live in the bundles; this compares them rather
+     * than restating them, which is what makes "the same sentences" true after
+     * the next edit to either side.
+     */
+    @Test
+    void theFooterPrintsTheAboutCardsLegalSentences() throws IOException {
+        var html = read(INDEX);
+
+        for (var language : LANGUAGES) {
+            var messages = bundle(language);
+
+            assertEquals(squash(messages.getString("aboutCopyright")),
+                    squash(elementText(html, "legal-copyright", language)),
+                    "the " + language + " copyright line has drifted from the About card's");
+            assertEquals(squash(messages.getString("aboutLicense")),
+                    squash(elementText(html, "legal-license", language)),
+                    "the " + language + " licence line has drifted from the About card's");
+            assertEquals(squash(messages.getString("aboutWarranty")),
+                    squash(elementText(html, "legal-warranty", language)),
+                    "the " + language + " warranty line has drifted from the About card's");
+        }
+
+        // The address is not in a bundle - the About card carries it as a
+        // hard-coded hyperlink - so it is pinned here, and pinned as a mailto:.
+        assertTrue(html.contains("href=\"mailto:" + AUTHOR_EMAIL + "\""),
+                "the footer does not offer the About card's e-mail address");
+        assertTrue(html.contains(AUTHOR_EMAIL + "</a>"),
+                "the e-mail link has no visible address to read or copy");
+
+        // The source-code link is the licence sentence's own pointer, and the
+        // ordering is the About card's: licence, then source, then warranty.
+        var licence = html.indexOf("legal-license");
+        var source = html.indexOf(">Source code</a>");
+        var warranty = html.indexOf("legal-warranty");
+        assertTrue(licence > 0 && licence < source && source < warranty,
+                "the source-code link is not between the licence and warranty lines");
     }
 
     /**
@@ -223,17 +271,20 @@ class SitePageTest {
 
     /**
      * The {@code data-<language>} value inside the element carrying the given
-     * class. Written against this one file rather than a parser: the page is a
-     * static document the suite already reads as text, and the class names are
-     * unique in it.
+     * class, whatever the tag: the footer's warranty line is a {@code <p>} while
+     * the other two are {@code <span>}s, and both forms have to be readable here.
+     * Written against this one file rather than a parser - the page is a static
+     * document the suite already reads as text, and the class names are unique
+     * in it.
      */
-    private static String attributeOf(String html, String className, String language) {
-        var element = Pattern.compile("<p class=\"" + className + "\"(.*?)>", Pattern.DOTALL)
+    private static String elementText(String html, String className, String language) {
+        var element = Pattern.compile("<[a-z]+ class=\"[^\"]*\\b" + className + "\\b[^\"]*\"(.*?)>",
+                        Pattern.DOTALL)
                 .matcher(html);
-        assertTrue(element.find(), "the page has no ." + className + " paragraph");
+        assertTrue(element.find(), "the page has no ." + className + " element");
         var value = Pattern.compile("data-" + language + "=\"([^\"]*)\"", Pattern.DOTALL)
                 .matcher(element.group(1));
-        assertTrue(value.find(), "the ." + className + " paragraph has no " + language + " text");
+        assertTrue(value.find(), "the ." + className + " element has no " + language + " text");
         return value.group(1);
     }
 
@@ -245,9 +296,17 @@ class SitePageTest {
                         ResourceBundle.Control.FORMAT_PROPERTIES));
     }
 
-    /** Whatever the markup wrapped, the sentence is one run of text. */
+    /**
+     * Whatever the markup wrapped, the sentence is one run of text - and what
+     * {@code &quot;} becomes in a browser. An attribute written with entities is
+     * the same string to a reader, so the comparison has to see the same string;
+     * the bundle side simply has nothing to decode.
+     */
     private static String squash(String text) {
-        return text.replaceAll("\\s+", " ").trim();
+        var decoded = text.replace("&quot;", "\"")
+                .replace("&#39;", "'")
+                .replace("&amp;", "&");
+        return decoded.replaceAll("\\s+", " ").trim();
     }
 
     private static boolean isRemote(String target) {

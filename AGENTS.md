@@ -207,6 +207,14 @@ suite is the gate, and it enforces several non-code invariants below.
   its only download action is `/releases/latest`, the same address the in-app update check
   reads. `SitePageTest` pins the per-language parity, the dropdown's order, the absence of any
   non-GitHub resource or link, and the copy-not-commit rule.
+- The page's footer prints the About card's four legal sentences — `aboutCopyright`,
+  the author's `mailto:`, `aboutLicense`, `aboutWarranty`, in that order — instead of a
+  hand-written licence line, and the source-code link sits inside the licence line because that
+  is what the sentence points at. The strings come from the bundles, not from a second copy:
+  `SitePageTest.theFooterPrintsTheAboutCardsLegalSentences` compares them per language, so
+  rewording one side fails until the other follows. The `mailto:` is the only non-GitHub link on
+  the page, and the footer's lines are flex rows rather than inline text with `·` separators —
+  a separator span was left orphaned at the end of a line when the address wrapped on a phone.
 - The welcome and About cards' opening lines have one source: the page's first two paragraphs.
   `.tagline` is `appTagline` and `.lede` is `appTaglineDetail`, drawn as two labels so the second
   sentence starts on its own line — two keys rather than one string split on a full stop, because
