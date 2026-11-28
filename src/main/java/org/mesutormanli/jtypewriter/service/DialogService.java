@@ -5,6 +5,7 @@
 
 package org.mesutormanli.jtypewriter.service;
 
+import javafx.application.Platform;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.DialogPane;
@@ -551,9 +552,17 @@ public class DialogService {
         var open = DialogButtons.primary(messages.updateOpenPage());
         alert.getButtonTypes().setAll(open, DialogButtons.cancel(messages.updateClose()));
         var choice = show(alert, owner);
-        if (choice.isPresent() && choice.get() == open && !SystemBrowser.open(pageUrl)) {
-            showAddressWarning(owner, messages.updateOpenFailedTitle(),
-                    messages.updateOpenFailedHeader(), messages.updateOpenFailedContent(), pageUrl);
+        if (choice.isPresent() && choice.get() == open) {
+            // Off the FX thread on purpose: Desktop.browse on Linux parks the FX
+            // thread inside the native GTK call and never returns, freezing the
+            // whole window. See SystemBrowser's class comment.
+            SystemBrowser.openAsync(pageUrl, Platform::runLater, opened -> {
+                if (!opened) {
+                    showAddressWarning(owner, messages.updateOpenFailedTitle(),
+                            messages.updateOpenFailedHeader(), messages.updateOpenFailedContent(),
+                            pageUrl);
+                }
+            });
         }
     }
 

@@ -72,20 +72,23 @@ public class AboutCard extends OverlayCard {
     }
 
     /**
-     * Hands the address to the platform's mail client. Best effort by design: a
-     * desktop without a mail handler must not turn a click on a link into an
-     * error dialog, so the failure only reaches the log.
+     * Hands the address to the platform's mail client, off the FX thread.
+     *
+     * <p>Best effort by design: a desktop without a mail handler must not turn a
+     * click on a link into an error dialog, so the failure only reaches the log.
+     * The call goes through {@link SystemBrowser} rather than touching
+     * {@code Desktop} here for the reason documented there: on Linux the native
+     * GTK call never returns while it runs on the FX thread, and this card is
+     * dismissed as soon as the link is clicked - a frozen link would leave the
+     * whole window unresponsive with the card already gone.</p>
      */
     private void openMailClient() {
-        try {
-            var desktop = java.awt.Desktop.getDesktop();
-            if (java.awt.Desktop.isDesktopSupported()
-                    && desktop.isSupported(java.awt.Desktop.Action.MAIL)) {
-                desktop.mail(new java.net.URI("mailto:mesutormanli@gmail.com"));
-            }
-        } catch (Exception error) {
-            LOG.log(Level.FINE, "could not open the mail client", error);
-        }
+        SystemBrowser.mailAsync("mailto:mesutormanli@gmail.com", javafx.application.Platform::runLater,
+                opened -> {
+                    if (!opened) {
+                        LOG.log(Level.FINE, "could not open the mail client");
+                    }
+                });
     }
 
     /** A small, wrapped, centred legal line of the About card. */

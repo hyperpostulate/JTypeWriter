@@ -634,6 +634,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `AtomicFilesTest` | Durable atomic writes: content integrity, no temp leftovers, cleanup after failures |
 | `MessagesTest` | i18n bundle parity across all 6 languages, localised theme/colour names, locale-independent bundle resolution |
 | `DialogServiceTest` | Save-as file naming rules (default extension handling) |
+| `SystemBrowserTest` | The address launcher's threading contract, with the platform call injected: the caller never runs `Desktop` itself, the work happens on a plain daemon thread, a throwing platform call arrives as `false` rather than an exception, `http(s)` and `mailto:` are the only accepted schemes, and `java.awt.Desktop` is named in that one file only (a second call site would be a second chance to hang the FX thread) |
 | `DialogButtonsTest` | The shared alert buttons: primary is OK/Done, cancel is Cancel/Close, the alternative is the third action, label text is preserved verbatim, exactly one default and one cancel, and the recovery dialog puts Cancel on Later rather than Discard |
 | `DialogSizingTest` | Alert sizing maths: the preferred size is returned unchanged when it fits, clamped into a 768 px screen, floored on an absurdly small screen, with symmetric margins, and the shared content column leaves room for the dialog chrome |
 | `DialogStylingTest` | Every Alert is themed: stylesheet order per theme (base then light/dark/sepia), every listed stylesheet resolves on the classpath, `base.css` themes the dialog pane, and each theme defines the tokens dialog panes read |

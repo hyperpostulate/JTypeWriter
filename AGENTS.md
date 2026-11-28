@@ -129,6 +129,12 @@ suite is the gate, and it enforces several non-code invariants below.
   with the settings-schema migration. Never add a second `Alert` outside `DialogService` for
   these dialogs, and keep the READMEs' privacy wording in step with what the request actually
   sends.
+- Never call `java.awt.Desktop` on the FX application thread. On Linux `browse`/`mail` enter the
+  native GTK call `gnome_url_show` holding the AWT lock, and that call only completes while the
+  GTK main loop keeps turning — which is the FX thread itself — so it deadlocks the window
+  permanently rather than being slow. Everything goes through `ui/SystemBrowser`, which runs it on
+  a daemon thread and delivers only the result through an injected dispatcher;
+  `SystemBrowserTest` fails if a second call site appears.
 - Concurrency/state where it matters: `FileService` listeners live in a `CopyOnWriteArrayList`;
   enum-based state models (`ExitDisposition`, `AutosaveHealth.Problem`) encode exit/autosave
   rules. Read a class Javadoc before changing its policy — data-safety semantics (atomic
