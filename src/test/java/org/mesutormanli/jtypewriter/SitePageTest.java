@@ -13,6 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -80,6 +82,29 @@ class SitePageTest {
         // of files nobody recorded.
         assertTrue(count(html, "data-src-en=\"") == 1, "the page has no English recording");
         assertTrue(count(html, "data-src-tr=\"") == 1, "the page has no Turkish recording");
+    }
+
+    /**
+     * The two sentences at the top of the page are also the {@code appTagline}
+     * the welcome and About cards print, in all six languages - the user asked
+     * for one text rather than a second translation to keep in step, and this is
+     * what makes "one text" true instead of aspirational. The card shows one
+     * label, so it carries the title sentence and the lede joined by a space;
+     * the comparison therefore joins the page's two paragraphs the same way.
+     */
+    @Test
+    void theCardTaglineIsThePagesOpeningSentence() throws IOException {
+        var html = read(INDEX);
+
+        for (var language : LANGUAGES) {
+            var opening = attributeOf(html, "tagline", language) + " "
+                    + attributeOf(html, "lede", language);
+            var tagline = bundle(language).getString("appTagline");
+
+            assertEquals(squash(opening), squash(tagline),
+                    "the " + language + " appTagline in the bundle has drifted from the "
+                            + "page's opening paragraph");
+        }
     }
 
     /**
@@ -192,6 +217,35 @@ class SitePageTest {
                 "the deploy job does not copy the canonical application icon");
         assertTrue(read(INDEX).contains("assets/icon.svg"),
                 "the page does not link the staged icon as its favicon");
+    }
+
+    /**
+     * The {@code data-<language>} value inside the element carrying the given
+     * class. Written against this one file rather than a parser: the page is a
+     * static document the suite already reads as text, and the class names are
+     * unique in it.
+     */
+    private static String attributeOf(String html, String className, String language) {
+        var element = Pattern.compile("<p class=\"" + className + "\"(.*?)>", Pattern.DOTALL)
+                .matcher(html);
+        assertTrue(element.find(), "the page has no ." + className + " paragraph");
+        var value = Pattern.compile("data-" + language + "=\"([^\"]*)\"", Pattern.DOTALL)
+                .matcher(element.group(1));
+        assertTrue(value.find(), "the ." + className + " paragraph has no " + language + " text");
+        return value.group(1);
+    }
+
+    /** The bundle of one of the six UI languages, never the system default. */
+    private static ResourceBundle bundle(String language) {
+        return ResourceBundle.getBundle("messages",
+                Locale.forLanguageTag(language),
+                ResourceBundle.Control.getNoFallbackControl(
+                        ResourceBundle.Control.FORMAT_PROPERTIES));
+    }
+
+    /** Whatever the markup wrapped, the sentence is one run of text. */
+    private static String squash(String text) {
+        return text.replaceAll("\\s+", " ").trim();
     }
 
     private static boolean isRemote(String target) {

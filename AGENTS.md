@@ -207,6 +207,13 @@ suite is the gate, and it enforces several non-code invariants below.
   its only download action is `/releases/latest`, the same address the in-app update check
   reads. `SitePageTest` pins the per-language parity, the dropdown's order, the absence of any
   non-GitHub resource or link, and the copy-not-commit rule.
+- The welcome and About cards' `appTagline` has one source: the page's opening two paragraphs.
+  A single card label carries the page's `.tagline` and `.lede` joined by a space, and
+  `SitePageTest.theCardTaglineIsThePagesOpeningSentence` compares the six bundles against the
+  markup, so a rewritten sentence moves both surfaces or fails. That tagline is long enough to
+  wrap in every language, and `OverlayCard` therefore pins the label to `USE_PREF_SIZE` height —
+  the scroll pane's `fitToHeight` otherwise squeezes a wrapped label back to one ellipsised line
+  (`DialogSizingTest.theSharedTaglineMayGrowToItsWrappedHeight`).
 - `releases/` and `target/` are generated — never hand-edit or commit them.
 - Docs are bilingual: update `README.md` and `README-TR.md` (and release notes) together.
 - `.gitattributes` forces LF for text (CRLF only for `.bat/.cmd/.ps1`); keep new text files LF.

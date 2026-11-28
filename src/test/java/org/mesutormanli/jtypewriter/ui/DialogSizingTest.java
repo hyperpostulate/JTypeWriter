@@ -146,6 +146,29 @@ class DialogSizingTest {
                 "OverlayCard no longer builds the shared card column");
     }
 
+    /**
+     * The shared tagline wraps onto several lines in every language, and a
+     * wrapped {@code Label} is only as tall as its text if it is allowed to be:
+     * the card's scroll pane stretches its content to the viewport
+     * ({@code fitToHeight}), and the column then squeezes the label back to one
+     * line and ellipsises it. That is exactly what happened when the tagline
+     * grew from one sentence to two - the card showed
+     * "A quiet place to write. Open it and the screen holds nothing but..." in
+     * a single clipped row. Pinned by source because measuring the label needs
+     * a live scene, which this suite must never create.
+     */
+    @Test
+    void theSharedTaglineMayGrowToItsWrappedHeight() {
+        var base = readSource("OverlayCard.java");
+
+        assertTrue(base.contains("taglineLabel.setWrapText(true)"),
+                "the tagline no longer wraps");
+        assertTrue(base.contains("taglineLabel.setMinHeight(Region.USE_PREF_SIZE)")
+                        && base.contains("taglineLabel.setMaxHeight(Region.USE_PREF_SIZE)"),
+                "the tagline cannot grow to the height its wrapped text needs, so a"
+                        + " multi-line tagline is clipped to one ellipsised line");
+    }
+
     private static String readSource(String name) {
         var path = Path.of("src", "main", "java", "org", "mesutormanli", "jtypewriter", "ui", name);
         try {

@@ -19,6 +19,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import org.mesutormanli.jtypewriter.locale.Messages;
@@ -194,6 +195,14 @@ public abstract class OverlayCard extends VBox {
         taglineLabel.getStyleClass().add("welcome-tagline");
         taglineLabel.setWrapText(true);
         taglineLabel.setMaxWidth(contentWidth);
+        // Wrapping only produces a second line if the label is allowed to be
+        // two lines tall. The scroll pane stretches its content to the viewport
+        // (fitToHeight), and the column then has to fit the children into that
+        // height - with the default height limits a wrapped label is shrunk
+        // back to one line and ellipsised, which is what the card showed once
+        // the tagline grew past a single line in every language.
+        taglineLabel.setMinHeight(Region.USE_PREF_SIZE);
+        taglineLabel.setMaxHeight(Region.USE_PREF_SIZE);
         taglineLabel.setTextAlignment(TextAlignment.CENTER);
         taglineLabel.setAlignment(Pos.CENTER);
 
