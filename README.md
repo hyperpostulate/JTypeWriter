@@ -34,7 +34,7 @@ JTypeWriter opens a single plain-text document and then stays out of the way: no
 - **Numbers as you go.** Words, characters with and without spaces, lines, keystrokes, session time and a sustained words-per-minute figure that ignores your breaks.
 - **Only text on screen.** `F11` goes fullscreen, `Ctrl+T` hides the toolbar along with the command menu it hosts, and the window title tells you which document is open and whether it is saved.
 - **A session that comes back.** Language, theme, text colour, font size, last document with its caret and scroll position, and window geometry are restored on the next start.
-- **Nothing leaves your machine.** No account, no telemetry, no update check, no network request.
+- **Nothing leaves your machine on its own.** No account, no telemetry, no startup check and no background request. The only outbound actions are ones you start: the e-mail link in the About card and `Help → Check for updates`, which reads the GitHub release page and nothing else.
 
 ---
 
@@ -185,6 +185,10 @@ The save confirmation disappears with the next edit; the backup confirmation sta
 
 Six colours - Default, Sage, Lavender, Sand, Steel, Rose. `Ctrl+Shift+C` cycles; the toolbar and `View → Text Color` pick directly.
 
+### Checking for Updates
+
+`Help → Check for updates` asks GitHub for the newest release tag and compares it with the version you are running. A newer release opens a dialog that names the version, shows the release page address as selectable text and offers to open it in your browser; nothing is downloaded, installed or replaced by the application, and updating stays your decision. A check that finds nothing newer, or cannot reach GitHub, reports that as its own dialog rather than leaving the click silent. The request is made only on that click - there is no check at startup, no timer and no background polling - and it carries no document, file name or preference.
+
 ### Supported Languages
 
 Six languages: English, Turkish, German, French, Italian and Spanish. Toolbar, menus, dialogs, cards, the window title and the status bar update immediately when the language is switched, and every date and time is rendered in that language's own format.
@@ -193,7 +197,7 @@ Six languages: English, Turkish, German, French, Italian and Spanish. Toolbar, m
 
 ## Your Data
 
-Everything JTypeWriter keeps stays on your machine. There is no account, no telemetry, no update check and no network request: the application itself sends nothing, and the only outbound action is the e-mail link in the About card, which hands a `mailto:` address to your own mail client.
+Everything JTypeWriter keeps stays on your machine. There is no account and no telemetry, and the application sends nothing unless you ask it to: the only two outbound actions are the e-mail link in the About card, which hands a `mailto:` address to your own mail client, and `Help → Check for updates`, which requests the GitHub release page for this repository and sends no document, file name or preference. Like any HTTPS request, GitHub sees the machine's IP address and the application version in the `User-Agent` header.
 
 - **Where it lives:** `~/.jtypewriter/` - preferences, recovery drafts, logs and the single-instance lock.
 - **Drafts contain your text.** Each recovery draft holds the unsaved document verbatim; a draft you postponed survives a clean exit and is offered again on the next start.
@@ -611,6 +615,10 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `FindPanelContractTest` | Source contract of the find card's `reveal`: a match is selected with `selectRange` and never followed by `positionCaret`, which JavaFX implements as `selectRange(pos, pos)` and would collapse the selection |
 | `KeyboardShortcutHandlerTest` | Shortcut decoding incl. shift-sensitive combos (Ctrl+Shift+Y / Z / C / T / S), Ctrl+N for a new document, the find chords (Ctrl+F / F3 / Shift+F3 / Ctrl+H, where F3 and Shift+F3 must stay distinct) and numpad equivalents |
 | `MainControllerTest` | Window title composition (application + document name, unsaved `*` marker, `[YOLO]` badge), the Edit menu's find/replace placement, and the command-menu contract: `MainMenu.layout()` carries every platform-independent `EditorAction` exactly once across the four pages (six settings commands are represented by their value submenu instead), the View submenus list and check the same values the toolbar dropdowns offer, and every page title and row label is non-empty in all six languages |
+| `VersionOrderTest` | The shared version rule, so settings migration and the update check cannot disagree: numeric segments with missing ones counting as zero, `v`-prefixed tags comparing like the number they name, and a suffixed tag such as `v2.0.0-beta` being refused instead of read as `2.0.0` |
+| `UpdateCheckTest` | The update decision without a socket: the version is the last segment of a `.../releases/tag/vX.Y.Z` address, a trailing slash, query or fragment does not hide it, `/releases/latest`, an empty tag or a suffixed tag yields nothing rather than a guess, and newer/same/older releases map to `NEWER`/`UP_TO_DATE` |
+| `UpdateServiceTest` | The check's plumbing with the address supplier and FX dispatcher injected (no socket, no toolkit): a newer release reaches the callback, an empty address or a throwing supplier becomes `FAILED` instead of an exception, the in-flight flag is cleared, and a second click while a check runs starts no second request |
+| `UpdateWiringTest` | The update promise as a property of the wiring: no class outside `UpdateService` opens a connection, the request is started from exactly one method reached from the Help entry (never from `AppGraph`, a timer or a lifecycle hook), and the entry is added immediately after About |
 | `MainStageTest` | Off-screen window position guard (`intersectsAny`: restored positions on detached monitors) |
 | `AppIconsTest` | The icon set on the classpath: every PNG decodes to the declared size, and the `.ico` file starts with its expected magic bytes (pure byte checks, no toolkit) |
 | `AppVersionTest` | The version is one number: the filtered resource is read and trimmed, a missing or blank value is empty rather than throwing, `get()` is never blank, and every reader (About, the settings schema) agrees with `pom.xml` |

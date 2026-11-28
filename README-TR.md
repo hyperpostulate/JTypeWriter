@@ -34,7 +34,7 @@ JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap 
 - **Yazdıkça sayılar.** Kelime, boşluklu ve boşluksuz karakter, satır, tuş vuruşu, oturum süresi ve molaları saymayan sürdürülebilir kelime/dakika.
 - **Ekranda yalnızca metin.** `F11` tam ekran, `Ctrl+T` araç çubuğunu ve içinde duran komut menüsünü birlikte gizler; pencere başlığı hangi belgenin açık olduğunu ve kaydedilip kaydedilmediğini söyler.
 - **Kaldığınız yerden devam eden oturum.** Dil, tema, metin rengi, yazı boyutu, son belge ve onun imleç/scroll konumu ile pencere geometrisi bir sonraki açılışta geri yüklenir.
-- **Hiçbir şey makinenizden çıkmaz.** Hesap yok, telemetri yok, güncelleme denetimi yok, ağ isteği yok.
+- **Hiçbir şey kendiliğinden makinenizden çıkmaz.** Hesap yok, telemetri yok, açılışta denetim yok, arka planda istek yok. Dışa açılan tek eylemler sizin başlattıklarınızdır: Hakkında kartındaki e-posta bağlantısı ve yalnızca GitHub yayın sayfasını okuyan `Yardım → Güncellemeleri denetle`.
 
 ---
 
@@ -185,6 +185,10 @@ Kayıt onayı sonraki düzenlemede kaybolur; yedek onayı ise gerçek bir kayıt
 
 Altı renk - Varsayılan, Adaçayı, Lavanta, Kum, Çelik, Gül. `Ctrl+Shift+C` sırayla gezer; araç çubuğu ve `Görünüm → Renk` doğrudan seçer.
 
+### Güncellemeleri Denetleme
+
+`Yardım → Güncellemeleri denetle`, GitHub'dan en son yayın etiketini ister ve çalıştırdığınız sürümle karşılaştırır. Daha yeni bir sürüm varsa açılan ileti sürümü adlandırır, yayın sayfası adresini seçilebilir metin olarak gösterir ve tarayıcıda açmayı teklif eder; uygulama hiçbir şey indirmez, kurmaz veya değiştirmez, güncelleme sizin kararınızdır. Daha yenisini bulamayan ya da GitHub'a ulaşamayan bir denetim bunu kendi iletisiyle söyler; tıklama sessiz kalmaz. İstek yalnızca o tıklamada yapılır - açılışta denetim, zamanlayıcı veya arka plan yoklaması yoktur - ve belge, dosya adı ya da tercih taşımaz.
+
 ### Desteklenen Diller
 
 Altı dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca ve İspanyolca. Dil değiştirildiğinde araç çubuğu, menüler, diyaloglar, kartlar, pencere başlığı ve durum çubuğu anında güncellenir; her tarih ve saat o dilin kendi biçimiyle yazılır.
@@ -193,7 +197,7 @@ Altı dil: İngilizce, Türkçe, Almanca, Fransızca, İtalyanca ve İspanyolca.
 
 ## Verileriniz
 
-JTypeWriter'ın sakladığı her şey makinenizde kalır. Hesap yok, telemetri yok, güncelleme denetimi yok ve ağ isteği yok: uygulama kendisi hiçbir şey göndermez; dışa açılan tek eylem, Hakkında kartındaki e-posta bağlantısıdır ve `mailto:` adresini kendi posta istemcinize devreder.
+JTypeWriter'ın sakladığı her şey makinenizde kalır. Hesap yok, telemetri yok ve uygulama siz istemedikçe hiçbir şey göndermez: dışa açılan iki eylem vardır - `mailto:` adresini kendi posta istemcinize devreden Hakkında kartındaki e-posta bağlantısı ve bu deponun GitHub yayın sayfasını isteyen `Yardım → Güncellemeleri denetle`. Bu istek belge, dosya adı veya tercih göndermez; her HTTPS isteğinde olduğu gibi GitHub makinenin IP adresini ve `User-Agent` başlığındaki uygulama sürümünü görür.
 
 - **Nerede durur:** `~/.jtypewriter/` - tercihler, kurtarma taslakları, loglar ve tek örnek kilidi.
 - **Taslaklar metninizi içerir.** Her kurtarma taslağı kaydedilmemiş belgenin metnini birebir tutar; ertelediğiniz taslak temiz çıkıştan sonra da kalır ve bir sonraki açılışta yeniden teklif edilir.
@@ -603,6 +607,10 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `FindPanelContractTest` | Bul kartının `reveal` kaynak sözleşmesi: eşleşme `selectRange` ile seçilir ve ardından `positionCaret` çağrılmaz; JavaFX onu `selectRange(pos, pos)` olarak uyguladığı için seçimi daraltırdı |
 | `KeyboardShortcutHandlerTest` | Kısayol çözümleme; shift hassas birleşimler (Ctrl+Shift+Y / Z / C / T / S), yeni belge için Ctrl+N ve numpad eşdeğerleri |
 | `MainControllerTest` | Pencere başlığı oluşturma (uygulama + belge adı, kaydedilmemiş `*` işareti, `[YOLO]` rozeti), Düzen menüsündeki ara/değiştir komutlarının sırası ve komut menüsü sözleşmesi: `MainMenu.layout()` dört sayfada her platformdan bağımsız `EditorAction`'ı tam bir kez taşıyor (altı ayar komutu yerine değer alt menüsüyle temsil ediliyor), Görünüm alt menüleri araç çubuğu açılır listelerinin sunduğu aynı değerleri listeliyor ve işaretliyor, her sayfa başlığı ve satır etiketi altı dilde dolu |
+| `VersionOrderTest` | Ayar geçişi ile güncelleme denetiminin çelişemeyeceği ortak sürüm kuralı: eksik parçaların sıfır sayıldığı sayısal parçalar, `v` önekli etiketlerin adlandırdıkları sayı gibi karşılaştırılması ve `v2.0.0-beta` gibi son ekli bir etiketin `2.0.0` diye okunmak yerine reddedilmesi |
+| `UpdateCheckTest` | Soket açmadan güncelleme kararı: sürüm `.../releases/tag/vX.Y.Z` adresinin son parçasıdır, sondaki eğik çizgi, sorgu veya parça onu gizlemez, `/releases/latest`, boş etiket ya da son ekli etiket tahmin yerine boş döner ve yeni/aynı/eski sürümler `NEWER`/`UP_TO_DATE` olur |
+| `UpdateServiceTest` | Adres sağlayıcısı ve FX dağıtıcısı enjekte edilmiş denetim altyapısı (soket yok, toolkit yok): yeni sürüm geri çağırmaya ulaşır, boş adres veya hata fırlatan sağlayıcı istisna yerine `FAILED` olur, uçuştaki bayrak temizlenir ve denetim sürerken ikinci tıklama ikinci istek başlatmaz |
+| `UpdateWiringTest` | Kablolamanın özelliği olarak güncelleme sözü: `UpdateService` dışında hiçbir sınıf bağlantı açmaz, istek yalnızca Yardım öğesinden ulaşılan tek bir metottan başlar (`AppGraph`, zamanlayıcı veya yaşam döngüsü kancasından asla) ve öğe Hakkında'nın hemen ardına eklenir |
 | `MainStageTest` | Ekran dışı pencere konumu koruması (`intersectsAny`: artık bağlı olmayan monitörlerdeki konumlar) |
 | `AppIconsTest` | Classpath'teki ikon seti: her PNG bildirilen boyutta çözülüyor, `.ico` dosyası beklenen sihirli baytlarla başlıyor (saf bayt kontrolü, toolkit yok) |
 | `AppVersionTest` | Sürüm tek sayıdır: filtrelenen kaynak okunup kırpılır, eksik ya da boş değer hata vermek yerine boş döner, `get()` hiçbir zaman boş değildir ve her okuyucu (Hakkında, ayar şeması) `pom.xml` ile aynı fikirdedir |

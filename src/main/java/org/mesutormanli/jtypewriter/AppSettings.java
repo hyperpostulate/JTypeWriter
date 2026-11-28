@@ -25,7 +25,6 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 /**
  * Persisted user preferences in {@code ~/.jtypewriter/settings.properties}.
@@ -146,9 +145,6 @@ public final class AppSettings {
     private static final String KEY_WINDOW_Y = "window.y";
     private static final String KEY_WINDOW_WIDTH = "window.width";
     private static final String KEY_WINDOW_HEIGHT = "window.height";
-
-    /** A run of digits: one numeric segment of a dotted version. */
-    private static final Pattern VERSION_PART = Pattern.compile("\\d+");
 
     static final int DEFAULT_FONT_SIZE = org.mesutormanli.jtypewriter.ui.theme.FontSizeManager.DEFAULT_SIZE;
 
@@ -530,13 +526,13 @@ public final class AppSettings {
      */
     static void migrate(Properties props) {
         var stored = props.getProperty(KEY_SCHEMA_VERSION);
-        if (stored == null || !VERSION_PART.matcher(stored).find()) {
+        if (stored == null || !VersionOrder.VERSION_PART.matcher(stored).find()) {
             // No digit run at all: an unversioned file, or a hand edit that
             // replaced the marker with something that is not a version.
             props.setProperty(KEY_SCHEMA_VERSION, CURRENT_SCHEMA_VERSION);
             return;
         }
-        if (versionSegments(stored).length == 0) {
+        if (VersionOrder.segments(stored).length == 0) {
             // Digit runs that do not fit in a long: no build this one knows
             // could have written it, so it comes from a future or foreign
             // build whose shape cannot be interpreted. Leave it untouched,
@@ -545,7 +541,7 @@ public final class AppSettings {
                     + ", a version this build cannot interpret; reading it as-is");
             return;
         }
-        var order = compareVersions(stored, CURRENT_SCHEMA_VERSION);
+        var order = VersionOrder.compare(stored, CURRENT_SCHEMA_VERSION);
         if (order > 0) {
             LOG.log(Level.FINE, "settings file was written by " + stored.trim()
                     + ", newer than " + CURRENT_SCHEMA_VERSION + "; reading it as-is");
@@ -557,57 +553,16 @@ public final class AppSettings {
     }
 
     /**
-     * Compares two dotted version strings by their numeric segments, missing
-     * segments counting as zero, so {@code 1.0.3 < 1.1.0 < 99} and
-     * {@code 1.0 == 1.0.0}. This is deliberately not a general SemVer
-     * implementation: the only question asked here is "was this file written
-     * by an older or a newer build than me", and a pre-release suffix such as
-     * {@code -SNAPSHOT} is not part of a releasable version anyway
-     * ({@code package.sh} rejects it).
+     * Compares two dotted version strings by their numeric segments; the rule
+     * itself lives in {@link VersionOrder}, which the update check shares.
+     *
+     * <p>Kept as a named method because the settings file and this class are
+     * the only place that asks the question on the schema-migration path, and
+     * reading {@code AppSettings.compareVersions(a, b)} says what the migration
+     * step is doing more plainly than a call into a utility class.</p>
      */
     static int compareVersions(String left, String right) {
-        var first = versionSegments(left);
-        var second = versionSegments(right);
-        for (var index = 0; index < Math.max(first.length, second.length); index++) {
-            var a = index < first.length ? first[index] : 0L;
-            var b = index < second.length ? second[index] : 0L;
-            if (a != b) {
-                return Long.compare(a, b);
-            }
-        }
-        return 0;
-    }
-
-    /**
-     * The numeric segments of a version, empty when it contains none or when a
-     * segment overflows a {@code long}.
-     *
-     * <p>Those two cases look alike to this method but not to
-     * {@link #migrate}: a value with no digit run was never written by a build
-     * and is stamped as unversioned, while an overflowing run is evidence of a
-     * build whose version this one cannot represent and must be left alone.
-     * The caller therefore checks {@link #VERSION_PART} before trusting the
-     * empty result.</p>
-     */
-    private static long[] versionSegments(String version) {
-        if (version == null) {
-            return new long[0];
-        }
-        var matcher = VERSION_PART.matcher(version);
-        var segments = new ArrayList<Long>();
-        while (matcher.find()) {
-            try {
-                segments.add(Long.parseLong(matcher.group()));
-            } catch (NumberFormatException overflow) {
-                LOG.log(Level.FINE, "ignoring unreadable settings schema version " + version);
-                return new long[0];
-            }
-        }
-        var values = new long[segments.size()];
-        for (var index = 0; index < segments.size(); index++) {
-            values[index] = segments.get(index);
-        }
-        return values;
+        return VersionOrder.compare(left, right);
     }
 
     private void readFromDisk() {

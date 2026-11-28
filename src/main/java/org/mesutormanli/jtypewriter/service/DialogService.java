@@ -9,6 +9,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -17,6 +19,7 @@ import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.ui.DialogButtons;
 import org.mesutormanli.jtypewriter.ui.DialogSizing;
 import org.mesutormanli.jtypewriter.ui.DialogStyling;
+import org.mesutormanli.jtypewriter.ui.SystemBrowser;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -525,6 +528,88 @@ public class DialogService {
         alert.setHeaderText(header);
         alert.setContentText(content);
         show(alert, owner);
+    }
+
+    /**
+     * Announces a release newer than this build and offers the only two things
+     * the product lets the user do about it: open the release page, or close the
+     * dialog and keep working. Nothing is downloaded or installed here - the
+     * decision, the download and the installation stay with the user, in their
+     * browser, which is also why the address is shown as selectable text and not
+     * only behind a button.
+     *
+     * <p>If no browser can be opened (a headless JVM, a desktop without a
+     * registered handler) the dialog is followed by a warning that keeps the
+     * address reachable: reporting the failure silently would leave the user
+     * with a primary button that looks broken.</p>
+     */
+    public void showUpdateAvailable(Stage owner, String version, String pageUrl) {
+        var alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(messages.updateAvailableTitle());
+        alert.setHeaderText(messages.updateAvailableHeader(version));
+        alert.getDialogPane().setContent(addressPane(messages.updateAvailableContent(), pageUrl));
+        var open = DialogButtons.primary(messages.updateOpenPage());
+        alert.getButtonTypes().setAll(open, DialogButtons.cancel(messages.updateClose()));
+        var choice = show(alert, owner);
+        if (choice.isPresent() && choice.get() == open && !SystemBrowser.open(pageUrl)) {
+            showAddressWarning(owner, messages.updateOpenFailedTitle(),
+                    messages.updateOpenFailedHeader(), messages.updateOpenFailedContent(), pageUrl);
+        }
+    }
+
+    /**
+     * The answer to "there is nothing newer": a single line naming the version
+     * the user already has, so a check that found nothing is visibly different
+     * from a click that did nothing.
+     */
+    public void showUpToDate(Stage owner, String version) {
+        var alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(messages.updateUpToDateTitle());
+        alert.setHeaderText(messages.updateUpToDateHeader(version));
+        alert.getDialogPane().setContent(addressPane(messages.updateUpToDateContent(), null));
+        alert.getButtonTypes().setAll(DialogButtons.primary(messages.updateClose()));
+        show(alert, owner);
+    }
+
+    /**
+     * The check produced no answer. Deliberately a warning with the releases
+     * page in it: offline and blocked are the common causes, and the page is
+     * still worth opening even when the automatic check cannot reach it.
+     */
+    public void showUpdateCheckFailed(Stage owner, String releasesPage) {
+        showAddressWarning(owner, messages.updateCheckFailedTitle(),
+                messages.updateCheckFailedHeader(), messages.updateCheckFailedContent(), releasesPage);
+    }
+
+    private void showAddressWarning(Stage owner, String title, String header,
+                                    String content, String pageUrl) {
+        var alert = new Alert(Alert.AlertType.WARNING);
+        alert.setTitle(title);
+        alert.setHeaderText(header);
+        alert.getDialogPane().setContent(addressPane(content, pageUrl));
+        alert.getButtonTypes().setAll(DialogButtons.primary(messages.updateClose()));
+        show(alert, owner);
+    }
+
+    /**
+     * A wrapped explanation over a read-only, selectable text field holding the
+     * address. A {@code TextField} rather than a label on purpose: the user has
+     * to be able to copy a link that no handler would open for them, and a
+     * label is not selectable.
+     */
+    private VBox addressPane(String explanation, String address) {
+        var label = new Label(explanation);
+        label.setWrapText(true);
+        label.setMaxWidth(DialogSizing.alertContentWidth(
+                DialogSizing.alertWidth(Screen.getPrimary().getVisualBounds().getWidth())));
+        var box = new VBox(8, label);
+        if (address != null && !address.isBlank()) {
+            var field = new TextField(address);
+            field.setEditable(false);
+            field.setMaxWidth(Double.MAX_VALUE);
+            box.getChildren().add(field);
+        }
+        return box;
     }
 
     /**

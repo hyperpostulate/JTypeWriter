@@ -5,6 +5,7 @@
 
 package org.mesutormanli.jtypewriter;
 
+import javafx.application.Platform;
 import javafx.stage.Stage;
 import org.mesutormanli.jtypewriter.audio.TypewriterSound;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
@@ -17,6 +18,7 @@ import org.mesutormanli.jtypewriter.service.ExportService;
 import org.mesutormanli.jtypewriter.service.FileService;
 import org.mesutormanli.jtypewriter.service.RecoveryStore;
 import org.mesutormanli.jtypewriter.service.StorageFootprint;
+import org.mesutormanli.jtypewriter.service.UpdateService;
 import org.mesutormanli.jtypewriter.stats.SessionStats;
 import org.mesutormanli.jtypewriter.ui.AboutCard;
 import org.mesutormanli.jtypewriter.ui.CrashHandler;
@@ -122,6 +124,7 @@ public final class AppGraph {
             editorArea, mainMenu, toolbarView, statsBar,
             fileService, messages, localeManager, shortcutHandler, editorKeyHandler,
             autoSaveService, findPanel, welcomeCard, recentCard, aboutCard,
+            dialogService, UpdateService.background(Platform::runLater),
             settings, LocalTime::now);
     public final MainStage mainStage = new MainStage(
             fileService, settings, autoSaveService, dropHandler, editorArea);

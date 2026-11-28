@@ -121,6 +121,14 @@ suite is the gate, and it enforces several non-code invariants below.
   output. Both commands go through `FileService.savedDocumentAsync`, which refuses to run
   on unsaved text and reads the result back **from the `.txt` file** — the saved file is the
   single source of truth, so never render `EditorArea`'s buffer or `getCurrentContent()`.
+- The update check is the product's only network call and it is user-initiated: `Help → Check for
+  updates` (`UpdateService`) is reachable from nothing else - no startup check, no timer, no
+  background poll - and it carries no document, file name or preference. The decision is pure
+  (`UpdateCheck.versionOf`/`evaluate` over the tag GitHub redirects `/releases/latest` to) and
+  lives outside the networking class; `VersionOrder` is the one definition of "newer", shared
+  with the settings-schema migration. Never add a second `Alert` outside `DialogService` for
+  these dialogs, and keep the READMEs' privacy wording in step with what the request actually
+  sends.
 - Concurrency/state where it matters: `FileService` listeners live in a `CopyOnWriteArrayList`;
   enum-based state models (`ExitDisposition`, `AutosaveHealth.Problem`) encode exit/autosave
   rules. Read a class Javadoc before changing its policy — data-safety semantics (atomic

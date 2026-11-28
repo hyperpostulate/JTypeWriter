@@ -599,6 +599,19 @@ public class Messages {
         return bundle.getString("menuShowWelcome");
     }
 
+    /**
+     * The Help entry under About: the only outbound request the application
+     * can make, and only when the user picks this item.
+     */
+    public String menuCheckForUpdates() {
+        return bundle.getString("menuCheckForUpdates");
+    }
+
+    /** The same entry while a check is in flight; the item is disabled then. */
+    public String menuCheckingForUpdates() {
+        return bundle.getString("menuCheckingForUpdates");
+    }
+
     /** The File menu's view command that opens the recent-files card. */
     public String menuRecentFiles() {
         return bundle.getString("menuRecentFiles");
@@ -651,6 +664,63 @@ public class Messages {
 
     public String aboutCopyright() {
         return bundle.getString("aboutCopyright");
+    }
+
+    public String updateAvailableTitle() {
+        return bundle.getString("updateAvailableTitle");
+    }
+
+    /** The headline naming the published version, e.g. {@code "JTypeWriter 1.1.6"} */
+    public String updateAvailableHeader(String version) {
+        return format("updateAvailableHeader", version);
+    }
+
+    public String updateAvailableContent() {
+        return bundle.getString("updateAvailableContent");
+    }
+
+    public String updateOpenPage() {
+        return bundle.getString("updateOpenPage");
+    }
+
+    public String updateClose() {
+        return bundle.getString("updateClose");
+    }
+
+    public String updateOpenFailedTitle() {
+        return bundle.getString("updateOpenFailedTitle");
+    }
+
+    public String updateOpenFailedHeader() {
+        return bundle.getString("updateOpenFailedHeader");
+    }
+
+    public String updateOpenFailedContent() {
+        return bundle.getString("updateOpenFailedContent");
+    }
+
+    public String updateUpToDateTitle() {
+        return bundle.getString("updateUpToDateTitle");
+    }
+
+    public String updateUpToDateHeader(String version) {
+        return format("updateUpToDateHeader", version);
+    }
+
+    public String updateUpToDateContent() {
+        return bundle.getString("updateUpToDateContent");
+    }
+
+    public String updateCheckFailedTitle() {
+        return bundle.getString("updateCheckFailedTitle");
+    }
+
+    public String updateCheckFailedHeader() {
+        return bundle.getString("updateCheckFailedHeader");
+    }
+
+    public String updateCheckFailedContent() {
+        return bundle.getString("updateCheckFailedContent");
     }
 
     public String aboutLicense() {

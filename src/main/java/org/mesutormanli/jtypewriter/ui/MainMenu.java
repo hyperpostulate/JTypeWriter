@@ -248,6 +248,13 @@ public final class MainMenu {
     private Consumer<EditorAction> actionRunner = action -> { };
     private Runnable welcomeRunner = () -> { };
     private Runnable recentRunner = () -> { };
+    private Runnable updateRunner = () -> { };
+    /**
+     * True while a check is in flight: the Help entry is disabled and says so,
+     * so a second click cannot start a parallel request and a slow one is not
+     * mistaken for a dead item.
+     */
+    private boolean updateChecking;
     private Settings settings;
 
     public MainMenu(Messages messages, LocaleManager localeManager, AboutCard aboutCard) {
@@ -298,6 +305,27 @@ public final class MainMenu {
         this.recentRunner = Objects.requireNonNull(recentRunner, "recentRunner");
     }
 
+    /**
+     * The Help menu's "Check for updates" command, the one entry that may leave
+     * the machine. Installed by the controller, which owns the service and the
+     * dialogs; the menu itself performs no network call.
+     */
+    public void setUpdateRunner(Runnable updateRunner) {
+        this.updateRunner = Objects.requireNonNull(updateRunner, "updateRunner");
+    }
+
+    /**
+     * Marks a check as running or finished. Rebuilds the popup so the label and
+     * the disabled state are right the next time it opens.
+     */
+    public void setUpdateChecking(boolean updateChecking) {
+        if (this.updateChecking == updateChecking) {
+            return;
+        }
+        this.updateChecking = updateChecking;
+        refresh();
+    }
+
     /** Installed by the toolbar, which owns the managers and the apply paths. */
     public void setSettings(Settings settings) {
         this.settings = settings;
@@ -326,7 +354,10 @@ public final class MainMenu {
                 menu.getItems().addAll(new SeparatorMenuItem(), recentItem(), welcomeItem());
             }
             if (spec.page() == Page.HELP) {
-                menu.getItems().add(aboutItem());
+                // The update check is a Help entry, directly under About: it is
+                // information about the product, not a document command, so it
+                // has no EditorAction and no shortcut-card row either.
+                menu.getItems().addAll(aboutItem(), updateItem());
             }
             menuButton.getItems().add(menu);
         }
@@ -390,6 +421,15 @@ public final class MainMenu {
     private MenuItem aboutItem() {
         var item = new MenuItem(messages.toolbarAbout());
         item.setOnAction(event -> aboutCard.show());
+        return item;
+    }
+
+    private MenuItem updateItem() {
+        var item = new MenuItem(updateChecking
+                ? messages.menuCheckingForUpdates()
+                : messages.menuCheckForUpdates());
+        item.setDisable(updateChecking);
+        item.setOnAction(event -> updateRunner.run());
         return item;
     }
 

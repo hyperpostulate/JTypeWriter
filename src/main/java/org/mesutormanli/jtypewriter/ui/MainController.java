@@ -16,7 +16,9 @@ import org.mesutormanli.jtypewriter.AppSettings;
 import org.mesutormanli.jtypewriter.locale.LocaleManager;
 import org.mesutormanli.jtypewriter.locale.Messages;
 import org.mesutormanli.jtypewriter.service.AutoSaveService;
+import org.mesutormanli.jtypewriter.service.DialogService;
 import org.mesutormanli.jtypewriter.service.FileService;
+import org.mesutormanli.jtypewriter.service.UpdateService;
 import org.mesutormanli.jtypewriter.ui.component.EditorArea;
 import org.mesutormanli.jtypewriter.ui.component.EditorKeyHandler;
 import org.mesutormanli.jtypewriter.ui.component.StatsBar;
@@ -49,6 +51,8 @@ public class MainController implements Initializable {
     private final WelcomeCard welcomeCard;
     private final RecentFilesCard recentCard;
     private final AboutCard aboutCard;
+    private final DialogService dialogService;
+    private final UpdateService updateService;
     private final AppSettings settings;
     private final Supplier<LocalTime> clock;
 
@@ -91,6 +95,7 @@ public class MainController implements Initializable {
                           AutoSaveService autoSaveService,
                           FindPanel findPanel,
                           WelcomeCard welcomeCard, RecentFilesCard recentCard, AboutCard aboutCard,
+                          DialogService dialogService, UpdateService updateService,
                           AppSettings settings, Supplier<LocalTime> clock) {
         this.editorArea = editorArea;
         this.mainMenu = mainMenu;
@@ -106,6 +111,8 @@ public class MainController implements Initializable {
         this.welcomeCard = welcomeCard;
         this.recentCard = recentCard;
         this.aboutCard = aboutCard;
+        this.dialogService = dialogService;
+        this.updateService = updateService;
         this.settings = settings;
         this.clock = clock;
         // The toolbar comes back exactly as visible (or hidden) as the
@@ -136,6 +143,10 @@ public class MainController implements Initializable {
         // The recent list is a working surface, so it has a menu entry of its
         // own and does not depend on the greeting being switched on.
         mainMenu.setRecentRunner(recentCard::show);
+        // The only outbound request the application can make, and only from
+        // this click. The menu owns the "checking" state so a second click
+        // cannot start a parallel request while the first is in flight.
+        mainMenu.setUpdateRunner(this::checkForUpdates);
         // The find panel owns its own state; the key filter and the menu only
         // reach it through the four-command port.
         findPanel.setStage(stage);
@@ -212,6 +223,32 @@ public class MainController implements Initializable {
      * it is true - with text that matches the failure kind - and clears itself
      * once the operation succeeds again.
      */
+    /**
+     * Runs the user-initiated update check and turns its answer into the right
+     * dialog. The three outcomes are kept distinct on purpose: "a newer release
+     * exists", "you are current" and "the check did not work" are three
+     * different sentences, and folding the last two together would let an
+     * offline machine look like an up-to-date one.
+     *
+     * <p>The result arrives on the FX thread ({@code UpdateService} is built
+     * with {@code Platform::runLater}), so everything here touches UI state
+     * directly. The menu item is re-enabled before its dialog opens, because
+     * the dialog is modal and a disabled item behind it would stay disabled if
+     * the user closed the window by other means.</p>
+     */
+    private void checkForUpdates() {
+        mainMenu.setUpdateChecking(true);
+        updateService.checkAsync(result -> {
+            mainMenu.setUpdateChecking(false);
+            switch (result.status()) {
+                case NEWER -> dialogService.showUpdateAvailable(
+                        stage, result.latestVersion(), result.pageUrl());
+                case UP_TO_DATE -> dialogService.showUpToDate(stage, result.latestVersion());
+                case FAILED -> dialogService.showUpdateCheckFailed(stage, UpdateService.RELEASES_PAGE);
+            }
+        });
+    }
+
     private void refreshAutosaveWarning() {
         statsBar.setAutosaveProblem(autoSaveService.health().problem().orElse(null));
     }
