@@ -20,6 +20,12 @@
 
 JTypeWriter tek bir düz metin belgesi açar ve sonra geri planda kalır: hesap yok, bulut yok, proje biçimi yok. Metniniz seçtiğiniz dosyada ve o dosyanın zaten sahip olduğu kodlamada kalır. Paketlenmiş uygulama kendi Java çalışma zamanını taşır, yani önce hiçbir şey kurmanız gerekmez. Linux ve Windows'ta çalışır ve arayüzü İngilizce, Türkçe, Almanca, Fransızca, İspanyolca ve İtalyanca konuşur.
 
+<p align="center">
+  <img src="docs/media/hero-tr.gif" alt="JTypeWriter'ın koyu temasında yazmak: metin editörde büyürken durum çubuğu kelime, karakter, tuş vuruşu ve kelime/dakika sayıyor" width="900">
+</p>
+
+<p align="center"><em>On saniyelik yazım. Metin ve durum çubuğundaki sayaçlar birlikte artıyor.</em></p>
+
 ## Neler var?
 
 - **Kazara mahvedemeyeceğiniz bir taslak.** YOLO modu Backspace, Delete, Kes ve Geri Al/İleri Al'ı kapatır; yalnızca ileri yazabilirsiniz. Her kayıt atomiktir, dönen yedekler tutar ve kaydedilmemiş iş 30 saniyede bir yedeklenir.
@@ -271,6 +277,7 @@ mvn clean package                    # Derleme + test + ince JAR + fat JAR
 ./scripts/package.sh --installer     # Aynı + platform kurulum paketi (.deb / .msi)
 ./scripts/verify-artifacts.sh        # Taze derleme, ardından her kopyayı bayt bayt karşılaştır
 ./scripts/smoke-appimage.sh --skip-build  # Derlenen imajı başlat; .deb paketini kur, çalıştır ve kaldır
+./scripts/capture-hero-gif.sh        # README'deki hero GIF'ini paketlenmiş imajdan yeniden kaydet
 mvn test -Dtest=SessionStatsTest     # Tek test sınıfı
 mvn test -Dtest=FileServiceTest      # Tek test sınıfı
 ```
@@ -355,6 +362,17 @@ varlıklarla karşılaştırır (tam eşleşme %0,00 fark; kasıtlı bir palet d
 %0,33 ile yine kırmızıya döner). Script, ImageMagick 7'nin `magick` sürücüsünü de
 eski sürüm 6'nın `convert` komutunu da kabul eder; böylece yeniden üretim hem
 geliştirici makinesinde hem ImageMagick 6 paketleyen bir çalıştırıcıda çalışır.
+
+Bu belgenin başındaki hareketli ekran görüntüsü de elle değil tek komutla
+kaydedilir: `scripts/capture-hero-gif.sh` paketlenmiş uygulamayı Xvfb içinde
+geçici bir `user.home` ile başlatır, istenen dilde sabit bir örnek paragraf
+yazar ve `docs/media/hero-en.gif` ya da `docs/media/hero-tr.gif` dosyasını
+üretir. Girdiler - pencere geometrisi, koyu tema, yazma hızı, hedef süre -
+script içinde sabittir; böylece araç çubuğu değiştikten sonra yeniden
+çalıştırmak yeni bir yorum değil karşılaştırılabilir bir kayıt üretir. Simge
+manifestine dahil değildir: GIF'in baytları kodlayıcı sürümüne bağlıdır, oradaki
+bir özet ürünü değil ffmpeg derlemesini karşılaştırırdı. `ReadmeMediaTest`
+bağlantıları, dil eşleşmesini, `alt` metnini ve boyut bütçesini denetler.
 
 ### Tema ve dil kaynakları
 
@@ -617,6 +635,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `PackagingNoticesTest` | Paketleme sözleşmesi: `META-INF/THIRD-PARTY-NOTICES` ve üç lisans metni sınıf yolunda; bildirim her paketlenen bileşeni gerçek SPDX kimliğiyle adlandırıyor, FFmpeg'in dağıtılmadığını söylüyor, 100 sütun içinde yalnızca LF kullanıyor ve depodaki dosyayla bayt-özdeş, böylece bayat bir derleme çıktısı testi geçemiyor |
 | `ContrastRatioTest` | WCAG kontrast matematiği (siyah-beyaz 21:1, aynı renkler 1:1, 4.5 sınırı) ve durum metni, otomatik kayıt uyarısı, araç çubuğu metni, düz popup satırı ya da varsayılan editör metni AA'nın veya 13 px'in altına düşerse (ya da bir tema `base.css`'in hiç okumadığı bir token tanımlarsa), odak halkası 3:1'in altına düşerse, vurgulanan popup satırı metni AA'nın altına düşerse, popup hücresi yazı boyutu kapalı combo'nun boyutundan saparsa, odak rengi yeniden saydamlaşırsa ya da var olmayan bir JavaFX CSS özelliği (`-fx-letter-spacing`, `-fx-transition`) geri dönerse derlemeyi başarısız kılan CSS ayrıştırma korumaları |
 | `CiGatesTest` | CI kapı sözleşmesi: ortak iş akışı ikon güncellik kontrolünü ve artefakt doğrulamasını gerçekten çağırıyor, ikon kontrolü derlemeden önce ve yeniden rasterleştirmeden iki işletim sistemi ayağında koşuyor, artefakt kontrolü paketlemeden sonra koşuyor, artefakt kapısı Linux ayağında kalıyor (`.deb` paketini açıyor), `maven.yml` ile `release.yml` kendi adım listelerini tutmak yerine ortak iş akışını çağırıyor ve yayın yalnız normalleştirilmiş `dist/` varlıklarını indiriyor |
+| `ReadmeMediaTest` | README ekran görüntüleri gerçektir: her `docs/media` referansı vardır ve boş değildir, her yarı kendi arayüz dilinde çekilmiş kaydı gösterir, her görsel etiketi `alt` metni taşır, hero animasyonu özellik listesinin üstünde durur, GIF belge boyutundadır ve byte bütçesinin içindedir, `src/main/resources/icons` altına hiçbir şey girmez ve `capture-hero-gif.sh` hâlâ README'lerin gösterdiği dosyaları üretir |
 | `ReadmeTestTableTest` | Test sınıfı tablosu hatırlanmıyor, türetiliyor: `src/test` altındaki her `*Test.java` iki README'de de bir satıra sahiptir, Türkçe tablo İngilizce kadar tamdır ve hiçbir satır artık var olmayan bir sınıfı adlandırmaz |
 | `ReleaseNotesTest` | Yayın sözleşmesi: her artefakt yüklemesi kısa bir saklama süresi taşır, yayın gövdesi depodaki şablondan gelir, şablon iki dilli kalır ve literal sürüm içermez, iki yarı aynı doğrulama komutlarını taşır, not indirme boyutlarını ölçer ve iş akışı kuru çalıştırma yapabilirken elle çalıştırma yayımlayamaz |
 | `ReleaseAssetsScriptTest` | Taşınabilir arşiv betiği: sürücü harfli bir yol `tar` tarafından ana makine adı olarak okunmaz ve düz yollar hâlâ tek üst düzey dizinli bir arşiv üretir |

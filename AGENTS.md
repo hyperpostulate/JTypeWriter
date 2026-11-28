@@ -171,6 +171,14 @@ suite is the gate, and it enforces several non-code invariants below.
   mapping, which made the toolbar's fit decision runner-dependent). Provenance and hashes live
   in `fonts/PROVENANCE.md`, the licence in `legal/Bitstream-Vera.txt`, and
   `package.sh`/`verify-artifacts.sh` require that text in the image, the jar and the `.deb`.
+- The README's screenshot has one source: `scripts/capture-hero-gif.sh`, which records the
+  **packaged** image (so run `package.sh` first) under Xvfb + xfwm4 with a throwaway
+  `user.home`, and writes `docs/media/hero-en.gif` / `docs/media/hero-tr.gif` (10 s, 900 px,
+  dark theme, both language halves). Never hand-record a replacement, never put document media
+  under `src/main/resources` (it is packed into the jar and `generate-icons.py --check` rejects
+  stray images), and never add a GIF to `icons.manifest`: encoder output is not byte-stable.
+  `ReadmeMediaTest` pins the links, the per-language pairing, `alt` text, position above the
+  feature list and the size budget.
 - `releases/` and `target/` are generated — never hand-edit or commit them.
 - Docs are bilingual: update `README.md` and `README-TR.md` (and release notes) together.
 - `.gitattributes` forces LF for text (CRLF only for `.bat/.cmd/.ps1`); keep new text files LF.

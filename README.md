@@ -20,6 +20,12 @@
 
 JTypeWriter opens a single plain-text document and then stays out of the way: no accounts, no cloud, no project format. Your text lives in the file you picked, in the encoding that file already had. The packaged download carries its own Java runtime, so nothing has to be installed first. It runs on Linux and Windows, and the interface speaks English, Turkish, German, French, Spanish and Italian.
 
+<p align="center">
+  <img src="docs/media/hero-en.gif" alt="Typing in JTypeWriter's dark theme: the text grows in the editor while the status bar counts words, characters, keystrokes and words per minute" width="900">
+</p>
+
+<p align="center"><em>Ten seconds of typing. The text and the status-bar counters climb together.</em></p>
+
 ## What you get
 
 - **A draft you cannot wreck by accident.** YOLO mode turns off Backspace, Delete, Cut and Undo/Redo so you can only move forward. Every save is atomic, keeps rotating backups, and unsaved work is backed up every 30 seconds.
@@ -271,6 +277,7 @@ mvn clean package                    # Build + tests + thin JAR + fat JAR
 ./scripts/package.sh --installer     # Same, plus the platform installer (.deb / .msi)
 ./scripts/verify-artifacts.sh        # Fresh build, then compare every shipped copy byte for byte
 ./scripts/smoke-appimage.sh --skip-build  # Start the built image; install, launch and remove the .deb
+./scripts/capture-hero-gif.sh        # Re-record the README's hero GIF from the packaged image
 mvn test -Dtest=SessionStatsTest     # Run a single test class
 mvn test -Dtest=FileServiceTest      # Run a single test class
 ```
@@ -362,6 +369,18 @@ a deliberate palette tweak at 0.33%). The script accepts either ImageMagick 7's
 `magick` driver or the legacy `convert` of version 6, so regenerating works on a
 developer machine and on a runner whose distribution still packages ImageMagick
 6.
+
+The animated screenshot at the top of this document is recorded the same way, by
+one command rather than by hand: `scripts/capture-hero-gif.sh` starts the
+packaged application on a throwaway `user.home` inside Xvfb, types a fixed
+sample paragraph in the requested language, and writes `docs/media/hero-en.gif`
+or `docs/media/hero-tr.gif`. The inputs - window geometry, dark theme, typing
+rate, target length - are constants in the script, so re-running it after a
+toolbar change produces a comparable recording instead of a new opinion. It is
+not part of the icon manifest: a GIF's bytes depend on the encoder version, so a
+hash there would compare ffmpeg builds rather than the product. `ReadmeMediaTest`
+keeps the links, the language pairing, the `alt` text and the size budget
+honest.
 
 ### Theme and language resources
 
@@ -624,6 +643,7 @@ mvn test -Dtest=SessionStatsTest#wordCountIsCorrect
 | `PackagingNoticesTest` | The packaging contract: `META-INF/THIRD-PARTY-NOTICES` and all three license texts are on the classpath, the notice names every bundled component with its real SPDX id, states that FFmpeg is not distributed, stays LF-only within 100 columns, and is byte-identical to the checked-in file so a stale build output cannot pass |
 | `ContrastRatioTest` | WCAG contrast maths (black-on-white 21:1, identical colours 1:1, the 4.5 boundary) and CSS-parsing guards that fail the build if status text, the autosave warning, the toolbar text, a plain popup row or the default editor text drops below AA or 13 px (or a theme declares a token `base.css` never reads), the focus ring drops below 3:1, highlighted popup-row text drops below AA, the popup cell font size drifts from the closed combo's, the focus colour becomes transparent again, or a non-existent JavaFX CSS property (`-fx-letter-spacing`, `-fx-transition`) returns |
 | `CiGatesTest` | The CI gate contract: the shared workflow really invokes the icon freshness check and the artifact verification, the icon check runs before the build and on both OS legs without re-rasterising, the artifact check runs after packaging, that artifact gate stays on the Linux leg (it unpacks the `.deb`), both `maven.yml` and `release.yml` call the shared workflow rather than keeping their own step lists, and the release downloads only the normalised `dist/` assets |
+| `ReadmeMediaTest` | The README screenshots are real: every `docs/media` reference exists and is not empty, each half shows the recording of its own UI language, every image tag carries `alt` text, the hero animation sits above the feature list, the GIF is document-sized and inside its byte budget, nothing lands in `src/main/resources/icons`, and `capture-hero-gif.sh` still produces the files the READMEs show |
 | `ReadmeTestTableTest` | The test-class table is derived, not remembered: every `*Test.java` under `src/test` has a row in both READMEs, the Turkish table is as complete as the English one, and no row names a class that no longer exists |
 | `ReleaseNotesTest` | The release contract: every artifact upload carries a short retention, the release body comes from the checked-in template, the template stays bilingual with no literal version and the same verification commands in both halves, the note measures download sizes, and the workflow can dry-run while a manual run cannot publish |
 | `ReleaseAssetsScriptTest` | The portable-archive script: a drive-lettered path is not read as a `tar` host name, and plain paths still produce an archive with a single top-level directory |
