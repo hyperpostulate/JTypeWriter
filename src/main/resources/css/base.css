@@ -504,7 +504,19 @@
     -fx-padding: 0 0 2px 0;
 }
 
+/* The tagline's first line: the product's promise, in the card's text colour
+   rather than its muted one, so it reads as a second heading under the title
+   instead of as body copy. */
 .welcome-tagline {
+    -fx-font-size: 14px;
+    -fx-text-fill: -welcome-text;
+    -fx-line-spacing: 3px;
+    -fx-text-alignment: center;
+}
+
+/* The sentence that explains it, on the next line: quieter and smaller, the
+   same muted colour the whole tagline used before it was split. */
+.welcome-tagline-detail {
     -fx-font-size: 13px;
     -fx-text-fill: -welcome-muted;
     -fx-line-spacing: 4px;

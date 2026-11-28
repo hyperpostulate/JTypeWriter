@@ -161,12 +161,34 @@ class DialogSizingTest {
     void theSharedTaglineMayGrowToItsWrappedHeight() {
         var base = readSource("OverlayCard.java");
 
-        assertTrue(base.contains("taglineLabel.setWrapText(true)"),
-                "the tagline no longer wraps");
-        assertTrue(base.contains("taglineLabel.setMinHeight(Region.USE_PREF_SIZE)")
-                        && base.contains("taglineLabel.setMaxHeight(Region.USE_PREF_SIZE)"),
-                "the tagline cannot grow to the height its wrapped text needs, so a"
+        assertTrue(base.contains("label.setWrapText(true)"),
+                "the shared card text no longer wraps");
+        assertTrue(base.contains("label.setMinHeight(Region.USE_PREF_SIZE)")
+                        && base.contains("label.setMaxHeight(Region.USE_PREF_SIZE)"),
+                "the shared card text cannot grow to the height its wrapped text needs, so a"
                         + " multi-line tagline is clipped to one ellipsised line");
+    }
+
+    /**
+     * The tagline's second sentence starts on a new line because it is a second
+     * label, not because the bundle text was split on a full stop: French puts a
+     * space before its ':' and not before its '.', and guessing where a sentence
+     * ends in six languages is not something the layout should do. Pinned by
+     * source - the cards themselves never build these labels, so a copy of the
+     * split elsewhere is what this catches.
+     */
+    @Test
+    void theTaglinesSecondLineIsItsOwnLabel() {
+        var base = readSource("OverlayCard.java");
+
+        assertTrue(base.contains("messages.appTagline()")
+                        && base.contains("messages.appTaglineDetail()"),
+                "the card column does not place both tagline lines");
+        assertTrue(base.contains("\"welcome-tagline\"")
+                        && base.contains("\"welcome-tagline-detail\""),
+                "the two tagline lines no longer get their own style classes");
+        assertFalse(base.contains("appTagline() + \" \""),
+                "the card rejoins the two sentences, so the second line disappears");
     }
 
     private static String readSource(String name) {

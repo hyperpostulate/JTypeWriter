@@ -185,9 +185,22 @@ public class Messages {
         return bundle.getString("recentEmpty");
     }
 
-    /** The one-line description of the app shown under the title in both cards. */
+    /**
+     * The product's one-line promise, drawn as the first line under the title
+     * in both cards: the introduction page's opening sentence.
+     */
     public String appTagline() {
         return bundle.getString("appTagline");
+    }
+
+    /**
+     * The sentence that follows {@link #appTagline()} on its own line in both
+     * cards. It is the page's second paragraph, and it is a separate key rather
+     * than part of the tagline so the card can start it on a new line without
+     * guessing where a sentence ends in each language.
+     */
+    public String appTaglineDetail() {
+        return bundle.getString("appTaglineDetail");
     }
 
     /*

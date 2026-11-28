@@ -85,25 +85,27 @@ class SitePageTest {
     }
 
     /**
-     * The two sentences at the top of the page are also the {@code appTagline}
-     * the welcome and About cards print, in all six languages - the user asked
-     * for one text rather than a second translation to keep in step, and this is
-     * what makes "one text" true instead of aspirational. The card shows one
-     * label, so it carries the title sentence and the lede joined by a space;
-     * the comparison therefore joins the page's two paragraphs the same way.
+     * The two sentences at the top of the page are also the two lines the
+     * welcome and About cards print, in all six languages - the user asked for
+     * one text rather than a second translation to keep in step, and this is
+     * what makes "one text" true instead of aspirational. The page's
+     * {@code .tagline} paragraph is the bundles' {@code appTagline} and its
+     * {@code .lede} is {@code appTaglineDetail}; the card shows them as two
+     * labels so the second starts on its own line.
      */
     @Test
-    void theCardTaglineIsThePagesOpeningSentence() throws IOException {
+    void theCardsOpeningLinesAreThePagesOpeningParagraphs() throws IOException {
         var html = read(INDEX);
 
         for (var language : LANGUAGES) {
-            var opening = attributeOf(html, "tagline", language) + " "
-                    + attributeOf(html, "lede", language);
-            var tagline = bundle(language).getString("appTagline");
+            var messages = bundle(language);
 
-            assertEquals(squash(opening), squash(tagline),
-                    "the " + language + " appTagline in the bundle has drifted from the "
-                            + "page's opening paragraph");
+            assertEquals(squash(attributeOf(html, "tagline", language)),
+                    squash(messages.getString("appTagline")),
+                    "the " + language + " appTagline has drifted from the page's .tagline");
+            assertEquals(squash(attributeOf(html, "lede", language)),
+                    squash(messages.getString("appTaglineDetail")),
+                    "the " + language + " appTaglineDetail has drifted from the page's .lede");
         }
     }
 

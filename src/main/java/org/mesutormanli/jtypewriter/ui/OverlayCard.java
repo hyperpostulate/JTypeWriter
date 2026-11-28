@@ -82,6 +82,9 @@ public abstract class OverlayCard extends VBox {
     /** Width of the drawn application mark; square artwork, so height matches. */
     private static final int MARK_SIZE = 80;
 
+    /** Gap between the tagline's two lines; the column's spacing would be too wide. */
+    private static final int TAGLINE_LINE_GAP = 10;
+
     private final ScrollPane scrollPane = new ScrollPane();
     private final Button closeButton = new Button();
     private final Tooltip closeTooltip = new Tooltip();
@@ -191,20 +194,19 @@ public abstract class OverlayCard extends VBox {
         var titleLabel = new Label(title);
         titleLabel.getStyleClass().add("welcome-title");
 
-        var taglineLabel = new Label(messages.appTagline());
-        taglineLabel.getStyleClass().add("welcome-tagline");
-        taglineLabel.setWrapText(true);
-        taglineLabel.setMaxWidth(contentWidth);
-        // Wrapping only produces a second line if the label is allowed to be
-        // two lines tall. The scroll pane stretches its content to the viewport
-        // (fitToHeight), and the column then has to fit the children into that
-        // height - with the default height limits a wrapped label is shrunk
-        // back to one line and ellipsised, which is what the card showed once
-        // the tagline grew past a single line in every language.
-        taglineLabel.setMinHeight(Region.USE_PREF_SIZE);
-        taglineLabel.setMaxHeight(Region.USE_PREF_SIZE);
-        taglineLabel.setTextAlignment(TextAlignment.CENTER);
-        taglineLabel.setAlignment(Pos.CENTER);
+        // The tagline is two labels, not one: the product's promise on its own
+        // line, then the sentence that explains it. Splitting the bundle text on
+        // a full stop would guess where a sentence ends in six languages (and
+        // French puts a space before its ':' but not before its '.'), so the two
+        // halves are two keys and the break is structural.
+        var taglineLabel = wrappedLabel(messages.appTagline(), "welcome-tagline");
+        var taglineDetailLabel = wrappedLabel(messages.appTaglineDetail(), "welcome-tagline-detail");
+        // The two lines get their own box with a tight gap: the column's spacing
+        // is the gap between whole blocks (mark, title, tagline, shortcuts), and
+        // reusing it here would read as a paragraph break rather than as the
+        // second line of one statement.
+        var taglineBlock = new VBox(TAGLINE_LINE_GAP, taglineLabel, taglineDetailLabel);
+        taglineBlock.setAlignment(Pos.CENTER);
 
         // A real two-column grid (keys left, descriptions right-aligned on the
         // card edge) rather than the old single Label whose columns were faked
@@ -224,8 +226,30 @@ public abstract class OverlayCard extends VBox {
         }
         column.getChildren().add(titleLabel);
         column.getChildren().addAll(underTitle);
-        column.getChildren().addAll(taglineLabel, shortcuts);
+        column.getChildren().addAll(taglineBlock, shortcuts);
         return column;
+    }
+
+    /**
+     * A centred, wrapped paragraph of card text at the content width.
+     *
+     * <p>Wrapping only produces a second line if the label is allowed to be two
+     * lines tall. The scroll pane stretches its content to the viewport
+     * ({@code fitToHeight}), and the column then has to fit the children into
+     * that height - with the default height limits a wrapped label is shrunk
+     * back to one line and ellipsised, which is what the card showed once the
+     * tagline grew past a single line in every language.</p>
+     */
+    private Label wrappedLabel(String text, String styleClass) {
+        var label = new Label(text);
+        label.getStyleClass().add(styleClass);
+        label.setWrapText(true);
+        label.setMaxWidth(contentWidth);
+        label.setMinHeight(Region.USE_PREF_SIZE);
+        label.setMaxHeight(Region.USE_PREF_SIZE);
+        label.setTextAlignment(TextAlignment.CENTER);
+        label.setAlignment(Pos.CENTER);
+        return label;
     }
 
     /**

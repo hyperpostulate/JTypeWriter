@@ -116,12 +116,23 @@ class DialogServiceTest {
      * so this headless suite deliberately does not test the layout.
      */
     @Test
-    void appTaglineResolvesInEveryBundledLocale() {
+    void bothCardSentencesResolveInEveryBundledLocale() {
         for (var language : Language.values()) {
-            var tagline = messagesFor(language).appTagline();
+            var messages = messagesFor(language);
 
+            var tagline = messages.appTagline();
             assertFalse(tagline.isBlank(), "blank app tagline in " + language);
-            assertTrue(tagline.length() > 40, "tagline should be a sentence in " + language);
+            // The first line is now the product's promise on its own, so it is a
+            // short sentence rather than the paragraph it used to be - but still
+            // a sentence, with the full stop the newline replaces.
+            assertTrue(tagline.length() > 10, "tagline should be a sentence in " + language);
+            assertTrue(tagline.strip().endsWith("."),
+                    "app tagline should end in a full stop in " + language);
+
+            var detail = messages.appTaglineDetail();
+            assertFalse(detail.isBlank(), "blank app tagline detail in " + language);
+            assertTrue(detail.length() > 40,
+                    "the second card line should be a sentence in " + language);
         }
     }
 

@@ -207,13 +207,15 @@ suite is the gate, and it enforces several non-code invariants below.
   its only download action is `/releases/latest`, the same address the in-app update check
   reads. `SitePageTest` pins the per-language parity, the dropdown's order, the absence of any
   non-GitHub resource or link, and the copy-not-commit rule.
-- The welcome and About cards' `appTagline` has one source: the page's opening two paragraphs.
-  A single card label carries the page's `.tagline` and `.lede` joined by a space, and
-  `SitePageTest.theCardTaglineIsThePagesOpeningSentence` compares the six bundles against the
-  markup, so a rewritten sentence moves both surfaces or fails. That tagline is long enough to
-  wrap in every language, and `OverlayCard` therefore pins the label to `USE_PREF_SIZE` height —
-  the scroll pane's `fitToHeight` otherwise squeezes a wrapped label back to one ellipsised line
-  (`DialogSizingTest.theSharedTaglineMayGrowToItsWrappedHeight`).
+- The welcome and About cards' opening lines have one source: the page's first two paragraphs.
+  `.tagline` is `appTagline` and `.lede` is `appTaglineDetail`, drawn as two labels so the second
+  sentence starts on its own line — two keys rather than one string split on a full stop, because
+  where a sentence ends is not something the layout can guess in six languages.
+  `SitePageTest.theCardsOpeningLinesAreThePagesOpeningParagraphs` compares both keys against the
+  markup for every language, so a rewritten sentence moves every surface or fails. The detail line
+  is long enough to wrap in every language, and `OverlayCard.wrappedLabel` pins both labels to
+  `USE_PREF_SIZE` height — the scroll pane's `fitToHeight` otherwise squeezes a wrapped label back
+  to one ellipsised line (`DialogSizingTest.theSharedTaglineMayGrowToItsWrappedHeight`).
 - `releases/` and `target/` are generated — never hand-edit or commit them.
 - Docs are bilingual: update `README.md` and `README-TR.md` (and release notes) together.
 - `.gitattributes` forces LF for text (CRLF only for `.bat/.cmd/.ps1`); keep new text files LF.
