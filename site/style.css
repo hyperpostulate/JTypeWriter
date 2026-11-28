@@ -1,0 +1,300 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2026 Mesut ORMANLI
+ */
+
+:root {
+    color-scheme: dark;
+
+    --page: #1a1a1a;
+    --surface: #212121;
+    --edge: #2e2e2e;
+    --text: #d4d4d4;
+    --muted: #9a9a9a;
+    --accent: #e0a04a;
+    --accent-hover: #d4984c;
+
+    --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --display: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+
+    --measure: 40rem;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.65;
+}
+
+.shell {
+    width: 100%;
+    max-width: 56rem;
+    margin: 0 auto;
+    padding-inline: 1.25rem;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* --- masthead ---------------------------------------------------------- */
+
+.masthead {
+    border-bottom: 1px solid var(--edge);
+}
+
+.masthead-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1rem;
+}
+
+.wordmark {
+    margin: 0;
+    font-family: var(--display);
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+}
+
+/* The language switch is a native <select>: on a phone it opens the system
+   picker, the options carry their own `lang` so a screen reader pronounces
+   "Türkçe" as Turkish rather than mangling it in English, and there is no
+   scripted listbox to keep accessible. `color-scheme: dark` on :root is what
+   makes the popup dark; the control itself only needs to stop looking like a
+   form field dropped in from another site. */
+.language {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.language select {
+    margin: 0;
+    padding: 0.3rem 1.9rem 0.3rem 0.7rem;
+    border: 1px solid var(--edge);
+    border-radius: 999px;
+    background-color: var(--surface);
+    /* The caret, drawn inline so the page stays free of requests and of a
+       second file that has to stay in step with the palette. */
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+                      linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: calc(100% - 1.05rem) 50%, calc(100% - 0.7rem) 50%;
+    background-size: 0.35rem 0.35rem, 0.35rem 0.35rem;
+    background-repeat: no-repeat;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    cursor: pointer;
+    appearance: none;
+    transition: border-color 120ms ease, color 120ms ease;
+}
+
+.language select:hover {
+    border-color: var(--muted);
+}
+
+.language select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* --- hero -------------------------------------------------------------- */
+
+.hero {
+    padding-block: 4.5rem 2.5rem;
+}
+
+h1 {
+    margin: 0;
+    font-family: var(--display);
+    font-size: clamp(2.6rem, 8vw, 4rem);
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+}
+
+.tagline {
+    max-width: var(--measure);
+    margin: 1rem 0 0;
+    font-family: var(--display);
+    font-size: clamp(1.25rem, 3vw, 1.6rem);
+    font-style: italic;
+    color: var(--accent);
+}
+
+.lede {
+    max-width: var(--measure);
+    margin: 1.1rem 0 0;
+    color: var(--text);
+}
+
+.actions {
+    margin: 2rem 0 0;
+}
+
+.button {
+    display: inline-block;
+    padding: 0.7rem 1.5rem;
+    border-radius: 0.35rem;
+    background: var(--accent);
+    color: #1a1a1a;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 120ms ease;
+}
+
+.button:hover,
+.button:focus-visible {
+    background: var(--accent-hover);
+}
+
+.hint {
+    max-width: var(--measure);
+    margin: 1rem 0 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+/* --- screenshot -------------------------------------------------------- */
+
+.shot {
+    margin-block: 1rem 4rem;
+}
+
+.shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--edge);
+    border-radius: 0.4rem;
+    background: var(--surface);
+}
+
+figcaption {
+    margin-top: 0.85rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+    text-align: center;
+}
+
+/* --- reasons ----------------------------------------------------------- */
+
+.reasons h2,
+.get h2 {
+    margin: 0 0 1.5rem;
+    font-family: var(--display);
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    font-weight: 400;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.card {
+    padding: 1.4rem 1.5rem;
+    border: 1px solid var(--edge);
+    border-radius: 0.4rem;
+    background: var(--surface);
+}
+
+.card h3 {
+    margin: 0 0 0.6rem;
+    font-size: 1.02rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.card p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--text);
+}
+
+/* --- get --------------------------------------------------------------- */
+
+.get {
+    padding-block: 4rem 5rem;
+    border-top: 1px solid var(--edge);
+}
+
+.get p {
+    max-width: var(--measure);
+}
+
+/* --- footer ------------------------------------------------------------ */
+
+footer {
+    padding-block: 2.5rem 4rem;
+    border-top: 1px solid var(--edge);
+    font-size: 0.88rem;
+    color: var(--muted);
+}
+
+footer p {
+    margin: 0;
+}
+
+footer a {
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+footer a:hover,
+footer a:focus-visible {
+    color: var(--text);
+}
+
+.dot {
+    margin-inline: 0.4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+}
+
+@media print {
+    body {
+        background: #fff;
+        color: #111;
+    }
+
+    .masthead,
+    .shot,
+    .actions {
+        display: none;
+    }
+}

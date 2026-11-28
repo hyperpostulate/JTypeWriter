@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-en="JTypeWriter - A quiet place to write."
+       data-tr="JTypeWriter - Yazmak için sessiz bir yer."
+       data-de="JTypeWriter - Ein stiller Ort zum Schreiben."
+       data-fr="JTypeWriter - Un endroit calme pour écrire."
+       data-es="JTypeWriter - Un lugar tranquilo para escribir."
+       data-it="JTypeWriter - Un posto tranquillo per scrivere.">JTypeWriter - A quiet place to write.</title>
+<meta name="description"
+      data-en="A quiet desktop editor for people who write. Free, for Linux and Windows, with no account and nothing uploaded anywhere."
+      data-tr="Yazanlar için sakin bir masaüstü editörü. Ücretsiz, Linux ve Windows için; hesap yok, hiçbir şey hiçbir yere yüklenmez."
+      data-de="Ein stiller Desktop-Editor für Menschen, die schreiben. Kostenlos, für Linux und Windows, ohne Konto und ohne dass irgendetwas irgendwohin hochgeladen wird."
+      data-fr="Un éditeur de bureau calme pour celles et ceux qui écrivent. Gratuit, pour Linux et Windows, sans compte et sans rien envoyer nulle part."
+      data-es="Un editor de escritorio tranquilo para quien escribe. Gratis, para Linux y Windows, sin cuenta y sin subir nada a ningún sitio."
+      data-it="Un editor desktop tranquillo per chi scrive. Gratuito, per Linux e Windows, senza account e senza caricare nulla da nessuna parte."
+      content="A quiet desktop editor for people who write. Free, for Linux and Windows, with no account and nothing uploaded anywhere.">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<noscript><style>.language { display: none; }</style></noscript>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="shell masthead-row">
+    <p class="wordmark">JTypeWriter</p>
+    <div class="language">
+      <label class="visually-hidden" for="language"
+             data-en="Language" data-tr="Dil" data-de="Sprache"
+             data-fr="Langue" data-es="Idioma" data-it="Lingua">Language</label>
+      <select id="language" name="language">
+        <option value="en" lang="en">English</option>
+        <option value="tr" lang="tr">Türkçe</option>
+        <option value="de" lang="de">Deutsch</option>
+        <option value="fr" lang="fr">Français</option>
+        <option value="es" lang="es">Español</option>
+        <option value="it" lang="it">Italiano</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section class="shell hero">
+    <h1>JTypeWriter</h1>
+    <p class="tagline"
+       data-en="A quiet place to write."
+       data-tr="Yazmak için sessiz bir yer."
+       data-de="Ein stiller Ort zum Schreiben."
+       data-fr="Un endroit calme pour écrire."
+       data-es="Un lugar tranquilo para escribir."
+       data-it="Un posto tranquillo per scrivere.">A quiet place to write.</p>
+    <p class="lede"
+       data-en="Open it and the screen holds nothing but your text: one page, one font, the colour you picked. Everything else stays out of the way until you ask for it."
+       data-tr="Açın, ekranda metninizden başka bir şey olmasın: tek sayfa, tek yazı tipi, kendi seçtiğiniz renk. Geri kalan her şey, siz çağırana kadar yolunuzdan çekilir."
+       data-de="Öffnen Sie es, und auf dem Bildschirm steht nichts als Ihr Text: eine Seite, eine Schrift, die Farbe, die Sie gewählt haben. Alles andere bleibt Ihnen aus dem Weg, bis Sie es aufrufen."
+       data-fr="Ouvrez-le : l'écran ne contient rien d'autre que votre texte, une page, une police, la couleur que vous avez choisie. Tout le reste s'écarte jusqu'à ce que vous l'appeliez."
+       data-es="Ábrelo y la pantalla no muestra más que tu texto: una página, una tipografía, el color que hayas elegido. Todo lo demás se aparta hasta que lo llames."
+       data-it="Aprilo e sullo schermo non c'è altro che il tuo testo: una pagina, un carattere, il colore che hai scelto. Tutto il resto si fa da parte finché non lo chiami.">Open it and the screen holds nothing but your text: one page, one font, the colour you picked. Everything else stays out of the way until you ask for it.</p>
+    <p class="actions">
+      <a class="button" href="https://github.com/hyperpostulate/JTypeWriter/releases/latest"
+         data-en="Download JTypeWriter" data-tr="JTypeWriter'ı indir"
+         data-de="JTypeWriter herunterladen" data-fr="Télécharger JTypeWriter"
+         data-es="Descargar JTypeWriter" data-it="Scarica JTypeWriter">Download JTypeWriter</a>
+    </p>
+    <p class="hint"
+       data-en="Free. Linux and Windows. No account, no e-mail address, no trial period."
+       data-tr="Ücretsiz. Linux ve Windows. Hesap yok, e-posta adresi yok, deneme süresi yok."
+       data-de="Kostenlos. Linux und Windows. Kein Konto, keine E-Mail-Adresse, keine Testphase."
+       data-fr="Gratuit. Linux et Windows. Sans compte, sans adresse e-mail, sans période d'essai."
+       data-es="Gratis. Linux y Windows. Sin cuenta, sin dirección de correo, sin periodo de prueba."
+       data-it="Gratuito. Linux e Windows. Nessun account, nessun indirizzo e-mail, nessun periodo di prova.">Free. Linux and Windows. No account, no e-mail address, no trial period.</p>
+  </section>
+
+  <figure class="shell shot">
+    <img src="assets/hero-en.gif"
+         data-src-en="assets/hero-en.gif" data-src-tr="assets/hero-tr.gif"
+         data-alt-en="The JTypeWriter window in its dark theme while a paragraph is typed and the word count rises"
+         data-alt-tr="JTypeWriter'ın koyu temalı penceresi; bir paragraf yazılırken kelime sayısı artıyor"
+         data-alt-de="Das JTypeWriter-Fenster im dunklen Design, während ein Absatz getippt wird und die Wortzahl steigt"
+         data-alt-fr="La fenêtre de JTypeWriter dans son thème sombre pendant la saisie d'un paragraphe, le nombre de mots augmentant"
+         data-alt-es="La ventana de JTypeWriter con su tema oscuro mientras se escribe un párrafo y aumenta el recuento de palabras"
+         data-alt-it="La finestra di JTypeWriter nel tema scuro mentre viene scritto un paragrafo e cresce il conteggio delle parole"
+         alt="The JTypeWriter window in its dark theme while a paragraph is typed and the word count rises"
+         width="900" height="432" loading="lazy">
+    <figcaption
+        data-en="Ten seconds of writing: nothing on the screen but the page."
+        data-tr="On saniyelik yazım: ekranda sayfadan başka bir şey yok."
+        data-de="Zehn Sekunden Schreiben: nichts auf dem Bildschirm als die Seite."
+        data-fr="Dix secondes d'écriture : rien à l'écran que la page."
+        data-es="Diez segundos de escritura: nada en pantalla salvo la página."
+        data-it="Dieci secondi di scrittura: sullo schermo niente altro che la pagina.">Ten seconds of writing: nothing on the screen but the page.</figcaption>
+  </figure>
+
+  <section class="shell reasons">
+    <h2 data-en="Why JTypeWriter?" data-tr="Neden JTypeWriter?"
+        data-de="Warum JTypeWriter?" data-fr="Pourquoi JTypeWriter ?"
+        data-es="¿Por qué JTypeWriter?" data-it="Perché JTypeWriter?">Why JTypeWriter?</h2>
+    <ul class="cards">
+      <li class="card">
+        <h3 data-en="Your words stay in your file" data-tr="Yazdıklarınız kendi dosyanızda kalır"
+            data-de="Ihre Texte bleiben in Ihrer Datei" data-fr="Vos textes restent dans votre fichier"
+            data-es="Tus textos se quedan en tu archivo" data-it="I tuoi testi restano nel tuo file">Your words stay in your file</h3>
+        <p data-en="The document you write is the plain text file you chose, on your own computer. Nothing is uploaded, nothing is synchronised, and nothing waits for a connection."
+           data-tr="Yazdığınız belge, kendi bilgisayarınızda seçtiğiniz düz metin dosyasıdır. Hiçbir yere yüklenmez, hiçbir yere eşitlenmez, hiçbir şey bağlantı beklemez."
+           data-de="Was Sie schreiben, ist die Textdatei, die Sie gewählt haben, auf Ihrem eigenen Rechner. Nichts wird hochgeladen, nichts abgeglichen, und nichts wartet auf eine Verbindung."
+           data-fr="Ce que vous écrivez, c'est le fichier texte que vous avez choisi, sur votre propre ordinateur. Rien n'est envoyé, rien n'est synchronisé, rien n'attend une connexion."
+           data-es="El documento que escribes es el archivo de texto que elegiste, en tu propio ordenador. Nada se sube, nada se sincroniza y nada espera una conexión."
+           data-it="Il documento che scrivi è il file di testo che hai scelto, sul tuo computer. Niente viene caricato, niente viene sincronizzato e niente aspetta una connessione.">The document you write is the plain text file you chose, on your own computer. Nothing is uploaded, nothing is synchronised, and nothing waits for a connection.</p>
+      </li>
+      <li class="card">
+        <h3 data-en="A page you cannot lose by accident" data-tr="Kazara kaybedemeyeceğiniz bir sayfa"
+            data-de="Eine Seite, die Sie nicht aus Versehen verlieren" data-fr="Une page que vous ne pouvez pas perdre par accident"
+            data-es="Una página que no puedes perder por accidente" data-it="Una pagina che non puoi perdere per sbaglio">A page you cannot lose by accident</h3>
+        <p data-en="Every save keeps the previous version beside your file, and what you are still working on is set aside every half minute. If the power goes out, it is offered back the next time you open the editor."
+           data-tr="Her kayıt önceki hâli dosyanızın yanında saklar; üzerinde çalıştığınız metin yarım dakikada bir ayrıca kenara alınır. Elektrik giderse, bir sonraki açılışta geri önerilir."
+           data-de="Jedes Speichern legt die vorige Fassung neben Ihrer Datei ab, und was Sie gerade bearbeiten, wird jede halbe Minute gesichert. Fällt der Strom aus, wird es beim nächsten Öffnen angeboten."
+           data-fr="Chaque enregistrement garde la version précédente à côté de votre fichier, et ce que vous êtes en train d'écrire est mis de côté toutes les trente secondes. En cas de coupure de courant, il vous est proposé à la prochaine ouverture."
+           data-es="Cada guardado deja la versión anterior junto a tu archivo, y lo que estás escribiendo se aparta cada medio minuto. Si se va la luz, se te ofrece la próxima vez que abras el editor."
+           data-it="Ogni salvataggio tiene la versione precedente accanto al tuo file, e quello a cui stai lavorando viene messo da parte ogni mezzo minuto. Se va via la corrente, ti viene riproposto alla prossima apertura.">Every save keeps the previous version beside your file, and what you are still working on is set aside every half minute. If the power goes out, it is offered back the next time you open the editor.</p>
+      </li>
+      <li class="card">
+        <h3 data-en="Only you and the page" data-tr="Yalnızca siz ve sayfa"
+            data-de="Nur Sie und die Seite" data-fr="Vous et la page, rien d'autre"
+            data-es="Solo tú y la página" data-it="Solo tu e la pagina">Only you and the page</h3>
+        <p data-en="No account, no sign-in, no cloud, no advertising, no software nagging you to install something. The window holds your text and one calm line of numbers at the bottom."
+           data-tr="Hesap yok, giriş yok, bulut yok, reklam yok, karşınıza çıkan kurulum ısrarı yok. Pencerede metniniz ve altta sakin bir sayı satırı var."
+           data-de="Kein Konto, keine Anmeldung, keine Cloud, keine Werbung, keine Software, die Ihnen etwas aufdrängt. Im Fenster steht Ihr Text und unten eine ruhige Zeile mit Zahlen."
+           data-fr="Pas de compte, pas de connexion, pas de cloud, pas de publicité, pas de logiciel qui vous harcèle pour installer quelque chose. La fenêtre contient votre texte et une ligne de chiffres discrète en bas."
+           data-es="Sin cuenta, sin inicio de sesión, sin nube, sin publicidad, sin software que insista en que instales algo. La ventana tiene tu texto y una línea tranquila de cifras abajo."
+           data-it="Nessun account, nessun accesso, nessun cloud, nessuna pubblicità, nessun software che insista per installare qualcosa. Nella finestra ci sono il tuo testo e una riga tranquilla di numeri in basso.">No account, no sign-in, no cloud, no advertising, no software nagging you to install something. The window holds your text and one calm line of numbers at the bottom.</p>
+      </li>
+      <li class="card">
+        <h3 data-en="A keyboard that answers back" data-tr="Cevap veren bir klavye"
+            data-de="Eine Tastatur, die antwortet" data-fr="Un clavier qui vous répond"
+            data-es="Un teclado que responde" data-it="Una tastiera che risponde">A keyboard that answers back</h3>
+        <p data-en="A typewriter click as you type, at the volume you choose. Three themes, six text colours, and a word count that keeps score while you go."
+           data-tr="Siz yazarken, seçtiğiniz ses düzeyinde daktilo tıkırtısı. Üç tema, altı metin rengi ve siz ilerledikçe puanı tutan bir kelime sayacı."
+           data-de="Ein Schreibmaschinen-Klicken beim Tippen, in der Lautstärke, die Sie wählen. Drei Designs, sechs Textfarben und eine Wortzahl, die mitzählt, während Sie schreiben."
+           data-fr="Un clic de machine à écrire pendant que vous tapez, au volume que vous choisissez. Trois thèmes, six couleurs de texte et un compteur de mots qui tient le score."
+           data-es="Un clic de máquina de escribir mientras escribes, al volumen que elijas. Tres temas, seis colores de texto y un contador de palabras que lleva la cuenta."
+           data-it="Un clic di macchina da scrivere mentre scrivi, al volume che scegli. Tre temi, sei colori del testo e un contatore di parole che tiene il punteggio.">A typewriter click as you type, at the volume you choose. Three themes, six text colours, and a word count that keeps score while you go.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="shell get">
+    <h2 data-en="Take it with you" data-tr="Yanınızda taşıyın"
+        data-de="Nehmen Sie es mit" data-fr="Emportez-le avec vous"
+        data-es="Llévalo contigo" data-it="Portalo con te">Take it with you</h2>
+    <p data-en="Download the version for your computer. The download page lists an installer for Windows, one for Linux, and a portable copy that runs straight from the folder without installing anything."
+       data-tr="Bilgisayarınıza uygun sürümü indirin. İndirme sayfasında Windows için bir kurulum dosyası, Linux için bir kurulum dosyası ve hiçbir şey kurmadan doğrudan klasöründen çalışan taşınabilir bir sürüm var."
+       data-de="Laden Sie die Fassung für Ihren Rechner herunter. Die Download-Seite bietet einen Installer für Windows, einen für Linux und eine portable Kopie, die direkt aus dem Ordner läuft, ohne etwas zu installieren."
+       data-fr="Téléchargez la version pour votre ordinateur. La page de téléchargement propose un installateur pour Windows, un pour Linux et une copie portable qui se lance directement depuis le dossier, sans rien installer."
+       data-es="Descarga la versión para tu ordenador. La página de descargas ofrece un instalador para Windows, otro para Linux y una copia portátil que se ejecuta directamente desde la carpeta sin instalar nada."
+       data-it="Scarica la versione per il tuo computer. La pagina dei download offre un installer per Windows, uno per Linux e una copia portatile che parte direttamente dalla cartella senza installare nulla.">Download the version for your computer. The download page lists an installer for Windows, one for Linux, and a portable copy that runs straight from the folder without installing anything.</p>
+    <p class="actions">
+      <a class="button" href="https://github.com/hyperpostulate/JTypeWriter/releases/latest"
+         data-en="Go to the downloads" data-tr="İndirmelere gidin"
+         data-de="Zu den Downloads" data-fr="Aller aux téléchargements"
+         data-es="Ir a las descargas" data-it="Vai ai download">Go to the downloads</a>
+    </p>
+    <p class="hint"
+       data-en="The interface speaks English, Turkish, German, French, Spanish and Italian."
+       data-tr="Arayüz İngilizce, Türkçe, Almanca, Fransızca, İspanyolca ve İtalyanca konuşur."
+       data-de="Die Oberfläche spricht Englisch, Türkisch, Deutsch, Französisch, Spanisch und Italienisch."
+       data-fr="L'interface parle anglais, turc, allemand, français, espagnol et italien."
+       data-es="La interfaz habla inglés, turco, alemán, francés, español e italiano."
+       data-it="L'interfaccia parla inglese, turco, tedesco, francese, spagnolo e italiano.">The interface speaks English, Turkish, German, French, Spanish and Italian.</p>
+  </section>
+
+</main>
+
+<footer class="shell">
+  <p>
+    <span data-en="Free software under the Apache License 2.0"
+          data-tr="Apache 2.0 lisansıyla özgür yazılım"
+          data-de="Freie Software unter der Apache-Lizenz 2.0"
+          data-fr="Logiciel libre sous licence Apache 2.0"
+          data-es="Software libre bajo la licencia Apache 2.0"
+          data-it="Software libero con licenza Apache 2.0">Free software under the Apache License 2.0</span>
+    <span class="dot">·</span>
+    <a href="https://github.com/hyperpostulate/JTypeWriter"
+       data-en="Source code" data-tr="Kaynak kodu" data-de="Quelltext"
+       data-fr="Code source" data-es="Código fuente" data-it="Codice sorgente">Source code</a>
+  </p>
+  <noscript>
+    <p class="hint">Türkçe tanıtım:
+      <a href="https://github.com/hyperpostulate/JTypeWriter/blob/main/README-TR.md">README-TR</a></p>
+  </noscript>
+</footer>
+
+<script src="app.js"></script>
+
+</body>
+</html>

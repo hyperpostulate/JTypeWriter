@@ -193,6 +193,20 @@ suite is the gate, and it enforces several non-code invariants below.
   stray images), and never add a GIF to `icons.manifest`: encoder output is not byte-stable.
   `ReadmeMediaTest` pins the links, the per-language pairing, `alt` text, position above the
   feature list and the size budget.
+- The end-user introduction lives in `site/` (plain HTML, CSS and one script; no build step) and
+  is published by `.github/workflows/pages.yml` through a Pages **artifact**, never a branch:
+  `gh-pages` belongs to `scripts/publish-test-badge.sh`, and two publishers on one branch delete
+  each other's work. Pages must be enabled once by hand (Settings → Pages → Source: *GitHub
+  Actions*): nothing in the repository can do that, and until it is switched on the deploy job
+  fails on its first run.
+  Every sentence is authored once per language in the markup (`data-en` through `data-it`, the
+  same six the bundles carry) so the page still reads without JavaScript, and the deploy job
+  copies `docs/media/hero-*.gif` in at build time — `site/assets/` is generated and ignored.
+  Only English and Turkish were ever recorded, so the other four languages fall back to the
+  English clip inside `app.js` rather than to files nobody captured. The page names no version:
+  its only download action is `/releases/latest`, the same address the in-app update check
+  reads. `SitePageTest` pins the per-language parity, the dropdown's order, the absence of any
+  non-GitHub resource or link, and the copy-not-commit rule.
 - `releases/` and `target/` are generated — never hand-edit or commit them.
 - Docs are bilingual: update `README.md` and `README-TR.md` (and release notes) together.
 - `.gitattributes` forces LF for text (CRLF only for `.bat/.cmd/.ps1`); keep new text files LF.

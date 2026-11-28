@@ -43,6 +43,10 @@ buildNumber.properties
 # (regenerate any time with ./scripts/package.sh)
 releases/
 
+# The introduction page borrows its hero recordings from docs/media at deploy
+# time (see .github/workflows/pages.yml); this is the staged copy, not a source
+site/assets/
+
 # IntelliJ IDEA
 .idea/
 *.iml

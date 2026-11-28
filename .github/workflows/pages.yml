@@ -1,0 +1,72 @@
+# The product's one-page introduction, published to GitHub Pages.
+#
+# Why an Actions deployment and not a branch folder: the gh-pages branch already
+# has a publisher - scripts/publish-test-badge.sh writes badges/tests.json there
+# from every build - and two publishers on one branch take turns deleting each
+# other's work. An artifact deployment never touches that branch.
+#
+# Why the images are copied instead of committed here: docs/media is the single
+# source for the hero recordings (scripts/capture-hero-gif.sh writes them, and
+# ReadmeMediaTest pins the README links), so the site borrows the same files at
+# deploy time rather than keeping a second copy that can go stale.
+#
+# The site is plain HTML, CSS and one small script: no build step, no package
+# manager, no third-party request, no analytics. That is deliberate - the editor
+# promises that nothing leaves the machine, and its introduction should not be
+# the page that phones home.
+
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "docs/media/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancel a running one: a half-published
+# site is worse than a site that is one commit behind.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Assemble the site
+        run: |
+          set -eu
+          for language in en tr; do
+            source="docs/media/hero-$language.gif"
+            if [ ! -f "$source" ]; then
+              echo "no $source - run scripts/capture-hero-gif.sh first" >&2
+              exit 1
+            fi
+          done
+          icon=src/main/resources/icons/jtypewriter.svg
+          mkdir -p site/assets
+          cp "$icon" site/assets/icon.svg
+          cp docs/media/hero-en.gif site/assets/hero-en.gif
+          cp docs/media/hero-tr.gif site/assets/hero-tr.gif
+
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b  # v5.0.0
+
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa  # v3.0.1
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4.0.5
